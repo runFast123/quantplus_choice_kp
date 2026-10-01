@@ -1,0 +1,8 @@
+{
+  "name": "quantspulse-db-harness",
+  "private": true,
+  "type": "module",
+  "description": "Runs supabase/migrations + supabase/tests on PGlite (in-process Postgres) — no Docker needed.",
+  "scripts": { "test": "node run.mjs" },
+  "devDependencies": { "@electric-sql/pglite": "^0.5.8" }
+}
