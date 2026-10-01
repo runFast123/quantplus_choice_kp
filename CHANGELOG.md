@@ -6,6 +6,13 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — email confirmation on production
+- Diagnosed: Supabase rejected the production redirect and fell back to its Site URL (`localhost:3000`) — the
+  Auth URL allow-list needs the production domain (owner action in the dashboard).
+- Expired/used links (`otp_expired`) now land on a clear sign-in message with a **Resend confirmation email** form;
+  signing in before confirming offers the same. `resendConfirmation` action (no account enumeration, rate-limit aware).
+- E2E: expired-link and unconfirmed sign-in flows covered (auth suite 9/9).
+
 ### Deployed — Vercel (2026-10-01)
 - Production: **https://quantplus-ten.vercel.app** (Vercel project `quantplus`, root directory `web`).
 - Functions pinned to **icn1 (Seoul)**, next to the Supabase project (ap-northeast-2); the project default was iad1 and

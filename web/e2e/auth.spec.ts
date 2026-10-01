@@ -92,6 +92,24 @@ test.describe("authentication", () => {
     }
   });
 
+  test("an expired email link lands on a clear page with a way to get a new one", async ({ page }) => {
+    // What Supabase sends back for a used/expired link.
+    await page.goto("/auth/confirm?error=access_denied&error_code=otp_expired&next=%2Fapp%2Fwelcome");
+    await expect(page).toHaveURL(/\/login\?error=link/);
+    await expect(page.locator("main").getByRole("alert")).toContainText("expired or was already used");
+    await expect(page.getByLabel("Resend confirmation email")).toBeVisible();
+  });
+
+  test("signing in before confirming offers to resend the link", async ({ page }) => {
+    const u = await oneOffUser("unconfirmed", "basic", [], { confirmed: false });
+    await page.goto("/login");
+    await page.getByLabel("Email", { exact: true }).fill(u.email);
+    await page.getByLabel("Password").fill(u.password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.locator("main form").first().getByRole("alert")).toContainText("Confirm your email first");
+    await expect(page.getByLabel("Resend confirmation email")).toHaveValue(u.email);
+  });
+
   test("sign out ends the session", async ({ browser }) => {
     const u = await oneOffUser("signout", "basic");
     const { ctx, page } = await signInFresh(browser, u);

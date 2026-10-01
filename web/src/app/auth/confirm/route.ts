@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
       : { data: { user: null }, error: new Error("missing token") };
 
   if (error || !data.user) {
-    return NextResponse.redirect(new URL("/login?error=link", url.origin));
+    // Covers Supabase's own ?error=access_denied&error_code=otp_expired redirects too.
+    return NextResponse.redirect(new URL(`/login?error=link&next=${encodeURIComponent(next)}`, url.origin));
   }
   await claimThisDevice(data.user.id);
   return NextResponse.redirect(new URL(next, url.origin));

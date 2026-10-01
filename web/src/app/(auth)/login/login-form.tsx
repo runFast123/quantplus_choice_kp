@@ -5,10 +5,12 @@ import { useActionState } from "react";
 import { Field, FormMessage, Input } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { signIn } from "../actions";
+import { ResendConfirmation } from "./resend-form";
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, action] = useActionState(signIn, undefined);
   return (
+    <>
     <form action={action} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="next" value={next ?? "/app"} />
       <Field label="Email" htmlFor="email">
@@ -38,5 +40,8 @@ export function LoginForm({ next }: { next?: string }) {
         Sign in
       </SubmitButton>
     </form>
+    {/* Sibling, not nested: forms can't contain forms. */}
+    {state?.data?.unconfirmed ? <ResendConfirmation email={state.data.email} next={next} /> : null}
+    </>
   );
 }

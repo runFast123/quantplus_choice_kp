@@ -161,7 +161,14 @@ E2E_BASE_URL=https://quantplus-ten.vercel.app npx playwright test   # verify the
   `{"resourceConfig":{"functionDefaultRegions":["icn1"]}}`. Check with the `X-Vercel-Id` header (`…::icn1::…`).
 - Git Bash: prefix `vercel api` calls with `MSYS_NO_PATHCONV=1`, or `/v9/...` is rewritten into a Windows path.
 - Supabase Auth → URL Configuration must list the production URL (Site URL + `https://quantplus-ten.vercel.app/**`),
-  or confirmation/reset emails link to localhost.
+  or confirmation/reset emails link to localhost. Check without sending mail: create a throwaway user and call
+  `/auth/v1/admin/generate_link` with `redirect_to` = the production URL — the returned link's `redirect_to` shows
+  what Supabase will really use.
+- **Email links that work on any device** (Supabase → Authentication → Email Templates → *Confirm signup* and
+  *Reset password*): replace the link with
+  `<a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email">Confirm your email</a>` (reset: `type=recovery`).
+  The default `{{ .ConfirmationURL }}` uses PKCE, which only works in the browser that signed up.
+  `/auth/confirm` already handles `token_hash`.
 
 ## M. Before you push
 ```bash

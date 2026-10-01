@@ -13,13 +13,18 @@ const svc = { apikey: SERVICE, authorization: `Bearer ${SERVICE}`, "content-type
 
 export type TestUser = { id: string; email: string; password: string; plan: "basic" | "pro" };
 
-export async function createUser(label: string, plan: "basic" | "pro", consents: string[] = ["terms", "privacy_policy"]): Promise<TestUser> {
+export async function createUser(
+  label: string,
+  plan: "basic" | "pro",
+  consents: string[] = ["terms", "privacy_policy"],
+  opts: { confirmed?: boolean } = {},
+): Promise<TestUser> {
   const email = `e2e.${label}.${Date.now()}.${Math.random().toString(36).slice(2, 6)}@quantspulse.test`;
   const password = `E2e-${crypto.randomUUID()}`;
   const r = await fetch(`${URL_}/auth/v1/admin/users`, {
     method: "POST",
     headers: svc,
-    body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { full_name: `E2E ${label}` } }),
+    body: JSON.stringify({ email, password, email_confirm: opts.confirmed ?? true, user_metadata: { full_name: `E2E ${label}` } }),
   });
   const u = await r.json();
   if (!r.ok) throw new Error(`createUser: ${r.status} ${u.msg ?? u.message}`);
