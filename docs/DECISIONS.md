@@ -110,3 +110,24 @@ feature gates; covered by isolation test 12 and e2e `writes.spec.ts`.
 **Date** 2026-10-01 · **Status** accepted
 Playwright uses `channel: "chrome"` (no browser download on this network). Disposable users are created and deleted
 via the admin API. Tests that write tenant-scoped data skip with an explicit reason until the access-token hook is on.
+
+### ADR-021 · Device rule lives in requireSession()
+**Date** 2026-10-01 · **Status** accepted (supersedes the layout-only check in ADR-011)
+Layouts don't re-render on client navigation and server actions never run the layout, so a displaced device kept
+working. `requireSession()` now redirects inactive devices to `/device`; route handlers check `deviceActive`.
+
+### ADR-022 · Notification dedupe in a private ledger
+**Date** 2026-10-01 · **Status** accepted
+Dedupe keyed on rows users can delete re-sent notifications. `private.notification_ledger (user, tenant, kind, ref)`
+records what was sent; notifier and research refresh insert there first (`on conflict do nothing`).
+
+### ADR-023 · Alerts count prices from the session after they're set
+**Date** 2026-10-01 · **Status** accepted
+EOD candles carry only the day's high/low, not when they happened. An alert is evaluated against a candle only if that
+session opened (close − 6h15m = 09:15 IST) after the alert's `updated_at`; alerts created mid-session start with the next
+session. Expired plans neither fire nor re-arm alerts.
+
+### ADR-024 · Redirect targets go through safeNext()
+**Date** 2026-10-01 · **Status** accepted
+Prefix checks (`startsWith("/") && !startsWith("//")`) let `/\evil.com` and `/\t/evil.com` through. All user-supplied
+redirect targets are parsed with the URL API against a sentinel origin (`lib/safe-next.ts`).

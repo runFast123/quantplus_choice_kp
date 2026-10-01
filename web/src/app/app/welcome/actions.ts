@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { CONSENT_VERSION } from "@/lib/consents";
+import { safeNext } from "@/lib/safe-next";
 import { requireSession } from "@/server/session";
 
 export async function completeOnboarding(form: FormData) {
@@ -20,5 +21,5 @@ export async function completeOnboarding(form: FormData) {
   await s.supabase.from("user_consents").insert(purposes.map((purpose) => ({ purpose, version: CONSENT_VERSION[purpose] })));
 
   await s.supabase.rpc("track_event", { p_event_type: "onboarding_completed" });
-  redirect("/app");
+  redirect(safeNext(form.get("next")));
 }

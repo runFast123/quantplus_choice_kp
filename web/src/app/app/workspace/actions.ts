@@ -94,7 +94,9 @@ export async function leaveWorkspace() {
   const tenantId = s.activeTenantId;
   const personal = s.memberships.find((m) => m.tenants.type === "personal");
   if (!tenantId || !personal || tenantId === personal.tenant_id) return;
-  await s.supabase.from("tenant_members").delete().eq("tenant_id", tenantId).eq("user_id", s.userId);
+  // RLS (members_leave) blocks owners; don't switch away if nothing was deleted.
+  const { data: left } = await s.supabase.from("tenant_members").delete().eq("tenant_id", tenantId).eq("user_id", s.userId).select("user_id");
+  if (!left?.length) return;
   await switchTenant(s.userId, personal.tenant_id);
   await s.supabase.auth.refreshSession();
   revalidatePath("/app", "layout");
@@ -105,8 +107,10 @@ export async function renameWorkspace(_: ActionState, form: FormData): Promise<A
   const s = await requireSession();
   const name = String(form.get("name") ?? "").trim();
   if (name.length < 2 || name.length > 120) return { error: "Use 2–120 characters." };
-  const { error } = await s.supabase.from("tenants").update({ name }).eq("id", s.activeTenantId!);
+  const { data: renamed, error } = await s.supabase.from("tenants").update({ name }).eq("id", s.activeTenantId!).select("id");
   if (error) return { error: friendlyDbError(error.message) };
+  // RLS lets only the owner rename; an admin's update matches 0 rows without an error.
+  if (!renamed?.length) return { error: "Only the workspace owner can rename it." };
   revalidatePath("/app", "layout");
   return { ok: true, message: "Saved." };
 }

@@ -6,6 +6,51 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — full code & logic review (2026-10-01)
+Three parallel reviews (SQL, server, UI) + PGlite probes; every confirmed issue fixed and covered by a test.
+
+**Security**
+- Open redirect: `next=/\evil.com` and `/\t/evil.com` escaped the old prefix check. New `lib/safe-next.ts` (URL-API
+  based) used by sign-in, sign-up, email confirm and onboarding. Unit + e2e tests.
+- Single active device now enforced in `requireSession()` for every page **and server action** (was layout-only, so a
+  displaced device kept working until reload); new `/device` page; export route returns 403. Device registration is one
+  transaction (`svc_register_device`) — concurrent sign-ins no longer collide.
+- Admins could remove co-admins (only the owner may): RLS policy tightened.
+- `authenticated` no longer holds TRUNCATE/REFERENCES/TRIGGER (TRUNCATE bypasses RLS and the audit-log trigger).
+- Symbol-limit bypass via UPDATE of `symbol`: column no longer updatable (holdings: only quantity/avg price).
+- Suspended organisations: invites can't be accepted; the access-token hook skips suspended tenants.
+- Secret scanners strip quotes around env values; bundle check also scans prerendered HTML/RSC.
+
+**Logic**
+- EOD notifier rewritten: sections isolated (one bad row can't cancel the day's alerts); alerts only count prices after
+  the alert was set/edited; expired plans don't fire alerts (and can't re-arm them); exit-signal window covers weekends;
+  plan-expiry reminders for anything ending within 7 days; dedupe in `private.notification_ledger` so deleting a
+  notification doesn't resend it.
+- Research refresh: active symbols only, no division by zero, safe numeric casts, ledger-deduped stance notifications.
+- `my_entitlements`, member directory and admin search prefer the live subscription over a later-ending cancelled one.
+- Account deletion refuses (owned organisations) **before** revoking brokers or deleting files.
+- News: ingest is idempotent and race-safe (upsert on `url_hash`), links are stored for every candidate, failures still
+  record feed health and refresh research; relink pages past the 1000-row cap and never leaves articles unlinked;
+  per-stock feeds and AI facts return the *newest* headlines (aliased inner-embed filter, 14-day window).
+- AI: Gemini invalid-key (400 `API_KEY_INVALID`) handled; `effort` only sent to models that accept it.
+- Holding edits validated (blank no longer saves 0); admin rename/owner leave no longer report false success.
+
+**UI**
+- Phones can reach every page (bottom-bar "More" sheet) and have stock search.
+- "Mark all read" no longer hides later notifications; research stance counts stay correct while filtered; News filters
+  reset the pagination cursor; portfolio and invite-role selects keep their value after an error; role select reverts
+  on failure; holding edit shows errors; new-list and rename forms keep text.
+- Invite → sign-up → onboarding → back to the invite (`next` carried through).
+- Overview note: the named holding moved in the portfolio's direction; exact signal count.
+- Copy matches the code: no broker-sync or "instant" claims, sample-price disclosure in the FAQ, billing says "plan ends".
+- Accessibility: factor chips have glyphs + labels, chart readout no longer floods screen readers, search combobox
+  announces the active option, ticker can be paused (button + focus), compact ₹ units round correctly, true minus signs.
+
+### Tests
+- `supabase/tests/04_hardening.sql` (16 checks); `00_verify` now asserts (incl. dangerous grants, security_invoker views).
+- E2E fixtures now pass the project's device settings (mobile tests really run at 390px); new e2e for redirects,
+  device takeover blocking actions, phone navigation, stance counts. **83 passed**, 1 skipped (phone-only test on desktop).
+
 ### Verified
 - Access-token hook enabled by the owner: full Playwright suite **81 passed, 0 skipped**, including all write flows
   (radar add/remove, Basic 10-symbol limit, portfolio weighted-average merge, alerts, export, organisation + invite).

@@ -21,7 +21,7 @@ const DOCS = {
       ["Not advice", "Signals are the output of published rules applied uniformly to all stocks. They are not personalised recommendations or investment advice. You are responsible for your decisions."],
       ["Plans", "Plans are per person, per workspace, billed yearly. New accounts start on Basic for three months. Features depend on your active plan."],
       ["Acceptable use", "Don't share accounts, scrape the service, or attempt to access other users' data. One device may be active per account at a time."],
-      ["Data from brokers", "Broker data is fetched with read-only access you grant, used only for your account, and never redistributed."],
+      ["Data from brokers", "A broker session you connect is stored encrypted with read-only scope, used only for your account, and never redistributed."],
     ],
   },
 } as const;

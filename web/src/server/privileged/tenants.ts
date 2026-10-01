@@ -102,10 +102,11 @@ export async function acceptInvitation(userId: string, userEmail: string, token:
   const db = serviceRole();
   const { data: inv } = await db
     .from("tenant_invitations")
-    .select("id, tenant_id, email, role, expires_at, accepted_at")
+    .select("id, tenant_id, email, role, expires_at, accepted_at, tenants!inner(status)")
     .eq("token_hash", sha256(token))
     .maybeSingle();
-  if (!inv || inv.accepted_at || new Date(inv.expires_at) < new Date()) {
+  const tenantActive = (inv?.tenants as unknown as { status: string } | undefined)?.status === "active";
+  if (!inv || !tenantActive || inv.accepted_at || new Date(inv.expires_at) < new Date()) {
     throw new PrivilegedError("This invitation is no longer valid.");
   }
   if (inv.email !== userEmail.toLowerCase()) {

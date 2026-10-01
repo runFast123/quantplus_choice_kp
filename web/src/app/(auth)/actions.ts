@@ -3,14 +3,16 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { SITE_URL } from "@/lib/env";
+import { safeNext } from "@/lib/safe-next";
 import type { ActionState } from "@/lib/errors";
 import { supabaseServer } from "@/lib/supabase/server";
 import { claimThisDevice } from "@/server/device";
 
-const safeNext = (n: FormDataEntryValue | null) => {
-  const s = typeof n === "string" ? n : "";
-  return s.startsWith("/") && !s.startsWith("//") ? s : "/app";
-};
+
+function welcomeUrl(next: FormDataEntryValue | null): string {
+  const target = safeNext(next, "");
+  return target ? `/app/welcome?next=${encodeURIComponent(target)}` : "/app/welcome";
+}
 
 const credentials = z.object({
   email: z.email("Enter a valid email address.").transform((s) => s.toLowerCase().trim()),
@@ -53,7 +55,9 @@ export async function signUp(_: ActionState, form: FormData): Promise<ActionStat
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: `${SITE_URL}/auth/confirm?next=/app/welcome`,
+      // New accounts always pass through onboarding (consents); `next` (e.g. an
+      // invite link) is carried through it.
+      emailRedirectTo: `${SITE_URL}/auth/confirm?next=${encodeURIComponent(welcomeUrl(form.get("next")))}`,
       data: { full_name: parsed.data.full_name, marketing: form.get("marketing") === "on" },
     },
   });
@@ -62,7 +66,7 @@ export async function signUp(_: ActionState, form: FormData): Promise<ActionStat
   // Email confirmation disabled in the project: we're already signed in.
   if (data.session && data.user) {
     await claimThisDevice(data.user.id);
-    redirect("/app/welcome");
+    redirect(welcomeUrl(form.get("next")));
   }
   return { ok: true, message: `Check ${parsed.data.email} for a confirmation link.`, data: echo };
 }

@@ -57,7 +57,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             </h1>
             <p className="mt-6 max-w-[34rem] text-[17px] leading-8 text-muted-foreground">
               Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against published rules after every close — moving-average crosses,
-              RSI reversals, the price levels you set — and tells you the moment something changes.
+              RSI reversals, the price levels you set — and tells you what changed, in plain words.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href={signedIn ? "/app" : "/signup"} size="lg">
@@ -116,7 +116,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               n="03"
               title="Track what you own"
               className="md:col-span-6 md:col-start-4"
-              body="Add holdings by hand or connect your broker. See day and overall P&L, sector concentration, and get notified when an exit rule fires on something you hold."
+              body="Add holdings by hand. See day and overall P&L, sector concentration, and get notified when an exit rule fires on something you hold."
             >
               <AllocationSketch />
             </Step>
@@ -256,11 +256,11 @@ const FAQ: [string, string][] = [
   ],
   [
     "Where does the market data come from, and how fresh is it?",
-    "Signals and charts run on end-of-day candles for NSE and BSE listings, updated after the close. Price alerts are checked against each session's high and low, so a level touched intraday still triggers.",
+    "Signals and charts run on end-of-day NSE candles, checked after every close; price alerts use each session's high and low, so a level touched intraday still triggers. During early access prices are sample data while exchange feeds are being connected — the app labels them. Headlines are live.",
   ],
   [
     "Which brokers can I connect?",
-    "Choice, Zerodha, Angel One, Upstox, Dhan and Fyers, with read-only scope. Most Indian brokers expire API sessions every morning, so you'll see a reconnect prompt when that happens. Connecting is optional — you can enter holdings by hand.",
+    "Choice, Zerodha, Angel One, Upstox, Dhan and Fyers. Today you can store a read-only session token, encrypted; automatic holdings sync is still being built, so add holdings by hand for now. Most brokers expire sessions every morning, and you'll see when yours has.",
   ],
   [
     "What does “bring your own AI key” mean?",

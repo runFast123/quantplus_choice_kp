@@ -42,17 +42,21 @@ export default async function OverviewPage() {
   const [sparks, signalsRes, notes, headlines] = await Promise.all([
     getSparks(db, radarSymbols, 45),
     tracked.length
-      ? db.from("trading_signals").select("*").in("symbol", tracked).gte("generated_at", since).order("generated_at", { ascending: false }).limit(12)
+      ? db.from("trading_signals").select("*", { count: "exact" }).in("symbol", tracked).gte("generated_at", since).order("generated_at", { ascending: false }).limit(12)
       : Promise.resolve({ data: [] as Signal[] }),
     getResearch(db, radarSymbols),
     getNews(db, { symbols: tracked, limit: 6, kind: "news" }),
   ]);
   const noteBySymbol = new Map(notes.map((n) => [n.symbol, n]));
   const signals = (signalsRes.data ?? []) as Signal[];
+  const signalCount = ("count" in signalsRes && typeof signalsRes.count === "number" ? signalsRes.count : null) ?? signals.length;
 
   const ps = positions(holdings, allQuotes);
   const port = summarize(ps);
-  const leader = [...ps].sort((a, b) => Math.abs(b.dayPnl) - Math.abs(a.dayPnl))[0];
+  // The holding that moved the portfolio the most in the direction it actually went.
+  const leader = [...ps]
+    .filter((p) => (port.dayPnl >= 0 ? p.dayPnl > 0 : p.dayPnl < 0))
+    .sort((a, b) => Math.abs(b.dayPnl) - Math.abs(a.dayPnl))[0];
 
   const quotes = [...allQuotes.values()].filter((q) => q.change_pct != null);
   const advancers = quotes.filter((q) => (q.change_pct ?? 0) > 0).length;
@@ -66,13 +70,13 @@ export default async function OverviewPage() {
 
   // The desk note: one plain sentence assembled from the numbers, not generated prose.
   const note =
-    holdings.length && leader
-      ? `Your portfolio closed ${port.dayPnl >= 0 ? "up" : "down"} ${pct(Math.abs(port.dayPct)).replace(/^[+−]/, "")} on the last session, ${
-          leader.dayPnl >= 0 ? "led" : "dragged"
-        } by ${leader.holding.symbol}. ${signals.length ? `${signals.length} signal${signals.length > 1 ? "s" : ""} fired on stocks you follow in the past fortnight.` : "No signals on your stocks this fortnight."}`
+    holdings.length
+      ? `Your portfolio closed ${port.dayPnl > 0 ? "up" : port.dayPnl < 0 ? "down" : "flat"}${port.dayPnl ? ` ${pct(Math.abs(port.dayPct)).replace(/^[+−]/, "")}` : ""} on the last session${
+          leader ? `, ${port.dayPnl >= 0 ? "led" : "dragged"} by ${leader.holding.symbol}` : ""
+        }. ${signalCount ? `${signalCount} signal${signalCount > 1 ? "s" : ""} fired on stocks you follow in the past fortnight.` : "No signals on your stocks this fortnight."}`
       : radarSymbols.length
         ? `${radarSymbols.length} stock${radarSymbols.length > 1 ? "s" : ""} on your radar; ${
-            signals.length ? `${signals.length} signal${signals.length > 1 ? "s" : ""} fired on them in the past fortnight.` : "none of them has signalled in the past fortnight."
+            signalCount ? `${signalCount} signal${signalCount > 1 ? "s" : ""} fired on them in the past fortnight.` : "none of them has signalled in the past fortnight."
           } Breadth across the tape: ${advancers} up, ${decliners} down.`
         : `Breadth on the last session: ${advancers} advancing, ${decliners} declining. Add a few stocks to your Market Radar and this page starts working for you.`;
 

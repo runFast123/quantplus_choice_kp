@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireSession } from "@/server/session";
+import { getSession, requireSession } from "@/server/session";
 import { claimThisDevice } from "@/server/device";
 import { switchTenant } from "@/server/privileged/tenants";
 
@@ -16,10 +16,13 @@ export async function switchTenantAction(tenantId: string) {
   redirect("/app");
 }
 
+/** Deliberately not requireSession(): this is how a displaced device takes over. */
 export async function claimDeviceAction() {
-  const s = await requireSession();
+  const s = await getSession();
+  if (!s) redirect("/login");
   await claimThisDevice(s.userId);
   revalidatePath("/app", "layout");
+  redirect("/app");
 }
 
 export async function markNotificationsRead(ids?: string[]) {

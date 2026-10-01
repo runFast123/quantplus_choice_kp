@@ -10,7 +10,7 @@ import { AiRead } from "@/components/research/ai-read";
 import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
-import { date, dateTime, price, qty, rupees, strategyLabel, volume } from "@/lib/format";
+import { date, dateTime, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import type { Holding, Quote, Signal } from "@/lib/types";
 import { getCandles, normalizeQuote } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
@@ -167,7 +167,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
                 <ScoreBar score={note.score} width={160} />
                 {note.prev_score != null ? (
                   <span className="text-[12px] text-muted-foreground">
-                    previous <span className="num">{note.prev_score > 0 ? "+" : ""}{note.prev_score.toFixed(0)}</span>
+                    previous <span className="num">{signedInt(note.prev_score)}</span>
                     {note.prev_stance && note.prev_stance !== note.stance ? ` (${note.prev_stance})` : ""}
                   </span>
                 ) : null}

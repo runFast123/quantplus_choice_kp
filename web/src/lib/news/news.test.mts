@@ -53,3 +53,12 @@ test("feed: RSS parsing, entities, dates", () => {
   assert.equal(decodeEntities("&amp;amp;"), "&");
   assert.equal(nseFilingSymbol("https://nsearchives.nseindia.com/corporate/INFY_01102026105448_Press.pdf"), "INFY");
 });
+
+import { safeNext } from "../safe-next";
+test("safeNext: only same-origin paths survive", () => {
+  for (const bad of ["//evil.com", String.raw`/\evil.com`, "/\t/evil.com", "https://evil.com", "javascript:alert(1)", "evil.com", "/\u0000x", ""]) {
+    assert.equal(safeNext(bad), "/app", JSON.stringify(bad));
+  }
+  assert.equal(safeNext("/app/markets?sector=IT#x"), "/app/markets?sector=IT#x");
+  assert.equal(safeNext("/invite/abc"), "/invite/abc");
+});

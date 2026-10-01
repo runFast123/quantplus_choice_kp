@@ -37,7 +37,7 @@ export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: 
         </label>
         <label className="flex flex-col gap-1">
           <span className="eyebrow">Portfolio</span>
-          <Select name="portfolio_id" defaultValue={portfolios[0]?.id ?? ""}>
+          <Select name="portfolio_id" defaultValue={values.portfolio_id ?? portfolios[0]?.id ?? ""} key={values.portfolio_id ?? "default"}>
             {portfolios.length === 0 ? <option value="">My Portfolio (new)</option> : null}
             {portfolios.map((p) => (
               <option key={p.id} value={p.id}>
@@ -55,7 +55,7 @@ export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: 
 
 export function EditHolding({ id, quantity, avgPrice, symbol }: { id: string; quantity: number; avgPrice: number; symbol: string }) {
   const [open, setOpen] = useState(false);
-  const [, action] = useActionState(async (prev: ActionState, fd: FormData) => {
+  const [state, action] = useActionState(async (prev: ActionState, fd: FormData) => {
     const r = await updateHolding(prev, fd);
     if (r?.ok) setOpen(false);
     return r;
@@ -77,14 +77,19 @@ export function EditHolding({ id, quantity, avgPrice, symbol }: { id: string; qu
   return (
     <form action={action} className="inline-flex items-center gap-1.5">
       <input type="hidden" name="id" value={id} />
-      <Input name="quantity" aria-label="Quantity" type="number" step="any" min="0" defaultValue={quantity} className="num h-7 w-20 px-2 text-[12px]" />
-      <Input name="avg_price" aria-label="Average price" type="number" step="0.05" min="0" defaultValue={avgPrice} className="num h-7 w-24 px-2 text-[12px]" />
+      <Input name="quantity" aria-label="Quantity" type="number" step="any" min="0" required defaultValue={quantity} className="num h-7 w-20 px-2 text-[12px]" />
+      <Input name="avg_price" aria-label="Average price" type="number" step="0.05" min="0" required defaultValue={avgPrice} className="num h-7 w-24 px-2 text-[12px]" />
       <button type="submit" className="h-7 rounded-md bg-primary px-2 text-[12px] text-primary-foreground">
         Save
       </button>
       <button type="button" onClick={() => setOpen(false)} className="h-7 px-1 text-[12px] text-muted-foreground">
         Cancel
       </button>
+      {state?.error ? (
+        <span role="alert" className="text-[11px] text-loss">
+          {state.error}
+        </span>
+      ) : null}
     </form>
   );
 }

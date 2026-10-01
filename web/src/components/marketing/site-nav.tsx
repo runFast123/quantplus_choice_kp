@@ -7,18 +7,18 @@ export function SiteNav({ signedIn }: { signedIn: boolean }) {
     <header className="mx-auto flex h-16 max-w-[1240px] items-center justify-between px-5 md:px-8">
       <Logo />
       <nav aria-label="Site" className="hidden items-center gap-7 text-[13.5px] text-muted-foreground md:flex">
-        <a href="#how" className="hover:text-foreground">
+        <Link href="/#how" className="hover:text-foreground">
           How it works
-        </a>
-        <a href="#privacy" className="hover:text-foreground">
+        </Link>
+        <Link href="/#privacy" className="hover:text-foreground">
           Privacy
-        </a>
-        <a href="#pricing" className="hover:text-foreground">
+        </Link>
+        <Link href="/#pricing" className="hover:text-foreground">
           Pricing
-        </a>
-        <a href="#faq" className="hover:text-foreground">
+        </Link>
+        <Link href="/#faq" className="hover:text-foreground">
           Questions
-        </a>
+        </Link>
       </nav>
       <div className="flex items-center gap-2">
         {signedIn ? (

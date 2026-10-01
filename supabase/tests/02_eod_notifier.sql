@@ -25,8 +25,9 @@ insert into public.holdings (tenant_id, user_id, portfolio_id, symbol, quantity,
 select default_tenant_id, user_id, 'bbbbbbbb-0000-4000-8000-0000000000fa', 'TCS', 5, 100
 from public.profiles where user_id = 'bbbbbbbb-0000-4000-8000-0000000000f9';
 
-insert into public.price_alerts (tenant_id, user_id, symbol, condition, trigger_price, created_at)
-select p.default_tenant_id, p.user_id, 'TCS', c.cond, c.px, (select ts from lc) - interval '1 day'
+insert into public.price_alerts (tenant_id, user_id, symbol, condition, trigger_price, created_at, updated_at)
+select p.default_tenant_id, p.user_id, 'TCS', c.cond, c.px,
+       (select ts from lc) - interval '1 day', (select ts from lc) - interval '1 day'
 from public.profiles p,
      (values ('above'::public.alert_condition, (select high - 0.05 from lc)),   -- should trigger
              ('below'::public.alert_condition, (select low  - 50   from lc)))   -- should not

@@ -38,8 +38,9 @@ export default async function BillingPage() {
                 </Badge>
               </p>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                {left > 0 ? `${left} day${left === 1 ? "" : "s"} left · ` : "Ended · "}
-                {ent.status === "trialing" ? "trial ends" : "renews"} {date(ent.current_period_end)}
+                {left > 0
+                  ? `${left} day${left === 1 ? "" : "s"} left · ${ent.status === "trialing" ? "trial ends" : "plan ends"} ${date(ent.current_period_end)}`
+                  : `Ended ${date(ent.current_period_end)}`}
               </p>
             </div>
             <div className="max-w-sm text-[13px] leading-6 text-muted-foreground">

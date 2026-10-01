@@ -29,7 +29,9 @@ Templates without values: `web/.env.example`, `supabase/.env.example`.
 4. **Service-role confinement** — ESLint `no-restricted-imports` bans `server/privileged/service-role` outside `src/server/privileged/`.
 5. **Database** — RLS on every public table, `private` schema not exposed, service-only RPCs (`svc_*`), append-only audit log. Verified by `supabase/tests/*` (local PGlite and the live project) and `web/e2e/security.spec.ts` (from the outside).
 6. **Secrets at rest** — broker tokens and AI keys are AES-256-GCM encrypted in Node with an external key and row-bound AAD; the DB holds ciphertext only.
-7. **Recommended (GitHub UI)** — Settings → Code security → enable *Secret scanning* and *Push protection*.
+7. **App-level** — redirects only via `safeNext()`; single active device enforced in `requireSession()` for pages and
+   actions; clients hold no TRUNCATE/REFERENCES/TRIGGER; symbol columns not updatable (plan limits can't be bypassed).
+8. **Recommended (GitHub UI)** — Settings → Code security → enable *Secret scanning* and *Push protection*.
 
 Last full-history scan: clean (no secrets ever committed).
 

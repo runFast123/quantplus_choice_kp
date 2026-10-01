@@ -2,6 +2,7 @@ import Link from "next/link";
 import { price } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 import { Delta } from "@/components/ui/data";
+import { TickerPause } from "./ticker-pause";
 
 /** Last-close tape. Pauses on hover; static under reduced motion. */
 export function TickerTape({ quotes }: { quotes: Quote[] }) {
@@ -22,7 +23,7 @@ export function TickerTape({ quotes }: { quotes: Quote[] }) {
       </Link>
     ));
   return (
-    <div className="relative h-8 overflow-hidden border-b border-border bg-card/60" role="region" aria-label="Last close prices">
+    <div data-ticker className="relative h-8 overflow-hidden border-b border-border bg-card/60" role="region" aria-label="Last close prices">
       <div className="animate-marquee flex h-8 w-max items-center whitespace-nowrap motion-reduce:animate-none">
         {row(false)}
         {row(true)}
@@ -36,7 +37,8 @@ export function TickerTape({ quotes }: { quotes: Quote[] }) {
           Sample prices
         </span>
       ) : null}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-8 w-10 bg-gradient-to-l from-background to-transparent" />
+      <TickerPause />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { CopyIcon, CheckIcon } from "@phosphor-icons/react";
-import { useActionState, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useEchoAction } from "@/components/ui/use-echo-action";
 import { Field, FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -67,7 +67,7 @@ export function InviteForm({ canInviteAdmin }: { canInviteAdmin: boolean }) {
           <Input id="invite-email" name="email" type="email" required placeholder="colleague@firm.in" defaultValue={values.email} />
         </Field>
         <Field label="Role" htmlFor="invite-role">
-          <Select id="invite-role" name="role" defaultValue="member">
+          <Select id="invite-role" name="role" defaultValue={values.role ?? "member"} key={values.role ?? "member"}>
             <option value="member">Member</option>
             {canInviteAdmin ? <option value="admin">Admin</option> : null}
           </Select>
@@ -99,19 +99,24 @@ export function InviteForm({ canInviteAdmin }: { canInviteAdmin: boolean }) {
 export function RoleSelect({ userId, role, disabled }: { userId: string; role: "member" | "admin"; disabled?: boolean }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
+  const [value, setValue] = useState(role);
   return (
     <span className="inline-flex flex-col">
       <Select
         aria-label="Role"
         className="h-8 w-[110px] text-[12.5px]"
-        defaultValue={role}
+        value={value}
         disabled={disabled || pending}
-        onChange={(e) =>
+        onChange={(e) => {
+          const next = e.target.value as "member" | "admin";
+          const prev = value;
+          setValue(next);
           start(async () => {
-            const r = await changeRoleAction(userId, e.target.value as "member" | "admin");
+            const r = await changeRoleAction(userId, next);
             setError(r?.error);
-          })
-        }
+            if (r?.error) setValue(prev); // show the role that's actually saved
+          });
+        }}
       >
         <option value="member">Member</option>
         <option value="admin">Admin</option>
@@ -122,14 +127,14 @@ export function RoleSelect({ userId, role, disabled }: { userId: string; role: "
 }
 
 export function RenameForm({ name }: { name: string }) {
-  const [state, action] = useActionState(renameWorkspace, undefined);
+  const [state, action, , values] = useEchoAction(renameWorkspace);
   return (
     <form action={action} className="flex flex-col gap-2">
       <div className="flex gap-2">
         <label htmlFor="ws-name" className="sr-only">
           Workspace name
         </label>
-        <Input id="ws-name" name="name" defaultValue={name} maxLength={120} />
+        <Input id="ws-name" name="name" defaultValue={values.name ?? name} maxLength={120} />
         <SubmitButton variant="secondary">Rename</SubmitButton>
       </div>
       <FormMessage state={state} />

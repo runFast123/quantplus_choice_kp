@@ -67,3 +67,16 @@ test.describe("shell", () => {
     await expect(proPage.getByRole("dialog", { name: "Notifications" })).toBeVisible();
   });
 });
+
+test.describe("phone navigation @mobile", () => {
+  test("every page is reachable from the bottom bar, and search is available", async ({ proPage }) => {
+    test.skip(proPage.viewportSize()!.width >= 768, "phone layout only");
+    await proPage.goto("/app");
+    await expect(proPage.getByRole("combobox", { name: "Search stocks" })).toBeVisible();
+    for (const [label, path] of [["Alerts", "/app/alerts"], ["Signals", "/app/signals"], ["Research", "/app/research"], ["News", "/app/news"], ["Integrations", "/app/integrations"]] as const) {
+      await proPage.getByRole("button", { name: "More" }).click();
+      await proPage.getByRole("dialog", { name: "More pages" }).getByRole("link", { name: label }).click();
+      await expect(proPage).toHaveURL(new RegExp(`${path}$`));
+    }
+  });
+});

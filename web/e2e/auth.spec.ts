@@ -62,13 +62,34 @@ test.describe("authentication", () => {
     const first = await signInFresh(browser, u);
     const second = await signInFresh(browser, u);
     await first.page.goto("/app/markets");
+    await expect(first.page).toHaveURL(/\/device$/);
     await expect(first.page.getByRole("heading", { name: /signed in somewhere else/ })).toBeVisible();
+    // Server actions are blocked too, not just page renders.
+    const exportRes = await first.page.request.get("/app/settings/export");
+    expect(exportRes.status()).toBe(403);
     await first.page.getByRole("button", { name: "Use QuantsPulse on this device" }).click();
-    await expect(first.page.getByRole("heading", { level: 1, name: "Markets" })).toBeVisible();
+    await expect(first.page).toHaveURL(/\/app$/);
     await second.page.goto("/app/markets");
     await expect(second.page.getByRole("heading", { name: /signed in somewhere else/ })).toBeVisible();
     await first.ctx.close();
     await second.ctx.close();
+  });
+
+  test("sign-in never redirects off-site, whatever `next` says", async ({ browser }) => {
+    const u = await oneOffUser("redirect", "basic");
+    for (const evil of ["//evil.example", String.raw`/\evil.example`, "/\t/evil.example", "https://evil.example"]) {
+      const ctx = await browser.newContext();
+      const page = await ctx.newPage();
+      await page.goto(`/login?next=${encodeURIComponent(evil)}`);
+      await page.getByLabel("Email").fill(u.email);
+      await page.getByLabel("Password").fill(u.password);
+      await page.getByRole("button", { name: "Sign in" }).click();
+      await page.waitForLoadState("networkidle");
+      const landed = new URL(page.url());
+      expect(landed.hostname, evil).toBe("localhost");
+      expect(landed.pathname, evil).toBe("/app"); // every hostile `next` falls back to the app
+      await ctx.close();
+    }
   });
 
   test("sign out ends the session", async ({ browser }) => {

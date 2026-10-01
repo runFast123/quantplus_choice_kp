@@ -39,6 +39,7 @@ export type IngestReport = {
   inserted: number;
   linked: number;
   researchRows: number | null;
+  errors: string[];
 };
 
 async function fetchText(url: string): Promise<string> {
@@ -98,7 +99,7 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
   const matcher = new SymbolMatcher((symbols ?? []) as SymbolRef[], aliases ?? []);
   const covered = new Map(((symbols ?? []) as SymbolRef[]).map((s) => [s.symbol, s]));
 
-  const report: IngestReport = { startedAt: new Date(started).toISOString(), durationMs: 0, sources: [], inserted: 0, linked: 0, researchRows: null };
+  const report: IngestReport = { startedAt: new Date(started).toISOString(), durationMs: 0, sources: [], inserted: 0, linked: 0, researchRows: null, errors: [] };
   const candidates = new Map<string, Candidate>();
   const add = (c: Candidate | null) => {
     if (!c) return 0;
@@ -170,39 +171,43 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
     report.sources.push({ code: search.code, status: errors.length ? "partial" : "ok", items, fresh, ...(errors.length ? { error: errors.join("; ").slice(0, 200) } : {}) });
   }
 
-  // Store what's new.
-  const all = [...candidates.values()];
-  if (all.length) {
-    const existing = new Set<string>();
-    for (let i = 0; i < all.length; i += 200) {
-      const { data } = await db.from("news_articles").select("url_hash").in("url_hash", all.slice(i, i + 200).map((c) => c.url_hash));
-      for (const r of data ?? []) existing.add(r.url_hash);
-    }
-    const fresh = all.filter((c) => !existing.has(c.url_hash));
-    for (let i = 0; i < fresh.length; i += 100) {
-      const batch = fresh.slice(i, i + 100);
-      const { data: rows, error } = await db
+  // Store. Idempotent so overlapping runs (cron + admin "Fetch now") can't
+  // collide on url_hash, and links are written for EVERY candidate — including
+  // articles stored earlier (e.g. a search hit on a story first seen via RSS).
+  try {
+    const all = [...candidates.values()];
+    const idByHash = new Map<string, number>();
+    for (let i = 0; i < all.length; i += 100) {
+      const batch = all.slice(i, i + 100);
+      const { data: inserted, error } = await db
         .from("news_articles")
-        .insert(
+        .upsert(
           batch.map((c) => {
             const row: Partial<Candidate> = { ...c };
             delete row.links;
             return row;
           }),
+          { onConflict: "url_hash", ignoreDuplicates: true },
         )
         .select("id, url_hash");
-      if (error) throw new Error(`insert news_articles: ${error.message}`);
-      report.inserted += rows?.length ?? 0;
-      const idByHash = new Map((rows ?? []).map((r) => [r.url_hash, r.id as number]));
-      const links = batch.flatMap((c) =>
-        c.links.map((l) => ({ article_id: idByHash.get(c.url_hash)!, symbol: l.symbol, exchange: l.exchange, match_kind: l.kind, matched_text: l.text })),
-      );
-      if (links.length) {
-        const { error: lErr } = await db.from("news_article_symbols").upsert(links, { onConflict: "article_id,symbol,exchange", ignoreDuplicates: true });
-        if (lErr) throw new Error(`insert news_article_symbols: ${lErr.message}`);
-        report.linked += links.length;
-      }
+      if (error) throw new Error(`news_articles: ${error.message}`);
+      report.inserted += inserted?.length ?? 0;
+      const { data: ids, error: idErr } = await db.from("news_articles").select("id, url_hash").in("url_hash", batch.map((c) => c.url_hash));
+      if (idErr) throw new Error(`news_articles ids: ${idErr.message}`);
+      for (const r of ids ?? []) idByHash.set(r.url_hash, r.id as number);
     }
+    const links = all.flatMap((c) => {
+      const id = idByHash.get(c.url_hash);
+      return id == null ? [] : c.links.map((l) => ({ article_id: id, symbol: l.symbol, exchange: l.exchange, match_kind: l.kind, matched_text: l.text }));
+    });
+    for (let i = 0; i < links.length; i += 500) {
+      const { error } = await db.from("news_article_symbols").upsert(links.slice(i, i + 500), { onConflict: "article_id,symbol,exchange", ignoreDuplicates: true });
+      if (error) throw new Error(`news_article_symbols: ${error.message}`);
+    }
+    report.linked = links.length;
+  } catch (e) {
+    // Keep going: feed health and the research refresh still run.
+    report.errors.push(`store: ${(e as Error).message}`.slice(0, 300));
   }
 
   // Record feed health (ops-only columns; members can't read them).
@@ -214,7 +219,8 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
       .eq("code", s.code);
   }
 
-  const { data: researchRows } = await db.rpc("svc_refresh_research");
+  const { data: researchRows, error: rErr } = await db.rpc("svc_refresh_research");
+  if (rErr) report.errors.push(`research: ${rErr.message}`.slice(0, 300));
   report.researchRows = typeof researchRows === "number" ? researchRows : null;
   report.durationMs = Date.now() - started;
   return report;
@@ -226,36 +232,54 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
  */
 export async function relinkRecentArticles(days = MAX_AGE_DAYS) {
   const db = serviceRole();
-  const [{ data: symbols }, { data: aliases }, { data: articles }] = await Promise.all([
+  const [{ data: symbols }, { data: aliases }] = await Promise.all([
     db.from("market_symbols").select("symbol, exchange, name").eq("is_active", true),
     db.from("news_symbol_aliases").select("symbol, exchange, alias"),
-    db
+  ]);
+  const matcher = new SymbolMatcher((symbols ?? []) as SymbolRef[], aliases ?? []);
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+
+  // Page through everything (PostgREST caps responses at 1000 rows).
+  const articles: { id: number; title: string; summary: string | null }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db
       .from("news_articles")
       .select("id, title, summary")
       .eq("is_filing", false)
-      .gte("published_at", new Date(Date.now() - days * 86400000).toISOString())
-      .limit(5000),
-  ]);
-  const matcher = new SymbolMatcher((symbols ?? []) as SymbolRef[], aliases ?? []);
-  const ids = (articles ?? []).map((a) => a.id as number);
-  for (let i = 0; i < ids.length; i += 200) {
-    await db.from("news_article_symbols").delete().in("article_id", ids.slice(i, i + 200)).neq("match_kind", "filing");
+      .gte("published_at", since)
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(`relink read: ${error.message}`);
+    articles.push(...((data ?? []) as typeof articles));
+    if (!data || data.length < 1000) break;
   }
-  const links = (articles ?? []).flatMap((a) =>
-    matcher.match(`${a.title} ${a.summary ?? ""}`).map((m) => ({
-      article_id: a.id as number,
-      symbol: m.symbol,
-      exchange: m.exchange,
-      match_kind: m.kind,
-      matched_text: m.text,
-    })),
+
+  // Add the new links first, then remove stale ones: articles are never left unlinked.
+  const want = new Map<number, Set<string>>();
+  const links = articles.flatMap((a) =>
+    matcher.match(`${a.title} ${a.summary ?? ""}`).map((m) => {
+      (want.get(a.id) ?? want.set(a.id, new Set()).get(a.id)!).add(`${m.exchange}:${m.symbol}`);
+      return { article_id: a.id, symbol: m.symbol, exchange: m.exchange, match_kind: m.kind, matched_text: m.text };
+    }),
   );
   for (let i = 0; i < links.length; i += 500) {
-    const { error } = await db.from("news_article_symbols").upsert(links.slice(i, i + 500), { onConflict: "article_id,symbol,exchange", ignoreDuplicates: true });
-    if (error) throw new Error(`relink: ${error.message}`);
+    const { error } = await db.from("news_article_symbols").upsert(links.slice(i, i + 500), { onConflict: "article_id,symbol,exchange" });
+    if (error) throw new Error(`relink write: ${error.message}`);
+  }
+  let removed = 0;
+  for (let i = 0; i < articles.length; i += 200) {
+    const ids = articles.slice(i, i + 200).map((a) => a.id);
+    const { data: current, error } = await db.from("news_article_symbols").select("article_id, symbol, exchange, match_kind").in("article_id", ids).limit(5000);
+    if (error) throw new Error(`relink scan: ${error.message}`);
+    for (const l of current ?? []) {
+      if (l.match_kind === "filing" || want.get(l.article_id)?.has(`${l.exchange}:${l.symbol}`)) continue;
+      const { error: dErr } = await db.from("news_article_symbols").delete().eq("article_id", l.article_id).eq("symbol", l.symbol).eq("exchange", l.exchange);
+      if (dErr) throw new Error(`relink delete: ${dErr.message}`);
+      removed++;
+    }
   }
   const { data: researchRows } = await db.rpc("svc_refresh_research");
-  return { articles: ids.length, links: links.length, researchRows };
+  return { articles: articles.length, links: links.length, removed, researchRows };
 }
 
 export async function newsSourceHealth() {

@@ -73,11 +73,7 @@ export default async function PortfolioPage() {
         <Panel title="Positions" meta={ps.length ? "sorted by value" : undefined}>
           {ps.length === 0 ? (
             <Empty title="No holdings yet.">
-              Add them by hand above, or{" "}
-              <Link href="/app/integrations" className="text-foreground underline underline-offset-4">
-                connect a broker
-              </Link>{" "}
-              to sync them.
+              Add them by hand above. Prices are valued at the last close.
             </Empty>
           ) : (
             <TableWrap>

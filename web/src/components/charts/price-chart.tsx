@@ -151,7 +151,7 @@ export function PriceChart({ candles, markers, symbol }: { candles: Candle[]; ma
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
         {/* Crosshair readout doubles as the tooltip: OHLC for the hovered session. */}
-        <dl className="num flex flex-wrap gap-x-4 gap-y-1 text-[12px]" aria-live="polite">
+        <dl className="num flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
           {shown ? (
             <>
               <div className="flex gap-1 text-muted-foreground">

@@ -14,6 +14,9 @@ test.describe("research desk", () => {
     await proPage.goto("/app/research");
     await proPage.locator('section[aria-label="Stance counts"] a', { hasText: "cautious" }).click();
     await expect(proPage).toHaveURL(/stance=cautious/);
+    // The stance cards keep showing totals for every stance while filtered.
+    const counts = (await proPage.locator('section[aria-label="Stance counts"] a .num').allTextContents()).map(Number);
+    expect(counts.filter((c) => c > 0).length).toBeGreaterThan(1);
     const stances = await proPage.locator("tbody tr td:nth-child(2) span").first().allTextContents();
     for (const s of stances) expect(s.toLowerCase()).toContain("cautious");
   });

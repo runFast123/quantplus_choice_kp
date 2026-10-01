@@ -18,8 +18,9 @@ export function rupeesCompact(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return "—";
   const a = Math.abs(n);
   const sign = n < 0 ? "−" : "";
-  if (a >= 1e7) return `${sign}₹${(a / 1e7).toFixed(2)} Cr`;
-  if (a >= 1e5) return `${sign}₹${(a / 1e5).toFixed(2)} L`;
+  // Decide the unit after rounding, so ₹99,99,600 reads "₹1.00 Cr", not "₹100.00 L".
+  if (Math.round(a / 1e5) >= 100) return `${sign}₹${(a / 1e7).toFixed(2)} Cr`;
+  if (Math.round(a / 1e3) >= 100) return `${sign}₹${(a / 1e5).toFixed(2)} L`;
   return `${sign}₹${inr0.format(a)}`;
 }
 
@@ -33,8 +34,8 @@ export function qty(n: number | null | undefined): string {
 
 export function volume(n: number | null | undefined): string {
   if (n == null) return "—";
-  if (n >= 1e7) return `${(n / 1e7).toFixed(2)}Cr`;
-  if (n >= 1e5) return `${(n / 1e5).toFixed(2)}L`;
+  if (Math.round(n / 1e5) >= 100) return `${(n / 1e7).toFixed(2)}Cr`;
+  if (Math.round(n / 1e2) >= 1000) return `${(n / 1e5).toFixed(2)}L`;
   if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
   return String(n);
 }
@@ -99,6 +100,12 @@ export function daysUntil(d: string | Date): number {
 /** Research factor scores (−2…+2): one decimal at most, true minus sign. */
 export function factorScore(n: number): string {
   const r = Math.round(n * 10) / 10;
+  return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)}`;
+}
+
+/** Whole-number score with a true minus sign: +62 / −18 / 0. */
+export function signedInt(n: number): string {
+  const r = Math.round(n);
   return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)}`;
 }
 

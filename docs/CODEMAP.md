@@ -30,6 +30,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 19 | `research_latest` | view: latest note per symbol + previous score |
 | 20 | `news_sources_active_column` | members may read `news_sources.is_active` (not URLs/errors) |
 | 21 | `user_delete_cleanup` | trigger `on_auth_user_deleted` → deletes the user's personal tenant |
+| 22 | `review_hardening` | `private.try_numeric`, `private.notification_ledger`, `svc_register_device`; notifier + research rewritten; live-first subscription ordering; hook skips suspended tenants; symbol columns not updatable; admin-removal policy; TRUNCATE revoked |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging) · `seed/ref_news_aliases.sql` (reference, safe for prod).
 Runner: `supabase/scripts/apply.mjs` — `npm run migrate | status | seed:ref | seed:dev | test:remote` (reads `supabase/.env`).
@@ -66,9 +67,10 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 
 | Module | Exports | Notes |
 |---|---|---|
-| `session.ts` | `getSession` (cached), `requireSession`, `can(s, feature)`, `isTenantAdmin(s)`, `displayName(s)`, type `Session` | One read per request: claims, profile, memberships, entitlements, `hookMissing` |
+| `session.ts` | `getSession` (cached), `requireSession`, `can(s, feature)`, `isTenantAdmin(s)`, `displayName(s)`, type `Session` | One read per request: claims, profile, memberships, entitlements, `hookMissing`, `deviceActive`. **`requireSession()` redirects inactive devices to `/device` — use it in every page and action** |
 | `market-data.ts` | `getQuotes`, `normalizeQuote`, `getSparks`, `getCandles`, `positions`, `summarize`, type `Position` | All numeric normalisation from PostgREST strings happens here |
 | `device.ts` | `DEVICE_COOKIE`, `claimThisDevice(userId)` | Single-active-device; call from actions/route handlers only |
+| `device-hash.ts` | `deviceHash(id)` | SHA-256 of the device cookie |
 | `privileged/service-role.ts` | `serviceRole()` | **Only importable inside `privileged/`** |
 | `privileged/guards.ts` | `membershipRole`, `assertMember`, `planHasFeature`, `hasActiveConsent`, `PrivilegedError` | Re-establish what RLS would enforce |
 | `privileged/crypto.ts` | `seal(plaintext, aad)`, `open(sealed, aad)`, type `Sealed` | AES-256-GCM, `QP_SECRETS_KEY_V<n>` |
@@ -85,9 +87,10 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 
 | Module | Exports |
 |---|---|
-| `format.ts` | `factorScore`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel` |
+| `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel` |
 | `market.ts` | `nseSession(now)` → pre-open / open / closed (IST; holidays not modelled) |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
+| `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
 | `consents.ts` | `CONSENT_VERSION`, `CONSENT_COPY` |
 | `plans.ts` | `FEATURE_ROWS` (feature key → label, display order) |
 | `news/feed.ts` | `parseFeed(xml)`, `parseFeedDate`, `cleanText`, `decodeEntities`, `normaliseUrl`, `nseFilingSymbol` |
@@ -126,6 +129,7 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 | `/auth/confirm` | email link handler (token_hash or PKCE code) |
 | `/invite/[token]` | accept organisation invite |
 | `/legal/[doc]` | `terms`, `privacy` (drafts) |
+| `/device` | single-device takeover screen (target of `requireSession` for displaced devices) |
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener; symbol page with chart, levels, signals, backtest |
 | `/app/watchlist` `/app/portfolio` `/app/alerts` `/app/signals` | product pages |
@@ -143,14 +147,14 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 | `ui/button.tsx` | `Button`, `ButtonLink`, `buttonClass(variant, size)` — variants primary/secondary/ghost/danger/coral |
 | `ui/field.tsx` | `Input`, `Select`, `Field`, `FormMessage`, `inputClass` |
 | `ui/submit-button.tsx` | `SubmitButton` (useFormStatus) |
-| `ui/use-echo-action.ts` | `useEchoAction(action)` → `[state, dispatch, pending, values]`; refills non-secret fields after a server error. **Use this instead of bare `useActionState` for forms.** |
+| `ui/use-echo-action.ts` | `useEchoAction(action, onResult?)` → `[state, dispatch, pending, values]`; refills non-secret fields after a server error. **Use this instead of bare `useActionState` for forms.** |
 | `ui/confirm-button.tsx` | `ConfirmButton` — two-step destructive action |
 | `ui/data.tsx` | `Delta` (gain/loss w/ glyph), `Badge`, `Stat`, `Sparkline`, `RangeBar`, `ScoreBar` (diverging ±100), `StanceBadge`, `ToneBadge` |
 | `news/news-list.tsx` | `NewsList` (outbound links `rel=noopener noreferrer nofollow`, tone + symbol chips) |
 | `research/factor-breakdown.tsx` | `FactorBreakdown` |
 | `research/ai-read.tsx` | `AiRead` (client; calls `askMyAi`) |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
-| `shell/*` | `Sidebar`, `MobileNav`, `TenantSwitcher`, `SymbolSearch` ("/" shortcut), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
+| `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` ("/" shortcut), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
 | `market/*` | `RadarToggle`, `AddSymbolForm`, `AlertForm`, `FilterBar` (URL-driven) |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + signal markers), type `ChartMarker` |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |

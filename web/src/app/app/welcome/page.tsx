@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { safeNext } from "@/lib/safe-next";
 import { Field, Input } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { requireSession } from "@/server/session";
@@ -7,10 +8,11 @@ import { completeOnboarding } from "./actions";
 
 export const metadata: Metadata = { title: "Welcome" };
 
-export default async function WelcomePage() {
+export default async function WelcomePage({ searchParams }: PageProps<"/app/welcome">) {
+  const { next } = await searchParams;
   const s = await requireSession();
   const { data: consents } = await s.supabase.from("user_consents").select("purpose").is("withdrawn_at", null);
-  if (consents?.some((c) => c.purpose === "terms")) redirect("/app");
+  if (consents?.some((c) => c.purpose === "terms")) redirect(safeNext(next));
 
   const { data: auth } = await s.supabase.auth.getUser();
   const meta = (auth.user?.user_metadata ?? {}) as { full_name?: string; marketing?: boolean };
@@ -27,6 +29,7 @@ export default async function WelcomePage() {
       </p>
 
       <form action={completeOnboarding} className="panel mt-8 flex flex-col gap-5 p-6">
+        {typeof next === "string" ? <input type="hidden" name="next" value={next} /> : null}
         <Field label="What should we call you?" htmlFor="full_name">
           <Input id="full_name" name="full_name" defaultValue={s.profile?.full_name ?? meta.full_name ?? ""} required maxLength={120} />
         </Field>
@@ -40,7 +43,7 @@ export default async function WelcomePage() {
           <Consent
             name="broker_data_access"
             title="Broker data access"
-            body="Lets us read holdings from a broker you connect (Pro). Withdrawing disconnects your brokers."
+            body="Lets us store and use a read-only session for brokers you connect (Pro). Withdrawing disconnects your brokers."
           />
           <Consent
             name="ai_processing"

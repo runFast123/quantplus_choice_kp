@@ -74,7 +74,9 @@ scripts/secret-scan.mjs + .githooks/   secret guard (enable: git config core.hoo
 **App**
 10. Reuse before you write: check `docs/CODEMAP.md`. Formatting → `lib/format.ts`; DB errors → `friendlyDbError`;
     quotes/candles/P&L → `server/market-data.ts`; session/plan checks → `server/session.ts` (`requireSession`, `can`).
-11. Mutations are Server Actions returning `ActionState`; validate with zod; call `revalidatePath`.
+11. Mutations are Server Actions returning `ActionState`; start with `requireSession()` (enforces sign-in AND the
+    single active device); validate with zod; call `revalidatePath`. Forms use `useEchoAction`. Any redirect target
+    that came from a user goes through `safeNext()`. When an RLS-guarded write might match 0 rows, `.select()` and check.
 12. Plan gating: UI uses `can(session, feature)` + `<PlanGate>`; the DB enforces it anyway (RLS insert policies,
     symbol-limit trigger). Both must agree with `public.plans.features`.
 13. Copy must be true. Don't describe features that aren't built (see `docs/ROADMAP.md` for what is stubbed).

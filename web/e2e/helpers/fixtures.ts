@@ -13,15 +13,16 @@ export const HOOK_REASON =
 /** Pages signed in as the pre-made Basic / Pro users, with console errors collected. */
 export const test = base.extend<{ basicPage: Page; proPage: Page; consoleErrors: string[] }>({
   consoleErrors: async ({}, provide) => provide([]),
-  basicPage: async ({ browser, consoleErrors }, provide) => {
-    const ctx = await browser.newContext({ storageState: join(AUTH_DIR, "basic.json") });
+  basicPage: async ({ browser, consoleErrors, viewport, isMobile, hasTouch, userAgent, deviceScaleFactor }, provide) => {
+    // Pass the project's device settings through: browser.newContext() doesn't inherit them.
+    const ctx = await browser.newContext({ storageState: join(AUTH_DIR, "basic.json"), viewport, isMobile, hasTouch, userAgent, deviceScaleFactor });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => consoleErrors.push(e.message));
     await provide(page);
     await ctx.close();
   },
-  proPage: async ({ browser, consoleErrors }, provide) => {
-    const ctx = await browser.newContext({ storageState: join(AUTH_DIR, "pro.json") });
+  proPage: async ({ browser, consoleErrors, viewport, isMobile, hasTouch, userAgent, deviceScaleFactor }, provide) => {
+    const ctx = await browser.newContext({ storageState: join(AUTH_DIR, "pro.json"), viewport, isMobile, hasTouch, userAgent, deviceScaleFactor });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => consoleErrors.push(e.message));
     page.on("console", (m) => m.type() === "error" && !/favicon|Failed to load resource/.test(m.text()) && consoleErrors.push(m.text()));

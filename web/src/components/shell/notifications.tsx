@@ -22,7 +22,7 @@ export function Notifications({ userId, initial }: { userId: string; initial: No
   const items = [...live, ...initial]
     .filter((n) => (seen.has(n.id) ? false : (seen.add(n.id), true)))
     .slice(0, 20)
-    .map((n) => (readAllAt && !n.read_at ? { ...n, read_at: readAllAt } : n));
+    .map((n) => (readAllAt && !n.read_at && n.created_at <= readAllAt ? { ...n, read_at: readAllAt } : n));
   const unread = items.filter((n) => !n.read_at).length;
 
   useEffect(() => {

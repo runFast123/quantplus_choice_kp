@@ -12,48 +12,21 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { date } from "@/lib/format";
 import type { NotificationRow, Quote } from "@/lib/types";
-import { DEVICE_COOKIE } from "@/server/device";
-import { deviceHash } from "@/server/privileged/account";
 import { isPlatformAdmin } from "@/server/privileged/admin";
 import { can, displayName, requireSession } from "@/server/session";
-import { claimDeviceAction, refreshClaimsAction } from "./shell-actions";
+import { refreshClaimsAction } from "./shell-actions";
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const s = await requireSession();
   const store = await cookies();
   const theme = store.get("qp_theme")?.value === "dark" ? "dark" : "light";
-  const deviceId = store.get(DEVICE_COOKIE)?.value;
 
-  const [symbolsRes, quotesRes, notesRes, devicesRes, admin] = await Promise.all([
+  const [symbolsRes, quotesRes, notesRes, admin] = await Promise.all([
     s.supabase.from("market_symbols").select("symbol, name, exchange").eq("is_active", true).order("symbol").limit(5000),
     s.supabase.from("market_snapshot").select("*").order("symbol"),
     s.supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20),
-    s.supabase.from("user_devices").select("device_hash, label, last_seen_at").eq("is_active", true).maybeSingle(),
     isPlatformAdmin(s.userId),
   ]);
-
-  // Single active device (spec: replaces Firestore activeDeviceId).
-  const activeDevice = devicesRes.data;
-  if (activeDevice && (!deviceId || deviceHash(deviceId) !== activeDevice.device_hash)) {
-    return (
-      <div className="linen grid min-h-dvh place-items-center px-5">
-        <div className="panel w-full max-w-md p-6">
-          <Logo />
-          <h1 className="display mt-6 text-[26px]">You&apos;re signed in somewhere else.</h1>
-          <p className="mt-2 text-[14px] leading-6 text-muted-foreground">
-            QuantsPulse keeps one device active per account. It&apos;s currently{" "}
-            <span className="text-foreground">{activeDevice.label ?? "another browser"}</span>, last seen {date(activeDevice.last_seen_at)}.
-            Continuing here signs that device out of live features.
-          </p>
-          <form action={claimDeviceAction} className="mt-6">
-            <Button type="submit" className="w-full">
-              Use QuantsPulse on this device
-            </Button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   const ent = s.entitlements;
   const planLabel = ent
@@ -87,6 +60,9 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
               </span>
             </div>
           </div>
+          <div className="px-4 pb-2 sm:hidden">
+            <SymbolSearch symbols={symbolsRes.data ?? []} />
+          </div>
           <TickerTape quotes={(quotesRes.data ?? []) as Quote[]} />
         </header>
 
@@ -110,7 +86,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
           {children}
         </main>
       </div>
-      <MobileNav />
+      <MobileNav isPlatformAdmin={admin} />
     </div>
   );
 }

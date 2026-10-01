@@ -18,6 +18,7 @@ export function FilterBar({ filters }: { filters: { name: string; label: string;
     if (value) next.set(name, value);
     else next.delete(name);
     next.delete("page");
+    next.delete("before"); // a new filter starts from the newest results
     start(() => router.replace(`${pathname}?${next.toString()}`, { scroll: false }));
   };
 

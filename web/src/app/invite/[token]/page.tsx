@@ -65,7 +65,7 @@ export default async function InvitePage({ params, searchParams }: PageProps<"/i
             </form>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <ButtonLink href={`/signup`} size="lg" className="flex-1">
+              <ButtonLink href={`/signup?next=${encodeURIComponent(`/invite/${token}`)}`} size="lg" className="flex-1">
                 Create account
               </ButtonLink>
               <ButtonLink href={`/login?next=/invite/${token}`} size="lg" variant="secondary" className="flex-1">

@@ -63,14 +63,16 @@ export async function getNews(
   const limit = opts.limit ?? 40;
   if (opts.symbols && !opts.symbols.length) return [];
 
-  let ids: number[] | null = null;
-  if (opts.symbols) {
-    const { data } = await db.from("news_article_symbols").select("article_id").in("symbol", opts.symbols).limit(2000);
-    ids = [...new Set((data ?? []).map((r) => r.article_id as number))];
-    if (!ids.length) return [];
-  }
-  let q = db.from("news_articles").select(SELECT).order("published_at", { ascending: false }).limit(limit);
-  if (ids) q = q.in("id", ids.slice(0, 1000));
+  // Filter through an aliased inner embed so ordering + limit apply to the
+  // newest matching headlines (a separate id lookup hit max-rows and returned
+  // arbitrary rows once a stock had >1000 links). The un-aliased embed still
+  // returns every symbol on the article for the chips.
+  let q = db
+    .from("news_articles")
+    .select(opts.symbols ? `${SELECT}, mine:news_article_symbols!inner(symbol)` : SELECT)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (opts.symbols) q = q.in("mine.symbol", opts.symbols);
   if (opts.tone) q = q.eq("tone_label", opts.tone);
   if (opts.kind) q = q.eq("is_filing", opts.kind === "filing");
   if (opts.before) q = q.lt("published_at", opts.before);

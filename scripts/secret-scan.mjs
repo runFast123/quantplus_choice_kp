@@ -30,7 +30,7 @@ function localSecretValues() {
   for (const f of ["web/.env.local", "supabase/.env"]) {
     if (!existsSync(f)) continue;
     for (const line of readFileSync(f, "utf8").split(/\r?\n/)) {
-      const m = line.match(/^([A-Z0-9_]+)=(.+)$/);
+      const m = line.match(/^([A-Z0-9_]+)=(.+)$/)?.map((x, i) => (i === 2 ? x.trim().replace(/^(["'])(.*)\1$/, "$2") : x));
       if (!m || m[1] === "NEXT_PUBLIC_SUPABASE_URL" || m[1] === "NEXT_PUBLIC_SITE_URL" || m[1] === "NEXT_PUBLIC_MARKET_DATA_MODE") continue;
       take(`${f}:${m[1]}`, m[2]);
       const pw = m[2].match(/:\/\/[^:]+:([^@]+)@/)?.[1];

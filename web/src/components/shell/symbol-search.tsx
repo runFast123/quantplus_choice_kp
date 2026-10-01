@@ -55,6 +55,7 @@ export function SymbolSearch({ symbols }: { symbols: Sym[] }) {
         aria-expanded={open && results.length > 0}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-activedescendant={open && results[cursor] ? `${listId}-${cursor}` : undefined}
         aria-label="Search stocks"
         placeholder="Search NSE stocks"
         value={q}
@@ -68,7 +69,7 @@ export function SymbolSearch({ symbols }: { symbols: Sym[] }) {
         onKeyDown={(e) => {
           if (e.key === "ArrowDown") {
             e.preventDefault();
-            setCursor((c) => Math.min(c + 1, results.length - 1));
+            setCursor((c) => Math.max(0, Math.min(c + 1, results.length - 1)));
           } else if (e.key === "ArrowUp") {
             e.preventDefault();
             setCursor((c) => Math.max(c - 1, 0));
@@ -89,6 +90,7 @@ export function SymbolSearch({ symbols }: { symbols: Sym[] }) {
           {results.map((s, i) => (
             <li
               key={s.exchange + s.symbol}
+              id={`${listId}-${i}`}
               role="option"
               aria-selected={i === cursor}
               onMouseDown={(e) => {

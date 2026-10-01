@@ -1,18 +1,14 @@
 "use client";
 
 import { PlusIcon } from "@phosphor-icons/react";
-import { useActionState, useState } from "react";
-import type { ActionState } from "@/lib/errors";
+import { useState } from "react";
+import { useEchoAction } from "@/components/ui/use-echo-action";
 import { Input } from "@/components/ui/field";
 import { createWatchlist } from "./actions";
 
 export function NewListForm() {
   const [open, setOpen] = useState(false);
-  const [state, action, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
-    const r = await createWatchlist(prev, fd);
-    if (r?.ok) setOpen(false);
-    return r;
-  }, undefined);
+  const [state, action, pending, values] = useEchoAction(createWatchlist, (r) => r?.ok && setOpen(false));
 
   if (!open) {
     return (
@@ -30,7 +26,7 @@ export function NewListForm() {
       <label htmlFor="new-list" className="sr-only">
         List name
       </label>
-      <Input id="new-list" name="name" autoFocus maxLength={80} placeholder="e.g. Banks" className="h-8 w-40 text-[13px]" onKeyDown={(e) => e.key === "Escape" && setOpen(false)} />
+      <Input id="new-list" name="name" defaultValue={values.name} autoFocus maxLength={80} placeholder="e.g. Banks" className="h-8 w-40 text-[13px]" onKeyDown={(e) => e.key === "Escape" && setOpen(false)} />
       <button type="submit" disabled={pending} className="h-8 rounded-md bg-primary px-3 text-[13px] text-primary-foreground">
         Create
       </button>

@@ -1,8 +1,10 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { supabaseServer } from "@/lib/supabase/server";
+import { deviceHash } from "@/server/device-hash";
 import type { Entitlements, Feature, Membership, Profile, TenantRole } from "@/lib/types";
 
 export type Session = NonNullable<Awaited<ReturnType<typeof getSession>>>;
@@ -22,7 +24,8 @@ export const getSession = cache(async () => {
   // RLS re-checks live membership on every query.
   const activeTenantId = (claims.app_tenant_id as string | undefined) ?? null;
 
-  const [profileRes, membershipsRes, entRes] = await Promise.all([
+  const deviceCookie = (await cookies()).get("qp_did")?.value;
+  const [profileRes, membershipsRes, entRes, deviceRes] = await Promise.all([
     supabase.from("profiles").select("user_id, full_name, phone, avatar_url, default_tenant_id").maybeSingle(),
     supabase
       .from("tenant_members")
@@ -30,7 +33,9 @@ export const getSession = cache(async () => {
       .eq("user_id", userId)
       .order("created_at"),
     activeTenantId ? supabase.rpc("my_entitlements").maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("user_devices").select("device_hash, label, last_seen_at").eq("is_active", true).maybeSingle(),
   ]);
+  const activeDevice = (deviceRes.data ?? null) as { device_hash: string; label: string | null; last_seen_at: string } | null;
 
   const memberships = (membershipsRes.data ?? []) as unknown as Membership[];
   const active = memberships.find((m) => m.tenant_id === activeTenantId) ?? null;
@@ -47,12 +52,21 @@ export const getSession = cache(async () => {
     entitlements: (entRes.data ?? null) as Entitlements | null,
     /** True when the JWT has no tenant claim: the access-token hook isn't enabled. */
     hookMissing: !activeTenantId,
+    /** Single active device: false when another browser has taken over. */
+    deviceActive: !activeDevice || (!!deviceCookie && deviceHash(deviceCookie) === activeDevice.device_hash),
+    activeDevice,
   };
 });
 
+/**
+ * For pages AND server actions: signed in, on the active device. Layouts don't
+ * re-render on client navigation, so the device rule must live here, not only
+ * in app/app/layout.tsx.
+ */
 export async function requireSession(): Promise<Session> {
   const s = await getSession();
   if (!s) redirect("/login");
+  if (!s.deviceActive) redirect("/device");
   return s;
 }
 

@@ -6,7 +6,7 @@ import { Field, FormMessage, Input } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { signUp } from "../actions";
 
-export function SignupForm() {
+export function SignupForm({ next }: { next?: string }) {
   const [state, action] = useActionState(signUp, undefined);
 
   if (state?.ok) {
@@ -20,6 +20,7 @@ export function SignupForm() {
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <Field label="Full name" htmlFor="full_name">
         <Input id="full_name" name="full_name" autoComplete="name" required defaultValue={state?.data?.full_name} />
       </Field>

@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   BellRingingIcon,
   BinocularsIcon,
@@ -10,6 +11,7 @@ import {
   ChartLineUpIcon,
   CreditCardIcon,
   GearSixIcon,
+  ListIcon,
   LightningIcon,
   NewspaperIcon,
   NotebookIcon,
@@ -108,38 +110,109 @@ export function Sidebar({
   );
 }
 
-export function MobileNav() {
+export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boolean }) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
   const items: Item[] = [
     { href: "/app", label: "Overview", icon: SquaresFourIcon, exact: true },
     { href: "/app/markets", label: "Markets", icon: ChartLineUpIcon },
     { href: "/app/watchlist", label: "Radar", icon: BinocularsIcon },
     { href: "/app/portfolio", label: "Portfolio", icon: BriefcaseIcon },
-    { href: "/app/settings", label: "Account", icon: GearSixIcon },
   ];
+  // Everything else lives in a sheet so phones can reach every page.
+  const more: Item[] = [
+    { href: "/app/alerts", label: "Alerts", icon: BellRingingIcon },
+    { href: "/app/signals", label: "Signals", icon: LightningIcon },
+    { href: "/app/research", label: "Research", icon: NotebookIcon },
+    { href: "/app/news", label: "News", icon: NewspaperIcon },
+    { href: "/app/workspace", label: "Workspace", icon: UsersThreeIcon },
+    { href: "/app/integrations", label: "Integrations", icon: PlugsIcon },
+    { href: "/app/billing", label: "Plan & billing", icon: CreditCardIcon },
+    { href: "/app/settings", label: "Settings", icon: GearSixIcon },
+    ...(isPlatformAdmin ? [{ href: "/admin", label: "Platform admin", icon: ShieldCheckIcon }] : []),
+  ];
+  const moreActive = more.some((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
-    <nav
-      aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] md:hidden"
-    >
-      {items.map((i) => {
-        const active = i.exact ? pathname === i.href : pathname.startsWith(i.href);
-        const Icon = i.icon;
-        return (
-          <Link
-            key={i.href}
-            href={i.href}
-            aria-current={active ? "page" : undefined}
-            className={clsx(
-              "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]",
-              active ? "text-foreground" : "text-muted-foreground",
-            )}
-          >
-            <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
-            {i.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      {open ? (
+        <div className="fixed inset-0 z-40 bg-foreground/30 md:hidden" onClick={() => setOpen(false)} aria-hidden />
+      ) : null}
+      {open ? (
+        <div
+          id="mobile-more"
+          role="dialog"
+          aria-label="More pages"
+          className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-50 rounded-t-xl border-t border-sidebar-border bg-sidebar p-3 md:hidden"
+        >
+          <ul className="grid grid-cols-3 gap-1">
+            {more.map((i) => {
+              const Icon = i.icon;
+              const active = pathname === i.href || pathname.startsWith(i.href + "/");
+              return (
+                <li key={i.href}>
+                  <Link
+                    href={i.href}
+                    onClick={() => setOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={clsx(
+                      "flex h-16 flex-col items-center justify-center gap-1 rounded-md text-[12px]",
+                      active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-foreground hover:bg-foreground/[0.06]",
+                    )}
+                  >
+                    <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
+                    {i.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        {items.map((i) => {
+          const active = i.exact ? pathname === i.href : pathname.startsWith(i.href);
+          const Icon = i.icon;
+          return (
+            <Link
+              key={i.href}
+              href={i.href}
+              aria-current={active ? "page" : undefined}
+              onClick={() => setOpen(false)}
+              className={clsx(
+                "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]",
+                active ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
+              {i.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="mobile-more"
+          onClick={() => setOpen((o) => !o)}
+          className={clsx(
+            "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]",
+            open || moreActive ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          <ListIcon size={20} weight={open || moreActive ? "fill" : "regular"} aria-hidden />
+          More
+        </button>
+      </nav>
+    </>
   );
 }

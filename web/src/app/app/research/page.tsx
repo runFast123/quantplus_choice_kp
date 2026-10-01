@@ -26,15 +26,15 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
     const [w, h] = await Promise.all([s.supabase.from("watchlist_items").select("symbol"), s.supabase.from("holdings").select("symbol")]);
     mine = [...new Set([...(w.data ?? []), ...(h.data ?? [])].map((r) => r.symbol))];
   }
-  let notes = await getResearch(s.supabase, mine);
-  if (stance) notes = notes.filter((n) => n.stance === stance);
+  const all = await getResearch(s.supabase, mine);
+  const counts = { constructive: 0, neutral: 0, cautious: 0 } as Record<string, number>;
+  for (const n of all) counts[n.stance]++;
+  const notes = stance ? all.filter((n) => n.stance === stance) : all;
   const delta = (n: ResearchNote) => (n.prev_score == null ? 0 : n.score - n.prev_score);
   notes.sort((a, b) =>
     sort === "change" ? Math.abs(delta(b)) - Math.abs(delta(a)) : sort === "news" ? b.news_count - a.news_count : sort === "low" ? a.score - b.score : b.score - a.score,
   );
   const asOf = notes[0]?.as_of;
-  const counts = { constructive: 0, neutral: 0, cautious: 0 } as Record<string, number>;
-  for (const n of notes) counts[n.stance]++;
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,13 +131,16 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
                             return (
                               <span
                                 key={k}
+                                role="img"
+                                aria-label={`${f?.label ?? k} ${factorScore(v)}`}
                                 title={`${f?.label}: ${factorScore(v)} — ${f?.detail ?? ""}`}
                                 className={clsx(
-                                  "num grid size-6 place-items-center rounded-[4px] text-[10.5px]",
+                                  "num inline-flex h-6 min-w-6 items-center justify-center gap-px rounded-[4px] px-1 text-[10.5px]",
                                   v > 0 ? "bg-gain-soft text-gain" : v < 0 ? "bg-loss-soft text-loss" : "bg-foreground/[0.05] text-muted-foreground",
                                 )}
                               >
                                 {FACTOR_SHORT[k]}
+                                <span aria-hidden className="text-[8px]">{v > 0 ? "▲" : v < 0 ? "▼" : ""}</span>
                               </span>
                             );
                           })}

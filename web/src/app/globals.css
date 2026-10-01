@@ -255,6 +255,8 @@
 .animate-marquee {
   animation: marquee 90s linear infinite;
 }
-.animate-marquee:hover {
+.animate-marquee:hover,
+[data-ticker]:focus-within .animate-marquee,
+[data-ticker][data-paused="true"] .animate-marquee {
   animation-play-state: paused;
 }

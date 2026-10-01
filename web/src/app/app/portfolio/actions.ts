@@ -64,12 +64,21 @@ export async function addHolding(_: ActionState, form: FormData): Promise<Action
 
 export async function updateHolding(_: ActionState, form: FormData): Promise<ActionState> {
   const s = await requireSession();
-  const id = String(form.get("id") ?? "");
-  const quantity = Number(form.get("quantity"));
-  const avg = Number(form.get("avg_price"));
-  if (!(quantity >= 0) || !(avg >= 0)) return { error: "Enter valid numbers." };
-  const { error } = await s.supabase.from("holdings").update({ quantity, avg_price: avg }).eq("id", id);
+  const parsed = z
+    .object({
+      id: z.uuid(),
+      quantity: z.coerce.number().positive("Quantity must be more than zero — remove the holding instead."),
+      avg_price: z.coerce.number().positive("Enter the price you paid."),
+    })
+    .safeParse({ id: form.get("id"), quantity: form.get("quantity") || undefined, avg_price: form.get("avg_price") || undefined });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { data: updated, error } = await s.supabase
+    .from("holdings")
+    .update({ quantity: parsed.data.quantity, avg_price: parsed.data.avg_price })
+    .eq("id", parsed.data.id)
+    .select("id");
   if (error) return { error: friendlyDbError(error.message) };
+  if (!updated?.length) return { error: "That holding isn't in this workspace." };
   revalidatePath("/app", "layout");
   return { ok: true };
 }
