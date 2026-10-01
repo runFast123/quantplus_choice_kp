@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/secret-scan.mjs --history
+
+  web:
+    name: Web — types, lint, unit, build
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: web } }
+    env:
+      # Placeholders: the build needs public values to exist, not real ones.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_MARKET_DATA_MODE: synthetic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx eslint src e2e
+      - run: npm run test:unit
+      - run: npm run build   # postbuild fails if a server-only secret reaches the browser bundle
+
+  db:
+    name: Database — migrations + isolation tests (PGlite)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: supabase/tests/harness } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --no-audit --no-fund
+      - run: npm test

@@ -28,6 +28,14 @@ export function TickerTape({ quotes }: { quotes: Quote[] }) {
         {row(true)}
       </div>
       <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-background to-transparent" />
+      {process.env.NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic" ? (
+        <span
+          className="absolute inset-y-0 left-0 z-10 flex items-center border-r border-border bg-card px-3 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-coral-ink"
+          title="Prices, candles and signals are generated test data until live market feeds are connected. Headlines are real."
+        >
+          Sample prices
+        </span>
+      ) : null}
       <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent" />
     </div>
   );

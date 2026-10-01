@@ -75,15 +75,16 @@ Every chart needs a hover readout/tooltip and a table or text equivalent.
 
 ## H. Apply migrations to Supabase (project `lrjedvwzmeunxvkezffw`)
 
-Option 1 — Supabase CLI: `npx supabase link --project-ref lrjedvwzmeunxvkezffw` then `npx supabase db push`.
-Option 2 — psql: `for f in supabase/migrations/*.sql; do psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$f"; done`.
-Option 3 — Dashboard SQL editor: paste each file in order.
+**Preferred — repo runner:** `cd supabase/scripts && npm install && npm run migrate` (then `npm run seed:ref`, and
+`npm run seed:dev` only on dev/staging). Needs `supabase/.env` (copy `.env.example`; session-pooler URL, password
+URL-encoded). Records versions in `supabase_migrations.schema_migrations`, so the Supabase CLI agrees.
+Alternatives: `npx supabase db push`, or paste files in order into the SQL editor.
 Then:
 1. Dashboard → Authentication → Hooks → **Custom Access Token** → `public.custom_access_token_hook`. Enable.
 2. Dashboard → Database → Extensions: confirm `pg_cron` is enabled.
 3. Dashboard → API → Exposed schemas: must **not** include `private`.
 4. Dev/staging only: run `supabase/seed/dev_market_data.sql` for synthetic prices.
-5. Run `supabase/tests/01_isolation.sql` and `02_eod_notifier.sql` in the SQL editor (they roll back) — all PASS.
+5. `npm run test:remote` (or paste `supabase/tests/0*.sql` into the SQL editor — they roll back) — all PASS.
 6. Auth → URL configuration: Site URL + redirect `…/auth/confirm`.
 
 ## I. Grant / revoke a platform admin
@@ -106,10 +107,47 @@ delete from private.platform_admins where user_id = '<id>';
 - 21st MCP `search` / `get_theme` are free; `get_component` uses the owner's credits — ask first.
 - Never introduce a new color or font outside `MASTER.md`.
 
+## N. News pipeline
+
+- **Run now:** `cd web && npm run ingest:news` (or `/admin` → *Fetch news now*). Report shows per-source status.
+- **Schedule:** `.github/workflows/news-ingest.yml` (needs repo secrets) or any scheduler calling
+  `GET /api/cron/news` with `Authorization: Bearer $CRON_SECRET`.
+- **Add a source:** new migration inserting into `news_sources` (`kind` news | filing | search). Check first that the
+  site serves RSS to `QuantsPulseBot` (curl with that UA); if it blocks bots, don't add it (ADR-014).
+- **Improve matching:** add rows to `seed/ref_news_aliases.sql` (avoid bare words that name other companies; extend
+  `SIBLING_WORDS` in `lib/news/match.ts` for new sibling entities), add a unit test, then
+  `npm run seed:ref` and `npm run ingest:news -- --relink`.
+- **Tone words:** edit `lib/news/tone.ts` (`POSITIVE` / `NEGATIVE`), add a unit test; users see matched terms.
+- **Research weights:** change `private.refresh_research_notes()` in a new migration, update the copy on
+  `/app/research` and `docs/DECISIONS.md` ADR-015, run `03_news_research.sql`.
+
+## O. End-to-end tests (Playwright)
+
+```bash
+cd web && npm run build && npm run test:e2e        # desktop + mobile projects
+npx playwright test e2e/research.spec.ts --project=desktop   # one file
+npx playwright show-report                           # HTML report
+```
+- Uses the installed Google Chrome (`channel: "chrome"`); no browser download.
+- `global-setup.ts` creates disposable Basic/Pro users via the admin API; `global-teardown.ts` deletes them (and their
+  personal workspaces, and any `e2e-*` organisations). Use `oneOffUser()` for tests that need a fresh account.
+- Selectors: roles and labels first (`getByRole`, `getByLabel`); `data-testid` only where no accessible name exists.
+- Write flows live in `writes.spec.ts` and skip with a reason until the access-token hook is enabled.
+- New page? Add it to `PAGES` in `navigation.spec.ts` (renders, no console errors, no sideways scroll) and to
+  `a11y.spec.ts`.
+
+## P. Secrets hygiene
+
+- One-time per clone: `git config core.hooksPath .githooks`.
+- Scan everything ever committed: `node scripts/secret-scan.mjs --history`.
+- New secret? Add it to `web/.env.local` (server-only names never start with `NEXT_PUBLIC_`), add a placeholder to
+  `.env.example`, document it in `docs/SECURITY.md` §1. If it has a recognisable format, add a pattern to the scanner.
+
 ## M. Before you push
 ```bash
-cd web && npx tsc --noEmit && npx eslint src && npx next build
+cd web && npx tsc --noEmit && npx eslint src e2e && npm run test:unit && npm run build   # build runs the bundle secret check
+npm run test:e2e
 cd ../supabase/tests/harness && npm test
-git status   # DB_confi, .mcp.json, .env.local must NOT appear
+git status   # DB_confi, .mcp.json, .env.local, supabase/.env must NOT appear (the pre-commit hook blocks them anyway)
 ```
 Then update `CHANGELOG.md` and `docs/CODEMAP.md`.

@@ -48,10 +48,15 @@
   --letter-spacing: 0.01em;
 
   --coral: #F26A4B;
+  --coral-ink: #A8402A; /* coral as text: 4.5:1+ on linen */
+  /* Marks (candles, chart fills) — validated categorical pair. */
   --gain: #0F7B5C;
   --loss: #C2410C;
-  --gain-soft: color-mix(in oklab, var(--gain) 12%, transparent);
-  --loss-soft: color-mix(in oklab, var(--loss) 12%, transparent);
+  /* Ink (text, badges, small fills) — darker so text clears 4.5:1 on linen. */
+  --gain-ink: #0B6A4E;
+  --loss-ink: #A8380B;
+  --gain-soft: color-mix(in oklab, var(--gain-ink) 9%, transparent);
+  --loss-soft: color-mix(in oklab, var(--loss-ink) 9%, transparent);
   --grain-opacity: 0.35;
 }
 
@@ -94,6 +99,9 @@
 
   --gain: #2BA383;
   --loss: #E0663F;
+  --coral-ink: #F26A4B;
+  --gain-ink: #4CC39C;
+  --loss-ink: #F07E5C;
   --grain-opacity: 0.12;
 }
 
@@ -132,8 +140,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-coral: var(--coral);
-  --color-gain: var(--gain);
-  --color-loss: var(--loss);
+  --color-coral-ink: var(--coral-ink);
+  --color-gain: var(--gain-ink);
+  --color-loss: var(--loss-ink);
   --color-gain-soft: var(--gain-soft);
   --color-loss-soft: var(--loss-soft);
 

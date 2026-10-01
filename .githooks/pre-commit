@@ -1,0 +1,3 @@
+#!/bin/sh
+# Installed with: git config core.hooksPath .githooks   (see docs/SECURITY.md)
+exec node scripts/secret-scan.mjs --staged

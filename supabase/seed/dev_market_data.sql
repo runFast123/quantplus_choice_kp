@@ -7,7 +7,8 @@
 begin;
 
 truncate public.trading_signals, public.rsi_events, public.backtest_ledgers,
-         public.market_candles, public.market_symbols restart identity;
+         public.market_candles, public.market_symbols restart identity cascade;
+-- cascade also clears symbol-linked news, aliases and research notes; ref_news_aliases.sql re-adds aliases.
 
 insert into public.market_symbols (symbol, exchange, name, sector) values
   ('RELIANCE',   'NSE', 'Reliance Industries',          'Energy'),

@@ -65,3 +65,48 @@ Registering happens on sign-in/confirm; another device sees a "use this device" 
 **Date** 2026-10-01 · **Status** accepted
 Withdrawing `broker_data_access` deletes the user's broker connections in every tenant (privileged), and
 withdrawing `ai_processing` deletes their AI keys — RLS alone would only reach the active tenant.
+
+### ADR-013 · News from public RSS, linked by rules, toned by a published word list
+**Date** 2026-10-01 · **Status** accepted
+Owner asked for RSS-driven news feeding research. Feeds are fetched by a service-role pipeline, deduped by normalised
+URL hash, matched to stocks by name / curated alias / ticker (with a sibling-entity guard: "NTPC Green" is not NTPC),
+and scored with a transparent lexicon whose matched terms are shown to users. Only headline, <=600-char summary and
+link are kept — never article bodies.
+
+### ADR-014 · Identify honestly; don't defeat bot protection
+**Date** 2026-10-01 · **Status** accepted
+User-agent is `QuantsPulseBot`. Moneycontrol and Business Standard return 403 to crawlers and NSE's archive drops
+non-browser clients; these sources are disabled (migration 18) rather than spoofing a browser. NSE filings need a
+licensed data feed or written permission.
+
+### ADR-015 · Research notes are rule-based and self-explaining
+**Date** 2026-10-01 · **Status** accepted
+`refresh_research_notes()` scores five factors (trend 30, momentum 20, range 10, signal 15, news 25; filings shown,
+unweighted) on -2..+2, composite -100..+100, stance at +/-25. Every factor stores the sentence that produced it. AI is
+optional on top (BYOK), never the source of the stance.
+
+### ADR-016 · BYOK AI: Anthropic via the official SDK; nothing stored
+**Date** 2026-10-01 · **Status** accepted
+Default model `claude-opus-5-5` with `fallbacks: "default"` (refusal-fallback beta), `effort: low`. OpenAI/Gemini need
+the user to set a default model. Headlines are passed as delimited data. Only metering goes to `ai_usage_logs`; a
+rejected key is marked `invalid`.
+
+### ADR-017 · Mark vs ink colour tokens
+**Date** 2026-10-01 · **Status** accepted (supersedes part of ADR-002)
+Validated chart colours (`--gain/--loss`) stay for marks; text and badges use darker `--gain-ink/--loss-ink` (light
+`#0B6A4E/#A8380B`) and `--coral-ink`, which clear 4.5:1 on linen. Tailwind `text-gain` maps to ink. Found by axe.
+
+### ADR-018 · Secrets: split by blast radius, scanned at commit, build and CI
+**Date** 2026-10-01 · **Status** accepted
+The web runtime gets no DB password (migrations use `supabase/.env`). Pre-commit hook checks formats and exact local
+values; postbuild scans the browser bundle; CI scans history. See `docs/SECURITY.md`.
+
+### ADR-019 · Plan limits confirmed
+**Date** 2026-10-01 · **Status** accepted (resolves spec Open Decision #1)
+Basic: 10 radar symbols, no portfolio. Pro: 15 / 15. Pro Plus: unlimited. Enforced by `enforce_symbol_limit` and RLS
+feature gates; covered by isolation test 12 and e2e `writes.spec.ts`.
+
+### ADR-020 · E2E on the system Chrome; write tests gated on the auth hook
+**Date** 2026-10-01 · **Status** accepted
+Playwright uses `channel: "chrome"` (no browser download on this network). Disposable users are created and deleted
+via the admin API. Tests that write tenant-scoped data skip with an explicit reason until the access-token hook is on.

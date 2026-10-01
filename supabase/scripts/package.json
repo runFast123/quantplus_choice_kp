@@ -1,0 +1,14 @@
+{
+  "name": "quantspulse-db-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Apply migrations / seeds / tests to the Supabase project. Reads supabase/.env (gitignored).",
+  "scripts": {
+    "migrate": "node apply.mjs migrate",
+    "seed:ref": "node apply.mjs seed ref",
+    "seed:dev": "node apply.mjs seed dev",
+    "test:remote": "node apply.mjs test",
+    "status": "node apply.mjs status"
+  },
+  "dependencies": { "pg": "^8.13.0" }
+}

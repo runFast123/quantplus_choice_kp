@@ -1,0 +1,38 @@
+name: News ingest
+
+# Pulls RSS headlines, links them to stocks, scores tone and rebuilds research
+# notes. Needs repository secrets (Settings → Secrets and variables → Actions):
+#   NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SERVICE_ROLE_KEY
+on:
+  schedule:
+    - cron: "*/30 3-11 * * 1-5"   # every 30 min, 08:30–17:00 IST, Mon–Fri
+    - cron: "15 */2 * * *"         # every 2 h otherwise
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: news-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults: { run: { working-directory: web } }
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEWS_SEARCH_SYMBOLS: "8"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+      - name: Skip quietly until secrets are configured
+        id: guard
+        run: '[ -n "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "::notice::News ingest secrets not set; skipping."'
+      - if: steps.guard.outputs.ok == '1'
+        run: npm run ingest:news

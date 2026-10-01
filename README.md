@@ -17,6 +17,15 @@ npm run dev                    # http://localhost:3000
 # 2. Database tests (no Docker needed)
 cd ../supabase/tests/harness
 npm install && npm test
+
+# 3. Apply to Supabase (needs supabase/.env — see supabase/.env.example)
+cd ../../scripts && npm install && npm run migrate && npm run test:remote
+
+# 4. End-to-end (Playwright, uses your installed Chrome)
+cd ../../web && npm run build && npm run test:e2e
+
+# 5. One-time per clone: block secrets at commit
+cd .. && git config core.hooksPath .githooks
 ```
 
 Apply the database to a Supabase project and enable the auth hook: see [PLAYBOOK.md §H](PLAYBOOK.md).
@@ -33,5 +42,6 @@ Apply the database to a Supabase project and enable the auth hook: see [PLAYBOOK
 | [docs/CODEMAP.md](docs/CODEMAP.md) | Inventory of functions, RPCs, routes, components |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Why things are the way they are |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Stubs, gaps, next steps |
+| [docs/SECURITY.md](docs/SECURITY.md) | Where secrets live, leak guards, rotation, backups |
 | [design-system/quantspulse/MASTER.md](design-system/quantspulse/MASTER.md) | Visual system (Zen Linen) |
 | [quantspulse_supabase_schema.md](quantspulse_supabase_schema.md) | Original data & security spec |

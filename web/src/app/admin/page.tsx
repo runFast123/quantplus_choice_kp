@@ -6,8 +6,10 @@ import { Logo } from "@/components/brand/logo";
 import { Badge, Stat } from "@/components/ui/data";
 import { inputClass } from "@/components/ui/field";
 import { Empty, PageHeader, Panel, TableWrap, td, th, tr } from "@/components/ui/layout";
-import { date, paiseToRupees, relative } from "@/lib/format";
+import { date, dateTime, paiseToRupees, relative } from "@/lib/format";
 import { isPlatformAdmin, platformStats, searchUsers } from "@/server/privileged/admin";
+import { newsSourceHealth } from "@/server/privileged/news";
+import { FetchNewsButton } from "./news-button";
 import { requireSession } from "@/server/session";
 import { ActivateForm } from "./activate-form";
 
@@ -19,7 +21,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   if (!(await isPlatformAdmin(s.userId))) notFound();
 
   const q = typeof (await searchParams).q === "string" ? ((await searchParams).q as string).trim() : "";
-  const [stats, users] = await Promise.all([platformStats(s.userId), searchUsers(s.userId, q)]);
+  const [stats, users, feeds] = await Promise.all([platformStats(s.userId), searchUsers(s.userId, q), newsSourceHealth()]);
 
   return (
     <div className="linen min-h-dvh">
@@ -104,6 +106,41 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             </TableWrap>
           )}
         </Panel>
+        <Panel title="News pipeline" meta="RSS sources · runs on a schedule via /api/cron/news" actions={<FetchNewsButton />}>
+          <TableWrap>
+            <table className="w-full min-w-[760px]">
+              <thead>
+                <tr>
+                  <th className={th}>Source</th>
+                  <th className={th}>Kind</th>
+                  <th className={th}>Last run</th>
+                  <th className={th}>Status</th>
+                  <th className={th + " text-right"}>Items</th>
+                  <th className={th}>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {feeds.map((f) => (
+                  <tr key={f.code} className={tr}>
+                    <td className={td}>{f.name}</td>
+                    <td className={td + " text-muted-foreground"}>{f.kind}</td>
+                    <td className={td + " text-muted-foreground"}>{f.last_fetched_at ? dateTime(f.last_fetched_at) : "never"}</td>
+                    <td className={td}>
+                      <Badge tone={!f.is_active ? "neutral" : f.last_status === "ok" ? "gain" : f.last_status ? "loss" : "neutral"}>
+                        {!f.is_active ? "off" : f.last_status ?? "pending"}
+                      </Badge>
+                    </td>
+                    <td className={td + " num text-right"}>{f.last_item_count ?? "—"}</td>
+                    <td className={td + " max-w-[320px] truncate text-muted-foreground"} title={f.last_error ?? undefined}>
+                      {f.last_error ?? ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
+        </Panel>
+
         <p className="text-[12px] text-muted-foreground">
           Platform admins are granted only by SQL: <code className="num">insert into private.platform_admins (user_id) values (&apos;…&apos;);</code>
         </p>

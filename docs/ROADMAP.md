@@ -4,21 +4,29 @@ Check here before claiming a feature works, and before building something — it
 Requirement IDs refer to `docs/BRD.md`.
 
 ## Blocking for first real users
-- [ ] Apply migrations 01–16 to Supabase project `lrjedvwzmeunxvkezffw` (needs DB password) and enable the
-      Custom Access Token Hook — PLAYBOOK §H.
+- [x] Apply migrations to Supabase project `lrjedvwzmeunxvkezffw` (done 2026-10-01; 21 migrations, tests pass live).
+- [ ] **Enable the Custom Access Token Hook** (Dashboard -> Authentication -> Hooks -> `public.custom_access_token_hook`).
+      Until then every tenant-scoped write is blocked and 7 e2e tests skip. Owner action — no API access from here.
+- [ ] Add GitHub repo secrets for `news-ingest.yml` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+      `SUPABASE_SERVICE_ROLE_KEY`) and enable Secret scanning + Push protection.
+- [ ] Rotate the service-role key and 21st key (shared in chat during setup) — docs/SECURITY.md §3.
 - [ ] Production market-data pipelines (FR-3.4, FR-5.3). Until then only the synthetic dev seed exists.
-- [ ] Legal review of Terms/Privacy drafts and SEBI positioning (BRD §7).
+- [ ] Legal review of Terms/Privacy drafts (SEBI positioning deprioritised by owner; copy stays non-advice).
 - [ ] Transactional email (invites, auth emails from a custom domain).
 
 ## Next
 - [ ] Payment gateway (Razorpay/Cashfree) checkout + webhook → `admin_activate_plan`-style RPC (FR-9.4).
 - [ ] Broker OAuth per broker + holdings sync worker writing `source = 'broker'` holdings (FR-6.3, FR-8.1).
 - [ ] Live tick worker for intraday alerts and prices (FR-3.5, FR-7.6); keep `run_eod_notifier` as the EOD pass.
-- [ ] BYOK AI features: research chat per symbol, contract-note parsing (`contract_note_imports` + `contract-notes` bucket), metering in `ai_usage_logs` (FR-8.4, FR-6.4).
+- [x] News (RSS) ingestion, symbol matching, tone, research notes, BYOK AI research read (0.2.0).
+- [ ] NSE / BSE corporate filings via a licensed feed (public archive blocks automated readers — ADR-014).
+- [ ] More news sources that allow automated reading; alias curation for new listings.
+- [ ] BYOK AI: chat per symbol, contract-note parsing (`contract_note_imports` + `contract-notes` bucket), metering in `ai_usage_logs` (FR-8.4, FR-6.4).
 - [ ] Email/push notification channels (FR-7.7).
 - [ ] NSE holiday calendar for `nseSession()` and cron schedules.
 - [ ] Generated Supabase types (`supabase gen types`) to replace hand-written `lib/types.ts`.
-- [ ] CI: run `tsc`, ESLint, `next build`, DB harness on every PR.
+- [x] CI: secret scan, `tsc`, ESLint, unit tests, `next build` (+ bundle secret check), DB harness (`.github/workflows/ci.yml`).
+- [ ] Run the Playwright e2e suite in CI against a staging Supabase project (needs staging secrets).
 
 ## Known limitations (by design for now)
 - Broker connect stores a pasted token; "last synced" stays empty until the sync worker exists.

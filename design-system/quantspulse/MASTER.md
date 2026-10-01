@@ -38,7 +38,12 @@ Editorial serif headlines over dense, quiet tables. Numbers are the loudest thin
 | gain | `#0F7B5C` | `#2BA383` |
 | loss | `#C2410C` | `#E0663F` |
 
-Both pairs pass lightness band, chroma floor, CVD ΔE ≥ 8, normal-vision floor and 3:1 contrast.
+Both pairs pass lightness band, chroma floor, CVD ΔE ≥ 8, normal-vision floor and 3:1 contrast — these are **mark**
+colours (candles, chart fills).
+
+**Ink** (text, badges, small fills — what `text-gain` / `text-loss` / `bg-gain` resolve to): light `#0B6A4E` / `#A8380B`,
+dark `#4CC39C` / `#F07E5C`; soft backgrounds are 9% of ink. **Coral as text** uses `text-coral-ink` (`#A8402A` light,
+`#F26A4B` dark); plain `coral` is decoration only. Verified with axe (WCAG 2.1 AA) in `web/e2e/a11y.spec.ts`.
 Gain/loss is **never color-only**: always a sign (`+`/`−`) and a glyph (`▲`/`▼`).
 Coral is brand/emphasis only — never used on P&L numbers, so it can't be misread as a loss.
 

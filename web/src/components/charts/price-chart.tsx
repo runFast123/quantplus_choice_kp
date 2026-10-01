@@ -154,7 +154,10 @@ export function PriceChart({ candles, markers, symbol }: { candles: Candle[]; ma
         <dl className="num flex flex-wrap gap-x-4 gap-y-1 text-[12px]" aria-live="polite">
           {shown ? (
             <>
-              <div className="text-muted-foreground">{new Date(shown.ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })}</div>
+              <div className="flex gap-1 text-muted-foreground">
+                <dt className="sr-only">Date</dt>
+                <dd>{new Date(shown.ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })}</dd>
+              </div>
               {(["open", "high", "low", "close"] as const).map((k) => (
                 <div key={k} className="flex gap-1">
                   <dt className="uppercase text-muted-foreground">{k[0]}</dt>
@@ -165,7 +168,15 @@ export function PriceChart({ candles, markers, symbol }: { candles: Candle[]; ma
                 <dt className="text-muted-foreground">Vol</dt>
                 <dd>{fmtVolume(shown.volume)}</dd>
               </div>
-              {chg != null ? <div className={chg >= 0 ? "text-gain" : "text-loss"}>{chg >= 0 ? "▲ +" : "▼ −"}{Math.abs(chg).toFixed(2)}%</div> : null}
+              {chg != null ? (
+                <div className={chg >= 0 ? "text-gain" : "text-loss"}>
+                  <dt className="sr-only">Change</dt>
+                  <dd>
+                    {chg >= 0 ? "▲ +" : "▼ −"}
+                    {Math.abs(chg).toFixed(2)}%
+                  </dd>
+                </div>
+              ) : null}
             </>
           ) : null}
         </dl>

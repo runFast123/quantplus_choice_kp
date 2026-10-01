@@ -71,3 +71,22 @@ Display, JetBrains Mono). Charts: lightweight-charts v5. Icons: Phosphor.
   migrations + seed, then runs `tests/NN_*.sql`. Tests are plain SQL in a rolled-back transaction, so the same files
   run unchanged on staging via the SQL editor.
 - Web: `tsc`, ESLint (incl. service-role import ban), `next build`.
+
+## News & research (0.2.0)
+
+```
+ GitHub Actions / any scheduler ──Bearer CRON_SECRET──▶ /api/cron/news ─┐
+ npm run ingest:news / admin "Fetch news now" ──────────────────────────┤
+                                                                        ▼
+   server/privileged/news.ts: fetch news_sources (DB-listed URLs only, QuantsPulseBot UA, 15 s, 3 MB cap)
+     → lib/news/feed.ts (RSS/Atom) → lib/news/match.ts (name/alias/ticker, sibling guard) → lib/news/tone.ts
+     → news_articles + news_article_symbols (dedupe by URL hash) → svc_refresh_research()
+                                                                        ▼
+   private.refresh_research_notes(): candles + RSI + signals + 14-day news tone → research_notes (one per session)
+     → research_stance notifications to watchers/holders · also by pg_cron 16:30 IST
+   UI: /app/research, /app/news, stock page note + headlines; optional BYOK AI read (server/privileged/ai.ts)
+```
+
+## Testing layers
+DB: PGlite harness + same SQL on the live project · Web unit: `npm run test:unit` · E2E: Playwright (`web/e2e`) with
+axe and overflow checks · CI: `.github/workflows/ci.yml` · Secrets: pre-commit hook, bundle check, history scan.

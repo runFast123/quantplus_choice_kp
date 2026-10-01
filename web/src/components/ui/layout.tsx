@@ -72,28 +72,36 @@ export function Empty({ title, children, action }: { title: string; children?: R
 /** Shown in place of a feature the current plan doesn't include. */
 export function PlanGate({ feature, plan = "Pro" }: { feature: string; plan?: string }) {
   return (
-    <div className="panel flex flex-col items-start gap-3 p-6 md:flex-row md:items-center md:justify-between">
+    <div className="@container panel p-5" data-testid="plan-gate">
+      <div className="flex flex-col items-start gap-3 @md:flex-row @md:items-center @md:justify-between">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md bg-foreground/[0.06]">
           <LockIcon size={16} weight="regular" aria-hidden />
         </span>
         <div>
-          <p className="text-[14px] font-medium">{feature} is part of {plan}</p>
+          <p className="text-[14px] font-medium">{feature}</p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">
-            Your current plan doesn&apos;t include it. Upgrading keeps everything you&apos;ve already set up.
+            Included with {plan}. Upgrading keeps everything you&apos;ve already set up.
           </p>
         </div>
       </div>
-      <ButtonLink href="/app/billing" size="sm">
+      <ButtonLink href="/app/billing" size="sm" className="shrink-0">
         See plans
       </ButtonLink>
+      </div>
     </div>
   );
 }
 
 /** Wide tables scroll inside their card, never the page. */
-export function TableWrap({ children }: { children: ReactNode }) {
-  return <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:thin]">{children}</div>;
+export function TableWrap({ children, label = "Table" }: { children: ReactNode; label?: string }) {
+  // relative: keeps absolutely-positioned descendants (sr-only labels) inside the
+  // scroller instead of stretching the page. tabIndex: keyboard users can scroll it.
+  return (
+    <div role="group" aria-label={`${label} — scrolls sideways`} tabIndex={0} className="relative -mx-4 overflow-x-auto px-4 [scrollbar-width:thin]">
+      {children}
+    </div>
+  );
 }
 
 export const th = "eyebrow h-9 whitespace-nowrap px-3 text-left font-medium first:pl-0 last:pr-0";

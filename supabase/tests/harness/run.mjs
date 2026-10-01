@@ -30,7 +30,9 @@ const migDir = join(root, "migrations");
 for (const f of readdirSync(migDir).filter((f) => f.endsWith(".sql")).sort()) {
   await run(`migration ${f}`, adapt(read(join(migDir, f))));
 }
-await run("seed dev_market_data.sql", read(join(root, "seed", "dev_market_data.sql")));
+for (const f of readdirSync(join(root, "seed")).filter((f) => f.endsWith(".sql")).sort()) {
+  await run(`seed ${f}`, read(join(root, "seed", f)));
+}
 
 const counts = await db.query(`
   select (select count(*) from public.market_symbols) symbols,

@@ -264,6 +264,8 @@ select qp_test.expect_error('delete from public.audit_log', 'append-only', '17c 
 -- ---------------------------------------------------------------------
 -- 15: analytics_reader; 16: storage
 -- ---------------------------------------------------------------------
+-- PG16+: creating a role doesn't let you SET ROLE to it; grant inside this rolled-back tx.
+grant analytics_reader to current_user;
 set local role analytics_reader;
 select qp_test.expect_error('select * from public.holdings', 'permission denied', '15 analytics_reader reads holdings');
 select qp_test.expect_ok('select * from public.market_symbols', '15b analytics_reader reads market data');
@@ -323,6 +325,13 @@ select qp_test.expect_rows($$
   select table_name from information_schema.role_table_grants
   where grantee = 'anon' and table_schema = 'public' and table_name <> 'plans'$$,
   0, '18b anon has no grants except plans');
+
+-- Deleting a user removes their personal workspace but not organisations they belong to.
+select qp_test.expect_rows(format('select 1 from public.tenants where id = %L', qp_test.tenant_of('F')), 1, 'cleanup-pre: F personal tenant exists');
+create temp table _f_tenant as select qp_test.tenant_of('F') as id;
+delete from auth.users where id = qp_test.uid('F');
+select qp_test.expect_rows('select 1 from public.tenants where id = (select id from _f_tenant)', 0, 'cleanup: deleting a user deletes their personal tenant');
+select qp_test.expect_rows(format('select 1 from public.tenants where id = %L', qp_test.uid('ORG')), 1, 'cleanup: organisation tenants survive member deletion');
 
 do $$ begin raise notice 'ALL ISOLATION TESTS PASSED'; end $$;
 rollback;

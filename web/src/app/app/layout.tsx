@@ -92,7 +92,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
 
         {s.hookMissing ? (
           <div role="alert" className="mx-4 mt-4 flex flex-col gap-3 rounded-lg border border-coral/50 bg-coral/10 p-4 md:mx-6 md:flex-row md:items-center">
-            <WarningIcon size={20} className="shrink-0 text-coral" aria-hidden />
+            <WarningIcon size={20} className="shrink-0 text-coral-ink" aria-hidden />
             <p className="flex-1 text-[13px] leading-5">
               <strong className="font-semibold">Workspace claim missing from your session.</strong> Enable the{" "}
               <code className="num rounded bg-foreground/[0.07] px-1">custom_access_token_hook</code> in Supabase → Authentication → Hooks,

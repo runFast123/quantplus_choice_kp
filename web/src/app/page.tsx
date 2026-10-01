@@ -143,7 +143,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 <li>Export everything, or delete your account, from Settings. No email to support.</li>
               </ul>
             </div>
-            <div className="self-center overflow-x-auto rounded-xl border border-primary-foreground/15">
+            <div role="group" aria-label="Who can see what — scrolls sideways" tabIndex={0} className="relative self-center overflow-x-auto rounded-xl border border-primary-foreground/15">
               <table className="w-full min-w-[440px] text-left text-[13.5px]">
                 <caption className="sr-only">Who can see what</caption>
                 <thead>
@@ -194,7 +194,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <div key={p.code} className={clsx("flex flex-col bg-card p-6", p.code === "pro" && "bg-accent")}>
                 <div className="flex items-baseline justify-between">
                   <h3 className="display text-[26px]">{p.name}</h3>
-                  {p.code === "pro" ? <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-coral">Most chosen</span> : null}
+                  {p.code === "pro" ? <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-coral-ink">Most chosen</span> : null}
                 </div>
                 <p className="mt-4">
                   <span className="num text-[34px] leading-none">{p.price_paise_yearly ? paiseToRupees(p.price_paise_yearly) : "₹0"}</span>
@@ -208,7 +208,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   {FEATURE_ROWS.map(([key, label]) => {
                     const on = Boolean(p.features?.[key]);
                     return (
-                      <li key={key} className={clsx("flex items-start gap-2.5", !on && "text-muted-foreground/80")}>
+                      <li key={key} className={clsx("flex items-start gap-2.5", !on && "text-muted-foreground")}>
                         {on ? <CheckIcon size={15} weight="bold" className="mt-0.5 shrink-0" aria-label="Included" /> : <MinusIcon size={15} className="mt-0.5 shrink-0" aria-label="Not included" />}
                         {label}
                       </li>
@@ -340,7 +340,7 @@ function Step({ n, title, body, children, className }: { n: string; title: strin
       <div className="panel overflow-hidden">
         <div className="border-b border-border bg-background/40 p-5">{children}</div>
         <div className="p-6">
-          <p className="num text-[12px] text-coral">{n}</p>
+          <p className="num text-[12px] text-coral-ink">{n}</p>
           <h3 className="display mt-2 text-[24px]">{title}</h3>
           <p className="mt-2 text-[14.5px] leading-7 text-muted-foreground">{body}</p>
         </div>

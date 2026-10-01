@@ -11,6 +11,8 @@ import {
   CreditCardIcon,
   GearSixIcon,
   LightningIcon,
+  NewspaperIcon,
+  NotebookIcon,
   PlugsIcon,
   ShieldCheckIcon,
   SquaresFourIcon,
@@ -38,6 +40,8 @@ export function Sidebar({
     { href: "/app/portfolio", label: "Portfolio", icon: BriefcaseIcon, locked: locked.portfolio },
     { href: "/app/alerts", label: "Alerts", icon: BellRingingIcon, locked: locked.alerts },
     { href: "/app/signals", label: "Signals", icon: LightningIcon },
+    { href: "/app/research", label: "Research", icon: NotebookIcon },
+    { href: "/app/news", label: "News", icon: NewspaperIcon },
   ];
   const account: Item[] = [
     { href: "/app/workspace", label: "Workspace", icon: UsersThreeIcon },
@@ -70,7 +74,7 @@ export function Sidebar({
             <span
               className={clsx(
                 "rounded-[3px] px-1 text-[10px] font-semibold uppercase tracking-wider",
-                active ? "bg-sidebar-primary-foreground/15" : "bg-foreground/[0.07] text-muted-foreground",
+                active ? "bg-sidebar-primary-foreground/15" : "bg-foreground/[0.07] text-foreground",
               )}
             >
               Pro

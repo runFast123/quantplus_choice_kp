@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionState } from "@/lib/errors";
-import { activatePlan } from "@/server/privileged/admin";
+import { activatePlan, isPlatformAdmin } from "@/server/privileged/admin";
+import { ingestNews } from "@/server/privileged/news";
 import { PrivilegedError } from "@/server/privileged/guards";
 import { requireSession } from "@/server/session";
 
@@ -37,5 +38,18 @@ export async function activatePlanAction(_: ActionState, form: FormData): Promis
   } catch (e) {
     const m = e instanceof PrivilegedError ? e.message : "";
     return { error: m.includes("NOT_AUTHORIZED") ? "Not a platform admin." : m.includes("USER_NOT_IN_TENANT") ? "User isn't in that workspace." : m.includes("INVALID_INPUT") ? "Months must be 1–24." : "Activation failed." };
+  }
+}
+
+export async function fetchNewsNow(): Promise<ActionState> {
+  const s = await requireSession();
+  if (!(await isPlatformAdmin(s.userId))) return { error: "Not a platform admin." };
+  try {
+    const r = await ingestNews({ searchSymbols: 8 });
+    revalidatePath("/admin");
+    const failed = r.sources.filter((x) => x.status === "error").length;
+    return { ok: true, message: `${r.inserted} new headlines, ${r.linked} stock links, ${r.researchRows ?? 0} notes rebuilt${failed ? `; ${failed} source(s) failed` : ""} (${Math.round(r.durationMs / 1000)}s).` };
+  } catch (e) {
+    return { error: `Ingestion failed: ${(e as Error).message}` };
   }
 }

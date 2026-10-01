@@ -96,6 +96,12 @@ export function daysUntil(d: string | Date): number {
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
 }
 
+/** Research factor scores (−2…+2): one decimal at most, true minus sign. */
+export function factorScore(n: number): string {
+  const r = Math.round(n * 10) / 10;
+  return `${r > 0 ? "+" : r < 0 ? "−" : ""}${Math.abs(r)}`;
+}
+
 export const strategyLabel: Record<string, string> = {
   sma_20_50_cross: "SMA 20/50 cross",
   rsi_reversal: "RSI reversal",

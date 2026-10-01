@@ -29,17 +29,20 @@ If something here conflicts with your instinct, this file wins. If it's wrong, f
 ```
 quantspulse_supabase_schema.md   the original spec (source of truth for data + security model)
 AGENTS.md  PLAYBOOK.md  CHANGELOG.md  README.md
-docs/          BRD, ARCHITECTURE, CODEMAP, DECISIONS, ROADMAP
+docs/          BRD, ARCHITECTURE, CODEMAP, DECISIONS, ROADMAP, SECURITY
 design-system/quantspulse/MASTER.md   tokens, type, layout, chart rules ("Zen Linen")
 supabase/
-  migrations/  ordered SQL — 01–13 = spec §5.1–5.13, 14+ = additions (see DECISIONS)
-  seed/        dev_market_data.sql — SYNTHETIC prices, dev/staging only
-  tests/       00_verify…, 01_isolation (spec §9), 02_eod_notifier; harness/ runs them on PGlite
+  migrations/  ordered SQL — 01–13 = spec §5.1–5.13, 14+ = additions (see DECISIONS); all applied to the live project
+  seed/        dev_market_data.sql (SYNTHETIC prices, dev only) · ref_news_aliases.sql (reference, prod-safe)
+  scripts/     apply.mjs — migrate / seed / test against Supabase (reads gitignored supabase/.env)
+  tests/       00_verify…, 01_isolation (spec §9), 02_eod_notifier, 03_news_research; harness/ runs them on PGlite
 web/           Next.js app (UI + server actions + route handlers = the "Node backend")
   src/app/            routes  (app/app/* = signed-in product, admin/ = platform console)
   src/server/         server-only code; privileged/ = the ONLY place the service role is used
   src/lib/            pure helpers, types, Supabase clients
-  src/components/     ui/ (primitives), shell/, market/, charts/, marketing/, brand/
+  src/components/     ui/ (primitives), shell/, market/, charts/, news/, research/, marketing/, brand/
+  e2e/                Playwright end-to-end suite (system Chrome; disposable users)
+scripts/secret-scan.mjs + .githooks/   secret guard (enable: git config core.hooksPath .githooks)
 .claude/skills/  ui-ux-pro-max and friends (project-local)    .mcp.json  21st.dev MCP (gitignored: has a key)
 ```
 
@@ -77,10 +80,17 @@ web/           Next.js app (UI + server actions + route handlers = the "Node bac
 13. Copy must be true. Don't describe features that aren't built (see `docs/ROADMAP.md` for what is stubbed).
     Signals are "research", never "advice" or "recommendations".
 
+**Secrets** (full rules in `docs/SECURITY.md`)
+17. Never put a key, password or token in source, docs, tests or commit messages. Env files only; the pre-commit hook
+    and CI scan enforce it — never bypass with `--no-verify`. The web app must never receive the DB password.
+18. News/feeds: only fetch URLs stored in `news_sources`; identify as `QuantsPulseBot`; never spoof a browser to get
+    past a site's bot protection (ADR-014). Store headline/summary/link only.
+
 **Design** (full rules in `design-system/quantspulse/MASTER.md`)
 14. Theme is **Zen Linen** (21st.dev). Use tokens (`bg-card`, `text-muted-foreground`, `text-gain`…), never raw hex
     in components. Serif (`.display`) for titles, mono (`.num`) for every number, Inter for UI.
-15. Gain/loss is never color-only: sign + ▲/▼ + color (`<Delta>`). Coral is brand-only, never on P&L.
+15. Gain/loss is never color-only: sign + ▲/▼ + color (`<Delta>`). Coral is brand-only, never on P&L. Text uses ink
+    tokens (`text-gain`, `text-loss`, `text-coral-ink`); charts use mark vars (`--gain`/`--loss`). axe must stay clean.
 16. No emoji icons (Phosphor only: `@phosphor-icons/react/ssr` in server components, `@phosphor-icons/react` in client).
     No gradients, glassmorphism, glows, or "✨ AI" copy. Respect reduced motion. Verify 375 / 768 / 1440 widths.
 
@@ -94,12 +104,24 @@ npx tsc --noEmit && npx eslint src && npx next build    # must all pass before c
 
 # database tests (no Docker)
 cd supabase/tests/harness && npm install && npm test
+
+# live Supabase (needs supabase/.env)
+cd supabase/scripts && npm run status | migrate | seed:ref | test:remote
+
+# news pipeline (manual run; scheduled in .github/workflows/news-ingest.yml)
+cd web && npm run ingest:news            # add -- --relink after changing matching rules/aliases
+
+# unit + end-to-end
+cd web && npm run test:unit
+cd web && npm run build && npm run test:e2e   # Playwright on installed Chrome; creates & deletes test users
 ```
 
 ## 5. Definition of done (every change)
 
 - [ ] Searched `docs/CODEMAP.md`; reused existing helpers.
-- [ ] `tsc`, `eslint`, `next build` pass; DB harness passes if SQL changed.
+- [ ] `tsc`, `eslint src e2e`, `npm run test:unit`, `next build` pass; DB harness passes if SQL changed; new SQL also
+      applied with `supabase/scripts` (`npm run migrate && npm run test:remote`).
+- [ ] UI change → `npm run test:e2e` green (axe + overflow included); add/adjust a spec for new behaviour.
 - [ ] New table/RPC/policy → isolation test added.
 - [ ] UI checked at mobile + desktop widths, light + dark.
 - [ ] **`CHANGELOG.md` updated** (Unreleased section) — what, why, files.
@@ -111,6 +133,11 @@ cd supabase/tests/harness && npm install && npm test
 
 - Supabase project ref `lrjedvwzmeunxvkezffw`. Keys live in `web/.env.local` (gitignored). Template: `web/.env.example`.
 - The **Custom Access Token Hook** (`public.custom_access_token_hook`) must be enabled in Supabase → Auth → Hooks,
-  or `app_tenant_id` is missing from JWTs and every tenant-scoped write fails RLS. The app shows a banner when it's off.
+  or `app_tenant_id` is missing from JWTs and every tenant-scoped write fails RLS. The app shows a banner when it's off,
+  and `e2e/writes.spec.ts` skips. **Status 2026-10-01: not yet enabled (owner action).**
+- Live DB is reached through the **session pooler** `aws-0-ap-northeast-2.pooler.supabase.com:5432`
+  (user `postgres.<ref>`); the direct `db.<ref>.supabase.co` host is IPv6-only from this network.
+- Market prices are **synthetic** until pipelines exist (`NEXT_PUBLIC_MARKET_DATA_MODE=synthetic` shows a label).
+  Headlines are real.
 - Windows dev machine; bash (Git Bash) and PowerShell both available. Commit attribution per repo owner's rules.
 - Remote: `https://github.com/runFast123/quantplus_choice_kp.git`, branch `main`.

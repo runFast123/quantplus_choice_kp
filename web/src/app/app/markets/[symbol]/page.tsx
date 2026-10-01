@@ -5,11 +5,15 @@ import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { PriceChart, type ChartMarker } from "@/components/charts/price-chart";
 import { AlertForm } from "@/components/market/alert-form";
 import { RadarToggle } from "@/components/market/radar-toggle";
-import { Badge, Delta, RangeBar } from "@/components/ui/data";
+import { NewsList } from "@/components/news/news-list";
+import { AiRead } from "@/components/research/ai-read";
+import { FactorBreakdown } from "@/components/research/factor-breakdown";
+import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, dateTime, price, qty, rupees, strategyLabel, volume } from "@/lib/format";
 import type { Holding, Quote, Signal } from "@/lib/types";
 import { getCandles, normalizeQuote } from "@/server/market-data";
+import { getNews, getResearch } from "@/server/news-data";
 import { can, requireSession } from "@/server/session";
 
 export async function generateMetadata({ params }: PageProps<"/app/markets/[symbol]">): Promise<Metadata> {
@@ -51,6 +55,20 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const holdings = (holdingsRes.data ?? []) as Holding[];
   const held = holdings.reduce((a, h) => a + Number(h.quantity), 0);
   const avgCost = held ? holdings.reduce((a, h) => a + Number(h.quantity) * Number(h.avg_price), 0) / held : 0;
+
+  const [[note], news, aiKeysRes, aiConsentRes] = await Promise.all([
+    getResearch(db, [symbol]),
+    getNews(db, { symbols: [symbol], limit: 12 }),
+    can(s, "ai_byok") ? db.from("ai_provider_keys").select("id").eq("status", "active").neq("provider", "other").limit(1) : Promise.resolve({ data: [] }),
+    db.from("user_consents").select("id").eq("purpose", "ai_processing").is("withdrawn_at", null).limit(1),
+  ]);
+  const aiReason = !can(s, "ai_byok")
+    ? "AI reads with your own key are part of Pro."
+    : !aiConsentRes.data?.length
+      ? "Allow AI processing in Settings → Privacy, then add a key in"
+      : !aiKeysRes.data?.length
+        ? "Add an Anthropic, OpenAI or Gemini key in"
+        : undefined;
 
   const ledger = ledgerRes.data?.ledger as { entries: LedgerEntry[]; invested: number; final_value: number; installment: number } | undefined;
 
@@ -128,6 +146,49 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
             </Panel>
           ) : null}
         </div>
+      </div>
+
+      <div id="research" className="grid scroll-mt-24 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+        <Panel
+          title="Research note"
+          meta={note ? `session of ${date(note.as_of)}` : undefined}
+          actions={
+            <Link href="/app/research" className="text-[12px] text-muted-foreground hover:text-foreground">
+              All notes
+            </Link>
+          }
+        >
+          {!note ? (
+            <Empty title="No note yet.">Notes are rebuilt after each close and whenever new headlines arrive.</Empty>
+          ) : (
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                <StanceBadge stance={note.stance} />
+                <ScoreBar score={note.score} width={160} />
+                {note.prev_score != null ? (
+                  <span className="text-[12px] text-muted-foreground">
+                    previous <span className="num">{note.prev_score > 0 ? "+" : ""}{note.prev_score.toFixed(0)}</span>
+                    {note.prev_stance && note.prev_stance !== note.stance ? ` (${note.prev_stance})` : ""}
+                  </span>
+                ) : null}
+              </div>
+              <p className="display text-[20px] leading-snug">{note.headline}</p>
+              <FactorBreakdown factors={note.factors} />
+              <div className="border-t border-border pt-4">
+                <p className="eyebrow mb-2">Your AI, your key</p>
+                <AiRead symbol={q.symbol} ready={!aiReason} reason={aiReason} />
+              </div>
+            </div>
+          )}
+        </Panel>
+
+        <Panel title="Headlines" meta={news.length ? `${news.length} most recent` : undefined}>
+          {news.length === 0 ? (
+            <Empty title="No headlines matched yet.">We look for the company name, its common short names and its ticker across market feeds.</Empty>
+          ) : (
+            <NewsList items={news} showSummary={false} hideSymbol={q.symbol} />
+          )}
+        </Panel>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

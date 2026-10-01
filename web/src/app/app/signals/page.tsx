@@ -64,7 +64,7 @@ export default async function SignalsPage({ searchParams }: PageProps<"/app/sign
           <Link
             key={st.key}
             href={link({ strategy: strategy === st.key ? "" : st.key })}
-            aria-pressed={strategy === st.key}
+            aria-current={strategy === st.key ? "true" : undefined}
             className={clsx("panel block p-4 transition-colors hover:border-muted-foreground/50", strategy === st.key && "border-foreground")}
           >
             <p className="display text-[20px]">{st.title}</p>

@@ -127,7 +127,19 @@ IDs are referenced from CHANGELOG/ROADMAP. **Status:** ✅ built · 🟡 partial
 | FR-8.1 | Connect a broker (Choice, Zerodha, Angel One, Upstox, Dhan, Fyers) with read-only scope; token encrypted | 🟡 (manual token paste; per-broker OAuth not built) |
 | FR-8.2 | Show connection status, masked account, token expiry; disconnect | ✅ |
 | FR-8.3 | Store BYOK AI keys (Anthropic, OpenAI, Gemini) encrypted; show last 4 only | ✅ |
-| FR-8.4 | AI features using the user's key (chat, news summary, contract-note parsing), metered in `ai_usage_logs` | ⬜ |
+| FR-8.4 | AI features using the user's key (chat, news summary, contract-note parsing), metered in `ai_usage_logs` | 🟡 (research read ✅; chat, contract notes ⬜) |
+
+### 6.8a News and research
+| ID | Requirement | Status |
+|---|---|---|
+| FR-8a.1 | Ingest market headlines from public RSS feeds on a schedule; dedupe across feeds | ✅ |
+| FR-8a.2 | Link headlines to covered stocks by name, curated alias and ticker; avoid sibling companies | ✅ |
+| FR-8a.3 | Score headline tone with a published word list and show matched terms | ✅ |
+| FR-8a.4 | Daily rule-based research note per stock (trend, momentum, range, signal, news tone) with explained factors and a stance | ✅ |
+| FR-8a.5 | Research desk (all notes, filters, change vs previous session); news feed (my stocks / market, tone, type) | ✅ |
+| FR-8a.6 | Notify watchers/holders when a stock's research stance changes | ✅ |
+| FR-8a.7 | Exchange filings (NSE/BSE) | ⬜ (needs licensed access — ADR-014) |
+| FR-8a.8 | Keep only headline, short summary and link; never article bodies | ✅ |
 
 ### 6.9 Plans and billing
 | ID | Requirement | Status |
@@ -176,12 +188,12 @@ IDs are referenced from CHANGELOG/ROADMAP. **Status:** ✅ built · 🟡 partial
 ## 10. Open decisions
 
 From spec §10, plus product items raised during build:
-1. Plan limits — Basic 10/0, Pro 15/15, Pro Plus unlimited: confirm.
+1. ~~Plan limits~~ — **confirmed** by owner: Basic 10/0, Pro 15/15, Pro Plus unlimited (ADR-019).
 2. Broker-synced holdings vs. plan limits (today the limit applies to all sources).
 3. "Pro Plus free for now" → implement as a `promo` subscription with an end date.
 4. Organisation billing: per-user today; seat-based tenant billing would need a new table. Currently each member gets a Basic trial in the org workspace on joining.
 5. Advisor access to client portfolios: not supported; would require a consent-based `portfolio_shares` feature.
 6. Phone visibility to tenant admins: currently shown; consider masking.
 7. Transactional email provider for invites and notifications (today invite links are copied manually).
-8. SEBI positioning and final legal copy (Terms/Privacy are drafts).
+8. SEBI positioning: deprioritised by the owner for now; copy keeps signals and research framed as non-advice. Terms/Privacy remain drafts.
 9. Exchange holiday calendar for the session clock and notifier schedule.

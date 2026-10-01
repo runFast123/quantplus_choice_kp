@@ -3,12 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ssr";
 import { ButtonLink } from "@/components/ui/button";
-import { Badge, Delta, Sparkline, Stat } from "@/components/ui/data";
+import { NewsList } from "@/components/news/news-list";
+import { Badge, Delta, Sparkline, Stat, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { daysUntil, date, isoDaysAgo, longDate, pct, price, relative, rupeesCompact, strategyLabel } from "@/lib/format";
 import { nseSession } from "@/lib/market";
 import type { Holding, Quote, Signal, WatchlistItem } from "@/lib/types";
 import { getQuotes, getSparks, positions, summarize } from "@/server/market-data";
+import { getNews, getResearch } from "@/server/news-data";
 import { can, displayName, requireSession } from "@/server/session";
 
 export const metadata: Metadata = { title: "Overview" };
@@ -37,12 +39,15 @@ export default async function OverviewPage() {
   const holdings = (holdingsRes.data ?? []) as Holding[];
   const tracked = [...new Set([...radarSymbols, ...holdings.map((h) => h.symbol)])];
 
-  const [sparks, signalsRes] = await Promise.all([
+  const [sparks, signalsRes, notes, headlines] = await Promise.all([
     getSparks(db, radarSymbols, 45),
     tracked.length
       ? db.from("trading_signals").select("*").in("symbol", tracked).gte("generated_at", since).order("generated_at", { ascending: false }).limit(12)
       : Promise.resolve({ data: [] as Signal[] }),
+    getResearch(db, radarSymbols),
+    getNews(db, { symbols: tracked, limit: 6, kind: "news" }),
   ]);
+  const noteBySymbol = new Map(notes.map((n) => [n.symbol, n]));
   const signals = (signalsRes.data ?? []) as Signal[];
 
   const ps = positions(holdings, allQuotes);
@@ -146,7 +151,7 @@ export default async function OverviewPage() {
             </Empty>
           ) : (
             <TableWrap>
-              <table className="w-full min-w-[640px]">
+              <table className="w-full min-w-[760px]">
                 <thead>
                   <tr>
                     <th className={th}>Symbol</th>
@@ -154,6 +159,7 @@ export default async function OverviewPage() {
                     <th className={thNum}>Chg</th>
                     <th className={th + " text-center"}>45 sessions</th>
                     <th className={thNum}>RSI 14</th>
+                    <th className={th}>Research</th>
                     <th className={th}>Last signal</th>
                   </tr>
                 </thead>
@@ -177,6 +183,15 @@ export default async function OverviewPage() {
                         </td>
                         <td className={tdNum}>
                           <RsiCell rsi={q?.rsi ?? null} />
+                        </td>
+                        <td className={td}>
+                          {noteBySymbol.get(sym) ? (
+                            <Link href={`/app/markets/${encodeURIComponent(sym)}#research`} title={noteBySymbol.get(sym)!.headline}>
+                              <StanceBadge stance={noteBySymbol.get(sym)!.stance} />
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </td>
                         <td className={td}>
                           {q?.last_signal ? (
@@ -220,6 +235,21 @@ export default async function OverviewPage() {
                   </li>
                 ))}
               </ol>
+            )}
+          </Panel>
+
+          <Panel
+            title="Headlines on your stocks"
+            actions={
+              <Link href="/app/news" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
+                All news <ArrowUpRightIcon size={12} aria-hidden />
+              </Link>
+            }
+          >
+            {headlines.length === 0 ? (
+              <p className="text-[13px] text-muted-foreground">No stories have named your stocks in the last two weeks.</p>
+            ) : (
+              <NewsList items={headlines} showSummary={false} />
             )}
           </Panel>
 
