@@ -1,26 +1,251 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------
+   Zen Linen — 21st.dev theme by serafimcloud (verbatim tokens).
+   Finance tokens (--gain/--loss) added; validated, see
+   design-system/quantspulse/MASTER.md.
+   --------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #E9E4D8;
+  --foreground: #1E1E1E;
+  --card: #F4EFE4;
+  --card-foreground: #1E1E1E;
+  --popover: #F4EFE4;
+  --popover-foreground: #1E1E1E;
+  --primary: #2E2E2E;
+  --primary-foreground: #E6E4D7;
+  --secondary: #D8D2C4;
+  --secondary-foreground: #2E2E2E;
+  --muted: #CFC8B8;
+  --muted-foreground: #5E5A52;
+  --accent: #E6E4D7;
+  --accent-foreground: #2E2E2E;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: #D2CBBB;
+  --input: #D2CBBB;
+  --ring: #2E2E2E;
+  --chart-1: #F26A4B;
+  --chart-2: #1E1E1E;
+  --chart-3: #5E5A52;
+  --chart-4: #A89F8F;
+  --chart-5: #CFC8B8;
+  --sidebar: #E3DDCF;
+  --sidebar-foreground: #1E1E1E;
+  --sidebar-primary: #2E2E2E;
+  --sidebar-primary-foreground: #E6E4D7;
+  --sidebar-accent: #E6E4D7;
+  --sidebar-accent-foreground: #2E2E2E;
+  --sidebar-border: #D2CBBB;
+  --sidebar-ring: #2E2E2E;
+  --radius: 0.5rem;
+  --shadow-color: #000000;
+  --shadow-opacity: 0.1;
+  --shadow-blur: 10px;
+  --shadow-offset-y: 4px;
+  --letter-spacing: 0.01em;
+
+  --coral: #F26A4B;
+  --gain: #0F7B5C;
+  --loss: #C2410C;
+  --gain-soft: color-mix(in oklab, var(--gain) 12%, transparent);
+  --loss-soft: color-mix(in oklab, var(--loss) 12%, transparent);
+  --grain-opacity: 0.35;
 }
 
+.dark {
+  --background: #141414;
+  --foreground: #E8E3DA;
+  --card: #1C1C1C;
+  --card-foreground: #E8E3DA;
+  --popover: #1C1C1C;
+  --popover-foreground: #E8E3DA;
+  --primary: #D1CFC0;
+  --primary-foreground: #363636;
+  --secondary: #222222;
+  --secondary-foreground: #D1CFC0;
+  --muted: #2A2A2A;
+  --muted-foreground: #8E8A83;
+  --accent: #363636;
+  --accent-foreground: #D1CFC0;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #2C2C2C;
+  --input: #2C2C2C;
+  --ring: #D1CFC0;
+  --chart-1: #F26A4B;
+  --chart-2: #D9CFC2;
+  --chart-3: #8E8A83;
+  --chart-4: #5C5A56;
+  --chart-5: #3B3B3B;
+  --sidebar: #101010;
+  --sidebar-foreground: #E8E3DA;
+  --sidebar-primary: #D1CFC0;
+  --sidebar-primary-foreground: #363636;
+  --sidebar-accent: #363636;
+  --sidebar-accent-foreground: #D1CFC0;
+  --sidebar-border: #2C2C2C;
+  --sidebar-ring: #D1CFC0;
+  --shadow-opacity: 0.3;
+  --shadow-blur: 15px;
+  --shadow-offset-y: 6px;
+
+  --gain: #2BA383;
+  --loss: #E0663F;
+  --grain-opacity: 0.12;
+}
+
+/* The theme's generated @theme block mapped fonts/radius into --color-*;
+   corrected here so Tailwind's font-* and rounded-* utilities pick them up. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-coral: var(--coral);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-gain-soft: var(--gain-soft);
+  --color-loss-soft: var(--loss-soft);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-pop: 0 var(--shadow-offset-y) var(--shadow-blur) 0
+    color-mix(in srgb, var(--shadow-color) calc(var(--shadow-opacity) * 100%), transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    letter-spacing: var(--letter-spacing);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--coral) 28%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Linen texture: a faint woven grain over the page ground (not on cards). */
+  .linen {
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.32 0 0 0 0 0.27 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-blend-mode: multiply;
+  }
+  .dark .linen {
+    background-blend-mode: screen;
+  }
+
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "zero" 0, "tnum";
+    letter-spacing: 0;
+  }
+  .eyebrow {
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+  }
+  .display {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
+    font-weight: 500;
+  }
+  .hairline {
+    border-width: 1px;
+    border-color: var(--border);
+  }
+  .panel {
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .rule-dotted {
+    background-image: linear-gradient(to right, var(--border) 50%, transparent 0);
+    background-size: 6px 1px;
+    background-repeat: repeat-x;
+    height: 1px;
+  }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 90s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
 }

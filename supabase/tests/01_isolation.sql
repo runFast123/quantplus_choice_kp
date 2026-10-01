@@ -279,6 +279,40 @@ select qp_test.expect_error(format($$insert into storage.objects (bucket_id, nam
 reset role;
 
 -- ---------------------------------------------------------------------
+-- Service-role RPC bridge to the private schema
+-- ---------------------------------------------------------------------
+select qp_test.login('B');
+set local role authenticated;
+select qp_test.expect_error(format('select public.svc_is_platform_admin(%L)', qp_test.uid('B')),
+  'permission denied', 'svc: authenticated cannot probe admins');
+select qp_test.expect_error(
+  $$select * from public.svc_get_ai_key_secret('00000000-0000-0000-0000-000000000000')$$,
+  'permission denied', 'svc: authenticated cannot read secrets');
+select qp_test.expect_error($$select * from public.svc_admin_user_search('')$$,
+  'permission denied', 'svc: authenticated cannot search users');
+reset role;
+
+insert into public.ai_provider_keys (id, tenant_id, user_id, provider, key_last4)
+values ('dddddddd-0000-4000-8000-0000000000d1', qp_test.tenant_of('B'), qp_test.uid('B'), 'openai', 'abcd');
+set local role service_role;
+select public.svc_put_ai_key_secret('dddddddd-0000-4000-8000-0000000000d1', 'Y2lwaGVy', 'aXY=', 'dGFn', 1::smallint);
+select qp_test.expect_rows(
+  $$select 1 from public.svc_get_ai_key_secret('dddddddd-0000-4000-8000-0000000000d1') where ciphertext = 'Y2lwaGVy'$$,
+  1, 'svc: secret round-trip');
+select qp_test.expect_rows(format('select 1 where public.svc_is_platform_admin(%L)', qp_test.uid('D')), 1, 'svc: D is platform admin');
+select qp_test.expect_rows($$select 1 from public.svc_admin_user_search('b@test') where email = 'b@test.quantspulse.local'$$,
+  1, 'svc: admin user search');
+reset role;
+
+select qp_test.login('B');
+set local role authenticated;
+select qp_test.expect_rows('select key_last4 from public.ai_provider_keys', 1, 'BYOK: owner sees last4 only');
+delete from public.ai_provider_keys where id = 'dddddddd-0000-4000-8000-0000000000d1';
+reset role;
+select qp_test.expect_rows($$select 1 from private.ai_key_secrets where key_id = 'dddddddd-0000-4000-8000-0000000000d1'$$,
+  0, 'BYOK: deleting key cascades secret');
+
+-- ---------------------------------------------------------------------
 -- 18: §5.14 verification queries
 -- ---------------------------------------------------------------------
 select qp_test.expect_rows($$

@@ -1,0 +1,22 @@
+// NSE cash-market session clock (IST). Exchange holidays are not modelled yet.
+export type SessionState = "pre-open" | "open" | "closed";
+
+function istParts(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return { weekday: get("weekday"), minutes: Number(get("hour")) * 60 + Number(get("minute")) };
+}
+
+export function nseSession(now = new Date()): { state: SessionState; label: string } {
+  const { weekday, minutes } = istParts(now);
+  if (weekday === "Sat" || weekday === "Sun") return { state: "closed", label: "Closed · weekend" };
+  if (minutes >= 9 * 60 && minutes < 9 * 60 + 15) return { state: "pre-open", label: "Pre-open" };
+  if (minutes >= 9 * 60 + 15 && minutes < 15 * 60 + 30) return { state: "open", label: "Market open" };
+  return { state: "closed", label: minutes < 9 * 60 ? "Opens 09:15" : "Closed · 15:30" };
+}
