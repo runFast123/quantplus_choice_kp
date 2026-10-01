@@ -145,7 +145,7 @@ npx playwright show-report                           # HTML report
 
 ## M. Before you push
 ```bash
-cd web && npx tsc --noEmit && npx eslint src e2e && npm run test:unit && npm run build   # build runs the bundle secret check
+cd web && npm run typecheck && npx eslint src e2e && npm run test:unit && npm run build   # build runs the bundle secret check
 npm run test:e2e
 cd ../supabase/tests/harness && npm test
 git status   # DB_confi, .mcp.json, .env.local, supabase/.env must NOT appear (the pre-commit hook blocks them anyway)

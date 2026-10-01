@@ -100,7 +100,7 @@ scripts/secret-scan.mjs + .githooks/   secret guard (enable: git config core.hoo
 # web app
 cd web && npm install            # uses .npmrc → registry.yarnpkg.com (npmjs.org is blocked on this network)
 npm run dev                      # http://localhost:3000
-npx tsc --noEmit && npx eslint src && npx next build    # must all pass before commit
+npm run typecheck && npx eslint src e2e && npm run build    # must all pass before commit (typecheck runs next typegen)
 
 # database tests (no Docker)
 cd supabase/tests/harness && npm install && npm test

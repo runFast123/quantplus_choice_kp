@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm run typecheck   # next typegen first: route types (PageProps) are generated, not committed
       - run: npx eslint src e2e
       - run: npm run test:unit
       - run: npm run build   # postbuild fails if a server-only secret reaches the browser bundle

@@ -6,6 +6,10 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed
+- CI `tsc` failed on a clean checkout: Next route types (`PageProps`, `LayoutProps`) are generated, not committed.
+  Added `npm run typecheck` (`next typegen && tsc --noEmit`) and use it in CI and the docs.
+
 ## [0.2.0] — 2026-10-01
 
 ### Added — live database
