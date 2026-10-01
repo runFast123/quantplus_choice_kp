@@ -26,12 +26,6 @@ export async function registerDevice(userId: string, deviceId: string, label: st
  */
 export async function applyConsentWithdrawal(userId: string, purpose: string) {
   const db = serviceRole();
-  if (purpose === "broker_data_access") {
-    const { data } = await db.from("broker_connections").delete().eq("user_id", userId).select("id, tenant_id, broker");
-    for (const c of data ?? []) {
-      await audit({ tenantId: c.tenant_id, actorUserId: userId, action: "broker.disconnected", targetType: "broker_connection", targetId: c.id, metadata: { reason: "consent_withdrawn", broker: c.broker } });
-    }
-  }
   if (purpose === "ai_processing") {
     await db.from("ai_provider_keys").delete().eq("user_id", userId);
   }
@@ -46,7 +40,7 @@ export async function deleteAccount(userId: string) {
   const db = serviceRole();
 
   // 0. Refuse BEFORE touching anything: organisations this user owns would be
-  //    orphaned. (Checking later used to revoke brokers and delete files first.)
+  //    orphaned. (Checking later used to delete files first.)
   const { data: ownedOrgs, error: oErr } = await db
     .from("tenant_members")
     .select("tenant_id, tenants!inner(type, name)")
@@ -59,17 +53,13 @@ export async function deleteAccount(userId: string) {
     throw new PrivilegedError(`Transfer or close the organisations you own first: ${names}.`);
   }
 
-  // 1. Revoke broker access. No broker revoke APIs are integrated yet, so the
-  //    connections are marked revoked; credentials cascade away in step 3/4.
-  await db.from("broker_connections").update({ status: "revoked" }).eq("user_id", userId);
-
-  // 2. Contract-note files in the private bucket.
+  // 1. Contract-note files in the private bucket.
   const { data: files } = await db.storage.from("contract-notes").list(userId, { limit: 1000 });
   if (files?.length) {
     await db.storage.from("contract-notes").remove(files.map((f) => `${userId}/${f.name}`));
   }
 
-  // 3. Personal tenant(s) — cascades tenant-scoped rows. (The on_auth_user_deleted
+  // 2. Personal tenant(s) — cascades tenant-scoped rows. (The on_auth_user_deleted
   //    trigger would also do this; doing it explicitly keeps the §7 order.)
   const { data: personal } = await db
     .from("tenant_members")
@@ -80,10 +70,10 @@ export async function deleteAccount(userId: string) {
   const personalIds = (personal ?? []).map((p) => p.tenant_id as string);
   if (personalIds.length) await db.from("tenants").delete().in("id", personalIds);
 
-  // 4. The auth user — cascades profile, devices, consents, memberships.
+  // 3. The auth user — cascades profile, devices, consents, memberships.
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) throw new PrivilegedError(error.message);
 
-  // 6. Audit (no PII beyond the now-orphaned id).
+  // 4. Audit (no PII beyond the now-orphaned id).
   await audit({ tenantId: null, actorUserId: userId, action: "account.deleted", targetType: "user", targetId: userId });
 }

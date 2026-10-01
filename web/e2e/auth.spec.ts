@@ -54,7 +54,7 @@ test.describe("authentication", () => {
     await page.goto("/app/settings?tab=privacy");
     await expect(page.getByRole("switch", { name: "Terms of Service" })).toHaveAttribute("aria-checked", "true");
     await expect(page.getByRole("switch", { name: "Product notes by email" })).toHaveAttribute("aria-checked", "true");
-    await expect(page.getByRole("switch", { name: "Broker data access" })).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByRole("switch", { name: "AI processing" })).toHaveAttribute("aria-checked", "false");
   });
 
   test("one active device: a second sign-in takes over, the first can reclaim", async ({ browser }) => {

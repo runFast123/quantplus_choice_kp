@@ -154,7 +154,6 @@ select qp_test.expect_error(format('update public.profiles set default_tenant_id
 select qp_test.expect_ok($$update public.profiles set full_name = 'Asha' where user_id = auth.uid()$$,
   '9b A may update own name');
 
-select qp_test.expect_error('select * from private.broker_credentials', 'permission denied', '10 A reads private.broker_credentials');
 select qp_test.expect_error('select * from private.ai_key_secrets', 'permission denied', '10b A reads private.ai_key_secrets');
 
 select qp_test.expect_error(format(

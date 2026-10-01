@@ -1,17 +1,11 @@
 -- =====================================================================
--- DEV / STAGING ONLY — SYNTHETIC market data.
--- Prices are a deterministic random walk, NOT real quotes. In production
--- pipelines/eod (yfinance, service role) owns these tables — never run
--- this against production. Safe to re-run: it clears and rebuilds the
--- shared market tables. Needs migration 24 (refresh_market_analytics).
+-- REFERENCE data (safe for production): the covered NSE universe.
+-- pipelines/eod fetches daily candles for every ACTIVE row (Yahoo ticker
+-- = symbol + ".NS"). Idempotent upsert; deactivating hides a symbol from
+-- quotes, research and the pipeline but keeps its history.
+-- 2025 Tata Motors demerger: TATAMOTORS stopped trading and became TMPV
+-- (passenger vehicles, incl. JLR) and TMCV (commercial vehicles).
 -- =====================================================================
-begin;
-
-truncate public.trading_signals, public.rsi_events, public.backtest_ledgers,
-         public.market_candles, public.market_symbols restart identity cascade;
--- cascade also clears symbol-linked news, aliases and research notes; ref_news_aliases.sql re-adds aliases.
--- The universe is reference data (ref_market_symbols.sql); a copy is inlined here because seeds run
--- alphabetically and this file must stand alone. Keep the two lists in sync.
 insert into public.market_symbols (symbol, exchange, name, sector, is_active) values
   ('RELIANCE',   'NSE', 'Reliance Industries',             'Energy',         true),
   ('TCS',        'NSE', 'Tata Consultancy Services',       'IT',             true),
@@ -59,51 +53,3 @@ insert into public.market_symbols (symbol, exchange, name, sector, is_active) va
   ('IRCTC',      'NSE', 'Indian Railway Catering',         'Services',       true)
 on conflict (symbol, exchange) do update
   set name = excluded.name, sector = excluded.sector, is_active = excluded.is_active;
-
-
--- ---------- Daily candles: ~2 years of weekdays, IST close (10:00 UTC) ----------
-select setseed(0.4217);
-
-create temp table _walk on commit drop as
-with days as (
-  select d::date as day
-  from generate_series(current_date - 730, current_date - 1, interval '1 day') d
-  where extract(isodow from d) < 6
-),
-params as (
-  select symbol, exchange,
-         -- per-symbol starting price, drift and volatility derived from the name
-         (200 + (abs(hashtext(symbol)) % 4800))::numeric          as base,
-         ((abs(hashtext(symbol || 'd')) % 9) - 3) / 10000.0        as drift,
-         (0.010 + (abs(hashtext(symbol || 'v')) % 12) / 1000.0)    as vol
-  from public.market_symbols
-),
-shocks as (
-  select p.symbol, p.exchange, p.base, p.vol, d.day,
-         (p.drift + p.vol * (random() + random() + random() - 1.5) * 1.4)::numeric as ret,
-         random()::numeric as r1, random()::numeric as r2,
-         random()::numeric as r3, random()::numeric as r4
-  from params p cross join days d
-)
-select symbol, exchange, day, vol, r1, r2, r3, r4,
-       round(base * exp(sum(ret) over (partition by symbol, exchange order by day)), 2) as close
-from shocks;
-
-insert into public.market_candles (symbol, exchange, interval, ts, open, high, low, close, volume)
-select symbol, exchange, '1d',
-       (day + time '10:00') at time zone 'UTC',
-       o, round(greatest(o, close) * (1 + vol * r2 * 0.6), 2),
-          round(least(o, close)   * (1 - vol * r3 * 0.6), 2),
-       close,
-       (200000 + r4 * 4800000)::bigint
-from (
-  select w.*,
-         round(coalesce(lag(close) over (partition by symbol, exchange order by day), close)
-               * (1 + vol * (r1 - 0.5) * 0.5), 2) as o
-  from _walk w
-) x;
-
--- ---------- RSI, SMA, signals, SIP backtests: same code as real data ----------
-select private.refresh_market_analytics(100000);
-
-commit;

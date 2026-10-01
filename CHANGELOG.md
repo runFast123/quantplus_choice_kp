@@ -6,6 +6,32 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Changed — real end-of-day prices from Yahoo Finance (ADR-026)
+- New `pipelines/eod/eod.py` (yfinance 1.7): daily NSE candles for every active symbol → `market_candles`, then
+  `svc_refresh_market_analytics` → `svc_refresh_research` → `svc_run_eod_notifier`. Skips today's bar until 15:45 IST,
+  rejects inconsistent OHLC, refuses to write if more than half the universe returns nothing. Unit tests
+  `pipelines/eod/test_eod.py` (in CI). Scheduled by `.github/workflows/market-eod.yml` (17:00 + 20:00 IST, Mon–Fri).
+- Migration 24 `market_analytics`: `private.refresh_market_analytics(days)` — **Wilder** RSI(14) (was a simple
+  14-day mean), SMA 20/50 crosses, RSI reversals, monthly-SIP ledgers — one implementation for real and dev data
+  (the dev seed now calls it). Signals get a natural unique key and are append-only (notifier ledger keys stay
+  valid). `svc_refresh_market_analytics`, `svc_run_eod_notifier` (service_role only). pg_cron passes moved after
+  the pipeline as backstops (analytics 17:55, notifier 18:00, research 18:05 IST).
+- Universe is reference data now: `supabase/seed/ref_market_symbols.sql` (prod-safe). Tata Motors demerger:
+  `TATAMOTORS` inactive; `TMPV` and `TMCV` added (aliases too). Yahoo files pre-demerger prices under TMPV, so the
+  pipeline ignores TMPV history before 14 Oct 2025 (`HISTORY_FROM`).
+- Live project: synthetic candles/signals/RSI/ledgers/notes purged (signal id sequence kept), ~2 years backfilled
+  (22,106 candles, 43 symbols), analytics + research rebuilt. `NEXT_PUBLIC_MARKET_DATA_MODE=live`.
+- UI: price source shown on Markets and symbol pages (`PRICE_SOURCE` in `lib/market.ts`); landing FAQ and Terms
+  describe the data. e2e "sample prices" test is mode-aware.
+- Tests: `supabase/tests/05_market_analytics.sql` (Wilder reference values, idempotency, grants, broker objects gone).
+
+### Removed — broker connections (ADR-025, supersedes ADR-007)
+- Migration 23 `remove_broker`: drops `broker_connections`, `private.broker_credentials`, `svc_put/get_broker_credentials`,
+  enum `broker_code`, `portfolios.broker_connection_id`, `'broker'` holding/portfolio source, consent purpose
+  `broker_data_access`, plan feature `broker_connect`; `export_my_data()` rewritten without brokers.
+- Web: Integrations is AI keys only; broker form/actions, `connectBroker`, broker consent (welcome + settings), portfolio
+  broker badge, deletion step and copy (landing, legal, workspace privacy matrix) removed. Holdings are entered by hand.
+
 ### Fixed — email confirmation on production
 - Diagnosed: Supabase rejected the production redirect and fell back to its Site URL (`localhost:3000`) — the
   Auth URL allow-list needs the production domain (owner action in the dashboard).

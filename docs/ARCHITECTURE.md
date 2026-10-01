@@ -9,7 +9,8 @@
                     │     (seal/open AES-GCM, key from env)            └─ svc_* RPCs bridge to private
                     └─ Client components ── supabaseBrowser() ── Realtime (notifications, RLS-filtered)
                                                                       Auth ── custom_access_token_hook → app_tenant_id claim
- Market pipelines (service role / worker) ──▶ market_symbols, market_candles, trading_signals, rsi_events, backtest_ledgers
+ pipelines/eod (GitHub Actions, yfinance, service role) ──▶ market_candles ──▶ svc_refresh_market_analytics
+     (trading_signals, rsi_events, backtest_ledgers) ──▶ svc_refresh_research ──▶ svc_run_eod_notifier
  pg_cron ──▶ expire-subscriptions · retention-* · eod-notifier (alerts, exit signals, plan expiry → notifications)
  FastAPI analytics (future) ──▶ role analytics_reader: SELECT on market tables only
 ```
@@ -38,20 +39,22 @@
 | Server actions (user context) | JWT → RLS | same as user |
 | Privileged modules | service role | cross-tenant work, private schema via `svc_*`, auth admin API — always re-check with `guards.ts` |
 | Platform admin | privileged modules after `svc_is_platform_admin` | search accounts (whitelisted columns), activate plans |
-| Pipelines | service role (separate deploy) | write market tables |
+| Pipelines | service role (GitHub Actions) | write market tables, call `svc_refresh_*` / `svc_run_eod_notifier` |
 | FastAPI | `analytics_reader` | read market tables only |
 
 ## Secrets
 
 `seal(plaintext, aad)` → `{ciphertext, iv, auth_tag, key_version}` (base64) → `svc_put_*` → `private.*` (bytea).
-AAD = `ai_key:<row id>` / `broker:<connection id>` so ciphertext can't be moved between rows.
+AAD = `ai_key:<row id>` so ciphertext can't be moved between rows.
 Key: `QP_SECRETS_KEY_V<n>` env (32 bytes base64), current version in `QP_SECRETS_KEY_CURRENT`.
 
 ## Market data & signals (current state)
 
-Dev/staging uses `supabase/seed/dev_market_data.sql` (synthetic random walk, 42 NIFTY names, ~2 years). It computes
-RSI(14), SMA 20/50 crosses, RSI reversals and a monthly-SIP backtest ledger with the same shapes production pipelines
-must produce. `market_snapshot` (security-invoker view) gives the latest quote per symbol to the app.
+Production: `pipelines/eod/eod.py` loads daily NSE candles from Yahoo Finance (yfinance) after the close for every
+active row in `market_symbols` (universe in `seed/ref_market_symbols.sql`), then calls
+`private.refresh_market_analytics()` — Wilder RSI(14), SMA 20/50 crosses, RSI reversals, monthly-SIP backtest ledgers —
+then research notes and the notifier. Dev/staging can use `seed/dev_market_data.sql` (synthetic random walk) which
+calls the same analytics function. `market_snapshot` (security-invoker view) gives the latest quote per symbol.
 
 ## Notifications
 

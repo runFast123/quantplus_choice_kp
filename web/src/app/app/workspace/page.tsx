@@ -43,7 +43,7 @@ export default async function WorkspacePage() {
         <PageHeader
           eyebrow="Workspaces"
           title="Your personal workspace"
-          description="Everything you track lives here by default. Organisations let an advisory firm, desk or broker partner manage plans and members together — without ever seeing each other's holdings."
+          description="Everything you track lives here by default. Organisations let an advisory firm or desk manage plans and members together — without ever seeing each other's holdings."
         />
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <Panel title="Start an organisation" id="new">
@@ -116,7 +116,7 @@ export default async function WorkspacePage() {
         <Panel title="Membership">
           <p className="text-[13px] leading-6 text-muted-foreground">
             You&apos;re a member of {tenant.name}. Admins here can see your name, email, plan and how often you use features — never your
-            holdings, watchlists, alerts, broker connections or AI keys.
+            holdings, watchlists, alerts or AI keys.
           </p>
         </Panel>
       ) : (
@@ -272,7 +272,6 @@ function PrivacyMatrix() {
     ["Feature usage counts", true],
     ["Holdings and portfolios", false],
     ["Watchlists and alerts", false],
-    ["Broker connections", false],
     ["AI keys", false],
   ];
   return (

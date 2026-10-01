@@ -1,4 +1,5 @@
 import { expect, expectNoHorizontalOverflow, test } from "./helpers/fixtures";
+import { env } from "./helpers/env";
 
 const PAGES: [string, RegExp][] = [
   ["/app", /Good (morning|afternoon|evening)/],
@@ -49,9 +50,12 @@ test.describe("shell", () => {
     await expect(proPage.locator("html")).not.toHaveClass(/dark/);
   });
 
-  test("ticker tape is labelled as sample prices", async ({ proPage }) => {
+  test("prices name their source", async ({ proPage }) => {
+    await proPage.goto("/app/markets");
+    const synthetic = env().NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic";
+    await expect(proPage.locator("main header").getByText(synthetic ? /sample data/ : /Yahoo Finance/)).toBeVisible();
     await proPage.goto("/app");
-    await expect(proPage.getByText("Sample prices")).toBeVisible();
+    await expect(proPage.getByText("Sample prices")).toHaveCount(synthetic ? 1 : 0);
   });
 
   test("workspace menu lists the personal workspace", async ({ proPage }) => {

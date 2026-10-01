@@ -3,7 +3,7 @@ import "server-only";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 /**
- * AES-256-GCM for broker tokens and BYOK AI keys (spec §4). The key lives in
+ * AES-256-GCM for BYOK AI keys (spec §4). The key lives in
  * the environment / a secret manager — never in the database — so a DB dump
  * alone exposes nothing usable. `key_version` supports rotation:
  * QP_SECRETS_KEY_V<n> holds each version, QP_SECRETS_KEY_CURRENT picks the one

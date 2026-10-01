@@ -12,7 +12,7 @@ import { AUTH_DIR } from "./helpers/env";
 export default async function globalSetup(config: FullConfig) {
   mkdirSync(AUTH_DIR, { recursive: true });
   const basic = await createUser("basic", "basic");
-  const pro = await createUser("pro", "pro", ["terms", "privacy_policy", "ai_processing", "broker_data_access"]);
+  const pro = await createUser("pro", "pro", ["terms", "privacy_policy", "ai_processing"]);
   const { claims } = await signInClaims(pro.email, pro.password);
   const hook = Boolean(claims.app_tenant_id);
   writeFileSync(join(AUTH_DIR, "state.json"), JSON.stringify({ hook, users: { basic, pro } }, null, 2));

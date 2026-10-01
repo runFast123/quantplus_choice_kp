@@ -5,6 +5,7 @@ import { RadarToggle } from "@/components/market/radar-toggle";
 import { Badge, Delta, RangeBar } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, volume } from "@/lib/format";
+import { PRICE_SOURCE } from "@/lib/market";
 import type { Quote } from "@/lib/types";
 import { normalizeQuote } from "@/server/market-data";
 import { requireSession } from "@/server/session";
@@ -49,7 +50,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow={asOf ? `End of day · ${date(asOf)}` : "End of day"}
+        eyebrow={asOf ? `End of day · ${date(asOf)} · ${PRICE_SOURCE}` : `End of day · ${PRICE_SOURCE}`}
         title="Markets"
         description="Every listed stock we cover, with the last session's move, where it sits in its 52-week range, momentum, and the most recent rule-based signal."
       />

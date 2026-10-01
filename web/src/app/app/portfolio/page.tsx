@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TrashIcon } from "@phosphor-icons/react/ssr";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import { Badge, Delta, Stat } from "@/components/ui/data";
+import { Delta, Stat } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { price, qty, rupees, rupeesCompact } from "@/lib/format";
 import type { Holding, Portfolio } from "@/lib/types";
@@ -25,18 +25,16 @@ export default async function PortfolioPage() {
   }
 
   const db = s.supabase;
-  const [pfRes, hRes, symRes, brokersRes] = await Promise.all([
-    db.from("portfolios").select("id, name, source, broker_connection_id, created_at").order("created_at"),
+  const [pfRes, hRes, symRes] = await Promise.all([
+    db.from("portfolios").select("id, name, source, created_at").order("created_at"),
     db.from("holdings").select("*"),
     db.from("market_symbols").select("symbol").eq("is_active", true).order("symbol"),
-    db.from("broker_connections").select("id, broker, status, last_synced_at"),
   ]);
   const portfolios = (pfRes.data ?? []) as Portfolio[];
   const holdings = (hRes.data ?? []) as Holding[];
   const quotes = await getQuotes(db, [...new Set(holdings.map((h) => h.symbol))]);
   const ps = positions(holdings, quotes).sort((a, b) => b.value - a.value);
   const sum = summarize(ps);
-  const brokerById = new Map((brokersRes.data ?? []).map((b) => [b.id, b]));
 
   const bySector = new Map<string, number>();
   for (const p of ps) bySector.set(p.holding.sector ?? "Other", (bySector.get(p.holding.sector ?? "Other") ?? 0) + p.value);
@@ -96,7 +94,6 @@ export default async function PortfolioPage() {
                 <tbody>
                   {ps.map((p) => {
                     const pf = portfolios.find((x) => x.id === p.holding.portfolio_id);
-                    const broker = pf?.broker_connection_id ? brokerById.get(pf.broker_connection_id) : undefined;
                     return (
                       <tr key={p.holding.id} className={tr}>
                         <td className={td}>
@@ -105,7 +102,6 @@ export default async function PortfolioPage() {
                           </Link>
                           <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                             {portfolios.length > 1 ? pf?.name : null}
-                            {broker ? <Badge>{broker.broker}</Badge> : null}
                           </span>
                         </td>
                         <td className={tdNum}>{qty(p.holding.quantity)}</td>

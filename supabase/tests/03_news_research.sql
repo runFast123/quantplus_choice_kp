@@ -42,7 +42,7 @@ from public.news_articles a where a.url like 'https://example.test/%';
 
 select private.refresh_research_notes();
 
-select qp_t3.check((select count(distinct symbol) from public.research_notes) = (select count(*) from public.market_symbols),
+select qp_t3.check((select count(distinct symbol) from public.research_notes) = (select count(*) from public.market_symbols where is_active),
                    'notes: one per symbol');
 select qp_t3.check((select (f ->> 'score')::numeric > 0 from public.research_notes rn, jsonb_array_elements(rn.factors) f
                     where rn.symbol = 'TCS' and f ->> 'key' = 'news' order by as_of desc limit 1), 'notes: positive tone lifts TCS');

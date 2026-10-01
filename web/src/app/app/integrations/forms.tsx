@@ -4,50 +4,7 @@ import { useEffect, useRef } from "react";
 import { useEchoAction } from "@/components/ui/use-echo-action";
 import { Field, FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { connectBrokerAction, saveAiKeyAction } from "./actions";
-
-export const BROKERS = [
-  { value: "choice", label: "Choice" },
-  { value: "zerodha", label: "Zerodha" },
-  { value: "angelone", label: "Angel One" },
-  { value: "upstox", label: "Upstox" },
-  { value: "dhan", label: "Dhan" },
-  { value: "fyers", label: "Fyers" },
-  { value: "other", label: "Other" },
-];
-
-export function BrokerForm() {
-  const [state, action, , values] = useEchoAction(connectBrokerAction);
-  const ref = useRef<HTMLFormElement>(null);
-  useEffect(() => {
-    if (state?.ok) ref.current?.reset();
-  }, [state]);
-  return (
-    <form ref={ref} action={action} className="flex flex-col gap-4" autoComplete="off">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Broker" htmlFor="broker">
-          <Select id="broker" name="broker" defaultValue={values.broker ?? "choice"} key={values.broker ?? "choice"}>
-            {BROKERS.map((b) => (
-              <option key={b.value} value={b.value}>
-                {b.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Client ID" htmlFor="client_id" hint="We store only the last 4 characters.">
-          <Input id="client_id" name="client_id" required className="num" defaultValue={values.client_id} />
-        </Field>
-      </div>
-      <Field label="Access token" htmlFor="access_token" hint="From your broker's API console. Read-only scope. Most brokers expire it daily at 06:00 IST.">
-        <Input id="access_token" name="access_token" type="password" required className="num" spellCheck={false} />
-      </Field>
-      <FormMessage state={state} />
-      <SubmitButton className="w-fit" pendingLabel="Encrypting…">
-        Connect broker
-      </SubmitButton>
-    </form>
-  );
-}
+import { saveAiKeyAction } from "./actions";
 
 export function AiKeyForm() {
   const [state, action, , values] = useEchoAction(saveAiKeyAction);

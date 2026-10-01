@@ -31,7 +31,7 @@ export async function changePassword(_: ActionState, form: FormData): Promise<Ac
 
 /**
  * Grant or withdraw a consent. Withdrawing has consequences the spec requires:
- * broker_data_access → brokers disconnected; ai_processing → AI keys removed.
+ * ai_processing → AI keys removed.
  */
 export async function setConsent(purpose: string, granted: boolean): Promise<ActionState> {
   const s = await requireSession();

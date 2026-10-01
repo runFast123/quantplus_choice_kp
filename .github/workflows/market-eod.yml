@@ -1,0 +1,40 @@
+name: Market EOD
+
+# Loads the day's NSE candles from Yahoo Finance (pipelines/eod), then rebuilds
+# RSI / signals / backtests, research notes, and runs the notifier.
+# Repository secrets: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+on:
+  schedule:
+    - cron: "30 11 * * 1-5"   # 17:00 IST, Mon–Fri (session settles 15:45 IST)
+    - cron: "30 14 * * 1-5"   # 20:00 IST retry; idempotent, picks up late Yahoo updates
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Calendar days to (re)fetch (760 ≈ 2-year backfill)"
+        default: "10"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: market-eod
+  cancel-in-progress: false
+
+jobs:
+  eod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults: { run: { working-directory: pipelines/eod } }
+    env:
+      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: pipelines/eod/requirements.txt }
+      - run: pip install -r requirements.txt
+      - name: Skip quietly until secrets are configured
+        id: guard
+        run: '[ -n "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "::notice::Market EOD secrets not set; skipping."'
+      - if: steps.guard.outputs.ok == '1'
+        run: python eod.py --days "${{ github.event.inputs.days || '10' }}"

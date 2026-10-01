@@ -17,7 +17,7 @@ export async function completeOnboarding(form: FormData) {
     .eq("user_id", s.userId);
 
   const purposes = ["terms", "privacy_policy"];
-  for (const p of ["broker_data_access", "ai_processing", "marketing"]) if (form.get(p) === "on") purposes.push(p);
+  for (const p of ["ai_processing", "marketing"]) if (form.get(p) === "on") purposes.push(p);
   await s.supabase.from("user_consents").insert(purposes.map((purpose) => ({ purpose, version: CONSENT_VERSION[purpose] })));
 
   await s.supabase.rpc("track_event", { p_event_type: "onboarding_completed" });

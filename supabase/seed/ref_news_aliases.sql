@@ -36,7 +36,10 @@ from (values
   ('ONGC',       'ONGC'), ('ONGC', 'Oil and Natural Gas'), ('ONGC', 'Oil & Natural Gas'),
   ('NTPC',       'NTPC'),
   ('POWERGRID',  'Power Grid'), ('POWERGRID', 'PowerGrid'),
-  ('TATAMOTORS', 'Tata Motors'), ('TATAMOTORS', 'Jaguar Land Rover'), ('TATAMOTORS', 'JLR'),
+  -- 2025 demerger: TATAMOTORS is inactive. Bare "Tata Motors" is ambiguous between the two successors,
+  -- so it is not an alias for either; JLR belongs to the passenger-vehicle company.
+  ('TMPV',       'Tata Motors Passenger Vehicles'), ('TMPV', 'TMPV'), ('TMPV', 'Jaguar Land Rover'), ('TMPV', 'JLR'),
+  ('TMCV',       'Tata Motors Commercial Vehicles'), ('TMCV', 'TMCV'),
   ('TATASTEEL',  'Tata Steel'),
   ('JSWSTEEL',   'JSW Steel'),
   ('M&M',        'Mahindra & Mahindra'), ('M&M', 'M&M'), ('M&M', 'Mahindra and Mahindra'),

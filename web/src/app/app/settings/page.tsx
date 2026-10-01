@@ -127,7 +127,7 @@ async function DataTab() {
       </Panel>
       <Panel title="Delete account" className="border-loss/40">
         <p className="mb-4 max-w-md text-[13px] leading-6 text-muted-foreground">
-          Disconnects brokers, deletes uploaded files, your personal workspace and everything in it, then your login. Payment records are kept without your
+          Deletes uploaded files, your personal workspace and everything in it, then your login. Payment records are kept without your
           name for tax law. This can&apos;t be undone.
         </p>
         <DeleteAccountForm />

@@ -20,3 +20,6 @@ export function nseSession(now = new Date()): { state: SessionState; label: stri
   if (minutes >= 9 * 60 + 15 && minutes < 15 * 60 + 30) return { state: "open", label: "Market open" };
   return { state: "closed", label: minutes < 9 * 60 ? "Opens 09:15" : "Closed · 15:30" };
 }
+
+/** Where displayed prices come from (ADR-026). "synthetic" only in dev/staging seeds. */
+export const PRICE_SOURCE = process.env.NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic" ? "sample data" : "Yahoo Finance";

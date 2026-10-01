@@ -11,6 +11,7 @@ import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, dateTime, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
+import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, Signal } from "@/lib/types";
 import { getCandles, normalizeQuote } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
@@ -89,7 +90,9 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
             <span className="num text-[32px] leading-none">₹{price(q.last_price)}</span>
             <Delta value={q.change} kind="abs" className="text-[15px]" />
             <Delta value={q.change_pct} className="text-[15px]" showGlyph={false} />
-            <span className="text-[12px] text-muted-foreground">Close · {date(q.as_of)}</span>
+            <span className="text-[12px] text-muted-foreground">
+              Close · {date(q.as_of)} · {PRICE_SOURCE}
+            </span>
           </div>
         </div>
         <RadarToggle symbol={q.symbol} exchange={q.exchange} onRadar={Boolean(radarRes.data?.length)} size="md" />

@@ -41,11 +41,6 @@ export default async function WelcomePage({ searchParams }: PageProps<"/app/welc
           <legend className="eyebrow mb-1">Consents</legend>
           <Consent name="terms" required title="Terms of Service and Privacy Policy" body="Required to use QuantsPulse." />
           <Consent
-            name="broker_data_access"
-            title="Broker data access"
-            body="Lets us store and use a read-only session for brokers you connect (Pro). Withdrawing disconnects your brokers."
-          />
-          <Consent
             name="ai_processing"
             title="AI processing with your own key"
             body="Lets us send your prompts to the AI provider whose key you add (Pro). We never store prompts or responses."

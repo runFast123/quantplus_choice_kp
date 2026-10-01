@@ -15,7 +15,7 @@ const FALLBACK_PLANS: Plan[] = [
     price_paise_yearly: 1000000,
     max_watchlist_symbols: 15,
     max_portfolio_symbols: 15,
-    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, broker_connect: true, ai_byok: true },
+    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, ai_byok: true },
   },
   {
     code: "pro_plus",
@@ -23,7 +23,7 @@ const FALLBACK_PLANS: Plan[] = [
     price_paise_yearly: 1500000,
     max_watchlist_symbols: null,
     max_portfolio_symbols: null,
-    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, broker_connect: true, ai_byok: true },
+    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, ai_byok: true },
   },
 ];
 
@@ -138,7 +138,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 portfolio. That isn&apos;t a setting someone can flip; it&apos;s row-level security in Postgres, checked on every query.
               </p>
               <ul className="mt-8 flex flex-col gap-3 text-[14px] text-primary-foreground/85">
-                <li>Broker tokens and AI keys are encrypted with a key that never sits in the database.</li>
+                <li>AI keys are encrypted with a key that never sits in the database.</li>
                 <li>Usage analytics record that a feature was used — never which stock.</li>
                 <li>Export everything, or delete your account, from Settings. No email to support.</li>
               </ul>
@@ -159,8 +159,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     [
                       ["Holdings & portfolios", "Full", "—", "—"],
                       ["Watchlists & alerts", "Full", "—", "—"],
-                      ["Broker connection", "Status", "—", "—"],
-                      ["Broker token, AI key", "Last 4", "—", "—"],
+                      ["AI key", "Last 4", "—", "—"],
                       ["Name, email, plan", "Full", "Yes", "Yes"],
                       ["Feature usage", "Own", "Counts", "Counts"],
                     ] as const
@@ -256,11 +255,11 @@ const FAQ: [string, string][] = [
   ],
   [
     "Where does the market data come from, and how fresh is it?",
-    "Signals and charts run on end-of-day NSE candles, checked after every close; price alerts use each session's high and low, so a level touched intraday still triggers. During early access prices are sample data while exchange feeds are being connected — the app labels them. Headlines are live.",
+    "End-of-day NSE candles from Yahoo Finance, loaded each weekday at about 5 pm IST once the session has settled. Signals, charts and research notes are rebuilt from them right after; price alerts use each session's high and low, so a level touched intraday still triggers. There are no intraday quotes. Headlines are live.",
   ],
   [
-    "Which brokers can I connect?",
-    "Choice, Zerodha, Angel One, Upstox, Dhan and Fyers. Today you can store a read-only session token, encrypted; automatic holdings sync is still being built, so add holdings by hand for now. Most brokers expire sessions every morning, and you'll see when yours has.",
+    "How do my holdings get in?",
+    "You add them yourself — symbol, quantity and average price — and QuantsPulse values them at each close. We don't connect to brokers, so nothing here can place an order or read your demat account.",
   ],
   [
     "What does “bring your own AI key” mean?",
@@ -268,7 +267,7 @@ const FAQ: [string, string][] = [
   ],
   [
     "Can my firm see my portfolio if we use QuantsPulse together?",
-    "No. Organisation admins see who's in the workspace, their plan, and how often features are used. Holdings, watchlists, alerts, broker connections and keys are blocked from them at the database level.",
+    "No. Organisation admins see who's in the workspace, their plan, and how often features are used. Holdings, watchlists, alerts and keys are blocked from them at the database level.",
   ],
   [
     "How do I leave?",

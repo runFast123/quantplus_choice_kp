@@ -4,7 +4,6 @@ export type SubscriptionStatus = "trialing" | "active" | "past_due" | "expired" 
 export type TenantRole = "owner" | "admin" | "member";
 export type TenantType = "personal" | "organization";
 export type Exchange = "NSE" | "BSE";
-export type BrokerCode = "choice" | "zerodha" | "angelone" | "upstox" | "dhan" | "fyers" | "other";
 export type AiProvider = "gemini" | "openai" | "anthropic" | "other";
 
 export type Feature =
@@ -13,7 +12,6 @@ export type Feature =
   | "portfolio"
   | "alerts"
   | "scanning"
-  | "broker_connect"
   | "ai_byok";
 
 export interface Plan {
@@ -89,7 +87,7 @@ export interface Holding {
   quantity: number;
   avg_price: number;
   sector: string | null;
-  source: "manual" | "broker" | "import";
+  source: "manual" | "import";
   created_at: string;
 }
 
@@ -97,7 +95,6 @@ export interface Portfolio {
   id: string;
   name: string;
   source: string;
-  broker_connection_id: string | null;
   created_at: string;
 }
 

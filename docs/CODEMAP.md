@@ -12,7 +12,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 01 | `foundations` | extensions (pgcrypto, pg_cron), `private` schema, enums, `private.set_updated_at()`, `private.active_tenant_id()` |
 | 02 | `tenancy` | `tenants`, `tenant_members`, `tenant_invitations`, `private.platform_admins`; `private.is_tenant_member()`, `private.has_tenant_role()`, `private.is_platform_admin()` |
 | 03 | `identity_billing` | `profiles`, `user_devices`, `user_consents`, `plans` (+ seed rows), `subscriptions`, `payments` |
-| 04 | `user_financial_data` | `broker_connections`, `private.broker_credentials`, `portfolios`, `holdings`, `watchlists`, `watchlist_items`, `price_alerts`, `notifications` |
+| 04 | `user_financial_data` | ~~`broker_connections`, `private.broker_credentials`~~ (dropped in 23), `portfolios`, `holdings`, `watchlists`, `watchlist_items`, `price_alerts`, `notifications` |
 | 05 | `ai_byok_contract_notes` | `ai_provider_keys`, `private.ai_key_secrets`, `ai_usage_logs`, `contract_note_imports` |
 | 06 | `analytics_audit` | `activity_events`, `audit_log` (+ immutability trigger) |
 | 07 | `market_data` | `market_symbols`, `market_candles` (partitioned), `backtest_ledgers`, `trading_signals`, `rsi_events` |
@@ -23,7 +23,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 12 | `storage` | `contract-notes` bucket + policies |
 | 13 | `analytics_reader_role` | `analytics_reader` role for FastAPI |
 | 14 | `app_support` | view `market_snapshot`; RPCs `my_entitlements()`, `track_event()`; realtime publication; retention cron jobs |
-| 15 | `service_rpcs` | `svc_is_platform_admin`, `svc_put/get_broker_credentials`, `svc_put/get_ai_key_secret`, `svc_admin_user_search` (service_role only) |
+| 15 | `service_rpcs` | `svc_is_platform_admin`, `svc_put/get_ai_key_secret`, `svc_admin_user_search` (service_role only) |
 | 16 | `eod_notifier` | `private.run_eod_notifier()` + cron `eod-notifier` (16:15 IST Mon–Fri) |
 | 17 | `news_research` | `news_sources`, `news_articles`, `news_article_symbols`, `news_symbol_aliases`, `news_search_cursor`, `research_notes`; view `symbol_news_stats`; `private.refresh_research_notes()`, `svc_refresh_research()`; crons `research-notes`, `retention-news`, `retention-research` |
 | 18 | `news_sources_access` | disables feeds that block automated readers |
@@ -31,8 +31,11 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 20 | `news_sources_active_column` | members may read `news_sources.is_active` (not URLs/errors) |
 | 21 | `user_delete_cleanup` | trigger `on_auth_user_deleted` → deletes the user's personal tenant |
 | 22 | `review_hardening` | `private.try_numeric`, `private.notification_ledger`, `svc_register_device`; notifier + research rewritten; live-first subscription ordering; hook skips suspended tenants; symbol columns not updatable; admin-removal policy; TRUNCATE revoked |
+| 23 | `remove_broker` | drops broker tables/secrets/RPCs/enum/consent/feature; `export_my_data()` without brokers (ADR-025) |
+| 24 | `market_analytics` | `private.refresh_market_analytics(days)` (Wilder RSI, SMA 20/50, signals, SIP ledgers), `svc_refresh_market_analytics`, `svc_run_eod_notifier`; unique natural key on `trading_signals`; crons moved after the pipeline |
 
-Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging) · `seed/ref_news_aliases.sql` (reference, safe for prod).
+Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (covered
+universe, prod-safe) · `seed/ref_news_aliases.sql` (reference, prod-safe).
 Runner: `supabase/scripts/apply.mjs` — `npm run migrate | status | seed:ref | seed:dev | test:remote` (reads `supabase/.env`).
 
 ### RPCs callable from the app
@@ -45,18 +48,18 @@ Runner: `supabase/scripts/apply.mjs` — `npm run migrate | status | seed:ref | 
 | `tenant_member_directory(p_tenant)` | tenant owner/admin, platform admin | whitelisted member columns |
 | `tenant_feature_usage(p_tenant, p_from, p_to)` | tenant owner/admin, platform admin | counts per user × event |
 | `admin_activate_plan(...)` | service_role | subscription + payment + audit, one transaction |
-| `svc_*` | service_role | bridge to the `private` schema (see 15); `svc_refresh_research()` rebuilds notes (17) |
+| `svc_*` | service_role | bridge to the `private` schema (see 15); `svc_refresh_research()` rebuilds notes (17); `svc_refresh_market_analytics(p_days)`, `svc_run_eod_notifier()` (24) |
 
 ### Cron jobs
 `expire-subscriptions` (*/15), `retention-notifications`, `retention-activity-events`, `retention-ai-usage`,
-`retention-expired-invitations`, `retention-news`, `retention-research` (daily 02:xx UTC), `eod-notifier` (10:45 UTC
-Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
+`retention-expired-invitations`, `retention-news`, `retention-research` (daily 02:xx UTC); backstops after the EOD
+pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-notes` (12:35 UTC), Mon–Fri.
 
 ### Views
 `market_snapshot` (latest quote), `symbol_news_stats`, `research_latest` — all `security_invoker`, authenticated only.
 
 ### Notification types
-`price_alert`, `exit_signal`, `plan_expiry`, `research_stance` (`broker_reauth` reserved).
+`price_alert`, `exit_signal`, `plan_expiry`, `research_stance`.
 
 ### Error codes raised by the DB (mapped by `friendlyDbError`)
 `PLAN_LIMIT_REACHED`, `NO_ACTIVE_PLAN`, `NOT_AUTHORIZED`, `USER_NOT_IN_TENANT`, `INVALID_INPUT`, `INVALID_EVENT_TYPE`, RLS `row-level security`.
@@ -76,7 +79,7 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 | `privileged/crypto.ts` | `seal(plaintext, aad)`, `open(sealed, aad)`, type `Sealed` | AES-256-GCM, `QP_SECRETS_KEY_V<n>` |
 | `privileged/audit.ts` | `audit({...})` | Append to `audit_log` with hashed IP |
 | `privileged/tenants.ts` | `switchTenant`, `createOrganization`, `createInvitation`, `previewInvitation`, `acceptInvitation`, `changeMemberRole` | Role-escalation rules live here |
-| `privileged/secrets.ts` | `saveAiKey`, `connectBroker` | Plan + consent checks, encryption, `svc_put_*` |
+| `privileged/secrets.ts` | `saveAiKey` | Plan + consent checks, encryption, `svc_put_ai_key_secret` |
 | `privileged/admin.ts` | `isPlatformAdmin`, `searchUsers`, `activatePlan`, `platformStats`, type `AdminUserRow` | Platform console |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
 | `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
@@ -88,7 +91,7 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 | Module | Exports |
 |---|---|
 | `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel` |
-| `market.ts` | `nseSession(now)` → pre-open / open / closed (IST; holidays not modelled) |
+| `market.ts` | `nseSession(now)` → pre-open / open / closed (IST; holidays not modelled); `PRICE_SOURCE` (attribution label) |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
 | `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
 | `consents.ts` | `CONSENT_VERSION`, `CONSENT_COPY` |
@@ -114,7 +117,7 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 | `app/app/portfolio/actions.ts` | `addHolding` (merges at weighted avg), `updateHolding`, `deleteHolding`, `createPortfolio` |
 | `app/app/alerts/actions.ts` | `createAlert`, `setAlertStatus`, `deleteAlert` |
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
-| `app/app/integrations/actions.ts` | `connectBrokerAction`, `disconnectBroker`, `saveAiKeyAction`, `deleteAiKey` |
+| `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey` |
 | `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount` |
 | `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow` |
 | `app/app/research/actions.ts` | `askMyAi` (BYOK research read; nothing stored) |
@@ -177,4 +180,6 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |
-| `.github/workflows/ci.yml`, `news-ingest.yml` | CI and scheduled news |
+| `pipelines/eod/eod.py` | EOD candles from Yahoo (yfinance) → Supabase, then analytics/research/notifier RPCs; `--days N`, `--dry-run`, `--symbols A,B`. Pure helpers: `last_settled_day`, `to_candles`, `yahoo_ticker`; config `YAHOO_OVERRIDES`, `HISTORY_FROM` |
+| `pipelines/eod/test_eod.py` | unit tests (`python -m unittest test_eod`, no network) |
+| `.github/workflows/ci.yml`, `news-ingest.yml`, `market-eod.yml` | CI, scheduled news, scheduled EOD prices |

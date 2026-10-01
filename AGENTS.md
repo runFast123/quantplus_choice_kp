@@ -1,7 +1,8 @@
 # AGENTS.md — read this before changing anything
 
 QuantsPulse is a multi-tenant research app for Indian equities (NSE/BSE): watchlists ("Market Radar"),
-portfolio tracking, price alerts, rule-based signals, broker connections and bring-your-own AI keys.
+portfolio tracking, price alerts, rule-based signals, RSS news research and bring-your-own AI keys. No broker
+connections (ADR-025). End-of-day prices come from Yahoo Finance via `pipelines/eod` (ADR-026).
 Supabase (Postgres + Auth + RLS) is the backend of record; a Next.js 16 app in `web/` is both the UI and
 the Node backend.
 
@@ -33,9 +34,10 @@ docs/          BRD, ARCHITECTURE, CODEMAP, DECISIONS, ROADMAP, SECURITY
 design-system/quantspulse/MASTER.md   tokens, type, layout, chart rules ("Zen Linen")
 supabase/
   migrations/  ordered SQL — 01–13 = spec §5.1–5.13, 14+ = additions (see DECISIONS); all applied to the live project
-  seed/        dev_market_data.sql (SYNTHETIC prices, dev only) · ref_news_aliases.sql (reference, prod-safe)
+  seed/        dev_market_data.sql (SYNTHETIC prices, dev only — never prod) · ref_market_symbols.sql, ref_news_aliases.sql (prod-safe)
   scripts/     apply.mjs — migrate / seed / test against Supabase (reads gitignored supabase/.env)
-  tests/       00_verify…, 01_isolation (spec §9), 02_eod_notifier, 03_news_research; harness/ runs them on PGlite
+  tests/       00_verify…, 01_isolation (spec §9), 02_eod_notifier, 03_news_research, 04_hardening, 05_market_analytics; harness/ runs them on PGlite
+pipelines/eod/  eod.py — daily NSE candles from Yahoo (yfinance) → Supabase; test_eod.py
 web/           Next.js app (UI + server actions + route handlers = the "Node backend")
   src/app/            routes  (app/app/* = signed-in product, admin/ = platform console)
   src/server/         server-only code; privileged/ = the ONLY place the service role is used
@@ -55,9 +57,9 @@ scripts/secret-scan.mjs + .githooks/   secret guard (enable: git config core.hoo
    `web/src/server/privileged/service-role.ts` and may only be imported from `src/server/privileged/*`
    (ESLint enforces this). Privileged functions must re-check membership/role/plan themselves (`guards.ts`) and
    filter by both `user_id` and `tenant_id`.
-3. Financial data (holdings, watchlists, alerts, broker connections, AI keys) is private to the user **even from
+3. Financial data (holdings, watchlists, alerts, AI keys) is private to the user **even from
    their tenant admins and platform admins**. Don't build any view that breaks this.
-4. Secrets (broker tokens, AI keys) are encrypted in Node with `seal()` (AES-256-GCM, key from env, AAD bound to
+4. Secrets (AI keys) are encrypted in Node with `seal()` (AES-256-GCM, key from env, AAD bound to
    the row) and stored via `svc_put_*` RPCs into the non-exposed `private` schema. Never return plaintext or
    ciphertext to the client; show `key_last4` / masked ids only. Never log them.
 5. Platform admins are granted only by SQL (`insert into private.platform_admins`). No API path may grant it.
@@ -110,6 +112,11 @@ cd supabase/tests/harness && npm install && npm test
 # live Supabase (needs supabase/.env)
 cd supabase/scripts && npm run status | migrate | seed:ref | test:remote
 
+# EOD prices (manual run; scheduled in .github/workflows/market-eod.yml). Reads web/.env.local.
+pip install -r pipelines/eod/requirements.txt
+python pipelines/eod/eod.py [--days 760] [--dry-run]
+cd pipelines/eod && python -m unittest test_eod
+
 # news pipeline (manual run; scheduled in .github/workflows/news-ingest.yml)
 cd web && npm run ingest:news            # add -- --relink after changing matching rules/aliases
 
@@ -141,7 +148,8 @@ cd web && npm run build && npm run test:e2e   # Playwright on installed Chrome; 
   (user `postgres.<ref>`); the direct `db.<ref>.supabase.co` host is IPv6-only from this network.
 - **Production:** https://quantplus-ten.vercel.app — Vercel project `quantplus`, root dir `web`, functions in `icn1`.
   Deploy from the repo root (PLAYBOOK §Q). Env vars are managed in Vercel, not in git.
-- Market prices are **synthetic** until pipelines exist (`NEXT_PUBLIC_MARKET_DATA_MODE=synthetic` shows a label).
-  Headlines are real.
+- Market prices are **real end-of-day NSE candles from Yahoo Finance** (`pipelines/eod`, ADR-026), loaded ~17:00 IST
+  on weekdays; `NEXT_PUBLIC_MARKET_DATA_MODE=live`. No intraday data. Yahoo's terms are personal/non-commercial —
+  swap the vendor in `fetch()` before charging for data. Never run `dev_market_data.sql` against production.
 - Windows dev machine; bash (Git Bash) and PowerShell both available. Commit attribution per repo owner's rules.
 - Remote: `https://github.com/runFast123/quantplus_choice_kp.git`, branch `main`.

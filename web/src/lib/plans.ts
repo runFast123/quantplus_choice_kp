@@ -7,6 +7,5 @@ export const FEATURE_ROWS: [Feature, string][] = [
   ["portfolio", "Portfolio and P&L tracking"],
   ["alerts", "Price alerts"],
   ["scanning", "Signal scanning across the market"],
-  ["broker_connect", "Broker connections"],
   ["ai_byok", "Bring your own AI key"],
 ];

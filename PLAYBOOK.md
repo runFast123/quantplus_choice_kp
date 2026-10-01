@@ -64,7 +64,7 @@ Only when RLS genuinely can't express it (cross-tenant work, private schema, aut
 
 1. Producer: SQL (preferred, inside `private.run_eod_notifier()` or a new cron function) or a privileged module.
    Insert into `public.notifications (tenant_id, user_id, type, title, body, data)`; dedupe on `data` keys.
-2. `type` values in use: `price_alert`, `exit_signal`, `plan_expiry` (`broker_reauth` reserved).
+2. `type` values in use: `price_alert`, `exit_signal`, `plan_expiry`, `research_stance`.
 3. The bell (`components/shell/notifications.tsx`) receives inserts via Realtime automatically.
 4. Test in `supabase/tests/02_eod_notifier.sql` style, including idempotency.
 
@@ -84,7 +84,8 @@ Then:
 1. Dashboard → Authentication → Hooks → **Custom Access Token** → `public.custom_access_token_hook`. Enable.
 2. Dashboard → Database → Extensions: confirm `pg_cron` is enabled.
 3. Dashboard → API → Exposed schemas: must **not** include `private`.
-4. Dev/staging only: run `supabase/seed/dev_market_data.sql` for synthetic prices.
+4. Prices: production → `npm run seed:ref` then `python pipelines/eod/eod.py --days 760` (PLAYBOOK §R).
+   Dev/staging only: `supabase/seed/dev_market_data.sql` for synthetic prices.
 5. `npm run test:remote` (or paste `supabase/tests/0*.sql` into the SQL editor — they roll back) — all PASS.
 6. Auth → URL configuration: Site URL + redirect `…/auth/confirm`.
 
@@ -121,6 +122,24 @@ delete from private.platform_admins where user_id = '<id>';
 - **Tone words:** edit `lib/news/tone.ts` (`POSITIVE` / `NEGATIVE`), add a unit test; users see matched terms.
 - **Research weights:** change `private.refresh_research_notes()` in a new migration, update the copy on
   `/app/research` and `docs/DECISIONS.md` ADR-015, run `03_news_research.sql`.
+
+## R. Market data (EOD prices)
+
+- **Source:** Yahoo Finance via yfinance (`pipelines/eod/eod.py`, ADR-026). Ticker = `SYMBOL.NS` unless listed in
+  `YAHOO_OVERRIDES`. Candles stamped 10:00 UTC (15:30 IST); split-adjusted close.
+- **Run now:** `python pipelines/eod/eod.py` (last 10 days; reads `web/.env.local`). Backfill: `--days 760`.
+  Check without writing: `--dry-run`. One symbol: `--symbols TCS`.
+- **Schedule:** `.github/workflows/market-eod.yml` (17:00 + 20:00 IST weekdays; manual run takes `days`). Repo secrets:
+  `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. pg_cron re-runs analytics/notifier/research at 17:55–18:05 IST.
+- **Add / remove a stock:** edit `supabase/seed/ref_market_symbols.sql` (set `is_active = false` rather than deleting),
+  `npm run seed:ref`, add aliases in `ref_news_aliases.sql`, then `python pipelines/eod/eod.py --days 760 --symbols NEW`.
+- **Corporate actions Yahoo doesn't adjust** (demergers): add `HISTORY_FROM[symbol] = first clean date`; the next run
+  prunes older candles/RSI/signals. Delete that symbol's signals + RSI and run `select private.refresh_market_analytics(100000)`
+  once to rebuild from clean history. Spot-check with a >18% one-day move query.
+- **Change an indicator or signal rule:** new migration replacing `private.refresh_market_analytics`, extend
+  `supabase/tests/05_market_analytics.sql`, update the Signals page copy. Signals are append-only: never delete rows
+  the notifier may have referenced, except in a deliberate rebuild.
+- **Replace the vendor:** only `fetch()` in `eod.py` returns vendor frames; keep `to_candles()` validation.
 
 ## O. End-to-end tests (Playwright)
 

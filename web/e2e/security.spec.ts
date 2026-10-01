@@ -13,7 +13,7 @@ test.describe("security boundaries", () => {
   });
 
   test("the private schema is not exposed, even to the service role path", async ({ request }) => {
-    const r = await request.get(`${supabaseUrl}/rest/v1/broker_credentials?select=*`, { headers: { apikey: anonKey, "Accept-Profile": "private" } });
+    const r = await request.get(`${supabaseUrl}/rest/v1/ai_key_secrets?select=*`, { headers: { apikey: anonKey, "Accept-Profile": "private" } });
     expect(r.status()).toBe(406);
   });
 

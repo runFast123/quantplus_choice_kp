@@ -39,7 +39,7 @@ No tick worker exists yet. `private.run_eod_notifier()` via pg_cron evaluates al
 holders of exit signals and sends plan-expiry reminders. To be complemented (not replaced) by a live tick worker.
 
 ### ADR-007 · Broker connect = manual token paste for now
-**Date** 2026-10-01 · **Status** accepted (interim)
+**Date** 2026-10-01 · **Status** superseded by ADR-025
 Per-broker OAuth flows (Kite Connect, SmartAPI, Upstox…) are separate integrations. The storage, encryption, status
 and expiry model is built; the UI asks for a client ID + access token. Replace per broker with OAuth.
 
@@ -62,9 +62,9 @@ A random `qp_did` cookie (httpOnly) identifies the browser; only its SHA-256 is 
 Registering happens on sign-in/confirm; another device sees a "use this device" takeover screen.
 
 ### ADR-012 · Consent withdrawal side-effects run across all workspaces
-**Date** 2026-10-01 · **Status** accepted
-Withdrawing `broker_data_access` deletes the user's broker connections in every tenant (privileged), and
-withdrawing `ai_processing` deletes their AI keys — RLS alone would only reach the active tenant.
+**Date** 2026-10-01 · **Status** accepted (broker part removed by ADR-025)
+Withdrawing `ai_processing` deletes the user's AI keys in every tenant (privileged) — RLS alone would only reach the
+active tenant.
 
 ### ADR-013 · News from public RSS, linked by rules, toned by a published word list
 **Date** 2026-10-01 · **Status** accepted
@@ -131,3 +131,21 @@ session. Expired plans neither fire nor re-arm alerts.
 **Date** 2026-10-01 · **Status** accepted
 Prefix checks (`startsWith("/") && !startsWith("//")`) let `/\evil.com` and `/\t/evil.com` through. All user-supplied
 redirect targets are parsed with the URL API against a sentinel origin (`lib/safe-next.ts`).
+
+### ADR-025 · No broker connections
+**Date** 2026-10-01 · **Status** accepted · supersedes ADR-007
+Owner changed the plan: QuantsPulse does not connect to brokers. Holdings are entered by hand (or imported later).
+Migration 23 drops the tables, secrets, RPCs, enum, consent purpose and plan feature; the app has no broker code. This
+also removes the only reason to hold third-party trading credentials. Reintroducing brokers needs a new ADR.
+
+### ADR-026 · End-of-day prices from Yahoo Finance via yfinance (interim)
+**Date** 2026-10-01 · **Status** accepted (interim — replace with a licensed feed before charging for data)
+- **Why:** owner asked for real data now. GreekSoft was evaluated: it is an enterprise broker platform with no public
+  or free API tier (access via a sales demo or through a broker that licenses it), so it can't be used today.
+- **How:** `pipelines/eod/eod.py` runs after the close on GitHub Actions with the service role. Indicators are SQL
+  (`private.refresh_market_analytics`) so real and dev data share one implementation. Candles stamped 10:00 UTC
+  (15:30 IST); split-adjusted `Close`, not dividend-adjusted. Today's bar ignored before 15:45 IST.
+- **Risks, accepted for now:** yfinance is unofficial (scrapes Yahoo, can break or be rate-limited); Yahoo's terms
+  permit personal, non-commercial use only — **not** a paid product. Corporate actions Yahoo doesn't adjust (e.g. the
+  Tata Motors demerger) need a `HISTORY_FROM` cut-off. Only `fetch()` touches the vendor, so moving to NSE bhavcopy
+  under licence, a data vendor (TrueData, Global Datafeeds) or GreekSoft (if licensed) is a one-function change.
