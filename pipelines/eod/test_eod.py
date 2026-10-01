@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 
 import pandas as pd
 
-from eod import Candle, last_settled_day, to_candles, yahoo_ticker
+from eod import Candle, last_settled_day, split_symbols, to_candles, yahoo_ticker
 
 
 def frame(rows):
@@ -59,6 +59,18 @@ class ToCandles(unittest.TestCase):
 
     def test_empty_frame(self):
         self.assertEqual(to_candles("TCS", None, date(2026, 9, 30)), ([], ["TCS: no rows"]))
+
+
+class Splits(unittest.TestCase):
+    def test_split_or_bonus_detected(self):
+        idx = pd.DatetimeIndex(["2026-09-29", "2026-09-30"])
+        frames = {
+            "SPLIT": pd.DataFrame({"Close": [100.0, 50.0], "Stock Splits": [0.0, 2.0]}, index=idx),
+            "PLAIN": pd.DataFrame({"Close": [100.0, 101.0], "Stock Splits": [0.0, 0.0]}, index=idx),
+            "NOCOL": pd.DataFrame({"Close": [100.0, 101.0]}, index=idx),
+            "EMPTY": None,
+        }
+        self.assertEqual(split_symbols(frames), ["SPLIT"])
 
 
 class Rows(unittest.TestCase):

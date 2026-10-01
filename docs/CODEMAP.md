@@ -180,6 +180,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |
-| `pipelines/eod/eod.py` | EOD candles from Yahoo (yfinance) → Supabase, then analytics/research/notifier RPCs; `--days N`, `--dry-run`, `--symbols A,B`. Pure helpers: `last_settled_day`, `to_candles`, `yahoo_ticker`; config `YAHOO_OVERRIDES`, `HISTORY_FROM` |
+| `pipelines/eod/eod.py` | EOD candles from Yahoo (yfinance) → Supabase, then analytics/research/notifier RPCs; `--days N`, `--dry-run`, `--symbols A,B`. Pure helpers: `last_settled_day`, `to_candles`, `yahoo_ticker`, `split_symbols`; config `YAHOO_OVERRIDES`, `HISTORY_FROM`, `FULL_HISTORY_DAYS` |
+| `pipelines/eod/audit.py` | read-only accuracy audit: DB vs fresh Yahoo, sanity, independent recomputation of snapshot/RSI/signals/backtests (`--symbols`, `--days`); exit 1 on any mismatch |
 | `pipelines/eod/test_eod.py` | unit tests (`python -m unittest test_eod`, no network) |
 | `.github/workflows/ci.yml`, `news-ingest.yml`, `market-eod.yml` | CI, scheduled news, scheduled EOD prices |

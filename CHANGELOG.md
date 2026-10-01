@@ -6,6 +6,16 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — market data accuracy audit + split/bonus handling
+- `pipelines/eod/audit.py` (read-only): stored candles vs a fresh Yahoo download (exact), sanity checks (OHLC,
+  duplicates, gaps, >18 % one-day moves, stale symbols, `HISTORY_FROM`), and independent pandas recomputation of
+  everything the app shows — `market_snapshot` (last, prev close, change, change %, 52-week high/low, RSI), Wilder RSI
+  history, every SMA 20/50 and RSI-reversal signal, SIP backtests. Runs after each `market-eod.yml` load; a mismatch
+  fails the run. First run on live data: **1,678 checks, 0 failures**.
+- `eod.py`: Yahoo rescales a stock's whole history after a split/bonus; the daily run now detects that
+  (`split_symbols`, "Stock Splits" column) and re-fetches `FULL_HISTORY_DAYS` (800) for that stock, then rewrites its RSI.
+- GitHub Actions secrets set by the owner; `market-eod.yml` and `news-ingest.yml` verified green on GitHub.
+
 ### Changed — real end-of-day prices from Yahoo Finance (ADR-026)
 - New `pipelines/eod/eod.py` (yfinance 1.7): daily NSE candles for every active symbol → `market_candles`, then
   `svc_refresh_market_analytics` → `svc_refresh_research` → `svc_run_eod_notifier`. Skips today's bar until 15:45 IST,

@@ -140,6 +140,8 @@ delete from private.platform_admins where user_id = '<id>';
   `supabase/tests/05_market_analytics.sql`, update the Signals page copy. Signals are append-only: never delete rows
   the notifier may have referenced, except in a deliberate rebuild.
 - **Replace the vendor:** only `fetch()` in `eod.py` returns vendor frames; keep `to_candles()` validation.
+- **Check accuracy:** `python pipelines/eod/audit.py` — must report 0 failures (also runs after every scheduled load).
+  Splits/bonuses are handled automatically (full re-fetch of that stock); a demerger needs `HISTORY_FROM`.
 
 ## O. End-to-end tests (Playwright)
 

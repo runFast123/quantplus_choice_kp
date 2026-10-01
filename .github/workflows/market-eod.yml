@@ -38,3 +38,6 @@ jobs:
         run: '[ -n "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "::notice::Market EOD secrets not set; skipping."'
       - if: steps.guard.outputs.ok == '1'
         run: python eod.py --days "${{ github.event.inputs.days || '10' }}"
+      - name: Accuracy audit (stored vs Yahoo, every derived number recomputed)
+        if: steps.guard.outputs.ok == '1'
+        run: python audit.py

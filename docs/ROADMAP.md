@@ -7,9 +7,7 @@ Requirement IDs refer to `docs/BRD.md`.
 - [x] Apply migrations to Supabase project `lrjedvwzmeunxvkezffw` (done 2026-10-01; 21 migrations, tests pass live).
 - [x] Custom Access Token Hook enabled (2026-10-01) — all 81 e2e tests pass incl. write flows.
 - [x] Secret scanning + Push protection (owner, 2026-10-01).
-- [ ] GitHub Actions secrets `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-      — **not set** as of 2026-10-01 (`gh secret list` empty), so `market-eod.yml` and `news-ingest.yml` skip. Until set,
-      prices only update when `pipelines/eod/eod.py` is run by hand; news still updates via the daily Vercel cron.
+- [x] GitHub Actions secrets set (owner, 2026-10-01); `market-eod.yml` + `news-ingest.yml` verified on GitHub.
 - [ ] Rotate the service-role key and 21st key (shared in chat during setup) — docs/SECURITY.md §3.
       As of 2026-10-01 the original service-role key still authenticates, so it has not been rotated yet.
 - [x] Real EOD market data: `pipelines/eod` (Yahoo/yfinance) + `market-eod.yml`, ~2 years backfilled (2026-10-01).

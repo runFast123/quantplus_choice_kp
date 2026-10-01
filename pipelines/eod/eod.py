@@ -49,6 +49,10 @@ YAHOO_OVERRIDES: dict[str, str] = {}
 # 14 Oct 2025 ex-date), which would poison RSI, 52-week range and backtests.
 HISTORY_FROM: dict[str, date] = {"TMPV": date(2025, 10, 14)}
 
+# When Yahoo reports a split/bonus, it rescales that stock's entire history. The
+# daily run only fetches a few days, so it re-fetches this much for that stock.
+FULL_HISTORY_DAYS = 800
+
 
 @dataclass(frozen=True)
 class Candle:
@@ -116,7 +120,7 @@ def fetch(symbols: list[str], start: date, end_exclusive: date) -> dict:
     tickers = {yahoo_ticker(s): s for s in symbols}
     data = yf.download(
         list(tickers), start=start.isoformat(), end=end_exclusive.isoformat(), interval="1d",
-        auto_adjust=False, actions=False, group_by="ticker", threads=True, progress=False,
+        auto_adjust=False, actions=True, group_by="ticker", threads=True, progress=False,
     )
     frames = {}
     for t, s in tickers.items():
@@ -124,6 +128,17 @@ def fetch(symbols: list[str], start: date, end_exclusive: date) -> dict:
         has = getattr(data.columns, "nlevels", 1) > 1 and t in data.columns.get_level_values(0)
         frames[s] = data[t].dropna(how="all") if has else None
     return frames
+
+
+def split_symbols(frames: dict) -> list[str]:
+    """Symbols whose frame shows a split or bonus (Yahoo's "Stock Splits" ratio, 0 = none)."""
+    out = []
+    for s, f in frames.items():
+        if f is not None and "Stock Splits" in f.columns:
+            ratio = f["Stock Splits"].fillna(0)
+            if ((ratio > 0) & (ratio != 1)).any():
+                out.append(s)
+    return out
 
 
 # ---------------------------------------------------------------- Supabase
@@ -195,6 +210,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"eod: {len(symbols)} symbols, {start} .. {settled} (settled)")
 
     frames = fetch(symbols, start, settled + timedelta(days=1))
+    resync = [] if args.days >= FULL_HISTORY_DAYS else split_symbols(frames)
+    if resync:
+        print(f"eod: split/bonus in window for {', '.join(resync)} — re-fetching their full history (Yahoo rescales it)")
+        frames.update(fetch(resync, settled - timedelta(days=FULL_HISTORY_DAYS), settled + timedelta(days=1)))
     rows, problems, missing = [], [], []
     for s in symbols:
         candles, issues = to_candles(s, frames.get(s), settled)
@@ -216,7 +235,8 @@ def main(argv: list[str] | None = None) -> int:
     for s, day in HISTORY_FROM.items():
         if s in symbols:
             db.prune_before(s, day)
-    print("eod: analytics", db.rpc("svc_refresh_market_analytics", {"p_days": args.days + 5}))
+    days = FULL_HISTORY_DAYS if resync else args.days + 5     # rescaled history → rewrite its RSI too
+    print("eod: analytics", db.rpc("svc_refresh_market_analytics", {"p_days": days}))
     print("eod: research notes", db.rpc("svc_refresh_research"))
     print("eod: notifier", db.rpc("svc_run_eod_notifier"))
     return 1 if missing else 0

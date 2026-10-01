@@ -115,6 +115,7 @@ cd supabase/scripts && npm run status | migrate | seed:ref | test:remote
 # EOD prices (manual run; scheduled in .github/workflows/market-eod.yml). Reads web/.env.local.
 pip install -r pipelines/eod/requirements.txt
 python pipelines/eod/eod.py [--days 760] [--dry-run]
+python pipelines/eod/audit.py            # read-only accuracy audit; must be 0 failures
 cd pipelines/eod && python -m unittest test_eod
 
 # news pipeline (manual run; scheduled in .github/workflows/news-ingest.yml)
