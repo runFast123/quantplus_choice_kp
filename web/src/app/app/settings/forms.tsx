@@ -1,22 +1,23 @@
 "use client";
 
 import { useActionState, useOptimistic, useState, useTransition } from "react";
+import { useEchoAction } from "@/components/ui/use-echo-action";
 import { Field, FormMessage, Input } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { changePassword, deleteMyAccount, setConsent, updateProfile } from "./actions";
 
 export function ProfileForm({ fullName, phone, email }: { fullName: string; phone: string; email: string }) {
-  const [state, action] = useActionState(updateProfile, undefined);
+  const [state, action, , values] = useEchoAction(updateProfile);
   return (
     <form action={action} className="flex max-w-lg flex-col gap-4">
       <Field label="Email" htmlFor="email" hint="Your sign-in address. Contact support to change it.">
         <Input id="email" value={email} readOnly disabled />
       </Field>
       <Field label="Full name" htmlFor="full_name">
-        <Input id="full_name" name="full_name" defaultValue={fullName} maxLength={120} autoComplete="name" />
+        <Input id="full_name" name="full_name" defaultValue={values.full_name ?? fullName} maxLength={120} autoComplete="name" />
       </Field>
       <Field label="Mobile" htmlFor="phone" hint="Used only for payment follow-ups.">
-        <Input id="phone" name="phone" defaultValue={phone} inputMode="tel" autoComplete="tel" placeholder="+91" />
+        <Input id="phone" name="phone" defaultValue={values.phone ?? phone} inputMode="tel" autoComplete="tel" placeholder="+91" />
       </Field>
       <FormMessage state={state} />
       <SubmitButton className="w-fit">Save profile</SubmitButton>

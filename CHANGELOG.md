@@ -6,7 +6,17 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Verified
+- Access-token hook enabled by the owner: full Playwright suite **81 passed, 0 skipped**, including all write flows
+  (radar add/remove, Basic 10-symbol limit, portfolio weighted-average merge, alerts, export, organisation + invite).
+- `DB_confi` removed by the owner; keys and DB password unchanged and working.
+
 ### Fixed
+- Forms lost what the user typed when the server returned an error (React 19 resets forms after each action).
+  New `components/ui/use-echo-action.ts` restores non-secret fields after an error; used by alert, radar, holding,
+  portfolio, organisation, invite, broker, AI-key and profile forms. Covered by `writes.spec.ts`.
+- E2E: wait for the radar server action before navigating; exact label matching; scope alerts to `main` (Next's route
+  announcer also has `role="alert"`).
 - CI `tsc` failed on a clean checkout: Next route types (`PageProps`, `LayoutProps`) are generated, not committed.
   Added `npm run typecheck` (`next typegen && tsc --noEmit`) and use it in CI and the docs.
 

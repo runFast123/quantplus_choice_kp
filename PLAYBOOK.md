@@ -24,7 +24,8 @@ Each recipe lists the files to touch and the checks to run. Finish every recipe 
 1. Put it in the route's `actions.ts` with `"use server"`. Signature for forms: `(prev: ActionState, form: FormData) => Promise<ActionState>`.
 2. `const s = await requireSession();` → validate with zod → call `s.supabase` (RLS) → on error return
    `{ error: friendlyDbError(error.message) }` → `revalidatePath(...)` → `{ ok: true, message }`.
-3. Client form: `useActionState(action, undefined)` + `<FormMessage state>` + `<SubmitButton>`.
+3. Client form: `const [state, action, , values] = useEchoAction(serverAction)` + `<FormMessage state>` +
+   `<SubmitButton>`; give inputs `defaultValue={values.<name>}` so they survive an error.
    To close/reset UI on success, do it inside the action wrapper or reset a form ref — not `setState` in an effect.
 4. Record feature usage if it's a meaningful action: `await s.supabase.rpc("track_event", { p_event_type: "snake_case" })`.
 

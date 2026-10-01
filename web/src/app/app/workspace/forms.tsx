@@ -2,12 +2,13 @@
 
 import { CopyIcon, CheckIcon } from "@phosphor-icons/react";
 import { useActionState, useState, useTransition } from "react";
+import { useEchoAction } from "@/components/ui/use-echo-action";
 import { Field, FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { changeRoleAction, createOrgAction, inviteAction, renameWorkspace } from "./actions";
 
 export function CreateOrgForm() {
-  const [state, action] = useActionState(createOrgAction, undefined);
+  const [state, action, , values] = useEchoAction(createOrgAction);
   const [slug, setSlug] = useState("");
   const [touched, setTouched] = useState(false);
   return (
@@ -16,6 +17,7 @@ export function CreateOrgForm() {
         <Input
           id="org-name"
           name="name"
+          defaultValue={values.name}
           required
           maxLength={120}
           placeholder="Acme Advisory"
@@ -56,13 +58,13 @@ export function CreateOrgForm() {
 }
 
 export function InviteForm({ canInviteAdmin }: { canInviteAdmin: boolean }) {
-  const [state, action] = useActionState(inviteAction, undefined);
+  const [state, action, , values] = useEchoAction(inviteAction);
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex flex-col gap-3">
       <form action={action} className="grid gap-3 sm:grid-cols-[1fr_140px_auto] sm:items-end">
         <Field label="Email" htmlFor="invite-email">
-          <Input id="invite-email" name="email" type="email" required placeholder="colleague@firm.in" />
+          <Input id="invite-email" name="email" type="email" required placeholder="colleague@firm.in" defaultValue={values.email} />
         </Field>
         <Field label="Role" htmlFor="invite-role">
           <Select id="invite-role" name="role" defaultValue="member">

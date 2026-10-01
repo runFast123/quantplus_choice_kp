@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useEchoAction } from "@/components/ui/use-echo-action";
 import { addToRadar } from "@/app/app/watchlist/actions";
 import { FormMessage, Input } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export function AddSymbolForm({ watchlistId, disabled, suggestions }: { watchlistId?: string; disabled?: boolean; suggestions: string[] }) {
-  const [state, action] = useActionState(addToRadar, undefined);
+  const [state, action, , values] = useEchoAction(addToRadar);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.ok) form.current?.reset();
@@ -22,6 +23,7 @@ export function AddSymbolForm({ watchlistId, disabled, suggestions }: { watchlis
         <Input
           id="add-symbol"
           name="symbol"
+          defaultValue={values.symbol}
           list="symbol-suggestions"
           required
           disabled={disabled}

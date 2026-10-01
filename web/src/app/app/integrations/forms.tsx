@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useEchoAction } from "@/components/ui/use-echo-action";
 import { Field, FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { connectBrokerAction, saveAiKeyAction } from "./actions";
@@ -16,7 +17,7 @@ export const BROKERS = [
 ];
 
 export function BrokerForm() {
-  const [state, action] = useActionState(connectBrokerAction, undefined);
+  const [state, action, , values] = useEchoAction(connectBrokerAction);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.ok) ref.current?.reset();
@@ -25,7 +26,7 @@ export function BrokerForm() {
     <form ref={ref} action={action} className="flex flex-col gap-4" autoComplete="off">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Broker" htmlFor="broker">
-          <Select id="broker" name="broker" defaultValue="choice">
+          <Select id="broker" name="broker" defaultValue={values.broker ?? "choice"} key={values.broker ?? "choice"}>
             {BROKERS.map((b) => (
               <option key={b.value} value={b.value}>
                 {b.label}
@@ -34,7 +35,7 @@ export function BrokerForm() {
           </Select>
         </Field>
         <Field label="Client ID" htmlFor="client_id" hint="We store only the last 4 characters.">
-          <Input id="client_id" name="client_id" required className="num" />
+          <Input id="client_id" name="client_id" required className="num" defaultValue={values.client_id} />
         </Field>
       </div>
       <Field label="Access token" htmlFor="access_token" hint="From your broker's API console. Read-only scope. Most brokers expire it daily at 06:00 IST.">
@@ -49,7 +50,7 @@ export function BrokerForm() {
 }
 
 export function AiKeyForm() {
-  const [state, action] = useActionState(saveAiKeyAction, undefined);
+  const [state, action, , values] = useEchoAction(saveAiKeyAction);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.ok) ref.current?.reset();
@@ -58,7 +59,7 @@ export function AiKeyForm() {
     <form ref={ref} action={action} className="flex flex-col gap-4" autoComplete="off">
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Provider" htmlFor="provider">
-          <Select id="provider" name="provider" defaultValue="anthropic">
+          <Select id="provider" name="provider" defaultValue={values.provider ?? "anthropic"} key={values.provider ?? "anthropic"}>
             <option value="anthropic">Anthropic</option>
             <option value="openai">OpenAI</option>
             <option value="gemini">Google Gemini</option>
@@ -66,10 +67,10 @@ export function AiKeyForm() {
           </Select>
         </Field>
         <Field label="Label" htmlFor="label">
-          <Input id="label" name="label" placeholder="default" maxLength={40} />
+          <Input id="label" name="label" placeholder="default" maxLength={40} defaultValue={values.label} />
         </Field>
         <Field label="Default model" htmlFor="default_model">
-          <Input id="default_model" name="default_model" placeholder="optional" maxLength={80} />
+          <Input id="default_model" name="default_model" placeholder="optional" maxLength={80} defaultValue={values.default_model} />
         </Field>
       </div>
       <Field label="API key" htmlFor="api_key" hint="Encrypted with AES-256-GCM before it reaches the database. Decrypted only at the moment of a call.">

@@ -2,13 +2,14 @@
 
 import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useEchoAction } from "@/components/ui/use-echo-action";
 import { FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ActionState } from "@/lib/errors";
 import { addHolding, createPortfolio, updateHolding } from "./actions";
 
 export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: string; name: string }[]; suggestions: string[] }) {
-  const [state, action] = useActionState(addHolding, undefined);
+  const [state, action, , values] = useEchoAction(addHolding);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.ok) form.current?.reset();
@@ -19,7 +20,7 @@ export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1.2fr_auto] lg:items-end">
         <label className="flex flex-col gap-1">
           <span className="eyebrow">Symbol</span>
-          <Input name="symbol" list="holding-symbols" required autoComplete="off" className="num uppercase" placeholder="INFY" />
+          <Input name="symbol" list="holding-symbols" required autoComplete="off" className="num uppercase" placeholder="INFY" defaultValue={values.symbol} />
           <datalist id="holding-symbols">
             {suggestions.map((s) => (
               <option key={s} value={s} />
@@ -28,11 +29,11 @@ export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: 
         </label>
         <label className="flex flex-col gap-1">
           <span className="eyebrow">Quantity</span>
-          <Input name="quantity" type="number" inputMode="decimal" step="any" min="0" required className="num" placeholder="10" />
+          <Input name="quantity" type="number" inputMode="decimal" step="any" min="0" required className="num" placeholder="10" defaultValue={values.quantity} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="eyebrow">Avg price (₹)</span>
-          <Input name="avg_price" type="number" inputMode="decimal" step="0.05" min="0" required className="num" placeholder="1520.00" />
+          <Input name="avg_price" type="number" inputMode="decimal" step="0.05" min="0" required className="num" placeholder="1520.00" defaultValue={values.avg_price} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="eyebrow">Portfolio</span>
@@ -89,14 +90,14 @@ export function EditHolding({ id, quantity, avgPrice, symbol }: { id: string; qu
 }
 
 export function NewPortfolioForm() {
-  const [state, action] = useActionState(createPortfolio, undefined);
+  const [state, action, , values] = useEchoAction(createPortfolio);
   return (
     <form action={action} className="flex flex-col gap-2">
       <div className="flex gap-2">
         <label htmlFor="pf-name" className="sr-only">
           Portfolio name
         </label>
-        <Input id="pf-name" name="name" placeholder="e.g. Long-term" maxLength={80} />
+        <Input id="pf-name" name="name" placeholder="e.g. Long-term" maxLength={80} defaultValue={values.name} />
         <SubmitButton variant="secondary">Create</SubmitButton>
       </div>
       <FormMessage state={state} />

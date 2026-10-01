@@ -12,7 +12,11 @@ test.describe.configure({ mode: "serial" });
 
 test("radar: add from Markets, see it on Market Radar, remove it", async ({ proPage }) => {
   await proPage.goto("/app/markets?sector=IT");
-  await proPage.getByRole("button", { name: "Add WIPRO to radar" }).click();
+  // The toggle flips optimistically; wait for the server action to land before navigating away.
+  await Promise.all([
+    proPage.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/app/markets")),
+    proPage.getByRole("button", { name: "Add WIPRO to radar" }).click(),
+  ]);
   await expect(proPage.getByRole("button", { name: "Remove WIPRO from radar" })).toBeVisible();
   await proPage.goto("/app/watchlist");
   const row = proPage.locator("tbody tr", { hasText: "WIPRO" });
@@ -33,13 +37,13 @@ test("radar: Basic plan stops at 10 distinct symbols", async ({ browser }) => {
   await page.waitForURL("**/app");
   await page.goto("/app/watchlist");
   for (const sym of ["TCS", "INFY", "ITC", "SBIN", "LT", "TITAN", "WIPRO", "NTPC", "ONGC", "CIPLA"]) {
-    await page.getByLabel("Symbol").fill(sym);
+    await page.getByLabel("Symbol", { exact: true }).fill(sym);
     await page.getByRole("button", { name: "Add", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText(`${sym} added`);
+    await expect(page.locator("main").getByRole("status")).toContainText(`${sym} added`);
   }
-  await page.getByLabel("Symbol").fill("MARUTI");
+  await page.getByLabel("Symbol", { exact: true }).fill("MARUTI");
   await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("limit of 10 symbols");
+  await expect(page.locator("main").getByRole("alert")).toContainText("limit of 10 symbols");
   await ctx.close();
 });
 
@@ -49,15 +53,15 @@ test("portfolio: Basic is gated; Pro adds, merges at weighted average, removes",
 
   await proPage.goto("/app/portfolio");
   const add = async (qty: string, px: string) => {
-    await proPage.getByLabel("Symbol").fill("INFY");
-    await proPage.getByLabel("Quantity").fill(qty);
+    await proPage.getByLabel("Symbol", { exact: true }).fill("INFY");
+    await proPage.getByLabel("Quantity", { exact: true }).fill(qty);
     await proPage.getByLabel("Avg price (₹)").fill(px);
     await proPage.getByRole("button", { name: "Add holding" }).click();
   };
   await add("10", "1000");
-  await expect(proPage.getByRole("status")).toContainText("INFY added");
+  await expect(proPage.locator("main").getByRole("status")).toContainText("INFY added");
   await add("10", "2000");
-  await expect(proPage.getByRole("status")).toContainText("Added to your INFY position");
+  await expect(proPage.locator("main").getByRole("status")).toContainText("Added to your INFY position");
   const row = proPage.locator("tbody tr", { hasText: "INFY" });
   await expect(row).toContainText("20");
   await expect(row).toContainText("1,500.00");
@@ -68,14 +72,16 @@ test("portfolio: Basic is gated; Pro adds, merges at weighted average, removes",
 
 test("alerts: rejects a level already crossed, accepts a valid one, deletes it", async ({ proPage }) => {
   await proPage.goto("/app/alerts");
-  await proPage.getByLabel("Symbol").fill("TCS");
+  await proPage.getByLabel("Symbol", { exact: true }).fill("TCS");
   await proPage.getByLabel("When price is").selectOption("above");
   await proPage.getByLabel("Price (₹)").fill("1");
   await proPage.getByRole("button", { name: "Set alert" }).click();
-  await expect(proPage.getByRole("alert")).toContainText("already above");
+  await expect(proPage.locator("main").getByRole("alert")).toContainText("already above");
+  // What the user typed survives the error (React resets forms after every action).
+  await expect(proPage.getByLabel("Symbol", { exact: true })).toHaveValue("TCS");
   await proPage.getByLabel("Price (₹)").fill("999999");
   await proPage.getByRole("button", { name: "Set alert" }).click();
-  await expect(proPage.getByRole("status")).toContainText("Alert set");
+  await expect(proPage.locator("main").getByRole("status")).toContainText("Alert set");
   const row = proPage.locator("tbody tr", { hasText: "TCS" });
   await expect(row).toContainText("Armed");
   await row.getByRole("button", { name: "Delete TCS alert" }).click();
@@ -99,7 +105,7 @@ test("workspace: create an organisation and generate an invite link", async ({ p
   await proPage.getByLabel("Address").fill(slug);
   await proPage.getByRole("button", { name: "Create organisation" }).click();
   await expect(proPage.getByRole("heading", { level: 1 })).toHaveText("E2E Advisory");
-  await proPage.getByLabel("Email").fill("colleague@quantspulse.test");
+  await proPage.getByLabel("Email", { exact: true }).fill("colleague@quantspulse.test");
   await proPage.getByRole("button", { name: "Create invite" }).click();
   await expect(proPage.getByLabel("Invitation link")).toHaveValue(/\/invite\//);
   // Back to personal so later tests aren't scoped to the org.

@@ -134,7 +134,7 @@ cd web && npm run build && npm run test:e2e   # Playwright on installed Chrome; 
 - Supabase project ref `lrjedvwzmeunxvkezffw`. Keys live in `web/.env.local` (gitignored). Template: `web/.env.example`.
 - The **Custom Access Token Hook** (`public.custom_access_token_hook`) must be enabled in Supabase → Auth → Hooks,
   or `app_tenant_id` is missing from JWTs and every tenant-scoped write fails RLS. The app shows a banner when it's off,
-  and `e2e/writes.spec.ts` skips. **Status 2026-10-01: not yet enabled (owner action).**
+  and `e2e/writes.spec.ts` skips. **Status: enabled 2026-10-01.**
 - Live DB is reached through the **session pooler** `aws-0-ap-northeast-2.pooler.supabase.com:5432`
   (user `postgres.<ref>`); the direct `db.<ref>.supabase.co` host is IPv6-only from this network.
 - Market prices are **synthetic** until pipelines exist (`NEXT_PUBLIC_MARKET_DATA_MODE=synthetic` shows a label).

@@ -5,11 +5,10 @@ Requirement IDs refer to `docs/BRD.md`.
 
 ## Blocking for first real users
 - [x] Apply migrations to Supabase project `lrjedvwzmeunxvkezffw` (done 2026-10-01; 21 migrations, tests pass live).
-- [ ] **Enable the Custom Access Token Hook** (Dashboard -> Authentication -> Hooks -> `public.custom_access_token_hook`).
-      Until then every tenant-scoped write is blocked and 7 e2e tests skip. Owner action — no API access from here.
-- [ ] Add GitHub repo secrets for `news-ingest.yml` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
-      `SUPABASE_SERVICE_ROLE_KEY`) and enable Secret scanning + Push protection.
+- [x] Custom Access Token Hook enabled (2026-10-01) — all 81 e2e tests pass incl. write flows.
+- [x] GitHub repo secrets for `news-ingest.yml`, Secret scanning + Push protection (owner, 2026-10-01).
 - [ ] Rotate the service-role key and 21st key (shared in chat during setup) — docs/SECURITY.md §3.
+      As of 2026-10-01 the original service-role key still authenticates, so it has not been rotated yet.
 - [ ] Production market-data pipelines (FR-3.4, FR-5.3). Until then only the synthetic dev seed exists.
 - [ ] Legal review of Terms/Privacy drafts (SEBI positioning deprioritised by owner; copy stays non-advice).
 - [ ] Transactional email (invites, auth emails from a custom domain).

@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useEchoAction } from "@/components/ui/use-echo-action";
 import { createAlert } from "@/app/app/alerts/actions";
 import { FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export function AlertForm({ symbol, lastPrice, compact }: { symbol?: string; lastPrice?: number | null; compact?: boolean }) {
-  const [state, action] = useActionState(createAlert, undefined);
+  const [state, action, , values] = useEchoAction(createAlert);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.ok) form.current?.reset();
@@ -20,12 +21,12 @@ export function AlertForm({ symbol, lastPrice, compact }: { symbol?: string; las
         ) : (
           <label className="flex flex-col gap-1">
             <span className="eyebrow">Symbol</span>
-            <Input name="symbol" required placeholder="e.g. TCS" className="num uppercase" autoCapitalize="characters" />
+            <Input name="symbol" required placeholder="e.g. TCS" className="num uppercase" autoCapitalize="characters" defaultValue={values.symbol} />
           </label>
         )}
         <label className="flex flex-col gap-1">
           <span className="eyebrow">When price is</span>
-          <Select name="condition" defaultValue="above">
+          <Select name="condition" defaultValue={values.condition ?? "above"} key={values.condition ?? "above"}>
             <option value="above">Above</option>
             <option value="below">Below</option>
           </Select>
@@ -34,6 +35,7 @@ export function AlertForm({ symbol, lastPrice, compact }: { symbol?: string; las
           <span className="eyebrow">Price (₹)</span>
           <Input
             name="trigger_price"
+            defaultValue={values.trigger_price}
             type="number"
             inputMode="decimal"
             step="0.05"

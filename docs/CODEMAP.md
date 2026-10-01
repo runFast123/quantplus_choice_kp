@@ -143,6 +143,7 @@ Mon–Fri), `research-notes` (11:00 UTC Mon–Fri).
 | `ui/button.tsx` | `Button`, `ButtonLink`, `buttonClass(variant, size)` — variants primary/secondary/ghost/danger/coral |
 | `ui/field.tsx` | `Input`, `Select`, `Field`, `FormMessage`, `inputClass` |
 | `ui/submit-button.tsx` | `SubmitButton` (useFormStatus) |
+| `ui/use-echo-action.ts` | `useEchoAction(action)` → `[state, dispatch, pending, values]`; refills non-secret fields after a server error. **Use this instead of bare `useActionState` for forms.** |
 | `ui/confirm-button.tsx` | `ConfirmButton` — two-step destructive action |
 | `ui/data.tsx` | `Delta` (gain/loss w/ glyph), `Badge`, `Stat`, `Sparkline`, `RangeBar`, `ScoreBar` (diverging ±100), `StanceBadge`, `ToneBadge` |
 | `news/news-list.tsx` | `NewsList` (outbound links `rel=noopener noreferrer nofollow`, tone + symbol chips) |
