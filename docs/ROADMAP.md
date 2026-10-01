@@ -13,6 +13,12 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Legal review of Terms/Privacy drafts (SEBI positioning deprioritised by owner; copy stays non-advice).
 - [ ] Transactional email (invites, auth emails from a custom domain).
 
+## Deployment
+- [x] Vercel production at https://quantplus-ten.vercel.app (icn1), env vars set, daily cron, e2e green on production.
+- [ ] Supabase Auth → URL Configuration: Site URL `https://quantplus-ten.vercel.app`, redirect `https://quantplus-ten.vercel.app/**`
+      (owner action; until then auth emails link to localhost).
+- [ ] Custom domain (then update `NEXT_PUBLIC_SITE_URL`, Supabase URL config, and redeploy).
+
 ## Next
 - [ ] Payment gateway (Razorpay/Cashfree) checkout + webhook → `admin_activate_plan`-style RPC (FR-9.4).
 - [ ] Broker OAuth per broker + holdings sync worker writing `source = 'broker'` holdings (FR-6.3, FR-8.1).

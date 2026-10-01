@@ -1,0 +1,23 @@
+# Never upload secrets.
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+DB_confi
+.mcp.json
+/.claude/
+# Only web/ is built (project Root Directory = web). Leading "/" = repo root only:
+# an unanchored "supabase/" also matched web/src/lib/supabase/ and broke the build.
+/supabase/
+/design-system/
+/docs/
+/scripts/
+/.github/
+/.githooks/
+/*.md
+web/e2e/
+web/test-results/
+web/playwright-report/
+web/.next/
+**/node_modules/

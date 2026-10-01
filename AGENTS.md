@@ -139,6 +139,8 @@ cd web && npm run build && npm run test:e2e   # Playwright on installed Chrome; 
   and `e2e/writes.spec.ts` skips. **Status: enabled 2026-10-01.**
 - Live DB is reached through the **session pooler** `aws-0-ap-northeast-2.pooler.supabase.com:5432`
   (user `postgres.<ref>`); the direct `db.<ref>.supabase.co` host is IPv6-only from this network.
+- **Production:** https://quantplus-ten.vercel.app — Vercel project `quantplus`, root dir `web`, functions in `icn1`.
+  Deploy from the repo root (PLAYBOOK §Q). Env vars are managed in Vercel, not in git.
 - Market prices are **synthetic** until pipelines exist (`NEXT_PUBLIC_MARKET_DATA_MODE=synthetic` shows a label).
   Headlines are real.
 - Windows dev machine; bash (Git Bash) and PowerShell both available. Commit attribution per repo owner's rules.

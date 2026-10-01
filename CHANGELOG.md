@@ -6,6 +6,17 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Deployed — Vercel (2026-10-01)
+- Production: **https://quantplus-ten.vercel.app** (Vercel project `quantplus`, root directory `web`).
+- Functions pinned to **icn1 (Seoul)**, next to the Supabase project (ap-northeast-2); the project default was iad1 and
+  overrode `vercel.json` under Fluid compute, so it was changed via the API (`resourceConfig.functionDefaultRegions`).
+- Env vars set for production + preview (secrets as *sensitive*); `NEXT_PUBLIC_SITE_URL` = production URL.
+- `web/vercel.json`: region + daily cron `/api/cron/news` (04:30 UTC = 10:00 IST; Hobby allows daily — the 30-min
+  schedule stays in GitHub Actions). `.vercelignore` keeps secrets and non-app folders out of uploads (patterns anchored
+  with `/` — an unanchored `supabase/` also removed `web/src/lib/supabase/` and broke the first build).
+- Verified on production: full Playwright suite **83 passed** (`E2E_BASE_URL=https://quantplus-ten.vercel.app`),
+  cron endpoint ingest OK (115 new headlines, 42 notes, 8 s), HSTS on, bundle secret check passed in the Vercel build.
+
 ### Fixed — full code & logic review (2026-10-01)
 Three parallel reviews (SQL, server, UI) + PGlite probes; every confirmed issue fixed and covered by a test.
 

@@ -6,6 +6,9 @@ import { defineConfig, devices } from "@playwright/test";
  * download needed. Test users are created and deleted automatically.
  */
 const PORT = Number(process.env.E2E_PORT ?? 3100);
+// Point at a deployment instead of a local build: E2E_BASE_URL=https://quantplus-ten.vercel.app
+const REMOTE = process.env.E2E_BASE_URL;
+const BASE_URL = REMOTE ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -19,7 +22,7 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: BASE_URL,
     channel: "chrome",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
@@ -28,10 +31,12 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"], channel: "chrome", viewport: { width: 1440, height: 900 } } },
     { name: "mobile", use: { ...devices["Pixel 7"], channel: "chrome", viewport: { width: 390, height: 844 } }, grep: /@mobile/ },
   ],
-  webServer: {
-    command: `npx next start -p ${PORT}`,
-    url: `http://localhost:${PORT}/login`,
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  webServer: REMOTE
+    ? undefined
+    : {
+        command: `npx next start -p ${PORT}`,
+        url: `http://localhost:${PORT}/login`,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      },
 });

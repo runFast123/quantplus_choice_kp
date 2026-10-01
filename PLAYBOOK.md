@@ -144,6 +144,25 @@ npx playwright show-report                           # HTML report
 - New secret? Add it to `web/.env.local` (server-only names never start with `NEXT_PUBLIC_`), add a placeholder to
   `.env.example`, document it in `docs/SECURITY.md` §1. If it has a recognisable format, add a pattern to the scanner.
 
+## Q. Deploy (Vercel)
+
+Project `quantplus` (team `amandubey7977-1409s-projects`), Root Directory `web`, functions in `icn1`.
+```bash
+vercel login                      # once per machine (device-code flow in the browser)
+vercel link --yes --project quantplus   # from the REPO ROOT (root directory is web/)
+vercel deploy --prod --yes        # from the repo root
+E2E_BASE_URL=https://quantplus-ten.vercel.app npx playwright test   # verify the live site (run in web/)
+```
+- Env vars live in Vercel (production + preview). Add with `printf '%s' "$VALUE" | vercel env add NAME production
+  [--sensitive]` — never paste values into commands that get logged. `NEXT_PUBLIC_*` changes need a redeploy.
+- `.vercelignore` patterns for root folders must start with `/` (unanchored names match nested folders too).
+- Region: keep functions next to the database (`icn1`). The project setting wins over `vercel.json` under Fluid compute:
+  `MSYS_NO_PATHCONV=1 vercel api /v9/projects/quantplus -X PATCH --input -` with
+  `{"resourceConfig":{"functionDefaultRegions":["icn1"]}}`. Check with the `X-Vercel-Id` header (`…::icn1::…`).
+- Git Bash: prefix `vercel api` calls with `MSYS_NO_PATHCONV=1`, or `/v9/...` is rewritten into a Windows path.
+- Supabase Auth → URL Configuration must list the production URL (Site URL + `https://quantplus-ten.vercel.app/**`),
+  or confirmation/reset emails link to localhost.
+
 ## M. Before you push
 ```bash
 cd web && npm run typecheck && npx eslint src e2e && npm run test:unit && npm run build   # build runs the bundle secret check

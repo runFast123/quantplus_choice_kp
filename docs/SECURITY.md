@@ -14,6 +14,10 @@ How QuantsPulse keeps database credentials, keys and user data from leaking — 
 | 21st.dev key | `.mcp.json` | Claude Code MCP | — |
 | `DB_confi` | project root, owner's notes | nobody at runtime | — consider deleting it now that values are in the env files |
 
+In production the same names are set as Vercel environment variables (secrets marked *sensitive*, so they can't be read
+back from the dashboard); `.vercelignore` keeps every local env file out of uploads. The DB password is **not** set on
+Vercel — the web app never needs it.
+
 All of the above are **gitignored** (`.gitignore`: `DB_confi`, `.mcp.json`, `.env`, `.env.*` except `.env.example`, `.claude/settings.local.json`).
 Templates without values: `web/.env.example`, `supabase/.env.example`.
 

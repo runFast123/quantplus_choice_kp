@@ -86,7 +86,7 @@ test.describe("authentication", () => {
       await page.getByRole("button", { name: "Sign in" }).click();
       await page.waitForLoadState("networkidle");
       const landed = new URL(page.url());
-      expect(landed.hostname, evil).toBe("localhost");
+      expect(landed.hostname, evil).toBe(new URL(process.env.E2E_BASE_URL ?? "http://localhost").hostname);
       expect(landed.pathname, evil).toBe("/app"); // every hostile `next` falls back to the app
       await ctx.close();
     }
