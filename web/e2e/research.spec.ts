@@ -69,8 +69,10 @@ test.describe("news", () => {
     await expect(proPage.locator("main ol > li").first()).toBeVisible();
     await proPage.getByLabel("Tone").selectOption("negative");
     await expect(proPage).toHaveURL(/tone=negative/);
-    const badges = await proPage.locator("main ol > li").getByText(/positive|negative|neutral/).allTextContents();
-    for (const b of badges) expect(b).toContain("negative");
+    // Exact badge texts only: headlines themselves can contain words like "positive".
+    const badges = await proPage.locator("main ol > li").getByText(/^(\+ positive|− negative|neutral)$/).allTextContents();
+    expect(badges.length).toBeGreaterThan(0);
+    for (const b of badges) expect(b).toBe("− negative");
   });
 
   test("only active sources are listed", async ({ proPage }) => {
