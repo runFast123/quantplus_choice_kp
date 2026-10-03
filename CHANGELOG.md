@@ -6,6 +6,18 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — repeated headlines; dropped ticker in the EOD job
+- Google News search re-issues a new redirect URL for the same story, so URL-based dedupe let repeats in (16 of
+  1,263). Migration 25 `news_story_dedupe`: `story_hash` (normalised headline + publish second, set by trigger,
+  unique), existing repeats merged into the oldest row with their symbol links, and
+  `svc_store_news_articles(jsonb)` (service_role) storing a batch with `on conflict do nothing` across both keys and
+  returning an id for every input. `privileged/news.ts` stores through it. Test `supabase/tests/06_news_dedupe.sql`.
+- `eod.py`: yfinance's threaded download sometimes drops a ticker ("database is locked" in its tz cache — TECHM on
+  1 Oct marked that run failed); misses are now retried one at a time.
+- Tests: `03_news_research.sql` no longer collides with real history on the live project.
+- Verified: Bajaj Auto −7.62 %, Maruti −4.86 %, Infosys +4.11 % on 1 Oct match the day's headlines
+  ("tumbles 8 %", "tanks 5 %", "jumps 4 %"); audit 0 failures; 2 Oct (Gandhi Jayanti) correctly has no candle.
+
 ### Added — market data accuracy audit + split/bonus handling
 - `pipelines/eod/audit.py` (read-only): stored candles vs a fresh Yahoo download (exact), sanity checks (OHLC,
   duplicates, gaps, >18 % one-day moves, stale symbols, `HISTORY_FROM`), and independent pandas recomputation of

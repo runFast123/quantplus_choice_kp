@@ -124,10 +124,23 @@ def fetch(symbols: list[str], start: date, end_exclusive: date) -> dict:
     )
     frames = {}
     for t, s in tickers.items():
-        # group_by="ticker" gives (ticker, field) columns, even for one ticker in yfinance 1.x
-        has = getattr(data.columns, "nlevels", 1) > 1 and t in data.columns.get_level_values(0)
-        frames[s] = data[t].dropna(how="all") if has else None
+        frames[s] = _pick(data, t)
+    # The threaded download occasionally drops a ticker ("database is locked" in yfinance's
+    # timezone cache). Retry those one at a time before calling them missing.
+    for t, s in tickers.items():
+        if frames[s] is None or frames[s].empty:
+            one = yf.download(
+                t, start=start.isoformat(), end=end_exclusive.isoformat(), interval="1d",
+                auto_adjust=False, actions=True, group_by="ticker", threads=False, progress=False,
+            )
+            frames[s] = _pick(one, t)
     return frames
+
+
+def _pick(data, ticker: str):
+    # group_by="ticker" gives (ticker, field) columns, even for one ticker in yfinance 1.x
+    has = getattr(data.columns, "nlevels", 1) > 1 and ticker in data.columns.get_level_values(0)
+    return data[ticker].dropna(how="all") if has else None
 
 
 def split_symbols(frames: dict) -> list[str]:

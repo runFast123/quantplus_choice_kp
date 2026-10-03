@@ -33,6 +33,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 22 | `review_hardening` | `private.try_numeric`, `private.notification_ledger`, `svc_register_device`; notifier + research rewritten; live-first subscription ordering; hook skips suspended tenants; symbol columns not updatable; admin-removal policy; TRUNCATE revoked |
 | 23 | `remove_broker` | drops broker tables/secrets/RPCs/enum/consent/feature; `export_my_data()` without brokers (ADR-025) |
 | 24 | `market_analytics` | `private.refresh_market_analytics(days)` (Wilder RSI, SMA 20/50, signals, SIP ledgers), `svc_refresh_market_analytics`, `svc_run_eod_notifier`; unique natural key on `trading_signals`; crons moved after the pipeline |
+| 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (covered
 universe, prod-safe) · `seed/ref_news_aliases.sql` (reference, prod-safe).
@@ -48,7 +49,7 @@ Runner: `supabase/scripts/apply.mjs` — `npm run migrate | status | seed:ref | 
 | `tenant_member_directory(p_tenant)` | tenant owner/admin, platform admin | whitelisted member columns |
 | `tenant_feature_usage(p_tenant, p_from, p_to)` | tenant owner/admin, platform admin | counts per user × event |
 | `admin_activate_plan(...)` | service_role | subscription + payment + audit, one transaction |
-| `svc_*` | service_role | bridge to the `private` schema (see 15); `svc_refresh_research()` rebuilds notes (17); `svc_refresh_market_analytics(p_days)`, `svc_run_eod_notifier()` (24) |
+| `svc_*` | service_role | bridge to the `private` schema (see 15); `svc_refresh_research()` rebuilds notes (17); `svc_refresh_market_analytics(p_days)`, `svc_run_eod_notifier()` (24); `svc_store_news_articles(p_rows)` (25) |
 
 ### Cron jobs
 `expire-subscriptions` (*/15), `retention-notifications`, `retention-activity-events`, `retention-ai-usage`,

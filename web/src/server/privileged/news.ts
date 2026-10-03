@@ -171,30 +171,26 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
     report.sources.push({ code: search.code, status: errors.length ? "partial" : "ok", items, fresh, ...(errors.length ? { error: errors.join("; ").slice(0, 200) } : {}) });
   }
 
-  // Store. Idempotent so overlapping runs (cron + admin "Fetch now") can't
-  // collide on url_hash, and links are written for EVERY candidate — including
-  // articles stored earlier (e.g. a search hit on a story first seen via RSS).
+  // Store. svc_store_news_articles skips a story already present under the same
+  // URL or the same headline + publish time (Google News re-issues redirect URLs),
+  // atomically, so overlapping runs (cron + admin "Fetch now") can't collide. It
+  // returns an id for EVERY candidate, so links are written for stories stored
+  // earlier too (e.g. a search hit on a story first seen via RSS).
   try {
     const all = [...candidates.values()];
     const idByHash = new Map<string, number>();
     for (let i = 0; i < all.length; i += 100) {
-      const batch = all.slice(i, i + 100);
-      const { data: inserted, error } = await db
-        .from("news_articles")
-        .upsert(
-          batch.map((c) => {
-            const row: Partial<Candidate> = { ...c };
-            delete row.links;
-            return row;
-          }),
-          { onConflict: "url_hash", ignoreDuplicates: true },
-        )
-        .select("id, url_hash");
+      const batch = all.slice(i, i + 100).map((c) => {
+        const row: Partial<Candidate> = { ...c };
+        delete row.links;
+        return row;
+      });
+      const { data, error } = await db.rpc("svc_store_news_articles", { p_rows: batch });
       if (error) throw new Error(`news_articles: ${error.message}`);
-      report.inserted += inserted?.length ?? 0;
-      const { data: ids, error: idErr } = await db.from("news_articles").select("id, url_hash").in("url_hash", batch.map((c) => c.url_hash));
-      if (idErr) throw new Error(`news_articles ids: ${idErr.message}`);
-      for (const r of ids ?? []) idByHash.set(r.url_hash, r.id as number);
+      for (const r of (data ?? []) as { url_hash: string; article_id: number | null; inserted: boolean }[]) {
+        if (r.inserted) report.inserted += 1;
+        if (r.article_id != null) idByHash.set(r.url_hash, r.article_id);
+      }
     }
     const links = all.flatMap((c) => {
       const id = idByHash.get(c.url_hash);

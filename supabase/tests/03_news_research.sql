@@ -64,7 +64,9 @@ select 'cccccccc-0000-4000-8000-0000000000ca', default_tenant_id, user_id, 'TCS'
 insert into public.research_notes (symbol, exchange, as_of, score, stance, headline, factors)
 select 'TCS', 'NSE', rn.as_of - 1, 0,
        case when rn.stance = 'cautious' then 'constructive' else 'cautious' end, 'x', '[]'
-from public.research_notes rn where rn.symbol = 'TCS' order by rn.as_of desc limit 1;
+from public.research_notes rn where rn.symbol = 'TCS' order by rn.as_of desc limit 1
+-- on a live project the previous day already has a real note: overwrite it (rolled back)
+on conflict (symbol, exchange, as_of) do update set stance = excluded.stance, score = 0, headline = 'x', factors = '[]';
 
 select private.refresh_research_notes();
 select private.refresh_research_notes();

@@ -36,7 +36,7 @@ supabase/
   migrations/  ordered SQL — 01–13 = spec §5.1–5.13, 14+ = additions (see DECISIONS); all applied to the live project
   seed/        dev_market_data.sql (SYNTHETIC prices, dev only — never prod) · ref_market_symbols.sql, ref_news_aliases.sql (prod-safe)
   scripts/     apply.mjs — migrate / seed / test against Supabase (reads gitignored supabase/.env)
-  tests/       00_verify…, 01_isolation (spec §9), 02_eod_notifier, 03_news_research, 04_hardening, 05_market_analytics; harness/ runs them on PGlite
+  tests/       00_verify…, 01_isolation (spec §9), 02_eod_notifier, 03_news_research, 04_hardening, 05_market_analytics, 06_news_dedupe; harness/ runs them on PGlite
 pipelines/eod/  eod.py — daily NSE candles from Yahoo (yfinance) → Supabase; test_eod.py
 web/           Next.js app (UI + server actions + route handlers = the "Node backend")
   src/app/            routes  (app/app/* = signed-in product, admin/ = platform console)
