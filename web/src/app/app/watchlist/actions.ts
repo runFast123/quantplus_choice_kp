@@ -28,11 +28,15 @@ export async function addToRadar(_: ActionState, form: FormData): Promise<Action
 
   const { data: known } = await s.supabase
     .from("market_symbols")
-    .select("symbol")
+    .select("symbol, is_active, successors")
     .eq("symbol", parsed.data)
     .eq("exchange", exchange)
     .maybeSingle();
   if (!known) return { error: `${parsed.data} isn't in our ${exchange} list yet.` };
+  if (!known.is_active) {
+    const next = (known.successors ?? []) as string[];
+    return { error: `${parsed.data} no longer trades${next.length ? ` — try ${next.join(" or ")}` : ""}.` };
+  }
 
   const listId = String(form.get("watchlist_id") ?? "") || (await defaultWatchlistId()).id;
   if (!listId) return { error: "Couldn't create your radar. Check your plan." };

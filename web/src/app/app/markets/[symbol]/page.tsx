@@ -12,8 +12,9 @@ import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/d
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, dateTime, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { PRICE_SOURCE } from "@/lib/market";
-import type { Holding, Quote, Signal } from "@/lib/types";
-import { getCandles, normalizeQuote } from "@/server/market-data";
+import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
+import { RetiredNote } from "@/components/market/retired-note";
+import { getCandles, getRetired, normalizeQuote } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
 import { can, requireSession } from "@/server/session";
 
@@ -37,7 +38,11 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     can(s, "portfolio") ? db.from("holdings").select("*").eq("symbol", symbol) : Promise.resolve({ data: [] as Holding[] }),
     db.from("rsi_events").select("ts, rsi, event_type").eq("symbol", symbol).neq("event_type", "daily").order("ts", { ascending: false }).limit(6),
   ]);
-  if (!quoteRes.data) notFound();
+  if (!quoteRes.data) {
+    const retired = (await getRetired(db, [symbol])).get(symbol);
+    if (!retired) notFound();
+    return <RetiredSymbolPage r={retired} />;
+  }
 
   const q = normalizeQuote(quoteRes.data as Quote);
   const signals = (signalsRes.data ?? []) as Signal[];
@@ -82,7 +87,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
       <header className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="eyebrow">
-            {q.exchange} · {q.sector ?? "Unclassified"}
+            {q.exchange} · {q.segment === "index" ? "Index" : q.segment === "etf" ? "ETF" : `${q.sector ?? "Unclassified"}${q.segment === "sme" ? " · SME" : ""}`}
           </p>
           <h1 className="display mt-1 text-[34px] leading-tight md:text-[42px]">{q.name}</h1>
           <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -309,6 +314,25 @@ function Level({ label, value, hint }: { label: string; value: string; hint?: st
         <span className="num">{value}</span>
         {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
       </dd>
+    </div>
+  );
+}
+
+function RetiredSymbolPage({ r }: { r: RetiredSymbol }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <Link href="/app/markets" className="inline-flex w-fit items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground">
+        <ArrowLeftIcon size={13} aria-hidden /> Markets
+      </Link>
+      <header className="border-b border-border pb-6">
+        <p className="eyebrow">NSE · no longer trades</p>
+        <h1 className="display mt-1 text-[34px] leading-tight md:text-[42px]">{r.name}</h1>
+        <p className="num mt-2 text-[15px] font-medium">{r.symbol}</p>
+      </header>
+      <Panel title="What happened">
+        <p className="max-w-2xl text-[14px] leading-6">{r.status_note ?? "This symbol is no longer listed, so there are no new prices for it."}</p>
+        <RetiredNote r={r} className="mt-3 block text-[13px] text-muted-foreground" />
+      </Panel>
     </div>
   );
 }

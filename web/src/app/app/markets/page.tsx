@@ -5,14 +5,18 @@ import { RadarToggle } from "@/components/market/radar-toggle";
 import { Badge, Delta, RangeBar } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, volume } from "@/lib/format";
-import { PRICE_SOURCE } from "@/lib/market";
+import { PRICE_SOURCE, SECTORS } from "@/lib/market";
+import { Pager, pageParam } from "@/components/ui/pager";
 import type { Quote } from "@/lib/types";
 import { normalizeQuote } from "@/server/market-data";
 import { requireSession } from "@/server/session";
 
 export const metadata: Metadata = { title: "Markets" };
 
+const PAGE_SIZE = 100;
+
 const SORTS: Record<string, { col: string; asc: boolean; label: string }> = {
+  size: { col: "mcap_rank", asc: true, label: "Largest first" },
   movers: { col: "change_pct", asc: false, label: "Top gainers" },
   laggards: { col: "change_pct", asc: true, label: "Top losers" },
   volume: { col: "volume", asc: false, label: "Volume" },
@@ -28,22 +32,25 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
   const sector = str("sector");
   const signal = str("signal");
   const rsi = str("rsi");
-  const sort = SORTS[str("sort")] ? str("sort") : "movers";
+  const sort = SORTS[str("sort")] ? str("sort") : "size";
+  const segment = (["sme", "etf", "index", "all"] as const).find((x) => x === str("segment")) ?? "equity";
+  const page = pageParam(sp.page);
 
-  let q = s.supabase.from("market_snapshot").select("*");
+  let q = s.supabase.from("market_snapshot").select("*", { count: "exact" });
+  if (segment !== "all") q = q.eq("segment", segment);
   if (sector) q = q.eq("sector", sector);
   if (signal === "buy" || signal === "exit") q = q.eq("last_signal", signal);
   if (rsi === "oversold") q = q.lte("rsi", 30);
   if (rsi === "overbought") q = q.gte("rsi", 70);
-  q = q.order(SORTS[sort].col, { ascending: SORTS[sort].asc, nullsFirst: false }).limit(300);
+  q = q
+    .order(SORTS[sort].col, { ascending: SORTS[sort].asc, nullsFirst: false })
+    .order("symbol")
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  const [{ data }, sectorsRes, radarRes] = await Promise.all([
-    q,
-    s.supabase.from("market_symbols").select("sector").eq("is_active", true),
-    s.supabase.from("watchlist_items").select("symbol"),
-  ]);
+  const [{ data, count }, radarRes] = await Promise.all([q, s.supabase.from("watchlist_items").select("symbol")]);
   const rows = ((data ?? []) as Quote[]).map(normalizeQuote);
-  const sectors = [...new Set((sectorsRes.data ?? []).map((r) => r.sector).filter(Boolean) as string[])].sort();
+  const total = count ?? rows.length;
+  const params = Object.fromEntries(["sector", "signal", "rsi", "sort", "segment"].filter((k) => str(k)).map((k) => [k, str(k)]));
   const onRadar = new Set((radarRes.data ?? []).map((r) => r.symbol));
   const asOf = rows.find((r) => r.as_of)?.as_of;
 
@@ -52,12 +59,23 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
       <PageHeader
         eyebrow={asOf ? `End of day · ${date(asOf)} · ${PRICE_SOURCE}` : `End of day · ${PRICE_SOURCE}`}
         title="Markets"
-        description="Every listed stock we cover, with the last session's move, where it sits in its 52-week range, momentum, and the most recent rule-based signal."
+        description="Every NSE-listed stock, SME issue, major ETF and NSE index, with the last session's move, where it sits in its 52-week range, momentum, and the most recent rule-based signal."
       />
 
       <FilterBar
         filters={[
-          { name: "sector", label: "Sector", options: [{ value: "", label: "All sectors" }, ...sectors.map((x) => ({ value: x, label: x }))] },
+          {
+            name: "segment",
+            label: "Segment",
+            options: [
+              { value: "", label: "Stocks (main board)" },
+              { value: "sme", label: "SME (Emerge)" },
+              { value: "etf", label: "ETFs" },
+              { value: "index", label: "Indices" },
+              { value: "all", label: "Everything" },
+            ],
+          },
+          { name: "sector", label: "Sector", options: [{ value: "", label: "All sectors" }, ...SECTORS.map((x) => ({ value: x, label: x }))] },
           {
             name: "signal",
             label: "Last signal",
@@ -76,11 +94,11 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
               { value: "overbought", label: "Overbought (≥ 70)" },
             ],
           },
-          { name: "sort", label: "Sort", options: Object.entries(SORTS).map(([value, v]) => ({ value: value === "movers" ? "" : value, label: v.label })) },
+          { name: "sort", label: "Sort", options: Object.entries(SORTS).map(([value, v]) => ({ value: value === "size" ? "" : value, label: v.label })) },
         ]}
       />
 
-      <Panel title={`${rows.length} stock${rows.length === 1 ? "" : "s"}`} meta={sector || undefined}>
+      <Panel title={`${total.toLocaleString("en-IN")} ${segment === "index" ? "indices" : segment === "etf" ? "ETFs" : "symbols"}`} meta={sector || undefined}>
         {rows.length === 0 ? (
           <Empty title="Nothing matches.">Loosen a filter — oversold stocks in a single sector can be rare on any given day.</Empty>
         ) : (
@@ -115,7 +133,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
                     <td className={tdNum}>
                       <Delta value={r.change_pct} />
                     </td>
-                    <td className={tdNum + " text-muted-foreground"}>{volume(r.volume)}</td>
+                    <td className={tdNum + " text-muted-foreground"}>{r.segment === "index" ? "—" : volume(r.volume)}</td>
                     <td className={td}>
                       <RangeBar low={r.low_52w} high={r.high_52w} value={r.last_price} />
                       <span className="num mt-1 flex justify-between text-[10.5px] text-muted-foreground">
@@ -140,6 +158,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
             </table>
           </TableWrap>
         )}
+        <Pager path="/app/markets" params={params} page={page} pageSize={PAGE_SIZE} total={total} />
       </Panel>
     </div>
   );

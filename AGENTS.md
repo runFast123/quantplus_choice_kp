@@ -149,6 +149,8 @@ cd web && npm run build && npm run test:e2e   # Playwright on installed Chrome; 
   (user `postgres.<ref>`); the direct `db.<ref>.supabase.co` host is IPv6-only from this network.
 - **Production:** https://quantplus-ten.vercel.app — Vercel project `quantplus`, root dir `web`, functions in `icn1`.
   Deploy from the repo root (PLAYBOOK §Q). Env vars are managed in Vercel, not in git.
+- Coverage: **~3,600 symbols** — every NSE equity (main board + SME), major ETFs, NSE indices (ADR-027). Lists must
+  paginate (PostgREST returns ≤ 1,000 rows) and search goes through `/api/symbols`; never load every symbol.
 - Market prices are **real end-of-day NSE candles from Yahoo Finance** (`pipelines/eod`, ADR-026), loaded ~17:00 IST
   on weekdays; `NEXT_PUBLIC_MARKET_DATA_MODE=live`. No intraday data. Yahoo's terms are personal/non-commercial —
   swap the vendor in `fetch()` before charging for data. Never run `dev_market_data.sql` against production.

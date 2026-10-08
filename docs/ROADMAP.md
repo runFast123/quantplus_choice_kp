@@ -37,8 +37,9 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Run the Playwright e2e suite in CI against a staging Supabase project (needs staging secrets).
 
 ## Known limitations (by design for now)
+- No derivatives (F&O), currency or commodity data — Yahoo has none for NSE; needs a licensed feed (ADR-027).
+- BSE-only listings aren't covered (NSE universe only).
+- Symbols outside the core keep ~13 months of candles (free-tier storage); upgrade the DB to keep more.
 - Invite links are shown to the inviter to copy; nothing is emailed.
 - Prices are end-of-day only; Yahoo can be late or revise a bar (the 20:00 IST re-run picks that up). Signals already
   issued are not rewritten.
-- Market screener loads up to 300 rows; needs pagination when coverage grows past that.
-- Symbol search loads the full symbol list into the client (fine for hundreds, not for 5,000+ — move to a search RPC).

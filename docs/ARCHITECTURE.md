@@ -51,7 +51,7 @@ Key: `QP_SECRETS_KEY_V<n>` env (32 bytes base64), current version in `QP_SECRETS
 ## Market data & signals (current state)
 
 Production: `pipelines/eod/eod.py` loads daily NSE candles from Yahoo Finance (yfinance) after the close for every
-active row in `market_symbols` (universe in `seed/ref_market_symbols.sql`), then calls
+active row in `market_symbols` (~3,600: universe synced from Yahoo's screener by `universe.py`), then calls
 `private.refresh_market_analytics()` — Wilder RSI(14), SMA 20/50 crosses, RSI reversals, monthly-SIP backtest ledgers —
 then research notes and the notifier. Dev/staging can use `seed/dev_market_data.sql` (synthetic random walk) which
 calls the same analytics function. `market_snapshot` (security-invoker view) gives the latest quote per symbol.

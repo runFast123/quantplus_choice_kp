@@ -36,6 +36,29 @@ test("matcher: word boundaries and case", () => {
   assert.deepEqual(syms("Critical capacity in citcom"), []); // "itc" inside a word, wrong case
   assert.deepEqual(syms("lt is not L&T"), ["LT"]);
 });
+test("matcher: longer names win, the RBI is not Bank of India, small caps need an alias", () => {
+  const banks = new SymbolMatcher(
+    [
+      { symbol: "SBIN", exchange: "NSE", name: "State Bank of India", rank: 5 },
+      { symbol: "BANKINDIA", exchange: "NSE", name: "Bank of India", rank: 150 },
+      { symbol: "TINYCO", exchange: "NSE", name: "Tiny Widgets", rank: 2900 },
+      { symbol: "NIFTY", exchange: "NSE", name: "NIFTY 50", rank: null, segment: "index" },
+    ],
+    [],
+    { nameRankLimit: 500 },
+  );
+  const syms = (t: string) => banks.match(t).map((x) => x.symbol).sort();
+  assert.deepEqual(syms("State Bank of India raises deposit rates"), ["SBIN"]);
+  assert.deepEqual(syms("Reserve Bank of India holds the repo rate"), []);
+  assert.deepEqual(syms("Bank of India Q2 profit jumps"), ["BANKINDIA"]);
+  assert.deepEqual(syms("State Bank of India and Bank of India cut rates"), ["BANKINDIA", "SBIN"]);
+  assert.deepEqual(syms("Tiny Widgets wins an order"), []);
+  assert.deepEqual(syms("Nifty 50 ends at a record"), ["NIFTY"]);
+  // Without the rank limit (per-company search), small caps match by name.
+  const one = new SymbolMatcher([{ symbol: "TINYCO", exchange: "NSE", name: "Tiny Widgets Limited", rank: 2900 }], []);
+  assert.deepEqual(one.match("Tiny Widgets wins an order").map((x) => x.symbol), ["TINYCO"]);
+});
+
 test("tone: direction and explanation", () => {
   assert.equal(scoreTone("Infosys shares crash to 6-year lows").label, "negative");
   assert.ok(scoreTone("Stock at 6-year lows").terms.includes("−new low"));

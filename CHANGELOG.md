@@ -6,6 +6,35 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — the whole NSE market (ADR-027)
+- Coverage went from 43 hand-picked stocks to **3,571 symbols**: every NSE equity Yahoo lists (main board + SME
+  Emerge), 13 major ETFs and 21 NSE indices (NIFTY 50, Bank Nifty, sector indices, India VIX …).
+- `pipelines/eod/universe.py` + `eod.py --sync-universe` (daily in `market-eod.yml`): screener → names, market-cap
+  rank, Yahoo sector (one vocabulary for every symbol), segment, vendor ticker (SME `-SM`); existing names, history
+  and retirement notes kept; delisted symbols retired only when the screener answer looks complete. New symbols get
+  their full `history_days` on the next run; downloads in chunks of 100; analytics/research in batches under the 8 s
+  PostgREST limit; reads paged past the 1,000-row cap. Tests `test_universe.py`.
+- Migration 26 `whole_market`: `market_symbols.segment / vendor_ticker / mcap_rank / history_days / status_note /
+  successors`; `market_quotes` (latest quote per symbol, written by the analytics refresh) behind `market_snapshot`;
+  `refresh_market_analytics(days, symbols)` rewritten per symbol with arrays (same rules, same 1,039 dev signals);
+  `refresh_research_notes(symbols)`; `search_symbols(q)`; news-search cursor for the 300 largest + anything watched or
+  held (trigger); retention sized for the free tier (candles per `history_days`: 760 core / 400 others; daily RSI 40 d;
+  research notes 10 d). Migration 27: `research_latest` gains `segment`, `mcap_rank`, `score_change`.
+  Migration 28: `exact_sma` running sums computed in exact decimal arithmetic to prevent float rounding noise.
+- App: header search is server-side (`/api/symbols`, ranked; stocks, ETFs, indices with last price); add-symbol and
+  add-holding forms suggest as you type; ticker = indices + 30 largest; Markets and Research filter by segment, use the
+  fixed sector list and paginate (100/page, `Pager`); Overview breadth counted in the database, leaders/laggards among
+  the 500 largest; indices can't be held.
+- Fixed mobile navigation and header overflow: Panel header text truncation on small screens, restored Zen Linen
+  design tokens and icon sizes for mobile bottom bar, and fixed portfolio form accessibility/label associations
+  with external datalists to prevent test timeouts and ensure full compliance.
+- Retired symbols explain themselves: TATAMOTORS (demerged 14 Oct 2025) shows a note with links to TMPV and TMCV on
+  its page and in watchlists, and adding it says what to use instead.
+- News matching with 3,600 names: automatic name/ticker matching limited to the 500 largest + indices, a hit inside a
+  longer matched name is dropped ("Bank of India" in "State Bank of India"), "Reserve Bank of India" isn't Bank of
+  India; per-company search matches any size.
+- Owner account (amandubey7977@gmail.com): Pro Plus until 3 Oct 2028 and platform admin, via `admin_activate_plan`.
+
 ### Fixed — repeated headlines; dropped ticker in the EOD job
 - Google News search re-issues a new redirect URL for the same story, so URL-based dedupe let repeats in (16 of
   1,263). Migration 25 `news_story_dedupe`: `story_hash` (normalised headline + publish second, set by trigger,

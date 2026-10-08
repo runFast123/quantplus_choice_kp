@@ -5,12 +5,20 @@ import { FilterBar } from "@/components/market/filter-bar";
 import { ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, factorScore } from "@/lib/format";
-import { getResearch, type ResearchNote } from "@/server/news-data";
+import { Pager, pageParam } from "@/components/ui/pager";
+import { normalizeNote, type ResearchNote } from "@/server/news-data";
 import { requireSession } from "@/server/session";
 
 export const metadata: Metadata = { title: "Research" };
 
 const FACTOR_KEYS = ["trend", "momentum", "range", "signal", "news"] as const;
+const PAGE_SIZE = 100;
+const SORT: Record<string, { col: string; asc: boolean }> = {
+  score: { col: "score", asc: false },
+  low: { col: "score", asc: true },
+  change: { col: "score_change", asc: false },
+  news: { col: "news_count", asc: false },
+};
 const FACTOR_SHORT: Record<string, string> = { trend: "T", momentum: "M", range: "R", signal: "S", news: "N" };
 
 export default async function ResearchPage({ searchParams }: PageProps<"/app/research">) {
@@ -26,15 +34,36 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
     const [w, h] = await Promise.all([s.supabase.from("watchlist_items").select("symbol"), s.supabase.from("holdings").select("symbol")]);
     mine = [...new Set([...(w.data ?? []), ...(h.data ?? [])].map((r) => r.symbol))];
   }
-  const all = await getResearch(s.supabase, mine);
-  const counts = { constructive: 0, neutral: 0, cautious: 0 } as Record<string, number>;
-  for (const n of all) counts[n.stance]++;
-  const notes = stance ? all.filter((n) => n.stance === stance) : all;
+  const segment = (["sme", "etf", "index", "all"] as const).find((x) => x === str("segment")) ?? "equity";
+  const page = pageParam(sp.page);
+  const order = SORT[sort] ?? SORT.score;
+  const base = (head: boolean) => {
+    let q = s.supabase.from("research_latest").select(head ? "symbol" : "*", { count: "exact", head });
+    if (mine) q = q.in("symbol", mine);
+    if (segment !== "all") q = q.eq("segment", segment);
+    return q;
+  };
+  const countOf = (k: string) => base(true).eq("stance", k);
+  const empty = mine !== undefined && mine.length === 0;
+  let list = base(false);
+  if (stance) list = list.eq("stance", stance);
+  const [listRes, c1, c2, c3] = empty
+    ? [{ data: [], count: 0 }, { count: 0 }, { count: 0 }, { count: 0 }]
+    : await Promise.all([
+        list
+          .order(order.col, { ascending: order.asc, nullsFirst: false })
+          .order("symbol")
+          .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+        countOf("constructive"),
+        countOf("neutral"),
+        countOf("cautious"),
+      ]);
+  const counts = { constructive: c1.count ?? 0, neutral: c2.count ?? 0, cautious: c3.count ?? 0 } as Record<string, number>;
+  const notes = ((listRes.data ?? []) as Record<string, unknown>[]).map(normalizeNote);
+  const total = listRes.count ?? notes.length;
   const delta = (n: ResearchNote) => (n.prev_score == null ? 0 : n.score - n.prev_score);
-  notes.sort((a, b) =>
-    sort === "change" ? Math.abs(delta(b)) - Math.abs(delta(a)) : sort === "news" ? b.news_count - a.news_count : sort === "low" ? a.score - b.score : b.score - a.score,
-  );
   const asOf = notes[0]?.as_of;
+  const params = Object.fromEntries(["scope", "stance", "sort", "segment"].filter((k) => str(k)).map((k) => [k, str(k)]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,12 +77,15 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
         {(["constructive", "neutral", "cautious"] as const).map((k) => (
           <Link
             key={k}
-            href={`/app/research?${new URLSearchParams({ ...(scope === "mine" ? { scope } : {}), ...(stance === k ? {} : { stance: k }) })}`}
+            href={`/app/research?${new URLSearchParams({ ...(scope === "mine" ? { scope } : {}), ...(segment !== "equity" ? { segment } : {}), ...(stance === k ? {} : { stance: k }) })}`}
             aria-current={stance === k ? "true" : undefined}
-            className={clsx("panel flex items-baseline justify-between gap-2 p-4 transition-colors hover:border-muted-foreground/50", stance === k && "border-foreground")}
+            className={clsx(
+              "panel flex flex-col gap-1.5 p-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2 sm:p-4 transition-colors hover:border-muted-foreground/50",
+              stance === k && "border-foreground",
+            )}
           >
             <StanceBadge stance={k} />
-            <span className="num text-[22px]">{counts[k]}</span>
+            <span className="num text-[18px] sm:text-[22px]">{counts[k]}</span>
           </Link>
         ))}
       </section>
@@ -61,6 +93,17 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
       <FilterBar
         filters={[
           { name: "scope", label: "Stocks", options: [{ value: "", label: "Everything covered" }, { value: "mine", label: "My radar & portfolio" }] },
+          {
+            name: "segment",
+            label: "Segment",
+            options: [
+              { value: "", label: "Stocks (main board)" },
+              { value: "sme", label: "SME (Emerge)" },
+              { value: "etf", label: "ETFs" },
+              { value: "index", label: "Indices" },
+              { value: "all", label: "Everything" },
+            ],
+          },
           {
             name: "sort",
             label: "Sort",
@@ -74,7 +117,7 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
         ]}
       />
 
-      <Panel title={`${notes.length} notes`} meta="T trend · M momentum · R range · S signal · N news">
+      <Panel title={`${total.toLocaleString("en-IN")} notes`} meta="T trend · M momentum · R range · S signal · N news">
         {notes.length === 0 ? (
           <Empty title="No notes match.">
             {scope === "mine" ? "Add stocks to your radar or portfolio, or switch to everything covered." : "Notes are rebuilt after each close."}
@@ -155,6 +198,7 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
             </table>
           </TableWrap>
         )}
+        <Pager path="/app/research" params={params} page={page} pageSize={PAGE_SIZE} total={total} />
       </Panel>
       <p className="text-[12px] leading-5 text-muted-foreground">
         Weights: trend 30%, momentum 20%, 52-week range 10%, latest signal 15%, news tone 25% (damped below three headlines). Stance is constructive at

@@ -33,10 +33,13 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 22 | `review_hardening` | `private.try_numeric`, `private.notification_ledger`, `svc_register_device`; notifier + research rewritten; live-first subscription ordering; hook skips suspended tenants; symbol columns not updatable; admin-removal policy; TRUNCATE revoked |
 | 23 | `remove_broker` | drops broker tables/secrets/RPCs/enum/consent/feature; `export_my_data()` without brokers (ADR-025) |
 | 24 | `market_analytics` | `private.refresh_market_analytics(days)` (Wilder RSI, SMA 20/50, signals, SIP ledgers), `svc_refresh_market_analytics`, `svc_run_eod_notifier`; unique natural key on `trading_signals`; crons moved after the pipeline |
+| 26 | `whole_market` | `market_symbols` + `segment`, `vendor_ticker`, `mcap_rank`, `history_days`, `status_note`, `successors`; `market_quotes` (latest quote, written by analytics) behind view `market_snapshot`; `refresh_market_analytics(days, symbols)` per-symbol; `refresh_research_notes(symbols)`; `svc_refresh_market_analytics(p_days, p_symbols)`, `svc_refresh_research(p_symbols)`; `search_symbols(q, limit)`; trigger `ensure_news_cursor` on watchlist_items/holdings; crons `retention-candles`, `retention-rsi-daily`, `retention-research` (10 d) |
+| 27 | `research_latest_columns` | `research_latest` + `segment`, `mcap_rank`, `score_change` |
+| 28 | `exact_sma` | moving averages in exact decimal arithmetic (numeric running sums instead of float8) |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
-Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (covered
-universe, prod-safe) · `seed/ref_news_aliases.sql` (reference, prod-safe).
+Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,
+`history_days` 760, TATAMOTORS retirement note; the full universe comes from `pipelines/eod/universe.py`; prod-safe) · `seed/ref_news_aliases.sql` (reference, prod-safe).
 Runner: `supabase/scripts/apply.mjs` — `npm run migrate | status | seed:ref | seed:dev | test:remote` (reads `supabase/.env`).
 
 ### RPCs callable from the app
@@ -72,7 +75,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Module | Exports | Notes |
 |---|---|---|
 | `session.ts` | `getSession` (cached), `requireSession`, `can(s, feature)`, `isTenantAdmin(s)`, `displayName(s)`, type `Session` | One read per request: claims, profile, memberships, entitlements, `hookMissing`, `deviceActive`. **`requireSession()` redirects inactive devices to `/device` — use it in every page and action** |
-| `market-data.ts` | `getQuotes`, `normalizeQuote`, `getSparks`, `getCandles`, `positions`, `summarize`, type `Position` | All numeric normalisation from PostgREST strings happens here |
+| `market-data.ts` | `getQuotes(db, symbols)`, `getTape`, `getBreadth`, `getRetired`, `normalizeQuote`, `getSparks`, `getCandles`, `positions`, `summarize`, type `Position` | All numeric normalisation from PostgREST strings happens here |
 | `device.ts` | `DEVICE_COOKIE`, `claimThisDevice(userId)` | Single-active-device; call from actions/route handlers only |
 | `device-hash.ts` | `deviceHash(id)` | SHA-256 of the device cookie |
 | `privileged/service-role.ts` | `serviceRole()` | **Only importable inside `privileged/`** |
@@ -92,7 +95,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Module | Exports |
 |---|---|
 | `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel` |
-| `market.ts` | `nseSession(now)` → pre-open / open / closed (IST; holidays not modelled); `PRICE_SOURCE` (attribution label) |
+| `market.ts` | `nseSession(now)` → pre-open / open / closed (IST; holidays not modelled); `PRICE_SOURCE` (attribution label); `SECTORS` (Yahoo's 11); `SEGMENT_LABEL`, type `Segment` |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
 | `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
 | `consents.ts` | `CONSENT_VERSION`, `CONSENT_COPY` |
@@ -129,6 +132,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Route | What |
 |---|---|
 | `/` | landing (plans from DB, fallback constants) |
+| `/api/symbols?q=` | ranked symbol search (`search_symbols`) for the header and add forms; signed-in only |
 | `/login` `/signup` `/forgot` | auth (group `(auth)`) |
 | `/auth/confirm` | email link handler (token_hash or PKCE code) |
 | `/invite/[token]` | accept organisation invite |
@@ -157,9 +161,10 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `news/news-list.tsx` | `NewsList` (outbound links `rel=noopener noreferrer nofollow`, tone + symbol chips) |
 | `research/factor-breakdown.tsx` | `FactorBreakdown` |
 | `research/ai-read.tsx` | `AiRead` (client; calls `askMyAi`) |
+| `ui/pager.tsx` | `Pager` (prev/next, keeps params), `pageParam(raw)` — every server-paginated table |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` ("/" shortcut), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
-| `market/*` | `RadarToggle`, `AddSymbolForm`, `AlertForm`, `FilterBar` (URL-driven) |
+| `market/*` | `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + signal markers), type `ChartMarker` |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
 | `brand/logo.tsx` | `Logo`, `LogoMark` |
@@ -182,6 +187,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |
 | `pipelines/eod/eod.py` | EOD candles from Yahoo (yfinance) → Supabase, then analytics/research/notifier RPCs; `--days N`, `--dry-run`, `--symbols A,B`. Pure helpers: `last_settled_day`, `to_candles`, `yahoo_ticker`, `split_symbols`; config `YAHOO_OVERRIDES`, `HISTORY_FROM`, `FULL_HISTORY_DAYS` |
+| `pipelines/eod/universe.py` | `fetch_universe()` (screener + sectors + curated `INDICES`/`ETFS`), `merge(fresh, existing)`, `retire_allowed`, `split_ticker`, `clean_name` |
+| `pipelines/eod/test_universe.py` | unit tests |
 | `pipelines/eod/audit.py` | read-only accuracy audit: DB vs fresh Yahoo, sanity, independent recomputation of snapshot/RSI/signals/backtests (`--symbols`, `--days`); exit 1 on any mismatch |
 | `pipelines/eod/test_eod.py` | unit tests (`python -m unittest test_eod`, no network) |
 | `.github/workflows/ci.yml`, `news-ingest.yml`, `market-eod.yml` | CI, scheduled news, scheduled EOD prices |

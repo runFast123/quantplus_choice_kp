@@ -59,6 +59,26 @@ async function fetchText(url: string): Promise<string> {
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
+/** Headline name-matching covers the largest companies; smaller ones need an alias or a per-company search hit. */
+const NAME_RANK_LIMIT = 500;
+
+/** Every active symbol (paged: PostgREST caps responses at 1,000 rows). */
+async function activeSymbols(db: ReturnType<typeof serviceRole>): Promise<SymbolRef[]> {
+  const out: SymbolRef[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db
+      .from("market_symbols")
+      .select("symbol, exchange, name, mcap_rank, segment")
+      .eq("is_active", true)
+      .order("symbol")
+      .range(from, from + 999);
+    if (error) throw new Error(`symbols: ${error.message}`);
+    out.push(...(data ?? []).map((r) => ({ symbol: r.symbol, exchange: r.exchange, name: r.name, rank: r.mcap_rank, segment: r.segment }) as SymbolRef));
+    if (!data || data.length < 1000) return out;
+  }
+}
+
+
 function toCandidate(source: Source, item: FeedItem, links: Candidate["links"], extra: Partial<Candidate> = {}): Candidate | null {
   const published = item.publishedAt ?? new Date();
   if (Date.now() - published.getTime() > MAX_AGE_DAYS * 86400000) return null;
@@ -91,13 +111,13 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
   const db = serviceRole();
   const searchSymbols = opts.searchSymbols ?? 8;
 
-  const [{ data: sources }, { data: symbols }, { data: aliases }] = await Promise.all([
+  const [{ data: sources }, symbols, { data: aliases }] = await Promise.all([
     db.from("news_sources").select("id, code, name, feed_url, kind").eq("is_active", true).order("id"),
-    db.from("market_symbols").select("symbol, exchange, name").eq("is_active", true),
+    activeSymbols(db),
     db.from("news_symbol_aliases").select("symbol, exchange, alias"),
   ]);
-  const matcher = new SymbolMatcher((symbols ?? []) as SymbolRef[], aliases ?? []);
-  const covered = new Map(((symbols ?? []) as SymbolRef[]).map((s) => [s.symbol, s]));
+  const matcher = new SymbolMatcher(symbols, aliases ?? [], { nameRankLimit: NAME_RANK_LIMIT });
+  const covered = new Map(symbols.map((s) => [s.symbol, s]));
 
   const report: IngestReport = { startedAt: new Date(started).toISOString(), durationMs: 0, sources: [], inserted: 0, linked: 0, researchRows: null, errors: [] };
   const candidates = new Map<string, Candidate>();
@@ -158,8 +178,9 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
         const found = parseFeed(await fetchText(search.feed_url.replace("{query}", query))).slice(0, 25);
         items += found.length;
         for (const item of found) {
-          // Search results are noisy: keep only headlines that name the company.
-          const m = matcher.match(item.title).filter((x) => x.symbol === s.symbol);
+          // Search results are noisy: keep only headlines that name the company
+          // (any size — this matcher knows just this one symbol and its aliases).
+          const m = new SymbolMatcher([s], (aliases ?? []).filter((a) => a.symbol === s.symbol)).match(item.title);
           if (!m.length) continue;
           fresh += add(toCandidate(search, item, m));
         }
@@ -228,11 +249,8 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
  */
 export async function relinkRecentArticles(days = MAX_AGE_DAYS) {
   const db = serviceRole();
-  const [{ data: symbols }, { data: aliases }] = await Promise.all([
-    db.from("market_symbols").select("symbol, exchange, name").eq("is_active", true),
-    db.from("news_symbol_aliases").select("symbol, exchange, alias"),
-  ]);
-  const matcher = new SymbolMatcher((symbols ?? []) as SymbolRef[], aliases ?? []);
+  const [symbols, { data: aliases }] = await Promise.all([activeSymbols(db), db.from("news_symbol_aliases").select("symbol, exchange, alias")]);
+  const matcher = new SymbolMatcher(symbols, aliases ?? [], { nameRankLimit: NAME_RANK_LIMIT });
   const since = new Date(Date.now() - days * 86400000).toISOString();
 
   // Page through everything (PostgREST caps responses at 1000 rows).

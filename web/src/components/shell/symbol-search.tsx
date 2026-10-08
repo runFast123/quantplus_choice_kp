@@ -3,28 +3,20 @@
 import clsx from "clsx";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useSymbolSearch, type SymbolHit } from "@/components/market/use-symbol-search";
+import { price } from "@/lib/format";
+import { SEGMENT_LABEL } from "@/lib/market";
 
-type Sym = { symbol: string; name: string; exchange: string };
-
-/** Ticker/company search. "/" focuses it from anywhere. */
-export function SymbolSearch({ symbols }: { symbols: Sym[] }) {
+/** Ticker/company search across every covered symbol. "/" focuses it from anywhere. */
+export function SymbolSearch() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
-
-  const results = useMemo(() => {
-    const term = q.trim().toUpperCase();
-    if (!term) return [];
-    const starts = symbols.filter((s) => s.symbol.startsWith(term));
-    const contains = symbols.filter(
-      (s) => !s.symbol.startsWith(term) && (s.symbol.includes(term) || s.name.toUpperCase().includes(term)),
-    );
-    return [...starts, ...contains].slice(0, 8);
-  }, [q, symbols]);
+  const { hits: results, pending } = useSymbolSearch(q, 8);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -38,7 +30,7 @@ export function SymbolSearch({ symbols }: { symbols: Sym[] }) {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const go = (s: Sym) => {
+  const go = (s: SymbolHit) => {
     setQ("");
     setOpen(false);
     inputRef.current?.blur();
@@ -55,9 +47,10 @@ export function SymbolSearch({ symbols }: { symbols: Sym[] }) {
         aria-expanded={open && results.length > 0}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-busy={pending || undefined}
         aria-activedescendant={open && results[cursor] ? `${listId}-${cursor}` : undefined}
         aria-label="Search stocks"
-        placeholder="Search NSE stocks"
+        placeholder="Search NSE stocks, ETFs, indices"
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
@@ -100,9 +93,12 @@ export function SymbolSearch({ symbols }: { symbols: Sym[] }) {
               onMouseEnter={() => setCursor(i)}
               className={clsx("flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-2", i === cursor && "bg-foreground/[0.06]")}
             >
-              <span className="num w-[92px] shrink-0 text-[12.5px] font-medium">{s.symbol}</span>
-              <span className="flex-1 truncate text-[12.5px] text-muted-foreground">{s.name}</span>
-              <span className="text-[10px] text-muted-foreground">{s.exchange}</span>
+              <span className="num w-[92px] shrink-0 truncate text-[12.5px] font-medium">{s.symbol}</span>
+              <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted-foreground">{s.name}</span>
+              {s.segment !== "equity" ? (
+                <span className="shrink-0 rounded border border-border px-1 text-[10px] text-muted-foreground">{SEGMENT_LABEL[s.segment]}</span>
+              ) : null}
+              <span className="num shrink-0 text-[11.5px] text-muted-foreground">{s.last_price != null ? price(Number(s.last_price)) : ""}</span>
             </li>
           ))}
         </ul>

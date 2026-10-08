@@ -8,7 +8,8 @@ import { Badge, Delta, Sparkline } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price } from "@/lib/format";
 import type { Watchlist, WatchlistItem } from "@/lib/types";
-import { getQuotes, getSparks } from "@/server/market-data";
+import { getQuotes, getRetired, getSparks } from "@/server/market-data";
+import { RetiredNote } from "@/components/market/retired-note";
 import { requireSession } from "@/server/session";
 import { deleteWatchlist, removeFromRadar } from "./actions";
 import { NewListForm } from "./new-list-form";
@@ -20,10 +21,9 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
   const sp = await searchParams;
   const db = s.supabase;
 
-  const [listsRes, itemsRes, symbolsRes] = await Promise.all([
+  const [listsRes, itemsRes] = await Promise.all([
     db.from("watchlists").select("id, name, created_at").order("created_at"),
     db.from("watchlist_items").select("id, watchlist_id, symbol, exchange, added_at").order("added_at"),
-    db.from("market_symbols").select("symbol").eq("is_active", true).order("symbol"),
   ]);
   const lists = (listsRes.data ?? []) as Watchlist[];
   const allItems = (itemsRes.data ?? []) as WatchlistItem[];
@@ -32,6 +32,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
   const symbols = items.map((i) => i.symbol);
 
   const [quotes, sparks] = await Promise.all([getQuotes(db, symbols), getSparks(db, symbols, 60)]);
+  const retired = await getRetired(db, symbols.filter((sym) => !quotes.has(sym)));
 
   const ent = s.entitlements;
   const used = ent?.watchlist_symbols_used ?? new Set(allItems.map((i) => i.symbol)).size;
@@ -105,7 +106,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
         }
       >
         <div className="mb-4 max-w-xl">
-          <AddSymbolForm watchlistId={activeId} disabled={expired} suggestions={(symbolsRes.data ?? []).map((r) => r.symbol)} />
+          <AddSymbolForm watchlistId={activeId} disabled={expired} />
           {expired ? <p className="mt-2 text-[12px] text-loss">Your plan has expired — renew to add symbols.</p> : null}
         </div>
 
@@ -142,8 +143,9 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
                       <td className={td}>
                         <Link href={`/app/markets/${encodeURIComponent(i.symbol)}`} className="group block">
                           <span className="num font-medium group-hover:underline">{i.symbol}</span>
-                          <span className="block max-w-[200px] truncate text-[11.5px] text-muted-foreground">{q?.name}</span>
+                          <span className="block max-w-[200px] truncate text-[11.5px] text-muted-foreground">{q?.name ?? retired.get(i.symbol)?.name}</span>
                         </Link>
+                        {retired.get(i.symbol) ? <RetiredNote r={retired.get(i.symbol)!} /> : null}
                       </td>
                       <td className={tdNum}>{price(q?.last_price)}</td>
                       <td className={tdNum}>

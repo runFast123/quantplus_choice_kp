@@ -131,8 +131,10 @@ delete from private.platform_admins where user_id = '<id>';
   Check without writing: `--dry-run`. One symbol: `--symbols TCS`.
 - **Schedule:** `.github/workflows/market-eod.yml` (17:00 + 20:00 IST weekdays; manual run takes `days`). Repo secrets:
   `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. pg_cron re-runs analytics/notifier/research at 17:55–18:05 IST.
-- **Add / remove a stock:** edit `supabase/seed/ref_market_symbols.sql` (set `is_active = false` rather than deleting),
-  `npm run seed:ref`, add aliases in `ref_news_aliases.sql`, then `python pipelines/eod/eod.py --days 760 --symbols NEW`.
+- **Universe:** `python pipelines/eod/eod.py --sync-universe` refreshes ~3,600 symbols from Yahoo's screener (daily in
+  the workflow); new symbols are backfilled on that run. Add an index/ETF in `universe.py` (`INDICES`, `ETFS`).
+- **Retire a symbol on purpose** (demerger, merger): set `is_active = false`, `status_note` and `successors` on its
+  `market_symbols` row (see TATAMOTORS in `ref_market_symbols.sql`); the sync leaves rows with a note alone.
 - **Corporate actions Yahoo doesn't adjust** (demergers): add `HISTORY_FROM[symbol] = first clean date`; the next run
   prunes older candles/RSI/signals. Delete that symbol's signals + RSI and run `select private.refresh_market_analytics(100000)`
   once to rebuild from clean history. Spot-check with a >18% one-day move query.

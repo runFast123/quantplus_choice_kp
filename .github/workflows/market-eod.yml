@@ -1,6 +1,6 @@
 name: Market EOD
 
-# Loads the day's NSE candles from Yahoo Finance (pipelines/eod), then rebuilds
+# Refreshes the NSE universe (~3,600 symbols) and loads the day's candles from Yahoo Finance (pipelines/eod), then rebuilds
 # RSI / signals / backtests, research notes, and runs the notifier.
 # Repository secrets: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 on:
@@ -23,7 +23,7 @@ concurrency:
 jobs:
   eod:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     defaults: { run: { working-directory: pipelines/eod } }
     env:
       SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -37,7 +37,7 @@ jobs:
         id: guard
         run: '[ -n "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "::notice::Market EOD secrets not set; skipping."'
       - if: steps.guard.outputs.ok == '1'
-        run: python eod.py --days "${{ github.event.inputs.days || '10' }}"
+        run: python eod.py --sync-universe --days "${{ github.event.inputs.days || '10' }}"
       - name: Accuracy audit (stored vs Yahoo, every derived number recomputed)
         if: steps.guard.outputs.ok == '1'
         run: python audit.py

@@ -24,7 +24,7 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     channel: "chrome",
-    trace: "retain-on-failure",
+    trace: process.env.CI ? "retain-on-failure" : "on-first-retry",
     screenshot: "only-on-failure",
   },
   projects: [
@@ -34,7 +34,7 @@ export default defineConfig({
   webServer: REMOTE
     ? undefined
     : {
-        command: `npx next start -p ${PORT}`,
+        command: `npx.cmd next start -p ${PORT}`,
         url: `http://localhost:${PORT}/login`,
         reuseExistingServer: true,
         timeout: 120_000,

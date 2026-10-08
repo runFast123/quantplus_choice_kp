@@ -11,7 +11,8 @@ import { UserMenu } from "@/components/shell/user-menu";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { date } from "@/lib/format";
-import type { NotificationRow, Quote } from "@/lib/types";
+import type { NotificationRow } from "@/lib/types";
+import { getTape } from "@/server/market-data";
 import { isPlatformAdmin } from "@/server/privileged/admin";
 import { can, displayName, requireSession } from "@/server/session";
 import { refreshClaimsAction } from "./shell-actions";
@@ -21,9 +22,8 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const store = await cookies();
   const theme = store.get("qp_theme")?.value === "dark" ? "dark" : "light";
 
-  const [symbolsRes, quotesRes, notesRes, admin] = await Promise.all([
-    s.supabase.from("market_symbols").select("symbol, name, exchange").eq("is_active", true).order("symbol").limit(5000),
-    s.supabase.from("market_snapshot").select("*").order("symbol"),
+  const [tape, notesRes, admin] = await Promise.all([
+    getTape(s.supabase),
     s.supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20),
     isPlatformAdmin(s.userId),
   ]);
@@ -48,7 +48,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
             </div>
             <TenantSwitcher memberships={s.memberships} activeTenantId={s.activeTenantId} />
             <div className="hidden flex-1 justify-center sm:flex">
-              <SymbolSearch symbols={symbolsRes.data ?? []} />
+              <SymbolSearch />
             </div>
             <div className="ml-auto flex items-center gap-1">
               <MarketClock />
@@ -61,9 +61,9 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
             </div>
           </div>
           <div className="px-4 pb-2 sm:hidden">
-            <SymbolSearch symbols={symbolsRes.data ?? []} />
+            <SymbolSearch />
           </div>
-          <TickerTape quotes={(quotesRes.data ?? []) as Quote[]} />
+          <TickerTape quotes={tape} />
         </header>
 
         {s.hookMissing ? (

@@ -68,6 +68,16 @@ export interface Quote {
   last_signal: "buy" | "exit" | null;
   last_signal_strategy: string | null;
   last_signal_at: string | null;
+  segment?: "equity" | "sme" | "etf" | "index";
+  mcap_rank?: number | null;
+}
+
+/** A symbol that no longer trades (demerger, delisting) and what replaced it. */
+export interface RetiredSymbol {
+  symbol: string;
+  name: string;
+  status_note: string | null;
+  successors: string[];
 }
 
 export interface Candle {

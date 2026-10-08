@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 
 import pandas as pd
 
-from eod import Candle, last_settled_day, split_symbols, to_candles, yahoo_ticker
+from eod import Candle, has_break, last_settled_day, on_trading_days, repair_series, sessions, split_symbols, to_candles, yahoo_ticker
 
 
 def frame(rows):
@@ -49,6 +49,12 @@ class ToCandles(unittest.TestCase):
         self.assertEqual(candles, [])
         self.assertEqual(len(problems), 1)
 
+    def test_stale_open_pulled_into_range(self):
+        f = frame([("2025-11-21", 94.57, 92.68, 92.67, 92.67, 92.67, 10.0)])   # open above high (Yahoo, AAREYDRUGS)
+        candles, problems = to_candles("X", f, date(2026, 9, 30))
+        self.assertEqual(problems, [])
+        self.assertEqual((candles[0].open, candles[0].high, candles[0].low, candles[0].close), (92.68, 92.68, 92.67, 92.67))
+
     def test_history_before_cutoff_ignored(self):
         f = frame([
             ("2025-10-13", 660.0, 665.0, 655.0, 660.0, 660.0, 1.0),   # pre-demerger Tata Motors
@@ -71,6 +77,63 @@ class Splits(unittest.TestCase):
             "EMPTY": None,
         }
         self.assertEqual(split_symbols(frames), ["SPLIT"])
+
+
+class Calendar(unittest.TestCase):
+    def test_holiday_bars_dropped_newer_days_kept(self):
+        rows = [Candle("ETF", d, 1, 1, 1, 1, 0).row() for d in (date(2026, 10, 1), date(2026, 10, 2), date(2026, 10, 5))]
+        # NIFTY fetched this run up to 2 Oct: it had no 2 Oct bar (Gandhi Jayanti); 5 Oct is beyond it.
+        kept, dropped = on_trading_days(rows, {date(2026, 9, 30), date(2026, 10, 1)}, date(2026, 10, 2))
+        self.assertEqual(dropped, 1)
+        self.assertEqual([r["ts"][:10] for r in kept], ["2026-10-01", "2026-10-05"])
+
+    def test_sessions_from_index_or_two_large_caps(self):
+        d1, d2, d3 = date(2026, 9, 14), date(2026, 10, 1), date(2026, 10, 2)
+        cal = sessions({d2}, {"RELIANCE": {d1, d2}, "TCS": {d1, d2}, "INFY": {d3}})
+        self.assertEqual(cal, {d1, d2})        # 14 Sep: NIFTY missing on Yahoo but stocks traded; 2 Oct: one stray bar
+
+    def test_no_calendar_keeps_everything(self):
+        rows = [Candle("X", date(2026, 10, 2), 1, 1, 1, 1, 0).row()]
+        self.assertEqual(on_trading_days(rows, set(), date(2026, 10, 2)), (rows, 0))
+
+
+def series(closes, start=date(2026, 1, 1), opens=None):
+    from datetime import timedelta as td
+    opens = opens or closes
+    return [Candle("X", start + td(days=i), o, max(o, c), min(o, c), c, 100) for i, (o, c) in enumerate(zip(opens, closes))]
+
+
+class Repair(unittest.TestCase):
+    def test_unadjusted_split_rescales_history(self):
+        fixed, notes = repair_series(series([1000.0, 1010.0, 101.5, 102.0]))      # 1:10 split on day 3
+        self.assertEqual([c.close for c in fixed], [100.0, 101.0, 101.5, 102.0])
+        self.assertEqual(fixed[0].volume, 1000)
+        self.assertIn("×0.1", notes[0])
+
+    def test_consolidation_scales_up(self):
+        fixed, _ = repair_series(series([10.0, 10.2, 51.0]))                      # 5:1 consolidation
+        self.assertEqual([c.close for c in fixed], [50.0, 51.0, 51.0])
+
+    def test_other_breaks_cut_history(self):
+        fixed, notes = repair_series(series([39.65, 40.0, 907.55, 910.0]))        # ARIHANT-style jump
+        self.assertEqual([c.close for c in fixed], [907.55, 910.0])
+        self.assertIn("dropped", notes[0])
+
+    def test_real_crash_inside_the_session_is_kept(self):
+        # PB Fintech, 24 Sep 2026: opened near the prior close, closed -33 %
+        s = series([1800.0, 1207.2, 1160.0], opens=[1800.0, 1697.7, 1166.0])
+        self.assertEqual(repair_series(s), (s, []))
+        self.assertFalse(has_break(s[1:], 1800.0, date(2025, 12, 31)))
+
+    def test_normal_moves_untouched(self):
+        s = series([100.0, 120.0, 96.0, 110.0])                                   # ±20 % band moves
+        self.assertEqual(repair_series(s), (s, []))
+
+    def test_daily_break_detection_against_stored_close(self):
+        new = series([101.0, 102.0], start=date(2026, 10, 1))
+        self.assertFalse(has_break(new, 100.0, date(2026, 9, 30)))
+        self.assertTrue(has_break(new, 1000.0, date(2026, 9, 30)))               # split happened overnight
+        self.assertFalse(has_break(new, 1000.0, date(2026, 10, 2)))              # nothing newer than stored
 
 
 class Rows(unittest.TestCase):

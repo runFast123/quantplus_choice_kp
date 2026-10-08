@@ -9,7 +9,7 @@ import { Empty, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/
 import { daysUntil, date, isoDaysAgo, longDate, pct, price, relative, rupeesCompact, strategyLabel } from "@/lib/format";
 import { nseSession } from "@/lib/market";
 import type { Holding, Quote, Signal, WatchlistItem } from "@/lib/types";
-import { getQuotes, getSparks, positions, summarize } from "@/server/market-data";
+import { getBreadth, getQuotes, getSparks, positions, summarize } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
 import { can, displayName, requireSession } from "@/server/session";
 
@@ -28,10 +28,10 @@ export default async function OverviewPage() {
   if (!consents?.length) redirect("/app/welcome");
 
   const since = isoDaysAgo(14);
-  const [itemsRes, holdingsRes, allQuotes] = await Promise.all([
+  const [itemsRes, holdingsRes, breadth] = await Promise.all([
     db.from("watchlist_items").select("id, watchlist_id, symbol, exchange, added_at").order("added_at"),
     can(s, "portfolio") ? db.from("holdings").select("*") : Promise.resolve({ data: [] as Holding[] }),
-    getQuotes(db),
+    getBreadth(db),
   ]);
 
   const items = (itemsRes.data ?? []) as WatchlistItem[];
@@ -39,7 +39,8 @@ export default async function OverviewPage() {
   const holdings = (holdingsRes.data ?? []) as Holding[];
   const tracked = [...new Set([...radarSymbols, ...holdings.map((h) => h.symbol)])];
 
-  const [sparks, signalsRes, notes, headlines] = await Promise.all([
+  const [allQuotes, sparks, signalsRes, notes, headlines] = await Promise.all([
+    getQuotes(db, tracked),
     getSparks(db, radarSymbols, 45),
     tracked.length
       ? db.from("trading_signals").select("*", { count: "exact" }).in("symbol", tracked).gte("generated_at", since).order("generated_at", { ascending: false }).limit(12)
@@ -58,11 +59,9 @@ export default async function OverviewPage() {
     .filter((p) => (port.dayPnl >= 0 ? p.dayPnl > 0 : p.dayPnl < 0))
     .sort((a, b) => Math.abs(b.dayPnl) - Math.abs(a.dayPnl))[0];
 
-  const quotes = [...allQuotes.values()].filter((q) => q.change_pct != null);
-  const advancers = quotes.filter((q) => (q.change_pct ?? 0) > 0).length;
-  const decliners = quotes.filter((q) => (q.change_pct ?? 0) < 0).length;
-  const movers = [...quotes].sort((a, b) => (b.change_pct ?? 0) - (a.change_pct ?? 0));
-  const asOf = quotes[0]?.as_of;
+  const advancers = breadth.up;
+  const decliners = breadth.down;
+  const asOf = breadth.asOf;
 
   const ent = s.entitlements;
   const expiringIn = ent ? daysUntil(ent.current_period_end) : null;
@@ -139,7 +138,7 @@ export default async function OverviewPage() {
         />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Panel
           title="Market Radar"
           meta={radarSymbols.length ? `${radarSymbols.length} stocks · last 45 sessions` : undefined}
@@ -216,7 +215,7 @@ export default async function OverviewPage() {
           )}
         </Panel>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Panel title="Signals on your stocks" meta="14 days" bodyClassName="p-0">
             {signals.length === 0 ? (
               <p className="px-4 py-6 text-[13px] text-muted-foreground">Quiet fortnight. Signals for stocks on your radar or in your portfolio appear here.</p>
@@ -257,11 +256,19 @@ export default async function OverviewPage() {
             )}
           </Panel>
 
-          <Panel title="Breadth" meta={`${quotes.length} stocks tracked`}>
+          <Panel
+            title="Breadth"
+            meta={
+              <span>
+                <span className="num">{breadth.total.toLocaleString("en-IN")}</span> NSE stocks
+                <span className="hidden sm:inline"> · movers among the 500 largest</span>
+              </span>
+            }
+          >
             <BreadthBar up={advancers} down={decliners} />
             <div className="mt-4 grid grid-cols-2 gap-4">
-              <MoverList title="Leaders" rows={movers.slice(0, 4)} />
-              <MoverList title="Laggards" rows={movers.slice(-4).reverse()} />
+              <MoverList title="Leaders" rows={breadth.leaders} />
+              <MoverList title="Laggards" rows={breadth.laggards} />
             </div>
           </Panel>
         </div>
@@ -303,11 +310,11 @@ function MoverList({ title, rows }: { title: string; rows: Quote[] }) {
       <p className="eyebrow mb-1.5">{title}</p>
       <ul className="flex flex-col gap-1.5">
         {rows.map((q) => (
-          <li key={q.symbol} className="flex items-baseline justify-between gap-2 text-[12.5px]">
-            <Link href={`/app/markets/${encodeURIComponent(q.symbol)}`} className="num truncate hover:underline">
+          <li key={q.symbol} className="flex min-w-0 items-baseline justify-between gap-2 text-[12.5px]">
+            <Link href={`/app/markets/${encodeURIComponent(q.symbol)}`} className="num min-w-0 truncate hover:underline">
               {q.symbol}
             </Link>
-            <Delta value={q.change_pct} showGlyph={false} className="text-[12px]" />
+            <Delta value={q.change_pct} showGlyph={false} className="shrink-0 text-[12px]" />
           </li>
         ))}
       </ul>

@@ -23,3 +23,12 @@ export function nseSession(now = new Date()): { state: SessionState; label: stri
 
 /** Where displayed prices come from (ADR-026). "synthetic" only in dev/staging seeds. */
 export const PRICE_SOURCE = process.env.NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic" ? "sample data" : "Yahoo Finance";
+
+/** Yahoo's sector vocabulary — the one every symbol carries after the universe sync (ADR-027). */
+export const SECTORS = [
+  "Basic Materials", "Communication Services", "Consumer Cyclical", "Consumer Defensive", "Energy",
+  "Financial Services", "Healthcare", "Industrials", "Real Estate", "Technology", "Utilities",
+] as const;
+
+export type Segment = "equity" | "sme" | "etf" | "index";
+export const SEGMENT_LABEL: Record<Segment, string> = { equity: "Stocks", sme: "SME", etf: "ETFs", index: "Indices" };

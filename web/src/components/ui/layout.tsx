@@ -46,10 +46,10 @@ export function Panel({
   return (
     <section id={id} className={clsx("panel min-w-0", className)}>
       {title || actions ? (
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <div className="flex min-w-0 items-baseline gap-2">
-            {title ? <h2 className="truncate text-[13px] font-semibold tracking-wide text-foreground">{title}</h2> : null}
-            {meta ? <span className="truncate text-[12px] text-muted-foreground">{meta}</span> : null}
+        <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-baseline gap-2">
+            {title ? <h2 className="shrink-0 truncate text-[13px] font-semibold tracking-wide text-foreground">{title}</h2> : null}
+            {meta ? <span className="min-w-0 truncate text-[12px] text-muted-foreground">{meta}</span> : null}
           </div>
           {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
         </div>

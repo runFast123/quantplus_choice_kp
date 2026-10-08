@@ -25,10 +25,9 @@ export default async function PortfolioPage() {
   }
 
   const db = s.supabase;
-  const [pfRes, hRes, symRes] = await Promise.all([
+  const [pfRes, hRes] = await Promise.all([
     db.from("portfolios").select("id, name, source, created_at").order("created_at"),
     db.from("holdings").select("*"),
-    db.from("market_symbols").select("symbol").eq("is_active", true).order("symbol"),
   ]);
   const portfolios = (pfRes.data ?? []) as Portfolio[];
   const holdings = (hRes.data ?? []) as Holding[];
@@ -64,7 +63,7 @@ export default async function PortfolioPage() {
       </section>
 
       <Panel title="Add a holding">
-        <AddHoldingForm portfolios={portfolios} suggestions={(symRes.data ?? []).map((r) => r.symbol)} />
+        <AddHoldingForm portfolios={portfolios} />
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">

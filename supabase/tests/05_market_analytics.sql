@@ -39,15 +39,39 @@ select qp_t5.check((select count(*) from public.backtest_ledgers b
                     join public.market_symbols s using (symbol, exchange) where not s.is_active) = 0,
                    'ledgers: inactive symbols skipped');
 
-select qp_t5.check(not has_function_privilege('authenticated', 'public.svc_refresh_market_analytics(integer)', 'execute')
-               and not has_function_privilege('anon', 'public.svc_refresh_market_analytics(integer)', 'execute')
+select qp_t5.check(not has_function_privilege('authenticated', 'public.svc_refresh_market_analytics(integer, text[])', 'execute')
+               and not has_function_privilege('anon', 'public.svc_refresh_market_analytics(integer, text[])', 'execute')
                and not has_function_privilege('authenticated', 'public.svc_run_eod_notifier()', 'execute')
-               and has_function_privilege('service_role', 'public.svc_refresh_market_analytics(integer)', 'execute'),
+               and has_function_privilege('service_role', 'public.svc_refresh_market_analytics(integer, text[])', 'execute'),
                    'svc: only service_role can refresh');
 
 select qp_t5.check(to_regclass('public.broker_connections') is null and to_regclass('private.broker_credentials') is null
                and to_regtype('public.broker_code') is null,
                    'broker: tables and type are gone');
+
+-- 5.26: quotes table matches the candles; search; retired symbols; news cursor
+select qp_t5.check((select q.last_price = 46.22 and q.prev_close = 46.41 and q.change_pct = round((46.22 - 46.41) / 46.41 * 100, 2)
+                           and q.rsi = 66.29 and q.high_52w = 46.41 and q.low_52w = 43.61
+                    from public.market_quotes q where q.symbol = 'QPRSI'), 'quotes: last, prev, change %, RSI, 52-week range');
+select qp_t5.check((select count(*) from public.market_snapshot where symbol = 'QPRSI' and last_price = 46.22) = 1, 'quotes: snapshot reads them');
+select qp_t5.check((select private.refresh_market_analytics(10, '{QPRSI}') ->> 'quotes')::int = 1, 'batch: only the listed symbols');
+
+select qp_t5.check((select symbol from public.search_symbols('tcs', 5) limit 1) = 'TCS', 'search: exact ticker first');
+select qp_t5.check((select count(*) from public.search_symbols('consultancy', 5) where symbol = 'TCS') = 1, 'search: by name');
+select qp_t5.check((select count(*) from public.search_symbols('%', 5)) = 0, 'search: wildcards are literal');
+select qp_t5.check((select count(*) from public.search_symbols('tatamotors', 5)) = 0, 'search: retired symbols hidden');
+select qp_t5.check(not has_function_privilege('anon', 'public.search_symbols(text, integer)', 'execute')
+               and has_function_privilege('authenticated', 'public.search_symbols(text, integer)', 'execute'), 'search: members only');
+select qp_t5.check((select successors = '{TMPV,TMCV}' and status_note like 'Tata Motors demerged%' from public.market_symbols where symbol = 'TATAMOTORS'),
+                   'retired: TATAMOTORS explains itself');
+
+insert into public.market_symbols (symbol, exchange, name, segment) values ('QPSMALL', 'NSE', 'QP Small Co', 'sme');
+insert into auth.users (id, email) values ('dddddddd-0000-4000-8000-0000000000d5', 'cursor@test.quantspulse.local');
+insert into public.watchlists (id, tenant_id, user_id)
+select 'dddddddd-0000-4000-8000-0000000000d6', default_tenant_id, user_id from public.profiles where user_id = 'dddddddd-0000-4000-8000-0000000000d5';
+insert into public.watchlist_items (watchlist_id, tenant_id, user_id, symbol)
+select 'dddddddd-0000-4000-8000-0000000000d6', default_tenant_id, user_id, 'QPSMALL' from public.profiles where user_id = 'dddddddd-0000-4000-8000-0000000000d5';
+select qp_t5.check((select count(*) from public.news_search_cursor where symbol = 'QPSMALL') = 1, 'news: watched symbol joins the search rotation');
 
 do $$ begin raise notice 'MARKET ANALYTICS TESTS PASSED'; end $$;
 rollback;

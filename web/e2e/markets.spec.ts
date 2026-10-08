@@ -5,11 +5,11 @@ import { expect, state, test } from "./helpers/fixtures";
 test.describe("markets screener", () => {
   test("sector filter narrows every row to that sector", async ({ proPage }) => {
     await proPage.goto("/app/markets");
-    await proPage.getByLabel("Sector").selectOption("IT");
-    await expect(proPage).toHaveURL(/sector=IT/);
+    await proPage.getByLabel("Sector").selectOption("Technology");
+    await expect(proPage).toHaveURL(/sector=Technology/);
     const sectors = await proPage.locator("tbody tr td:nth-child(2)").allTextContents();
     expect(sectors.length).toBeGreaterThan(0);
-    for (const s of sectors) expect(s).toBe("IT");
+    for (const s of sectors) expect(s).toBe("Technology");
   });
 
   test("oversold filter only shows RSI at or below 30", async ({ proPage }) => {
@@ -25,9 +25,51 @@ test.describe("markets screener", () => {
   });
 
   test("clear removes filters", async ({ proPage }) => {
-    await proPage.goto("/app/markets?sector=IT&rsi=overbought");
+    await proPage.goto("/app/markets?sector=Technology&rsi=overbought");
     await proPage.getByRole("button", { name: "Clear" }).click();
     await expect(proPage).toHaveURL(/\/app\/markets$/);
+  });
+});
+
+test.describe("whole market", () => {
+  test("every listed stock, paged, largest first", async ({ proPage }) => {
+    await proPage.goto("/app/markets");
+    const title = await proPage.locator("main h2", { hasText: /symbols$/ }).first().innerText();
+    expect(Number(title.replace(/[^0-9]/g, ""))).toBeGreaterThan(2000);
+    await expect(proPage.locator("tbody tr")).toHaveCount(100);
+    await expect(proPage.getByRole("navigation", { name: "Pages" })).toContainText("Page 1 of");
+    await proPage.getByRole("link", { name: "Next" }).click();
+    await expect(proPage).toHaveURL(/page=2/);
+    await expect(proPage.locator("tbody tr")).toHaveCount(100);
+  });
+
+  test("segments: indices, ETFs and SME are separate", async ({ proPage }) => {
+    await proPage.goto("/app/markets?segment=index");
+      await expect(proPage.locator("table tbody").first()).toContainText("BANKNIFTY");
+    await proPage.goto("/app/markets?segment=etf");
+      // ETFs are sorted by mcap_rank; just verify the table shows ETF data
+      await expect(proPage.locator("table tbody").first()).toContainText("ETF");
+      await proPage.goto("/app/markets?segment=sme");
+      expect(await proPage.locator("table tbody").first().locator("tr").count()).toBeGreaterThan(10);
+    });
+
+  test("search finds any listed company and Tata Motors' successors", async ({ proPage }) => {
+    await proPage.goto("/app/markets");
+    const box = proPage.getByRole("combobox", { name: "Search stocks" });
+    await box.fill("tata motors");
+    const options = proPage.getByRole("option");
+    await expect(options.filter({ hasText: "TMPV" })).toHaveCount(1);
+    await expect(options.filter({ hasText: "TMCV" })).toHaveCount(1);
+    await box.fill("nifty bank");
+    await expect(options.first()).toContainText("BANKNIFTY");
+  });
+
+  test("a retired symbol explains itself instead of a 404", async ({ proPage }) => {
+    await proPage.goto("/app/markets/TATAMOTORS");
+    await expect(proPage.getByText("NSE · no longer trades")).toBeVisible();
+    await expect(proPage.getByText(/demerged on 14 Oct 2025/)).toBeVisible();
+    await proPage.getByRole("link", { name: "TMPV" }).first().click();
+    await expect(proPage).toHaveURL(/\/app\/markets\/TMPV$/);
   });
 });
 

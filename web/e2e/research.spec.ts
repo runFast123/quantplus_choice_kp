@@ -3,11 +3,11 @@ import { expect, HOOK_REASON, state, test } from "./helpers/fixtures";
 test.describe("research desk", () => {
   test("shows a note for every covered stock with stance counts that add up", async ({ proPage }) => {
     await proPage.goto("/app/research");
-    const rows = proPage.locator("tbody tr");
-    const total = await rows.count();
-    expect(total).toBeGreaterThan(10);
+    expect(await proPage.locator("tbody tr").count()).toBeGreaterThan(10);
+    const title = await proPage.locator("main h2", { hasText: / notes$/ }).first().innerText();
+    const total = Number(title.replace(/[^0-9]/g, ""));
     const counts = await proPage.locator('section[aria-label="Stance counts"] a .num').allTextContents();
-    expect(counts.map(Number).reduce((a, b) => a + b, 0)).toBe(total);
+    expect(counts.map((c) => Number(c.replace(/[^0-9]/g, ""))).reduce((a, b) => a + b, 0)).toBe(total);
   });
 
   test("stance card filters the table", async ({ proPage }) => {

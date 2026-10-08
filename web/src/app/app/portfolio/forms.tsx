@@ -6,10 +6,15 @@ import { useEchoAction } from "@/components/ui/use-echo-action";
 import { FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ActionState } from "@/lib/errors";
+import { useSymbolSearch } from "@/components/market/use-symbol-search";
 import { addHolding, createPortfolio, updateHolding } from "./actions";
 
-export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: string; name: string }[]; suggestions: string[] }) {
-  const [state, action, , values] = useEchoAction(addHolding);
+export function AddHoldingForm({ portfolios }: { portfolios: { id: string; name: string }[] }) {
+  const [q, setQ] = useState("");
+  const [state, action, , values] = useEchoAction(addHolding, (res) => {
+    if (res?.ok) setQ("");
+  });
+  const { hits } = useSymbolSearch(q, 8);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.ok) form.current?.reset();
@@ -18,26 +23,36 @@ export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: 
   return (
     <form ref={form} action={action} className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1.2fr_auto] lg:items-end">
-        <label className="flex flex-col gap-1">
-          <span className="eyebrow">Symbol</span>
-          <Input name="symbol" list="holding-symbols" required autoComplete="off" className="num uppercase" placeholder="INFY" defaultValue={values.symbol} />
-          <datalist id="holding-symbols">
-            {suggestions.map((s) => (
-              <option key={s} value={s} />
-            ))}
-          </datalist>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="eyebrow">Quantity</span>
-          <Input name="quantity" type="number" inputMode="decimal" step="any" min="0" required className="num" placeholder="10" defaultValue={values.quantity} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="eyebrow">Avg price (₹)</span>
-          <Input name="avg_price" type="number" inputMode="decimal" step="0.05" min="0" required className="num" placeholder="1520.00" defaultValue={values.avg_price} />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="eyebrow">Portfolio</span>
-          <Select name="portfolio_id" defaultValue={values.portfolio_id ?? portfolios[0]?.id ?? ""} key={values.portfolio_id ?? "default"}>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="holding-symbol" className="eyebrow">
+            Symbol
+          </label>
+          <Input id="holding-symbol" name="symbol" list="holding-symbols" required autoComplete="off" className="num uppercase" placeholder="INFY" defaultValue={values.symbol} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <datalist id="holding-symbols">
+          {hits.filter((h) => h.segment !== "index").map((h) => (
+            <option key={h.symbol} value={h.symbol}>
+              {h.name}
+            </option>
+          ))}
+        </datalist>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="holding-quantity" className="eyebrow">
+            Quantity
+          </label>
+          <Input id="holding-quantity" name="quantity" type="number" inputMode="decimal" step="any" min="0" required className="num" placeholder="10" defaultValue={values.quantity} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="holding-avg-price" className="eyebrow">
+            Avg price (₹)
+          </label>
+          <Input id="holding-avg-price" name="avg_price" type="number" inputMode="decimal" step="0.05" min="0" required className="num" placeholder="1520.00" defaultValue={values.avg_price} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="holding-portfolio" className="eyebrow">
+            Portfolio
+          </label>
+          <Select id="holding-portfolio" name="portfolio_id" defaultValue={values.portfolio_id ?? portfolios[0]?.id ?? ""} key={values.portfolio_id ?? "default"}>
             {portfolios.length === 0 ? <option value="">My Portfolio (new)</option> : null}
             {portfolios.map((p) => (
               <option key={p.id} value={p.id}>
@@ -45,7 +60,7 @@ export function AddHoldingForm({ portfolios, suggestions }: { portfolios: { id: 
               </option>
             ))}
           </Select>
-        </label>
+        </div>
         <SubmitButton pendingLabel="Adding…">Add holding</SubmitButton>
       </div>
       <FormMessage state={state} />

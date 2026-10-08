@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Candle, Holding, Quote } from "@/lib/types";
+import type { Candle, Holding, Quote, RetiredSymbol } from "@/lib/types";
 
 export async function getQuotes(db: SupabaseClient, symbols?: string[]): Promise<Map<string, Quote>> {
   let q = db.from("market_snapshot").select("*");
@@ -11,6 +11,48 @@ export async function getQuotes(db: SupabaseClient, symbols?: string[]): Promise
   }
   const { data } = await q;
   return new Map(((data ?? []) as Quote[]).map((r) => [r.symbol, normalizeQuote(r)]));
+}
+
+/** The header tape: NSE indices, then the 30 largest companies. */
+export async function getTape(db: SupabaseClient): Promise<Quote[]> {
+  const [idx, big] = await Promise.all([
+    db.from("market_snapshot").select("*").eq("segment", "index").not("last_price", "is", null).order("symbol"),
+    db.from("market_snapshot").select("*").eq("segment", "equity").not("mcap_rank", "is", null).order("mcap_rank").limit(30),
+  ]);
+  const order = ["NIFTY", "BANKNIFTY", "NIFTYIT", "NIFTYMIDCAP100", "NIFTYSMALLCAP100", "INDIAVIX"];
+  const indices = ((idx.data ?? []) as Quote[]).filter((q) => order.includes(q.symbol)).sort((a, b) => order.indexOf(a.symbol) - order.indexOf(b.symbol));
+  return [...indices, ...((big.data ?? []) as Quote[])].map(normalizeQuote);
+}
+
+/**
+ * Market breadth across every listed NSE stock (counted in the database), and
+ * leaders / laggards among the 500 largest — SME names hitting their price band
+ * would otherwise fill the list every day.
+ */
+export async function getBreadth(db: SupabaseClient) {
+  const base = () => db.from("market_snapshot").select("symbol", { count: "exact", head: true }).eq("segment", "equity");
+  const movers = (asc: boolean) =>
+    db.from("market_snapshot").select("*").eq("segment", "equity").lte("mcap_rank", 500).not("change_pct", "is", null)
+      .order("change_pct", { ascending: asc }).limit(4);
+  const [up, down, total, leaders, laggards] = await Promise.all([
+    base().gt("change_pct", 0), base().lt("change_pct", 0), base().not("change_pct", "is", null), movers(false), movers(true),
+  ]);
+  const lead = ((leaders.data ?? []) as Quote[]).map(normalizeQuote);
+  return {
+    up: up.count ?? 0,
+    down: down.count ?? 0,
+    total: total.count ?? 0,
+    leaders: lead,
+    laggards: ((laggards.data ?? []) as Quote[]).map(normalizeQuote),
+    asOf: lead[0]?.as_of ?? null,
+  };
+}
+
+/** Symbols among `symbols` that no longer trade, with the note explaining why. */
+export async function getRetired(db: SupabaseClient, symbols: string[]): Promise<Map<string, RetiredSymbol>> {
+  if (!symbols.length) return new Map();
+  const { data } = await db.from("market_symbols").select("symbol, name, status_note, successors").in("symbol", symbols).eq("is_active", false);
+  return new Map(((data ?? []) as RetiredSymbol[]).map((r) => [r.symbol, r]));
 }
 
 /** PostgREST returns numeric as string; normalise once at the edge. */
@@ -26,6 +68,7 @@ export function normalizeQuote(r: Quote): Quote {
     high_52w: n(r.high_52w),
     low_52w: n(r.low_52w),
     rsi: n(r.rsi),
+    mcap_rank: n(r.mcap_rank),
   };
 }
 

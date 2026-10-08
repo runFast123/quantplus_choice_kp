@@ -36,8 +36,18 @@ export async function addHolding(_: ActionState, form: FormData): Promise<Action
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const h = parsed.data;
 
-  const { data: meta } = await s.supabase.from("market_symbols").select("sector").eq("symbol", h.symbol).eq("exchange", h.exchange).maybeSingle();
+  const { data: meta } = await s.supabase
+    .from("market_symbols")
+    .select("sector, segment, is_active, successors")
+    .eq("symbol", h.symbol)
+    .eq("exchange", h.exchange)
+    .maybeSingle();
   if (!meta) return { error: `${h.symbol} isn't in our ${h.exchange} list yet.` };
+  if (meta.segment === "index") return { error: `${h.symbol} is an index — it can't be bought directly. Try an ETF that tracks it.` };
+  if (!meta.is_active) {
+    const next = (meta.successors ?? []) as string[];
+    return { error: `${h.symbol} no longer trades${next.length ? ` — try ${next.join(" or ")}` : ""}.` };
+  }
 
   const { data: existing } = await s.supabase
     .from("holdings")

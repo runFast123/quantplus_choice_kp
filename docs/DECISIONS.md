@@ -149,3 +149,15 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   permit personal, non-commercial use only — **not** a paid product. Corporate actions Yahoo doesn't adjust (e.g. the
   Tata Motors demerger) need a `HISTORY_FROM` cut-off. Only `fetch()` touches the vendor, so moving to NSE bhavcopy
   under licence, a data vendor (TrueData, Global Datafeeds) or GreekSoft (if licensed) is a one-function change.
+
+### ADR-027 · Cover the whole NSE market, sized for the free tier
+**Date** 2026-10-03 · **Status** accepted
+- **What:** every NSE equity Yahoo's screener lists (main board + SME), curated ETFs and NSE indices (~3,600).
+  Derivatives (F&O), currency and commodities are not covered — Yahoo has no NSE data for them.
+- **Shape:** quotes are materialised in `market_quotes` by the analytics refresh rather than computed per request;
+  analytics and research run per symbol batch (PostgREST 8 s limit); lists are paginated and search is server-side.
+- **Storage:** core symbols keep 760 days of candles, others 400 (enough for the 52-week range, SMA 200 and a one-year
+  SIP backtest); daily RSI rows 40 days; research notes 10 days. Target < 250 MB on the 500 MB free tier.
+- **News:** automatic headline matching only for the 500 largest companies and indices; the long tail is reached by
+  per-company search (top 300 + anything a user watches or holds) and curated aliases, to keep false links out.
+- **Sectors:** Yahoo's eleven sectors for every symbol (one filter vocabulary), replacing the hand-written labels.
