@@ -6,6 +6,15 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Signals Desk Milestone Tracker & Sentiment Badges
+- Upgraded Signals Desk (`/app/signals`):
+  - Added quantitative desk overview metrics strip: Active BUY Signals, T1+ De-risked (≥ +0.75R), T2+ Core Targets (≥ +2.0R), and Sentiment Exhaustion Warnings (Node 2/3 RSI ≥ 70).
+  - Added interactive milestone filter tabs (`All`, `T1+ Targets`, `In Progress`, `Exhaustion`).
+  - Added real-time tracking of asymmetric targets ($T_1, T_2, T_3$) in the signals table with visual target hit highlights.
+  - Added dynamic milestone badges (`T3 (+3.0R)`, `T2 (+2.0R)`, `T1 (+0.75R)`, `+X.XR`, `Stop Breached`).
+  - Added RSI sentiment exhaustion node indicators (`Node 3 Peak`, `Node 2 Overbought`, `Node 1 Momentum`, `Equilibrium`, `Oversold`) with live RSI index.
+  - Implemented `evaluateSignalProgress` in `web/src/lib/trade-plan.ts` with 6 dedicated unit tests (26/26 test suite passing).
+
 ### Added — Quantitative Trade Plan & Capital-Constrained Position Sizing
 - Quantitative trade plan model (`web/src/lib/trade-plan.ts`) with asymmetric multiples ($T_1 = 0.75R$ de-risking, $T_2 = 2.0R$ core target, $T_3 = 3.0R$ trend runner) and unit tests in `web/src/lib/trade-plan.test.mts`.
 - Capital-constrained position sizing fixing prototype audit Issue #6: unconstrained fractional sizing previously led to 300%+ leverage on tight stops. Units are strictly bounded by available cash ($\min(\lfloor \text{riskBudget} / R \rfloor, \lfloor \text{capital} / \text{entry} \rfloor)$), with an active shield badge and max-loss protection.

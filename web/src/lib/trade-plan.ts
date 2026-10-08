@@ -50,6 +50,23 @@ export interface SentimentResult {
   tone: "gain" | "loss" | "neutral";
 }
 
+export type TargetStatus =
+  | "t3_hit"
+  | "t2_hit"
+  | "t1_hit"
+  | "in_progress"
+  | "stop_breached"
+  | "invalid";
+
+export interface SignalProgressResult {
+  plan: TradePlanResult;
+  progressR: number | null;
+  targetStatus: TargetStatus;
+  statusLabel: string;
+  statusTone: "gain" | "loss" | "neutral";
+  sentiment: SentimentResult | null;
+}
+
 /**
  * Calculates asymmetric trade plan targets based on entry and stop reference.
  * Multiples: T1 = +0.75R, T2 = +2.0R, T3 = +3.0R.
@@ -194,3 +211,102 @@ export function evaluateSentiment(rsi: number | null | undefined): SentimentResu
     tone: "neutral",
   };
 }
+
+/**
+ * Evaluates real-time progress of a trade signal against its asymmetric plan targets (0.75R, 2.0R, 3.0R),
+ * its stop boundary, and the current RSI sentiment node.
+ */
+export function evaluateSignalProgress(
+  entry: number,
+  stop: number,
+  lastPrice: number | null | undefined,
+  rsi: number | null | undefined,
+): SignalProgressResult {
+  const plan = calculateTradePlan({
+    entry,
+    stop,
+    lastPrice: lastPrice ?? undefined,
+  });
+  const sentiment = evaluateSentiment(rsi);
+
+  if (!plan.isValid) {
+    return {
+      plan,
+      progressR: null,
+      targetStatus: "invalid",
+      statusLabel: "Invalid Stop",
+      statusTone: "neutral",
+      sentiment,
+    };
+  }
+
+  if (lastPrice == null || lastPrice <= 0) {
+    return {
+      plan,
+      progressR: null,
+      targetStatus: "in_progress",
+      statusLabel: "Awaiting close",
+      statusTone: "neutral",
+      sentiment,
+    };
+  }
+
+  const progressR = Number(
+    ((lastPrice - entry) / plan.riskPerShare).toFixed(2),
+  );
+
+  if (lastPrice >= plan.t3) {
+    return {
+      plan,
+      progressR,
+      targetStatus: "t3_hit",
+      statusLabel: "T3 (+3.0R)",
+      statusTone: "gain",
+      sentiment,
+    };
+  }
+
+  if (lastPrice >= plan.t2) {
+    return {
+      plan,
+      progressR,
+      targetStatus: "t2_hit",
+      statusLabel: "T2 (+2.0R)",
+      statusTone: "gain",
+      sentiment,
+    };
+  }
+
+  if (lastPrice >= plan.t1) {
+    return {
+      plan,
+      progressR,
+      targetStatus: "t1_hit",
+      statusLabel: "T1 (+0.75R)",
+      statusTone: "gain",
+      sentiment,
+    };
+  }
+
+  if (lastPrice <= plan.stop) {
+    return {
+      plan,
+      progressR,
+      targetStatus: "stop_breached",
+      statusLabel: "Stop Breached",
+      statusTone: "loss",
+      sentiment,
+    };
+  }
+
+  return {
+    plan,
+    progressR,
+    targetStatus: "in_progress",
+    statusLabel:
+      progressR >= 0 ? `+${progressR.toFixed(1)}R` : `${progressR.toFixed(1)}R`,
+    statusTone: progressR >= 0 ? "neutral" : "loss",
+    sentiment,
+  };
+}
+
