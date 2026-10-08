@@ -113,3 +113,15 @@ export const strategyLabel: Record<string, string> = {
   sma_20_50_cross: "SMA 20/50 cross",
   rsi_reversal: "RSI reversal",
 };
+
+/** Direction-aware strategy name: e.g. "SMA Golden Cross" (buy) vs "SMA Death Cross" (exit). */
+export function signalDisplayName(strategy: string, kind: "buy" | "exit"): string {
+  if (strategy === "sma_20_50_cross") {
+    return kind === "buy" ? "SMA Golden Cross" : "SMA Death Cross";
+  }
+  if (strategy === "rsi_reversal") {
+    return kind === "buy" ? "RSI Oversold Bounce" : "RSI Overbought Pullback";
+  }
+  return strategyLabel[strategy] ?? strategy;
+}
+

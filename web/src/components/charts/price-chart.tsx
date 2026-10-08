@@ -58,10 +58,9 @@ function computeSma(candles: Candle[], period: number) {
 }
 
 /**
- * Institutional TradingView Lightweight Chart:
- * Displays genuine Indian equity candles (NSE/BSE), QuantsPulse Buy/Exit signals,
- * interactive technical overlays (SMA 20, SMA 50, SMA 200, Volume), clean signals deduplication,
- * and an interactive signal timeline log.
+ * Compact Institutional TradingView Chart:
+ * Displays verified Indian equity candles, clean non-overlapping Buy/Exit signals,
+ * SMA 20/50/200 overlays, and a streamlined signals ribbon.
  */
 export function PriceChart({
   candles,
@@ -92,7 +91,6 @@ export function PriceChart({
   const [signalFilter, setSignalFilter] = useState<"all" | "buy" | "exit">("all");
   const [signalDensity, setSignalDensity] = useState<"clean" | "all">("clean");
   const [showLabels, setShowLabels] = useState(false);
-  const [showSignalsLog, setShowSignalsLog] = useState(true);
   const [selectedSignal, setSelectedSignal] = useState<ChartMarker | null>(null);
 
   const visible = useMemo(() => {
@@ -135,7 +133,7 @@ export function PriceChart({
         attributionLogo: false,
       },
       grid: { vertLines: { visible: false }, horzLines: { color: border, style: 2 } },
-      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.1, bottom: 0.25 } },
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.08, bottom: 0.22 } },
       timeScale: { borderVisible: false, rightOffset: 4, fixLeftEdge: true, fixRightEdge: true },
       crosshair: {
         mode: CrosshairMode.Normal,
@@ -174,7 +172,7 @@ export function PriceChart({
     // Technical Overlays
     if (showSma20) {
       const sma20 = chart.addSeries(LineSeries, {
-        color: "#F59E0B", // Amber
+        color: "#F59E0B",
         lineWidth: 2,
         title: "SMA 20",
         priceLineVisible: false,
@@ -185,7 +183,7 @@ export function PriceChart({
 
     if (showSma50) {
       const sma50 = chart.addSeries(LineSeries, {
-        color: "#0284C7", // Sky blue
+        color: "#0284C7",
         lineWidth: 2,
         title: "SMA 50",
         priceLineVisible: false,
@@ -196,7 +194,7 @@ export function PriceChart({
 
     if (showSma200) {
       const sma200 = chart.addSeries(LineSeries, {
-        color: "#9333EA", // Purple
+        color: "#9333EA",
         lineWidth: 2,
         title: "SMA 200",
         priceLineVisible: false,
@@ -223,7 +221,7 @@ export function PriceChart({
       );
     }
 
-    // Clean Buy/Exit Signal Markers directly on candles (No text collision)
+    // Clean Buy/Exit Signal Markers directly on candles (zero text collision)
     const first = new Date(visible[0].ts).getTime();
     createSeriesMarkers(
       mainSeries,
@@ -271,29 +269,30 @@ export function PriceChart({
 
   const tvSymbol = toTradingViewSymbol(symbol, exchange);
 
-  // Recent chronological signals for ledger display
+  // Recent chronological signals for compact ribbon
   const recentSignals = useMemo(() => {
     return [...activeMarkers].reverse().slice(0, 8);
   }, [activeMarkers]);
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Tier 1: Main Controls & Technical Overlays */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-2.5">
-        <div className="flex flex-wrap items-center gap-2 text-[11.5px]">
-          <span className="font-medium text-foreground flex items-center gap-1.5 mr-1">
+    <div className="flex flex-col gap-2">
+      {/* Streamlined Compact Header Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-border/60 pb-2">
+        {/* Left: Symbol & Quick Indicators */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="font-medium text-foreground flex items-center gap-1 mr-1">
             <span className="h-2 w-2 rounded-full bg-gain" />
-            <span className="num font-semibold text-[13px]">{symbol}</span>
-            <span className="text-[10.5px] text-muted-foreground uppercase">({exchange})</span>
+            <span className="num font-semibold text-[12px]">{symbol}</span>
+            <span className="text-[10px] text-muted-foreground uppercase">({exchange})</span>
           </span>
 
           {/* Chart Style */}
-          <div className="flex rounded border border-border p-0.5">
+          <div className="flex rounded border border-border p-0.5 bg-muted/20">
             <button
               type="button"
               onClick={() => setChartType("candles")}
               className={clsx(
-                "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
+                "rounded px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
                 chartType === "candles" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -303,7 +302,7 @@ export function PriceChart({
               type="button"
               onClick={() => setChartType("area")}
               className={clsx(
-                "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
+                "rounded px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
                 chartType === "area" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -313,12 +312,12 @@ export function PriceChart({
 
           <div className="h-3 w-px bg-border mx-0.5" />
 
-          {/* Technical Indicator Toggles */}
+          {/* Indicator Pills */}
           <button
             type="button"
             onClick={() => setShowSma20((v) => !v)}
             className={clsx(
-              "num inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors",
+              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
               showSma20 ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
@@ -330,7 +329,7 @@ export function PriceChart({
             type="button"
             onClick={() => setShowSma50((v) => !v)}
             className={clsx(
-              "num inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors",
+              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
               showSma50 ? "border-sky-500/50 bg-sky-500/15 text-sky-600 dark:text-sky-400 font-medium" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
@@ -342,7 +341,7 @@ export function PriceChart({
             type="button"
             onClick={() => setShowSma200((v) => !v)}
             className={clsx(
-              "num inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors",
+              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
               showSma200 ? "border-purple-500/50 bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
@@ -354,7 +353,7 @@ export function PriceChart({
             type="button"
             onClick={() => setShowVolume((v) => !v)}
             className={clsx(
-              "num inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors",
+              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
               showVolume ? "border-primary/40 bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
@@ -362,9 +361,72 @@ export function PriceChart({
           </button>
         </div>
 
-        {/* Range Selector & TradingView Launcher */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div role="tablist" aria-label="Chart range" className="flex rounded border border-border p-0.5">
+        {/* Right: Signals Filter, Range & External Link */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          {/* Signal Filter */}
+          <div className="flex rounded border border-border p-0.5 bg-muted/20">
+            <button
+              type="button"
+              onClick={() => setSignalFilter("all")}
+              className={clsx(
+                "rounded px-1.5 py-0.5 font-medium transition-colors text-[10.5px]",
+                signalFilter === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              All ({markers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSignalFilter("buy")}
+              className={clsx(
+                "rounded px-1.5 py-0.5 font-medium transition-colors text-[10.5px]",
+                signalFilter === "buy" ? "bg-gain text-primary-foreground" : "text-gain hover:text-foreground",
+              )}
+            >
+              ▲ Buy
+            </button>
+            <button
+              type="button"
+              onClick={() => setSignalFilter("exit")}
+              className={clsx(
+                "rounded px-1.5 py-0.5 font-medium transition-colors text-[10.5px]",
+                signalFilter === "exit" ? "bg-loss text-primary-foreground" : "text-loss hover:text-foreground",
+              )}
+            >
+              ▼ Exit
+            </button>
+          </div>
+
+          {/* Density Pill */}
+          <button
+            type="button"
+            onClick={() => setSignalDensity((d) => (d === "clean" ? "all" : "clean"))}
+            className={clsx(
+              "rounded border px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
+              signalDensity === "clean" ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground",
+            )}
+            title="Clean Mode groups same-day & clustered signals to prevent overlap"
+          >
+            {signalDensity === "clean" ? "✨ Clean" : "Raw"}
+          </button>
+
+          {/* Labels Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowLabels((v) => !v)}
+            className={clsx(
+              "rounded border px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
+              showLabels ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground",
+            )}
+            title="Toggle text labels on chart markers"
+          >
+            {showLabels ? "Labels ON" : "Labels OFF"}
+          </button>
+
+          <div className="h-3 w-px bg-border mx-0.5" />
+
+          {/* Range Selector */}
+          <div role="tablist" aria-label="Chart range" className="flex rounded border border-border p-0.5 bg-muted/20">
             {RANGES.map((r) => (
               <button
                 key={r.key}
@@ -373,7 +435,7 @@ export function PriceChart({
                 aria-selected={range === r.key}
                 onClick={() => setRange(r.key)}
                 className={clsx(
-                  "num h-6.5 rounded px-2 text-[11.5px] transition-colors",
+                  "num h-5 rounded px-1.5 text-[10.5px] transition-colors",
                   range === r.key ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -386,117 +448,18 @@ export function PriceChart({
             href={`https://in.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="num inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-foreground transition-colors"
+            className="num inline-flex items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[10.5px] text-muted-foreground hover:text-foreground transition-colors"
             title={`Open ${tvSymbol} on official TradingView website`}
           >
-            <span>TradingView Web</span>
+            <span>TV Web</span>
             <span aria-hidden="true">↗</span>
           </a>
         </div>
       </div>
 
-      {/* Tier 2: Clean Signals Filter & Formatting Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[11.5px] bg-muted/15 rounded-md px-2.5 py-1.5 border border-border/50">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground font-medium">Signals:</span>
-
-          {/* Signal Kind Filter */}
-          <div className="flex rounded border border-border p-0.5 bg-background">
-            <button
-              type="button"
-              onClick={() => setSignalFilter("all")}
-              className={clsx(
-                "rounded px-2 py-0.5 font-medium transition-colors text-[11px]",
-                signalFilter === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              All ({markers.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSignalFilter("buy")}
-              className={clsx(
-                "rounded px-2 py-0.5 font-medium transition-colors text-[11px]",
-                signalFilter === "buy" ? "bg-gain text-primary-foreground" : "text-gain hover:text-foreground",
-              )}
-            >
-              ▲ Buy Only
-            </button>
-            <button
-              type="button"
-              onClick={() => setSignalFilter("exit")}
-              className={clsx(
-                "rounded px-2 py-0.5 font-medium transition-colors text-[11px]",
-                signalFilter === "exit" ? "bg-loss text-primary-foreground" : "text-loss hover:text-foreground",
-              )}
-            >
-              ▼ Exit Only
-            </button>
-          </div>
-
-          {/* Density Mode: Clean Triggers vs All */}
-          <div className="flex rounded border border-border p-0.5 bg-background">
-            <button
-              type="button"
-              onClick={() => setSignalDensity("clean")}
-              className={clsx(
-                "rounded px-2 py-0.5 font-medium transition-colors text-[11px]",
-                signalDensity === "clean" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-              title="Suppresses overlapping duplicate exit signals for clean visual readability"
-            >
-              Clean Triggers
-            </button>
-            <button
-              type="button"
-              onClick={() => setSignalDensity("all")}
-              className={clsx(
-                "rounded px-2 py-0.5 font-medium transition-colors text-[11px]",
-                signalDensity === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-              title="Shows every raw recorded signal"
-            >
-              All Events
-            </button>
-          </div>
-
-          {/* Labels Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowLabels((v) => !v)}
-            className={clsx(
-              "rounded border px-2 py-0.5 text-[11px] font-medium transition-colors",
-              showLabels ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {showLabels ? "Labels: ON" : "Labels: OFF (Arrows only)"}
-          </button>
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 text-muted-foreground text-[11px]">
-          <span className="inline-flex items-center gap-1">
-            <span className="text-gain font-bold text-[13px]">▲</span>
-            <span>Buy Marker</span>
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="text-loss font-bold text-[13px]">▼</span>
-            <span>Exit Marker</span>
-          </span>
-          <span className="opacity-40">|</span>
-          <button
-            type="button"
-            onClick={() => setShowSignalsLog((v) => !v)}
-            className="hover:text-foreground hover:underline text-primary"
-          >
-            {showSignalsLog ? "Hide Signals Log" : "View Signals Log"}
-          </button>
-        </div>
-      </div>
-
-      {/* Tier 3: Floating Crosshair OHLC + Active Signal HUD */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] pt-0.5">
-        <dl className="num flex flex-wrap gap-x-4 gap-y-1">
+      {/* Floating Crosshair OHLC + Active Signal HUD (Unified Compact Row) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11.5px] min-h-[26px]">
+        <dl className="num flex flex-wrap gap-x-3.5 gap-y-0.5 text-[11.5px]">
           {shown ? (
             <>
               <div className="flex gap-1 text-muted-foreground">
@@ -514,7 +477,7 @@ export function PriceChart({
                 <dd>{fmtVolume(shown.volume)}</dd>
               </div>
               {chg != null ? (
-                <div className={chg >= 0 ? "text-gain" : "text-loss"}>
+                <div className={chg >= 0 ? "text-gain font-medium" : "text-loss font-medium"}>
                   <dt className="sr-only">Change</dt>
                   <dd>
                     {chg >= 0 ? "▲ +" : "▼ −"}
@@ -529,19 +492,19 @@ export function PriceChart({
         {activeSignal ? (
           <div
             className={clsx(
-              "num inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-[11.5px] font-medium border shadow-xs transition-all",
+              "num inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border shadow-xs transition-all",
               activeSignal.kind === "buy" ? "border-gain/40 bg-gain/10 text-gain" : "border-loss/40 bg-loss/10 text-loss",
             )}
           >
-            <span className="font-bold">{activeSignal.kind === "buy" ? "▲ BUY SIGNAL" : "▼ EXIT SIGNAL"}</span>
-            <span className="opacity-90">· {activeSignal.label}</span>
+            <span className="font-bold">{activeSignal.kind === "buy" ? "▲ BUY" : "▼ EXIT"}</span>
+            <span>· {activeSignal.label}</span>
             {activeSignal.price ? <span>@ ₹{fmtPrice(activeSignal.price)}</span> : null}
-            {activeSignal.stop ? <span className="opacity-80">(Stop: ₹{fmtPrice(activeSignal.stop)})</span> : null}
+            {activeSignal.stop ? <span className="opacity-75">(Stop: ₹{fmtPrice(activeSignal.stop)})</span> : null}
             {selectedSignal ? (
               <button
                 type="button"
                 onClick={() => setSelectedSignal(null)}
-                className="ml-1 text-[10px] uppercase font-bold underline opacity-80 hover:opacity-100"
+                className="ml-1 text-[9.5px] uppercase font-bold underline opacity-80 hover:opacity-100"
               >
                 Clear
               </button>
@@ -551,43 +514,41 @@ export function PriceChart({
       </div>
 
       {/* Interactive Chart Canvas */}
-      <div ref={el} className="h-[400px] w-full md:h-[460px] rounded border border-border/40 bg-background/50" role="img" aria-label={`${symbol} daily price chart, ${range}`} />
+      <div ref={el} className="h-[380px] w-full md:h-[430px] rounded border border-border/40 bg-background/50" role="img" aria-label={`${symbol} daily price chart, ${range}`} />
 
-      {/* Tier 4: Signals History Ledger & Interactive Table */}
-      {showSignalsLog && recentSignals.length > 0 && (
-        <div className="mt-1 flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-3">
-          <div className="flex items-center justify-between text-[12px]">
-            <span className="font-medium text-foreground">
-              Recent Signals Ledger <span className="num text-muted-foreground font-normal">({recentSignals.length} visible in {range})</span>
+      {/* Streamlined Compact Signals Ribbon (Small, Compact & Easy to See) */}
+      {recentSignals.length > 0 && (
+        <div className="flex flex-col gap-1 rounded-md border border-border/50 bg-muted/10 px-2.5 py-1.5">
+          <div className="flex items-center justify-between text-[10.5px]">
+            <span className="font-medium text-foreground flex items-center gap-1.5">
+              <span>Signals Timeline</span>
+              <span className="num text-muted-foreground font-normal">({recentSignals.length} visible in {range})</span>
             </span>
-            <span className="text-[11px] text-muted-foreground">Click a signal chip to inspect its parameters</span>
+            <span className="text-[10px] text-muted-foreground">Click chip to focus candle</span>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Compact Pill Strip (Replaces the bulky cards!) */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
             {recentSignals.map((sig, idx) => (
               <button
                 key={`${sig.ts}-${sig.kind}-${idx}`}
                 type="button"
-                onClick={() => setSelectedSignal(sig)}
+                onClick={() => setSelectedSignal(selectedSignal?.ts === sig.ts ? null : sig)}
                 className={clsx(
-                  "flex flex-col text-left rounded-md border p-2 text-[11.5px] transition-all",
-                  sig.kind === "buy" ? "border-gain/30 bg-gain/5 hover:border-gain hover:bg-gain/10" : "border-loss/30 bg-loss/5 hover:border-loss hover:bg-loss/10",
-                  selectedSignal?.ts === sig.ts && "ring-1 ring-primary shadow-xs",
+                  "num inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] transition-all cursor-pointer",
+                  sig.kind === "buy"
+                    ? "border-gain/35 bg-gain/5 hover:border-gain hover:bg-gain/15 text-gain"
+                    : "border-loss/35 bg-loss/5 hover:border-loss hover:bg-loss/15 text-loss",
+                  selectedSignal?.ts === sig.ts ? "ring-1 ring-primary shadow-xs font-semibold" : "opacity-90",
                 )}
+                title={`${sig.label} on ${new Date(sig.ts).toLocaleDateString("en-IN")}`}
               >
-                <div className="flex items-center justify-between gap-1">
-                  <span className={clsx("num font-bold text-[11px]", sig.kind === "buy" ? "text-gain" : "text-loss")}>
-                    {sig.kind === "buy" ? "▲ BUY" : "▼ EXIT"}
-                  </span>
-                  <span className="num text-[10.5px] text-muted-foreground">
-                    {new Date(sig.ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                  </span>
-                </div>
-                <div className="mt-1 truncate font-medium text-foreground text-[11px]">{sig.label}</div>
-                <div className="num mt-0.5 text-[11px] text-muted-foreground">
-                  {sig.price ? `Price: ₹${fmtPrice(sig.price)}` : "Triggered"}
-                  {sig.stop ? ` · Stop: ₹${fmtPrice(sig.stop)}` : ""}
-                </div>
+                <span className="font-bold">{sig.kind === "buy" ? "▲ BUY" : "▼ EXIT"}</span>
+                <span className="text-muted-foreground font-normal">
+                  {new Date(sig.ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+                </span>
+                {sig.price ? <span className="font-medium text-foreground">₹{fmtPrice(sig.price)}</span> : null}
+                <span className="opacity-70 text-[10px]">({sig.label})</span>
               </button>
             ))}
           </div>

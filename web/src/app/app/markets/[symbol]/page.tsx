@@ -14,7 +14,7 @@ import { SymbolAiChat } from "@/components/research/symbol-ai-chat";
 import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
-import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
+import { date, price, qty, rupees, signalDisplayName, signedInt, strategyLabel, volume } from "@/lib/format";
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
@@ -50,7 +50,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const markers: ChartMarker[] = signals.map((sg) => ({
     ts: sg.generated_at,
     kind: sg.signal_type,
-    label: sg.strategy === "rsi_reversal" ? "RSI Reversal" : "SMA Golden Cross",
+    label: signalDisplayName(sg.strategy, sg.signal_type),
     strategy: sg.strategy,
     price: Number(sg.payload.close ?? sg.payload.trigger_price ?? 0) || null,
     stop: Number(sg.payload.stop ?? 0) || null,
