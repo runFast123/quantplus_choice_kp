@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { parseHoldingsCsv } from "@/lib/csv-parser";
 import { friendlyDbError, type ActionState } from "@/lib/errors";
-import { portfolioHealthReadWithMyKey } from "@/server/privileged/ai";
+import {
+  parseContractNoteWithMyKey,
+  portfolioHealthReadWithMyKey,
+  type ParsedTrade,
+} from "@/server/privileged/ai";
 import { can, requireSession } from "@/server/session";
 
 const holdingSchema = z.object({
@@ -249,4 +253,144 @@ export async function askPortfolioAi(portfolioId?: string): Promise<PortfolioAiS
     return { error: msg };
   }
 }
+
+export type ContractNoteParseState = {
+  trades?: ParsedTrade[];
+  provider?: string;
+  model?: string;
+  error?: string;
+};
+
+export async function parseContractNoteAi(noteText: string): Promise<ContractNoteParseState> {
+  const s = await requireSession();
+  if (!s.activeTenantId) return { error: "No active workspace." };
+  if (!can(s, "ai_byok")) return { error: "Contract note AI parsing requires a Pro plan." };
+
+  try {
+    const res = await parseContractNoteWithMyKey(s.userId, s.activeTenantId, noteText);
+    return { trades: res.trades, provider: res.provider, model: res.model };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to parse contract note.";
+    return { error: msg };
+  }
+}
+
+export async function applyParsedTrades(
+  portfolioId: string,
+  trades: ParsedTrade[],
+): Promise<ImportResult> {
+  const s = await requireSession();
+  let pid = portfolioId;
+  if (!pid) {
+    const ensured = await ensurePortfolio();
+    if (ensured.error || !ensured.id) return { error: ensured.error ?? "Failed to find or create portfolio." };
+    pid = ensured.id;
+  }
+
+  if (!trades.length) {
+    return { error: "No trades provided to apply." };
+  }
+
+  const symbols = [...new Set(trades.map((t) => t.symbol))];
+
+  // Bulk query market registry
+  const { data: metas } = await s.supabase
+    .from("market_symbols")
+    .select("symbol, exchange, sector, segment, is_active")
+    .in("symbol", symbols)
+    .eq("exchange", "NSE");
+
+  const metaMap = new Map((metas ?? []).map((m) => [m.symbol, m]));
+
+  // Query existing holdings
+  const { data: existingHoldings } = await s.supabase
+    .from("holdings")
+    .select("id, symbol, exchange, quantity, avg_price")
+    .eq("portfolio_id", pid);
+
+  const existingMap = new Map((existingHoldings ?? []).map((h) => [h.symbol, h]));
+
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+  const details: string[] = [];
+
+  for (const t of trades) {
+    const meta = metaMap.get(t.symbol);
+    if (!meta) {
+      skipped++;
+      details.push(`${t.symbol}: not found in market registry`);
+      continue;
+    }
+
+    const existing = existingMap.get(t.symbol);
+
+    if (t.action === "BUY") {
+      if (existing) {
+        const q0 = Number(existing.quantity);
+        const qty = q0 + t.quantity;
+        const avg = (q0 * Number(existing.avg_price) + t.quantity * t.price) / qty;
+        const { error } = await s.supabase
+          .from("holdings")
+          .update({ quantity: qty, avg_price: Number(avg.toFixed(4)) })
+          .eq("id", existing.id);
+        if (error) {
+          skipped++;
+          details.push(`${t.symbol}: ${friendlyDbError(error.message)}`);
+        } else {
+          updated++;
+          existing.quantity = qty;
+          existing.avg_price = avg;
+        }
+      } else {
+        const { error } = await s.supabase.from("holdings").insert({
+          portfolio_id: pid,
+          symbol: t.symbol,
+          exchange: t.exchange,
+          quantity: t.quantity,
+          avg_price: t.price,
+          sector: meta.sector,
+          source: "import",
+        });
+        if (error) {
+          skipped++;
+          details.push(`${t.symbol}: ${friendlyDbError(error.message)}`);
+        } else {
+          imported++;
+        }
+      }
+    } else if (t.action === "SELL") {
+      if (existing) {
+        const q0 = Number(existing.quantity);
+        if (t.quantity >= q0) {
+          // Entire position sold
+          await s.supabase.from("holdings").delete().eq("id", existing.id);
+          existingMap.delete(t.symbol);
+          updated++;
+          details.push(`${t.symbol}: position closed`);
+        } else {
+          // Partial sale: reduce quantity, keep avg_price
+          const qty = q0 - t.quantity;
+          await s.supabase.from("holdings").update({ quantity: qty }).eq("id", existing.id);
+          existing.quantity = qty;
+          updated++;
+        }
+      } else {
+        skipped++;
+        details.push(`${t.symbol}: sold shares not found in holdings`);
+      }
+    }
+  }
+
+  await s.supabase.rpc("track_event", { p_event_type: "contract_note_applied" });
+  revalidatePath("/app", "layout");
+  return {
+    ok: true,
+    imported,
+    updated,
+    skipped,
+    details: details.slice(0, 10),
+  };
+}
+
 

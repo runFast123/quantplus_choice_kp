@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { PriceChart, type ChartMarker } from "@/components/charts/price-chart";
 import { AlertForm } from "@/components/market/alert-form";
+import { BacktestLab } from "@/components/market/backtest-lab";
 import { RadarToggle } from "@/components/market/radar-toggle";
 import { TradePlan } from "@/components/market/trade-plan";
 import { NewsList } from "@/components/news/news-list";
@@ -12,7 +13,7 @@ import { SymbolAiChat } from "@/components/research/symbol-ai-chat";
 import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
-import { date, dateTime, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
+import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
@@ -24,18 +25,15 @@ export async function generateMetadata({ params }: PageProps<"/app/markets/[symb
   return { title: decodeURIComponent((await params).symbol).toUpperCase() };
 }
 
-type LedgerEntry = { date: string; price: number; units: number; invested: number; value: number };
-
 export default async function SymbolPage({ params }: PageProps<"/app/markets/[symbol]">) {
   const symbol = decodeURIComponent((await params).symbol).toUpperCase();
   const s = await requireSession();
   const db = s.supabase;
 
-  const [quoteRes, candles, signalsRes, ledgerRes, radarRes, holdingsRes, rsiRes] = await Promise.all([
+  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     getCandles(db, symbol),
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(40),
-    db.from("backtest_ledgers").select("ledger, roi_pct, computed_at").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     db.from("watchlist_items").select("id").eq("symbol", symbol).limit(1),
     can(s, "portfolio") ? db.from("holdings").select("*").eq("symbol", symbol) : Promise.resolve({ data: [] as Holding[] }),
     db.from("rsi_events").select("ts, rsi, event_type").eq("symbol", symbol).neq("event_type", "daily").order("ts", { ascending: false }).limit(6),
@@ -81,8 +79,6 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
       : !aiKeysRes.data?.length
         ? "Add an Anthropic, OpenAI or Gemini key in"
         : undefined;
-
-  const ledger = ledgerRes.data?.ledger as { entries: LedgerEntry[]; invested: number; final_value: number; installment: number } | undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -287,55 +283,11 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           ) : null}
         </Panel>
 
-        <Panel title="Backtest ledger" meta={ledger ? `Monthly ₹${(ledger.installment ?? 10000).toLocaleString("en-IN")} SIP` : undefined}>
-          {!ledger ? (
-            <Empty title="No backtest yet." />
+        <Panel title="Backtest Lab" meta="Interactive SIP & rule simulation">
+          {candles.length >= 20 ? (
+            <BacktestLab candles={candles} symbol={q.symbol} />
           ) : (
-            <>
-              <div className="grid grid-cols-3 gap-4 border-b border-border pb-4">
-                <div>
-                  <p className="eyebrow">Invested</p>
-                  <p className="num mt-1 text-[17px]">{rupees(ledger.invested, { decimals: false })}</p>
-                </div>
-                <div>
-                  <p className="eyebrow">Value today</p>
-                  <p className="num mt-1 text-[17px]">{rupees(ledger.final_value, { decimals: false })}</p>
-                </div>
-                <div>
-                  <p className="eyebrow">Return</p>
-                  <p className="mt-1 text-[17px]">
-                    <Delta value={Number(ledgerRes.data?.roi_pct)} />
-                  </p>
-                </div>
-              </div>
-              <TableWrap>
-                <table className="mt-2 w-full min-w-[420px]">
-                  <thead>
-                    <tr>
-                      <th className={th}>Month</th>
-                      <th className={thNum}>Price</th>
-                      <th className={thNum}>Units</th>
-                      <th className={thNum}>Invested</th>
-                      <th className={thNum}>Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ledger.entries.slice(-8).reverse().map((e) => (
-                      <tr key={e.date} className={tr}>
-                        <td className={td + " num text-muted-foreground"}>{e.date.slice(0, 7)}</td>
-                        <td className={tdNum}>{price(e.price)}</td>
-                        <td className={tdNum}>{Number(e.units).toFixed(3)}</td>
-                        <td className={tdNum}>{rupees(e.invested, { decimals: false })}</td>
-                        <td className={tdNum}>{rupees(e.value, { decimals: false })}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </TableWrap>
-              <p className="mt-3 text-[11.5px] leading-5 text-muted-foreground">
-                Computed {dateTime(ledgerRes.data?.computed_at)}. Past performance of a rule says nothing certain about the future.
-              </p>
-            </>
+            <Empty title="Insufficient candle history to run backtest." />
           )}
         </Panel>
       </div>

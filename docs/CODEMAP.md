@@ -87,7 +87,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `privileged/admin.ts` | `isPlatformAdmin`, `searchUsers`, `activatePlan`, `platformStats`, type `AdminUserRow` | Platform console |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
 | `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
-| `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, type `AiRead` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
+| `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, `parseContractNoteWithMyKey(userId, tenantId, noteText)`, type `AiRead`, type `ParsedTrade` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
 | `news-data.ts` | `getNews(db, {symbols?, tone?, kind?, limit?, before?})`, `getResearch(db, symbols?)`, `normalizeNote`, types `NewsItem`, `ResearchNote`, `ResearchFactor` | RLS client reads |
 
 ## 3. Lib (web/src/lib) — pure, safe anywhere
@@ -95,13 +95,16 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Module | Exports |
 |---|---|
 | `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel` |
-| `market.ts` | `nseSession(now)` → pre-open / open / closed (IST; holidays not modelled); `PRICE_SOURCE` (attribution label); `SECTORS` (Yahoo's 11); `SEGMENT_LABEL`, type `Segment` |
+| `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
+| `market.test.mts` | unit tests (`npm run test:unit`) |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
 | `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
 | `consents.ts` | `CONSENT_VERSION`, `CONSENT_COPY` |
 | `plans.ts` | `FEATURE_ROWS` (feature key → label, display order) |
 | `csv-parser.ts` | `parseHoldingsCsv(csvText)`, `cleanBrokerSymbol`, `parseNumeric`, types `ParsedHoldingRow`, `ParseHoldingsResult` (Zerodha, Groww, Angel One, Upstox, generic) |
 | `csv-parser.test.mts` | unit tests (`npm run test:unit`) |
+| `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, types `SipResult`, `StrategyResult`, `StrategyTrade` |
+| `backtest-engine.test.mts` | unit tests (`npm run test:unit`) |
 | `news/feed.ts` | `parseFeed(xml)`, `parseFeedDate`, `cleanText`, `decodeEntities`, `normaliseUrl`, `nseFilingSymbol` |
 | `news/match.ts` | `SymbolMatcher` (`match`, `matchesSymbol`), `stripLegalSuffix` — sibling-entity guard (`SIBLING_WORDS`) |
 | `news/tone.ts` | `scoreTone(text)` → `{score, label, terms}`; `POSITIVE`, `NEGATIVE` word lists |

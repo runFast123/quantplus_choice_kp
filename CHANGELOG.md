@@ -6,7 +6,23 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
-### Added — Portfolio Automation & Broker CSV Ingestion (`/app/portfolio`, `<TradePlan>`)
+### Added — Official NSE Holiday Calendar & Session Accuracy (`lib/market.ts`)
+- Integrated official NSE Cash Market trading holiday calendar for 2025, 2026, and 2027 into `web/src/lib/market.ts`.
+- `nseSession(now)` detects all national and exchange holidays (Republic Day, Holi, Good Friday, Independence Day, Gandhi Jayanti, etc.) and returns precise labels (e.g., `Closed · Gandhi Jayanti`).
+- Integrated special support for Diwali evening Muhurat Trading sessions (18:15 to 19:15 IST).
+- Added 7 dedicated unit test cases in `web/src/lib/market.test.mts`.
+
+### Added — Contract Note Ingestion via BYOK AI (`/app/portfolio`)
+- Implemented `parseContractNoteWithMyKey` in `web/src/server/privileged/ai.ts` and `<ContractNoteModal>` in `web/src/components/portfolio/contract-note-modal.tsx`.
+- Securely parses broker contract notes (Zerodha, Groww, Angel One, ICICI Direct, HDFC Securities, Upstox) using the user's BYOK LLM key without saving documents or plaintext prompts.
+- Review table before applying trades; automatically merges BUYs with existing holdings at the volume-weighted average price and deducts SELLs.
+
+### Added — Interactive Backtest Lab (`/app/markets/[symbol]`)
+- Built pure simulation engine in `web/src/lib/backtest-engine.ts` with unit tests in `web/src/lib/backtest-engine.test.mts`.
+- Integrated `<BacktestLab>` (`web/src/components/market/backtest-lab.tsx`) replacing static ledger tables:
+  - Dynamic SIP vs Lump Sum calculator with quick installment presets (₹5k, ₹10k, ₹25k, ₹50k) and custom inputs.
+  - Rule Strategy Simulation (SMA 20/50 Golden Cross and SMA 20 Pullback) displaying Win Rate %, Total Return %, Profit Factor, and Max Drawdown %.
+  - Complete historical trade breakdown log.
 - **1-Click Alert Arming on Trade Plan**: Added direct 1-click price alert buttons to each milestone card (Stop Loss 1R, Target 1 0.75R, Target 2 2.0R, Target 3 3.0R) in `TradePlan` (`web/src/components/market/trade-plan.tsx`) via `quickArmAlert`.
 - **Indian Broker CSV Importer**: Integrated smart holdings importer (`web/src/components/portfolio/csv-import.tsx`) supporting Zerodha Console/Kite, Groww, Angel One, Upstox, Dhan, and generic CSV/TSV exports:
   - Automatically identifies broker-specific header columns (Instrument, Qty, Avg Cost, etc.).

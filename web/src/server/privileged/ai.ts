@@ -316,3 +316,73 @@ export async function symbolResearchChatWithMyKey(
   return executeAiCall(userId, tenantId, "chat", CHAT_SYSTEM, prompt);
 }
 
+const CONTRACT_NOTE_SYSTEM = `You are an expert Indian equities trade parser.
+Extract executed equity buy/sell transactions from the provided contract note text.
+Return ONLY valid JSON containing an array of trades:
+[
+  {
+    "symbol": "INFY",
+    "exchange": "NSE",
+    "action": "BUY",
+    "quantity": 50,
+    "price": 1420.50
+  }
+]
+Rules:
+1. Translate company/security names to standard NSE equity tickers (e.g., "TATA CONSULTANCY SERV" -> "TCS", "RELIANCE INDUSTRIES" -> "RELIANCE", "INFOSYS LTD" -> "INFY").
+2. Only include cash equities (stocks). Discard F&O / derivatives contracts.
+3. action must be "BUY" or "SELL".
+4. quantity and price must be positive numbers.
+5. Return ONLY the raw JSON array. No markdown code fences, no introductory or concluding text.`;
+
+export type ParsedTrade = {
+  symbol: string;
+  exchange: "NSE" | "BSE";
+  action: "BUY" | "SELL";
+  quantity: number;
+  price: number;
+};
+
+export async function parseContractNoteWithMyKey(
+  userId: string,
+  tenantId: string,
+  noteText: string,
+): Promise<{ trades: ParsedTrade[]; provider: string; model: string }> {
+  await assertMember(userId, tenantId);
+  if (!(await planHasFeature(userId, tenantId, "ai_byok"))) throw new PrivilegedError("Contract note AI parsing is part of Pro and Pro Plus.");
+  if (!(await hasActiveConsent(userId, "ai_processing"))) throw new PrivilegedError("Allow AI processing in Settings → Privacy first.");
+
+  const cleanText = noteText.trim().slice(0, 10000);
+  if (!cleanText) throw new PrivilegedError("Contract note text is empty.");
+
+  const r = await executeAiCall(
+    userId,
+    tenantId,
+    "contract_note_import",
+    CONTRACT_NOTE_SYSTEM,
+    cleanText,
+  );
+
+  let trades: ParsedTrade[] = [];
+  try {
+    const rawJson = r.text.replace(/```json|```/gi, "").trim();
+    const parsed = JSON.parse(rawJson);
+    if (Array.isArray(parsed)) {
+      trades = parsed
+        .filter((t) => t && typeof t.symbol === "string" && Number(t.quantity) > 0 && Number(t.price) > 0)
+        .map((t) => ({
+          symbol: String(t.symbol).trim().toUpperCase().replace(/[^A-Z0-9&\-.]/g, ""),
+          exchange: t.exchange === "BSE" ? "BSE" : "NSE",
+          action: String(t.action).toUpperCase() === "SELL" ? "SELL" : "BUY",
+          quantity: Math.abs(Number(t.quantity)),
+          price: Math.abs(Number(t.price)),
+        }));
+    }
+  } catch {
+    throw new PrivilegedError("The AI model was unable to extract structured trades from this note. Please verify the text format.");
+  }
+
+  return { trades, provider: r.provider, model: r.model };
+}
+
+

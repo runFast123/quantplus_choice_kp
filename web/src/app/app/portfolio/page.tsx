@@ -6,6 +6,7 @@ import { Delta, Stat } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { QuantumAudit } from "@/components/market/quantum-audit";
 import { AiPortfolioDiagnostic } from "@/components/portfolio/ai-diagnostic";
+import { ContractNoteModal } from "@/components/portfolio/contract-note-modal";
 import { CsvImportModal } from "@/components/portfolio/csv-import";
 import { date, price, qty, rupees, rupeesCompact } from "@/lib/format";
 import type { Holding, Portfolio } from "@/lib/types";
@@ -72,13 +73,14 @@ export default async function PortfolioPage() {
         title="Portfolio"
         description="Valued at the last close. Only you can see this — workspace admins can't, and neither can our support dashboard."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {ent?.max_portfolio_symbols != null ? (
-              <span className="num text-[12px] text-muted-foreground">
+              <span className="num text-[12px] text-muted-foreground mr-1">
                 {ent.portfolio_symbols_used}/{ent.max_portfolio_symbols} symbols
               </span>
             ) : null}
             <CsvImportModal portfolios={portfolios} />
+            <ContractNoteModal portfolios={portfolios} ready={!aiReason} reason={aiReason} />
           </div>
         }
       />
