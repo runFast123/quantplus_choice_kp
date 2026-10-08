@@ -3,13 +3,16 @@
 import { useMemo, useState } from "react";
 import clsx from "clsx";
 import {
+  BellIcon,
   CalculatorIcon,
+  CheckIcon,
   CrosshairIcon,
   ShieldCheckIcon,
   TargetIcon,
   TrendUpIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
+import { quickArmAlert } from "@/app/app/alerts/actions";
 import { price } from "@/lib/format";
 import {
   calculatePositionSize,
@@ -51,6 +54,54 @@ export function TradePlan({
   const [customEntry, setCustomEntry] = useState<number>(baseEntry);
   const [customStop, setCustomStop] = useState<number>(defaultStop);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [alertStatus, setAlertStatus] = useState<
+    Record<string, { loading?: boolean; ok?: boolean; msg?: string }>
+  >({});
+
+  const handleArmAlert = async (key: string, condition: "above" | "below", targetPrice: number) => {
+    if (!symbol) return;
+    setAlertStatus((prev) => ({ ...prev, [key]: { loading: true } }));
+    try {
+      const res = await quickArmAlert(symbol, condition, targetPrice);
+      if (res?.ok) {
+        setAlertStatus((prev) => ({
+          ...prev,
+          [key]: { loading: false, ok: true, msg: "Armed" },
+        }));
+        setTimeout(() => {
+          setAlertStatus((prev) => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+          });
+        }, 3000);
+      } else {
+        setAlertStatus((prev) => ({
+          ...prev,
+          [key]: { loading: false, ok: false, msg: res?.error || "Failed" },
+        }));
+        setTimeout(() => {
+          setAlertStatus((prev) => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+          });
+        }, 4000);
+      }
+    } catch {
+      setAlertStatus((prev) => ({
+        ...prev,
+        [key]: { loading: false, ok: false, msg: "Failed" },
+      }));
+      setTimeout(() => {
+        setAlertStatus((prev) => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+      }, 3000);
+    }
+  };
 
   // Trade Plan Mathematical Calculations (PDF §5: 0.75R, 2.0R, 3.0R)
   const plan = useMemo(
@@ -93,11 +144,43 @@ export function TradePlan({
               <WarningCircleIcon size={14} aria-hidden />
               <span className="eyebrow text-loss">Stop Loss (1R)</span>
             </div>
-            {lastPrice <= plan.stop && (
-              <span className="rounded bg-loss-soft px-1.5 py-0.2 text-[10px] font-semibold text-loss uppercase">
-                Breached
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {lastPrice <= plan.stop && (
+                <span className="rounded bg-loss-soft px-1.5 py-0.2 text-[10px] font-semibold text-loss uppercase">
+                  Breached
+                </span>
+              )}
+              {symbol && (
+                <button
+                  type="button"
+                  disabled={alertStatus["stop"]?.loading}
+                  onClick={() => handleArmAlert("stop", "below", plan.stop)}
+                  title={alertStatus["stop"]?.msg || `Set price alert below ₹${price(plan.stop)}`}
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
+                    alertStatus["stop"]?.ok
+                      ? "bg-gain-soft text-gain"
+                      : alertStatus["stop"]?.msg
+                        ? "bg-loss-soft text-loss"
+                        : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+                  )}
+                >
+                  {alertStatus["stop"]?.ok ? (
+                    <>
+                      <CheckIcon size={12} weight="bold" aria-hidden />
+                      <span>Armed</span>
+                    </>
+                  ) : alertStatus["stop"]?.msg ? (
+                    <span className="truncate max-w-[70px]">{alertStatus["stop"].msg}</span>
+                  ) : (
+                    <>
+                      <BellIcon size={12} aria-hidden />
+                      <span>Alert</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <p className="num mt-1 text-[16px] font-medium text-foreground">
             ₹{price(plan.stop)}
@@ -118,11 +201,43 @@ export function TradePlan({
               <CrosshairIcon size={14} aria-hidden />
               <span className="eyebrow">Target 1 (0.75R)</span>
             </div>
-            {lastPrice >= plan.t1 && (
-              <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
-                Hit
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {lastPrice >= plan.t1 && (
+                <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                  Hit
+                </span>
+              )}
+              {symbol && (
+                <button
+                  type="button"
+                  disabled={alertStatus["t1"]?.loading}
+                  onClick={() => handleArmAlert("t1", "above", plan.t1)}
+                  title={alertStatus["t1"]?.msg || `Set price alert above ₹${price(plan.t1)}`}
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
+                    alertStatus["t1"]?.ok
+                      ? "bg-gain-soft text-gain"
+                      : alertStatus["t1"]?.msg
+                        ? "bg-loss-soft text-loss"
+                        : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+                  )}
+                >
+                  {alertStatus["t1"]?.ok ? (
+                    <>
+                      <CheckIcon size={12} weight="bold" aria-hidden />
+                      <span>Armed</span>
+                    </>
+                  ) : alertStatus["t1"]?.msg ? (
+                    <span className="truncate max-w-[70px]">{alertStatus["t1"].msg}</span>
+                  ) : (
+                    <>
+                      <BellIcon size={12} aria-hidden />
+                      <span>Alert</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <p className="num mt-1 text-[16px] font-medium text-foreground">
             ₹{price(plan.t1)}
@@ -143,11 +258,43 @@ export function TradePlan({
               <TargetIcon size={14} aria-hidden />
               <span className="eyebrow text-gain">Target 2 (2.0R)</span>
             </div>
-            {lastPrice >= plan.t2 && (
-              <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
-                Hit
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {lastPrice >= plan.t2 && (
+                <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                  Hit
+                </span>
+              )}
+              {symbol && (
+                <button
+                  type="button"
+                  disabled={alertStatus["t2"]?.loading}
+                  onClick={() => handleArmAlert("t2", "above", plan.t2)}
+                  title={alertStatus["t2"]?.msg || `Set price alert above ₹${price(plan.t2)}`}
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
+                    alertStatus["t2"]?.ok
+                      ? "bg-gain-soft text-gain"
+                      : alertStatus["t2"]?.msg
+                        ? "bg-loss-soft text-loss"
+                        : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+                  )}
+                >
+                  {alertStatus["t2"]?.ok ? (
+                    <>
+                      <CheckIcon size={12} weight="bold" aria-hidden />
+                      <span>Armed</span>
+                    </>
+                  ) : alertStatus["t2"]?.msg ? (
+                    <span className="truncate max-w-[70px]">{alertStatus["t2"].msg}</span>
+                  ) : (
+                    <>
+                      <BellIcon size={12} aria-hidden />
+                      <span>Alert</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <p className="num mt-1 text-[16px] font-medium text-gain">
             ₹{price(plan.t2)}
@@ -168,11 +315,43 @@ export function TradePlan({
               <TrendUpIcon size={14} aria-hidden />
               <span className="eyebrow text-gain">Target 3 (3.0R)</span>
             </div>
-            {lastPrice >= plan.t3 && (
-              <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
-                Hit
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {lastPrice >= plan.t3 && (
+                <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                  Hit
+                </span>
+              )}
+              {symbol && (
+                <button
+                  type="button"
+                  disabled={alertStatus["t3"]?.loading}
+                  onClick={() => handleArmAlert("t3", "above", plan.t3)}
+                  title={alertStatus["t3"]?.msg || `Set price alert above ₹${price(plan.t3)}`}
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
+                    alertStatus["t3"]?.ok
+                      ? "bg-gain-soft text-gain"
+                      : alertStatus["t3"]?.msg
+                        ? "bg-loss-soft text-loss"
+                        : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+                  )}
+                >
+                  {alertStatus["t3"]?.ok ? (
+                    <>
+                      <CheckIcon size={12} weight="bold" aria-hidden />
+                      <span>Armed</span>
+                    </>
+                  ) : alertStatus["t3"]?.msg ? (
+                    <span className="truncate max-w-[70px]">{alertStatus["t3"].msg}</span>
+                  ) : (
+                    <>
+                      <BellIcon size={12} aria-hidden />
+                      <span>Alert</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <p className="num mt-1 text-[16px] font-medium text-gain">
             ₹{price(plan.t3)}

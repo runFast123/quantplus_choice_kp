@@ -6,7 +6,24 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
-### Added — Automated Sentiment Exhaustion Alerts (`/app/alerts`)
+### Added — Portfolio Automation & Broker CSV Ingestion (`/app/portfolio`, `<TradePlan>`)
+- **1-Click Alert Arming on Trade Plan**: Added direct 1-click price alert buttons to each milestone card (Stop Loss 1R, Target 1 0.75R, Target 2 2.0R, Target 3 3.0R) in `TradePlan` (`web/src/components/market/trade-plan.tsx`) via `quickArmAlert`.
+- **Indian Broker CSV Importer**: Integrated smart holdings importer (`web/src/components/portfolio/csv-import.tsx`) supporting Zerodha Console/Kite, Groww, Angel One, Upstox, Dhan, and generic CSV/TSV exports:
+  - Automatically identifies broker-specific header columns (Instrument, Qty, Avg Cost, etc.).
+  - Strips exchange suffixes (`-EQ`, `.NS`, `.BO`, `-BE`) and currency prefixes (`₹`, `Rs`, `INR`).
+  - Merges positions with existing holdings using weighted average buy prices ($q_{new} = q_0 + q_1$, $avg = \frac{q_0 p_0 + q_1 p_1}{q_0 + q_1}$).
+  - Live client-side preview table validating symbols against the NSE market registry prior to import.
+  - Unit-tested with 5 dedicated test cases in `web/src/lib/csv-parser.test.mts` (37/37 test suite passing).
+
+### Added — BYOK AI Intelligence & Interactive Research Expansion
+- **Portfolio Health & Concentration Diagnostic (`/app/portfolio`)**:
+  - Implemented `portfolioHealthReadWithMyKey` in `web/src/server/privileged/ai.ts` and `<AiPortfolioDiagnostic>` in `web/src/components/portfolio/ai-diagnostic.tsx`.
+  - Computes Herfindahl-Hirschman Index (HHI), single-stock concentration risk, sector weight imbalances, and portfolio-wide RSI momentum alignment.
+  - Synthesizes risk diagnosis using the user's own BYOK key (Claude, OpenAI, Gemini) with zero stored prompts or telemetry.
+- **Interactive Symbol AI Research Chat (`/app/markets/[symbol]`)**:
+  - Implemented `symbolResearchChatWithMyKey` and `<SymbolAiChat>` (`web/src/components/research/symbol-ai-chat.tsx`).
+  - Provides interactive Q&A grounded exclusively in verified market facts, moving averages, RSI exhaustion nodes, signals, and recent headlines.
+  - Pre-baked research prompts for fast analysis with zero hallucinations.
 - Integrated automated sentiment exhaustion scanning into `/app/alerts`:
   - Monitors all held and watched stocks across the user's account against critical RSI exhaustion boundaries.
   - Automatically raises alerts for stocks entering Node 3 Sentiment Peak ($\ge 80$) or Node 2 Overbought ($\ge 70$) with clear scale-out warnings, or Node 0 Oversold Accumulation ($\le 30$).

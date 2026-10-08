@@ -44,6 +44,53 @@ export async function createAlert(_: ActionState, form: FormData): Promise<Actio
   return { ok: true, message: `Alert set: ${parsed.data.symbol} ${condition} ₹${trigger_price.toFixed(2)}.` };
 }
 
+export async function quickArmAlert(
+  symbol: string,
+  condition: "above" | "below",
+  triggerPrice: number,
+): Promise<ActionState> {
+  const s = await requireSession();
+  const parsed = alertSchema.safeParse({
+    symbol,
+    exchange: "NSE",
+    condition,
+    trigger_price: triggerPrice,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { data: quote } = await s.supabase
+    .from("market_snapshot")
+    .select("last_price")
+    .eq("symbol", parsed.data.symbol)
+    .maybeSingle();
+  if (!quote) return { error: `${parsed.data.symbol} isn't in our market list.` };
+  const last = Number(quote.last_price);
+  const { trigger_price } = parsed.data;
+
+  if (
+    (condition === "above" && trigger_price <= last) ||
+    (condition === "below" && trigger_price >= last)
+  ) {
+    return {
+      error: `Already ${condition === "above" ? "above" : "below"} that level (LTP ₹${last.toFixed(2)}).`,
+    };
+  }
+
+  const { error } = await s.supabase.from("price_alerts").insert({
+    ...parsed.data,
+    origin: "quant_signal",
+    channels: ["in_app"],
+  });
+  if (error) return { error: friendlyDbError(error.message) };
+  await s.supabase.rpc("track_event", { p_event_type: "alert_created" });
+  revalidatePath("/app/alerts");
+  revalidatePath(`/app/markets/${encodeURIComponent(symbol)}`);
+  return {
+    ok: true,
+    message: `Alert armed: ${parsed.data.symbol} ${condition} ₹${trigger_price.toFixed(2)}.`,
+  };
+}
+
 export async function setAlertStatus(id: string, status: "armed" | "disabled") {
   const s = await requireSession();
   await s.supabase.from("price_alerts").update({ status }).eq("id", id);

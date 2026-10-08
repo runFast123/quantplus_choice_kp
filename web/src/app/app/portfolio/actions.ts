@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { parseHoldingsCsv } from "@/lib/csv-parser";
 import { friendlyDbError, type ActionState } from "@/lib/errors";
-import { requireSession } from "@/server/session";
+import { portfolioHealthReadWithMyKey } from "@/server/privileged/ai";
+import { can, requireSession } from "@/server/session";
 
 const holdingSchema = z.object({
   portfolio_id: z.uuid("Pick a portfolio."),
@@ -108,3 +110,143 @@ export async function createPortfolio(_: ActionState, form: FormData): Promise<A
   revalidatePath("/app/portfolio");
   return { ok: true, message: `Created “${name}”.` };
 }
+
+export type ImportResult = {
+  ok?: boolean;
+  error?: string;
+  imported?: number;
+  updated?: number;
+  skipped?: number;
+  details?: string[];
+};
+
+export async function importHoldingsCsv(
+  portfolioId: string,
+  csvText: string,
+): Promise<ImportResult> {
+  const s = await requireSession();
+  let pid = portfolioId;
+  if (!pid) {
+    const ensured = await ensurePortfolio();
+    if (ensured.error || !ensured.id) return { error: ensured.error ?? "Failed to find or create portfolio." };
+    pid = ensured.id;
+  }
+
+  const parsed = parseHoldingsCsv(csvText);
+  if (!parsed.validRows.length) {
+    return {
+      error:
+        "No valid holding rows found. Ensure the CSV contains columns for Symbol, Quantity, and Average Price.",
+    };
+  }
+
+  const batch = parsed.validRows.slice(0, 250);
+  const symbols = [...new Set(batch.map((r) => r.cleanSymbol))];
+
+  const { data: metas } = await s.supabase
+    .from("market_symbols")
+    .select("symbol, exchange, sector, segment, is_active")
+    .in("symbol", symbols)
+    .eq("exchange", "NSE");
+
+  const metaMap = new Map((metas ?? []).map((m) => [m.symbol, m]));
+
+  const { data: existingHoldings } = await s.supabase
+    .from("holdings")
+    .select("id, symbol, exchange, quantity, avg_price")
+    .eq("portfolio_id", pid);
+
+  const existingMap = new Map((existingHoldings ?? []).map((h) => [h.symbol, h]));
+
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+  const details: string[] = [];
+
+  for (const row of batch) {
+    const meta = metaMap.get(row.cleanSymbol);
+    if (!meta) {
+      skipped++;
+      details.push(`${row.cleanSymbol}: not found in market registry`);
+      continue;
+    }
+    if (meta.segment === "index") {
+      skipped++;
+      details.push(`${row.cleanSymbol}: indices cannot be held directly`);
+      continue;
+    }
+    if (!meta.is_active) {
+      skipped++;
+      details.push(`${row.cleanSymbol}: symbol no longer trades`);
+      continue;
+    }
+
+    const existing = existingMap.get(row.cleanSymbol);
+    if (existing) {
+      const q0 = Number(existing.quantity);
+      const qty = q0 + row.quantity;
+      const avg = (q0 * Number(existing.avg_price) + row.quantity * row.avgPrice) / qty;
+      const { error } = await s.supabase
+        .from("holdings")
+        .update({ quantity: qty, avg_price: Number(avg.toFixed(4)) })
+        .eq("id", existing.id);
+      if (error) {
+        skipped++;
+        details.push(`${row.cleanSymbol}: ${friendlyDbError(error.message)}`);
+      } else {
+        updated++;
+        existing.quantity = qty;
+        existing.avg_price = avg;
+      }
+    } else {
+      const { error } = await s.supabase.from("holdings").insert({
+        portfolio_id: pid,
+        symbol: row.cleanSymbol,
+        exchange: "NSE",
+        quantity: row.quantity,
+        avg_price: row.avgPrice,
+        sector: meta.sector,
+        source: "import",
+      });
+      if (error) {
+        skipped++;
+        details.push(`${row.cleanSymbol}: ${friendlyDbError(error.message)}`);
+      } else {
+        imported++;
+      }
+    }
+  }
+
+  await s.supabase.rpc("track_event", { p_event_type: "holdings_imported" });
+  revalidatePath("/app", "layout");
+  return {
+    ok: true,
+    imported,
+    updated,
+    skipped,
+    details: details.slice(0, 10),
+  };
+}
+
+export type PortfolioAiState = {
+  text?: string;
+  provider?: string;
+  model?: string;
+  error?: string;
+};
+
+export async function askPortfolioAi(portfolioId?: string): Promise<PortfolioAiState> {
+  const s = await requireSession();
+  if (!s.activeTenantId) return { error: "No active workspace." };
+  if (!can(s, "ai_byok")) {
+    return { error: "AI diagnostics are part of Pro and Pro Plus." };
+  }
+  try {
+    const res = await portfolioHealthReadWithMyKey(s.userId, s.activeTenantId, portfolioId);
+    return { text: res.text, provider: res.provider, model: res.model };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Couldn't generate portfolio diagnostic.";
+    return { error: msg };
+  }
+}
+

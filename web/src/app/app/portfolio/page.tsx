@@ -5,6 +5,8 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Delta, Stat } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { QuantumAudit } from "@/components/market/quantum-audit";
+import { AiPortfolioDiagnostic } from "@/components/portfolio/ai-diagnostic";
+import { CsvImportModal } from "@/components/portfolio/csv-import";
 import { date, price, qty, rupees, rupeesCompact } from "@/lib/format";
 import type { Holding, Portfolio } from "@/lib/types";
 import { getQuotes, positions, summarize } from "@/server/market-data";
@@ -26,15 +28,27 @@ export default async function PortfolioPage() {
   }
 
   const db = s.supabase;
-  const [pfRes, hRes] = await Promise.all([
+  const [pfRes, hRes, aiKeysRes, aiConsentRes] = await Promise.all([
     db.from("portfolios").select("id, name, source, created_at").order("created_at"),
     db.from("holdings").select("*"),
+    can(s, "ai_byok")
+      ? db.from("ai_provider_keys").select("id").eq("status", "active").neq("provider", "other").limit(1)
+      : Promise.resolve({ data: [] }),
+    db.from("user_consents").select("id").eq("purpose", "ai_processing").is("withdrawn_at", null).limit(1),
   ]);
   const portfolios = (pfRes.data ?? []) as Portfolio[];
   const holdings = (hRes.data ?? []) as Holding[];
   const quotes = await getQuotes(db, [...new Set(holdings.map((h) => h.symbol))]);
   const ps = positions(holdings, quotes).sort((a, b) => b.value - a.value);
   const sum = summarize(ps);
+
+  const aiReason = !can(s, "ai_byok")
+    ? "AI diagnostics with your own key are part of Pro."
+    : !aiConsentRes.data?.length
+      ? "Allow AI processing in Settings → Privacy, then add a key in"
+      : !aiKeysRes.data?.length
+        ? "Add an Anthropic, OpenAI or Gemini key in"
+        : undefined;
 
   const bySector = new Map<string, number>();
   for (const p of ps) bySector.set(p.holding.sector ?? "Other", (bySector.get(p.holding.sector ?? "Other") ?? 0) + p.value);
@@ -58,11 +72,14 @@ export default async function PortfolioPage() {
         title="Portfolio"
         description="Valued at the last close. Only you can see this — workspace admins can't, and neither can our support dashboard."
         actions={
-          ent?.max_portfolio_symbols != null ? (
-            <span className="num text-[12px] text-muted-foreground">
-              {ent.portfolio_symbols_used}/{ent.max_portfolio_symbols} symbols
-            </span>
-          ) : null
+          <div className="flex items-center gap-3">
+            {ent?.max_portfolio_symbols != null ? (
+              <span className="num text-[12px] text-muted-foreground">
+                {ent.portfolio_symbols_used}/{ent.max_portfolio_symbols} symbols
+              </span>
+            ) : null}
+            <CsvImportModal portfolios={portfolios} />
+          </div>
         }
       />
 
@@ -76,6 +93,19 @@ export default async function PortfolioPage() {
       <Panel title="Add a holding">
         <AddHoldingForm portfolios={portfolios} />
       </Panel>
+
+      {ps.length > 0 ? (
+        <Panel
+          title="Portfolio AI Diagnostic"
+          meta="Concentration, HHI & sector balance"
+        >
+          <AiPortfolioDiagnostic
+            portfolioId={portfolios[0]?.id}
+            ready={!aiReason}
+            reason={aiReason}
+          />
+        </Panel>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Panel title="Positions" meta={ps.length ? "sorted by value" : undefined}>

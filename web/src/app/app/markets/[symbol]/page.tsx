@@ -8,6 +8,7 @@ import { RadarToggle } from "@/components/market/radar-toggle";
 import { TradePlan } from "@/components/market/trade-plan";
 import { NewsList } from "@/components/news/news-list";
 import { AiRead } from "@/components/research/ai-read";
+import { SymbolAiChat } from "@/components/research/symbol-ai-chat";
 import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
@@ -191,7 +192,13 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           }
         >
           {!note ? (
-            <Empty title="No note yet.">Notes are rebuilt after each close and whenever new headlines arrive.</Empty>
+            <div className="flex flex-col gap-5">
+              <Empty title="No note yet.">Notes are rebuilt after each close and whenever new headlines arrive.</Empty>
+              <div className="border-t border-border pt-4">
+                <p className="eyebrow mb-2">Interactive AI Research</p>
+                <SymbolAiChat symbol={q.symbol} ready={!aiReason} reason={aiReason} />
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col gap-5">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -206,9 +213,15 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
               </div>
               <p className="display text-[20px] leading-snug">{note.headline}</p>
               <FactorBreakdown factors={note.factors} />
-              <div className="border-t border-border pt-4">
-                <p className="eyebrow mb-2">Your AI, your key</p>
-                <AiRead symbol={q.symbol} ready={!aiReason} reason={aiReason} />
+              <div className="border-t border-border pt-4 flex flex-col gap-4">
+                <div>
+                  <p className="eyebrow mb-2">Interactive AI Research</p>
+                  <SymbolAiChat symbol={q.symbol} ready={!aiReason} reason={aiReason} />
+                </div>
+                <div>
+                  <p className="eyebrow mb-2">Full AI Research Note</p>
+                  <AiRead symbol={q.symbol} ready={!aiReason} reason={aiReason} />
+                </div>
               </div>
             </div>
           )}

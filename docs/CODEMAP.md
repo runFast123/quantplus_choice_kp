@@ -87,7 +87,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `privileged/admin.ts` | `isPlatformAdmin`, `searchUsers`, `activatePlan`, `platformStats`, type `AdminUserRow` | Platform console |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
 | `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
-| `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, type `AiRead` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
+| `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, type `AiRead` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
 | `news-data.ts` | `getNews(db, {symbols?, tone?, kind?, limit?, before?})`, `getResearch(db, symbols?)`, `normalizeNote`, types `NewsItem`, `ResearchNote`, `ResearchFactor` | RLS client reads |
 
 ## 3. Lib (web/src/lib) — pure, safe anywhere
@@ -100,6 +100,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
 | `consents.ts` | `CONSENT_VERSION`, `CONSENT_COPY` |
 | `plans.ts` | `FEATURE_ROWS` (feature key → label, display order) |
+| `csv-parser.ts` | `parseHoldingsCsv(csvText)`, `cleanBrokerSymbol`, `parseNumeric`, types `ParsedHoldingRow`, `ParseHoldingsResult` (Zerodha, Groww, Angel One, Upstox, generic) |
+| `csv-parser.test.mts` | unit tests (`npm run test:unit`) |
 | `news/feed.ts` | `parseFeed(xml)`, `parseFeedDate`, `cleanText`, `decodeEntities`, `normaliseUrl`, `nseFilingSymbol` |
 | `news/match.ts` | `SymbolMatcher` (`match`, `matchesSymbol`), `stripLegalSuffix` — sibling-entity guard (`SIBLING_WORDS`) |
 | `news/tone.ts` | `scoreTone(text)` → `{score, label, terms}`; `POSITIVE`, `NEGATIVE` word lists |
