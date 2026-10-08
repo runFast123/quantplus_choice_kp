@@ -5,6 +5,7 @@ import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { PriceChart, type ChartMarker } from "@/components/charts/price-chart";
 import { AlertForm } from "@/components/market/alert-form";
 import { RadarToggle } from "@/components/market/radar-toggle";
+import { TradePlan } from "@/components/market/trade-plan";
 import { NewsList } from "@/components/news/news-list";
 import { AiRead } from "@/components/research/ai-read";
 import { FactorBreakdown } from "@/components/research/factor-breakdown";
@@ -51,6 +52,10 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     kind: sg.signal_type,
     label: sg.strategy === "rsi_reversal" ? "RSI" : "MA",
   }));
+
+  const latestBuySignal = signals.find((s) => s.signal_type === "buy");
+  const signalEntry = latestBuySignal ? Number(latestBuySignal.payload.close) : null;
+  const signalStop = latestBuySignal?.payload.stop ? Number(latestBuySignal.payload.stop) : null;
 
   const closes = candles.map((c) => c.close);
   const sma = (n: number) => (closes.length >= n ? closes.slice(-n).reduce((a, b) => a + b, 0) / n : null);
@@ -104,9 +109,28 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
       </header>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <Panel title="Price" meta="Daily · NSE">
-          {candles.length ? <PriceChart candles={candles} markers={markers} symbol={q.symbol} /> : <Empty title="No price history yet." />}
-        </Panel>
+        <div className="flex flex-col gap-6">
+          <Panel title="Price" meta="Daily · NSE">
+            {candles.length ? <PriceChart candles={candles} markers={markers} symbol={q.symbol} /> : <Empty title="No price history yet." />}
+          </Panel>
+
+          {q.last_price ? (
+            <Panel
+              title="Trade plan & targets"
+              meta={latestBuySignal ? `Anchored to ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} signal` : "Asymmetric 0.75R / 2.0R / 3.0R model"}
+            >
+              <TradePlan
+                symbol={q.symbol}
+                lastPrice={q.last_price}
+                rsi={q.rsi}
+                sma20={sma20}
+                sma50={sma50}
+                signalEntry={signalEntry}
+                signalStop={signalStop}
+              />
+            </Panel>
+          ) : null}
+        </div>
 
         <div className="flex flex-col gap-6">
           <Panel title="Key levels">

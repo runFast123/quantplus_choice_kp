@@ -6,6 +6,12 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Quantitative Trade Plan & Capital-Constrained Position Sizing
+- Quantitative trade plan model (`web/src/lib/trade-plan.ts`) with asymmetric multiples ($T_1 = 0.75R$ de-risking, $T_2 = 2.0R$ core target, $T_3 = 3.0R$ trend runner) and unit tests in `web/src/lib/trade-plan.test.mts`.
+- Capital-constrained position sizing fixing prototype audit Issue #6: unconstrained fractional sizing previously led to 300%+ leverage on tight stops. Units are strictly bounded by available cash ($\min(\lfloor \text{riskBudget} / R \rfloor, \lfloor \text{capital} / \text{entry} \rfloor)$), with an active shield badge and max-loss protection.
+- Quantitative sentiment exhaustion classifier (`evaluateSentiment`): categorises 14-period RSI into actionable exhaustion nodes (Node 3: Sentiment Peak $\ge 80$, Node 2: Overbought $\ge 70$, Node 1: Momentum Expansion $\ge 60$, and Node 0: Oversold Accumulation $\le 30$).
+- New interactive `<TradePlan>` component (`web/src/components/market/trade-plan.tsx`) embedded directly on stock market pages (`/app/markets/[symbol]`), anchored dynamically to active rule-based buy signals or key moving average support (SMA 20/50).
+
 ### Added — the whole NSE market (ADR-027)
 - Coverage went from 43 hand-picked stocks to **3,571 symbols**: every NSE equity Yahoo lists (main board + SME
   Emerge), 13 major ETFs and 21 NSE indices (NIFTY 50, Bank Nifty, sector indices, India VIX …).
