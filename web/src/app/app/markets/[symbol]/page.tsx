@@ -50,7 +50,10 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const markers: ChartMarker[] = signals.map((sg) => ({
     ts: sg.generated_at,
     kind: sg.signal_type,
-    label: sg.strategy === "rsi_reversal" ? "RSI" : "MA",
+    label: sg.strategy === "rsi_reversal" ? "RSI Reversal" : "SMA Golden Cross",
+    strategy: sg.strategy,
+    price: Number(sg.payload.close ?? sg.payload.trigger_price ?? 0) || null,
+    stop: Number(sg.payload.stop ?? 0) || null,
   }));
 
   const latestBuySignal = signals.find((s) => s.signal_type === "buy");

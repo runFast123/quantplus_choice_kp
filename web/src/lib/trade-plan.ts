@@ -385,4 +385,87 @@ export function auditStockSentiment(params: {
   };
 }
 
+export interface RawChartMarker {
+  ts: string;
+  kind: "buy" | "exit";
+  label: string;
+  price?: number | null;
+  strategy?: string;
+  stop?: number | null;
+}
+
+/**
+ * Deduplicates and clusters signal markers for financial chart display.
+ * Resolves marker overlapping by:
+ * 1. Merging same-day signals into a single consolidated marker (e.g. "MA + RSI").
+ * 2. In "clean" mode, suppressing repeated signals of the same direction within 5 calendar days,
+ *    preventing ugly visual collisions and highlighting regime transitions.
+ */
+export function deduplicateChartSignals(
+  markers: RawChartMarker[],
+  mode: "clean" | "all" = "clean",
+): RawChartMarker[] {
+  if (!markers.length) return [];
+
+  // Sort ascending by timestamp
+  const sorted = [...markers].sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
+  // 1. Group multiple signals on the same day
+  const byDay = new Map<string, RawChartMarker[]>();
+  for (const m of sorted) {
+    const day = m.ts.slice(0, 10);
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day)!.push(m);
+  }
+
+  // Combine multiple signals on the same day into one consolidated marker
+  const dailyConsolidated: RawChartMarker[] = [];
+  for (const [, dayMarkers] of byDay.entries()) {
+    if (dayMarkers.length === 1) {
+      dailyConsolidated.push(dayMarkers[0]);
+    } else {
+      // Multiple on the same day: merge labels
+      const buy = dayMarkers.find((m) => m.kind === "buy");
+      const exit = dayMarkers.find((m) => m.kind === "exit");
+      if (buy && exit) {
+        dailyConsolidated.push(dayMarkers[dayMarkers.length - 1]);
+      } else {
+        const primary = dayMarkers[0];
+        const uniqueLabels = Array.from(new Set(dayMarkers.map((m) => m.label)));
+        dailyConsolidated.push({
+          ...primary,
+          label: uniqueLabels.join(" + "),
+        });
+      }
+    }
+  }
+
+  if (mode === "all") return dailyConsolidated;
+
+  // 2. Proximity filtering (Clean Mode):
+  // Suppress repeated signals of the same kind that occur within 5 calendar days
+  const clean: RawChartMarker[] = [];
+  let lastBuyTs = 0;
+  let lastExitTs = 0;
+  const MIN_SPACING_MS = 5 * 86400000;
+
+  for (const m of dailyConsolidated) {
+    const t = new Date(m.ts).getTime();
+    if (m.kind === "buy") {
+      if (clean.length === 0 || t - lastBuyTs >= MIN_SPACING_MS || clean[clean.length - 1].kind === "exit") {
+        clean.push(m);
+        lastBuyTs = t;
+      }
+    } else {
+      if (clean.length === 0 || t - lastExitTs >= MIN_SPACING_MS || clean[clean.length - 1].kind === "buy") {
+        clean.push(m);
+        lastExitTs = t;
+      }
+    }
+  }
+
+  return clean;
+}
+
+
 

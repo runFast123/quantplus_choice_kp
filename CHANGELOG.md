@@ -8,6 +8,11 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ### Added & Fixed — Free TradingView Advanced Chart Integration (`/app/markets/[symbol]`)
 - Fixed symbol fallback issue where Indian stocks defaulted to Apple Inc (`AAPL`) in the embed widget: added `toTradingViewWidgetSymbol` in `web/src/lib/market.ts` routing to `BSE:${symbol}` for free iframe compatibility.
+- Fixed signal label overlap and collisions on candlesticks:
+  - Implemented `deduplicateChartSignals` (`web/src/lib/trade-plan.ts`) merging multiple same-day triggers (e.g. `MA + RSI`) and proximity filtering consecutive exit runs in "Clean Triggers" mode.
+  - Replaced long overlapping text banners with clean, high-visibility arrow glyphs (`▲` and `▼`) with optional compact label toggle.
+  - Added interactive **Recent Signals Ledger** below the chart with clickable signal cards displaying Date, Strategy, Trigger Price, and Stop Loss.
+  - Added **Active Signal HUD**: Real-time crosshair banner displaying signal details upon hovering any trigger candle.
 - Upgraded `<PriceChart>` (`web/src/components/charts/price-chart.tsx`) with full TradingView Lightweight Charts features:
   - High-visibility QuantsPulse **Buy / Exit strategy markers** directly on the candlesticks (`▲ Buy`, `▼ Exit`) with signal filters (All / Buy / Exit).
   - Built-in interactive **technical indicator overlays**: SMA 20 (Amber), SMA 50 (Sky Blue), SMA 200 (Purple), and Volume histogram.
@@ -15,7 +20,7 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
   - Active signal detection in hover crosshair readout showing trigger strategy and price.
   - Quick launcher linking directly to the official TradingView web chart for the exact symbol (`https://in.tradingview.com/chart/?symbol=NSE:${symbol}`).
 - Updated `<MarketChartView>` (`web/src/components/charts/market-chart-view.tsx`) with explicit **TradingView Signals** (primary verified NSE data with signals) and **BSE Live Widget** tabs.
-- Added 5 unit tests in `web/src/lib/market.test.mts` verifying ticker conversions and BSE widget fallback protection.
+- Added 8 unit tests across `market.test.mts` and `trade-plan.test.mts` (56/56 passing).
 
 ### Added — Official NSE Holiday Calendar & Session Accuracy (`lib/market.ts`)
 - Integrated official NSE Cash Market trading holiday calendar for 2025, 2026, and 2027 into `web/src/lib/market.ts`.

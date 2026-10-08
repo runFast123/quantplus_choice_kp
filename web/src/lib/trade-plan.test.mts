@@ -5,6 +5,7 @@ import {
   auditStockSentiment,
   calculatePositionSize,
   calculateTradePlan,
+  deduplicateChartSignals,
   evaluateSentiment,
   evaluateSignalProgress,
 } from "./trade-plan";
@@ -249,5 +250,42 @@ describe("auditStockSentiment", () => {
     assert.ok(res.actionGuidance.includes("Oversold accumulation"));
   });
 });
+
+describe("deduplicateChartSignals", () => {
+  test("merges multiple signals on the same day", () => {
+    const raw = [
+      { ts: "2026-03-10T09:15:00Z", kind: "buy" as const, label: "MA", price: 100 },
+      { ts: "2026-03-10T14:30:00Z", kind: "buy" as const, label: "RSI", price: 100 },
+    ];
+    const res = deduplicateChartSignals(raw, "all");
+    assert.equal(res.length, 1);
+    assert.equal(res[0].label, "MA + RSI");
+  });
+
+  test("suppresses consecutive same-direction signals in clean mode", () => {
+    const raw = [
+      { ts: "2026-03-01T09:15:00Z", kind: "exit" as const, label: "RSI", price: 200 },
+      { ts: "2026-03-02T09:15:00Z", kind: "exit" as const, label: "RSI", price: 202 },
+      { ts: "2026-03-03T09:15:00Z", kind: "exit" as const, label: "MA", price: 201 },
+      { ts: "2026-03-15T09:15:00Z", kind: "exit" as const, label: "RSI", price: 210 },
+    ];
+    const clean = deduplicateChartSignals(raw, "clean");
+    // Initial exit on Mar 01 and spaced exit on Mar 15 should survive; Mar 02 and Mar 03 suppressed
+    assert.equal(clean.length, 2);
+    assert.equal(clean[0].ts, "2026-03-01T09:15:00Z");
+    assert.equal(clean[1].ts, "2026-03-15T09:15:00Z");
+  });
+
+  test("allows alternating buy and exit signals even within close proximity", () => {
+    const raw = [
+      { ts: "2026-03-01T09:15:00Z", kind: "buy" as const, label: "MA", price: 150 },
+      { ts: "2026-03-03T09:15:00Z", kind: "exit" as const, label: "RSI", price: 160 },
+      { ts: "2026-03-05T09:15:00Z", kind: "buy" as const, label: "RSI", price: 155 },
+    ];
+    const clean = deduplicateChartSignals(raw, "clean");
+    assert.equal(clean.length, 3);
+  });
+});
+
 
 
