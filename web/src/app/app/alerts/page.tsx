@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import clsx from "clsx";
 import { TrashIcon } from "@phosphor-icons/react/ssr";
 import { AlertForm } from "@/components/market/alert-form";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Badge } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { dateTime, pct, price, relative } from "@/lib/format";
+import { evaluateSentiment } from "@/lib/trade-plan";
 import type { PriceAlert } from "@/lib/types";
 import { getQuotes } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
@@ -25,11 +27,36 @@ export default async function AlertsPage() {
     );
   }
 
-  const { data } = await s.supabase.from("price_alerts").select("*").order("created_at", { ascending: false });
-  const alerts = (data ?? []) as PriceAlert[];
-  const quotes = await getQuotes(s.supabase, [...new Set(alerts.map((a) => a.symbol))]);
+  const [alertsRes, radarRes, holdRes] = await Promise.all([
+    s.supabase.from("price_alerts").select("*").order("created_at", { ascending: false }),
+    s.supabase.from("watchlist_items").select("symbol"),
+    s.supabase.from("holdings").select("symbol"),
+  ]);
+  const alerts = (alertsRes.data ?? []) as PriceAlert[];
+  const userSymbols = [
+    ...new Set([...(radarRes.data ?? []), ...(holdRes.data ?? [])].map((r) => r.symbol)),
+  ];
+  const allSymbols = [...new Set([...alerts.map((a) => a.symbol), ...userSymbols])];
+  const quotes = await getQuotes(s.supabase, allSymbols);
   const armed = alerts.filter((a) => a.status !== "triggered");
   const fired = alerts.filter((a) => a.status === "triggered");
+
+  const sentimentAlerts = userSymbols
+    .map((sym) => {
+      const q = quotes.get(sym);
+      if (!q || q.rsi == null) return null;
+      const sentiment = evaluateSentiment(q.rsi);
+      if (
+        sentiment &&
+        (sentiment.zone === "sentiment_peak" ||
+          sentiment.zone === "overbought" ||
+          sentiment.zone === "oversold")
+      ) {
+        return { symbol: sym, quote: q, sentiment };
+      }
+      return null;
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,6 +69,66 @@ export default async function AlertsPage() {
       <Panel title="New alert">
         <AlertForm />
       </Panel>
+
+      {sentimentAlerts.length > 0 && (
+        <Panel
+          title="Automated Sentiment Alerts"
+          meta={`${sentimentAlerts.length} position${sentimentAlerts.length === 1 ? "" : "s"} at critical exhaustion nodes`}
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sentimentAlerts.map(({ symbol, quote, sentiment }) => (
+              <div
+                key={symbol}
+                className={clsx(
+                  "rounded-md border bg-card p-3.5 transition-colors",
+                  sentiment.zone === "sentiment_peak" || sentiment.zone === "overbought"
+                    ? "border-loss/40"
+                    : "border-border",
+                )}
+              >
+                <div className="flex items-start justify-between">
+                  <Link
+                    href={`/app/markets/${encodeURIComponent(symbol)}`}
+                    className="num text-[15px] font-bold text-foreground hover:underline"
+                  >
+                    {symbol}
+                  </Link>
+                  <span
+                    className={clsx(
+                      "rounded px-1.5 py-0.5 text-[10.5px] font-semibold uppercase",
+                      sentiment.tone === "loss"
+                        ? "bg-loss-soft text-loss border border-loss/20"
+                        : "bg-gain-soft text-gain",
+                    )}
+                  >
+                    {sentiment.label}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between text-[12px]">
+                  <span className="text-muted-foreground">LTP: ₹{price(quote.last_price)}</span>
+                  <span className="num text-muted-foreground">
+                    RSI 14: <strong className="text-foreground">{quote.rsi?.toFixed(1)}</strong>
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[11.5px] text-muted-foreground leading-snug">
+                  {sentiment.sub}
+                </p>
+                <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-[11px]">
+                  <Link
+                    href={`/app/markets/${encodeURIComponent(symbol)}`}
+                    className="text-foreground underline underline-offset-4"
+                  >
+                    View Trade Plan &amp; Sizing →
+                  </Link>
+                  <span className="text-muted-foreground">
+                    {sentiment.zone === "oversold" ? "Accumulation setup" : "Scale-out watch"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <Panel title="Watching" meta={`${armed.length} alert${armed.length === 1 ? "" : "s"}`}>
         {armed.length === 0 ? (

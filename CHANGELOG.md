@@ -6,6 +6,12 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Automated Sentiment Exhaustion Alerts (`/app/alerts`)
+- Integrated automated sentiment exhaustion scanning into `/app/alerts`:
+  - Monitors all held and watched stocks across the user's account against critical RSI exhaustion boundaries.
+  - Automatically raises alerts for stocks entering Node 3 Sentiment Peak ($\ge 80$) or Node 2 Overbought ($\ge 70$) with clear scale-out warnings, or Node 0 Oversold Accumulation ($\le 30$).
+  - One-click navigation directly to the stock's Trade Plan and sizing calculator.
+
 ### Added — Quantum Sentiment Audit Scanner (Portfolio & Market Radar)
 - Interactive `<QuantumAudit>` component (`web/src/components/market/quantum-audit.tsx`):
   - Audits all portfolio holdings and Market Radar stocks simultaneously against their entry base, current LTP, and RSI exhaustion nodes.
