@@ -1,7 +1,7 @@
 // Unit tests for NSE session clock and holiday calendar: npm run test:unit
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { nseSession, NSE_HOLIDAYS, toTradingViewSymbol } from "./market";
+import { nseSession, NSE_HOLIDAYS, toTradingViewSymbol, toTradingViewWidgetSymbol } from "./market";
 
 describe("NSE Holiday Calendar & Session Clock", () => {
   test("identifies official NSE trading holidays", () => {
@@ -105,5 +105,13 @@ describe("TradingView Symbol Formatter", () => {
     assert.equal(toTradingViewSymbol("TCS", "BSE"), "BSE:TCS");
     assert.equal(toTradingViewSymbol("500325", "BSE"), "BSE:500325");
   });
+
+  test("formats embed widget symbols using BSE to avoid Apple fallback", () => {
+    assert.equal(toTradingViewWidgetSymbol("HDFCBANK"), "BSE:HDFCBANK");
+    assert.equal(toTradingViewWidgetSymbol("TCS"), "BSE:TCS");
+    assert.equal(toTradingViewWidgetSymbol("M&M"), "BSE:M_M");
+    assert.equal(toTradingViewWidgetSymbol("NIFTY"), "NSE:NIFTY");
+  });
 });
+
 

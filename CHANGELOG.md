@@ -6,12 +6,16 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
-### Added — Free TradingView Advanced Real-Time Chart Integration (`/app/markets/[symbol]`)
-- Added `<TradingViewWidget>` (`web/src/components/charts/tradingview-widget.tsx`) embedding the official 100% free TradingView Advanced Chart widget.
-- Features 100+ technical indicators (RSI, MACD, Bollinger Bands, Moving Averages, Supertrend, etc.), interactive drawing tools (trendlines, Fibonacci, pitchforks), and live/delayed NSE/BSE interactive feeds.
-- Added `<MarketChartView>` (`web/src/components/charts/market-chart-view.tsx`) with zero-cost toggle between "Signals" (native QuantsPulse EOD candles + buy/exit markers) and "TradingView" (interactive advanced technical chart).
-- Added `toTradingViewSymbol` in `web/src/lib/market.ts` supporting standard NSE/BSE tickers, indices (NIFTY, BANKNIFTY, NIFTYIT, INDIAVIX), and special character sanitization (`&` and `-` to `_`).
-- Added 4 unit test cases in `web/src/lib/market.test.mts` verifying ticker conversions.
+### Added & Fixed — Free TradingView Advanced Chart Integration (`/app/markets/[symbol]`)
+- Fixed symbol fallback issue where Indian stocks defaulted to Apple Inc (`AAPL`) in the embed widget: added `toTradingViewWidgetSymbol` in `web/src/lib/market.ts` routing to `BSE:${symbol}` for free iframe compatibility.
+- Upgraded `<PriceChart>` (`web/src/components/charts/price-chart.tsx`) with full TradingView Lightweight Charts features:
+  - High-visibility QuantsPulse **Buy / Exit strategy markers** directly on the candlesticks (`▲ Buy`, `▼ Exit`) with signal filters (All / Buy / Exit).
+  - Built-in interactive **technical indicator overlays**: SMA 20 (Amber), SMA 50 (Sky Blue), SMA 200 (Purple), and Volume histogram.
+  - Interactive **Chart Type switcher**: Candlesticks vs Area/Line chart.
+  - Active signal detection in hover crosshair readout showing trigger strategy and price.
+  - Quick launcher linking directly to the official TradingView web chart for the exact symbol (`https://in.tradingview.com/chart/?symbol=NSE:${symbol}`).
+- Updated `<MarketChartView>` (`web/src/components/charts/market-chart-view.tsx`) with explicit **TradingView Signals** (primary verified NSE data with signals) and **BSE Live Widget** tabs.
+- Added 5 unit tests in `web/src/lib/market.test.mts` verifying ticker conversions and BSE widget fallback protection.
 
 ### Added — Official NSE Holiday Calendar & Session Accuracy (`lib/market.ts`)
 - Integrated official NSE Cash Market trading holiday calendar for 2025, 2026, and 2027 into `web/src/lib/market.ts`.

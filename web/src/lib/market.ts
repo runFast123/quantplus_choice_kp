@@ -157,3 +157,18 @@ export function toTradingViewSymbol(symbol: string, exchange: string = "NSE"): s
   return `${ex}:${sanitized}`;
 }
 
+/**
+ * Maps an Indian symbol to a ticker supported by TradingView's free external embed iframe.
+ * The free iframe widget restricts NSE data and defaults to Apple Inc (AAPL); using BSE
+ * routes to the genuine Indian equity on Bombay Stock Exchange without falling back.
+ */
+export function toTradingViewWidgetSymbol(symbol: string): string {
+  const clean = symbol.trim().toUpperCase();
+  if (clean === "NIFTY" || clean === "NIFTY 50" || clean === "NIFTY50") return "NSE:NIFTY";
+  if (clean === "BANKNIFTY" || clean === "NIFTY BANK") return "NSE:BANKNIFTY";
+  if (clean === "SENSEX" || clean === "BSE:SENSEX") return "BSE:SENSEX";
+  const sanitized = clean.replace(/[& -]/g, "_");
+  return `BSE:${sanitized}`;
+}
+
+
