@@ -8,8 +8,9 @@ import { Badge, Delta, Sparkline } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price } from "@/lib/format";
 import type { Watchlist, WatchlistItem } from "@/lib/types";
-import { getQuotes, getRetired, getSparks } from "@/server/market-data";
+import { QuantumAudit } from "@/components/market/quantum-audit";
 import { RetiredNote } from "@/components/market/retired-note";
+import { getQuotes, getRetired, getSparks } from "@/server/market-data";
 import { requireSession } from "@/server/session";
 import { deleteWatchlist, removeFromRadar } from "./actions";
 import { NewListForm } from "./new-list-form";
@@ -39,6 +40,21 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
   const limit = ent?.max_watchlist_symbols ?? null;
   const full = limit != null && used >= limit;
   const expired = !ent?.features?.watchlist;
+
+  const radarQuantumStocks = items
+    .map((i) => {
+      const q = quotes.get(i.symbol);
+      if (!q?.last_price) return null;
+      return {
+        symbol: i.symbol,
+        entryBase: q.last_price,
+        entryDate: date(i.added_at),
+        lastPrice: q.last_price,
+        rsi: q.rsi,
+        source: "radar" as const,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -172,6 +188,15 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
           </TableWrap>
         )}
       </Panel>
+
+      {radarQuantumStocks.length > 0 ? (
+        <Panel
+          title="Radar Sentiment Audit"
+          meta="Systematic RSI exhaustion nodes & momentum analysis"
+        >
+          <QuantumAudit stocks={radarQuantumStocks} defaultSource="radar" />
+        </Panel>
+      ) : null}
     </div>
   );
 }

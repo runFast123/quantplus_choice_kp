@@ -4,7 +4,8 @@ import { TrashIcon } from "@phosphor-icons/react/ssr";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Delta, Stat } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
-import { price, qty, rupees, rupeesCompact } from "@/lib/format";
+import { QuantumAudit } from "@/components/market/quantum-audit";
+import { date, price, qty, rupees, rupeesCompact } from "@/lib/format";
 import type { Holding, Portfolio } from "@/lib/types";
 import { getQuotes, positions, summarize } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
@@ -39,6 +40,16 @@ export default async function PortfolioPage() {
   for (const p of ps) bySector.set(p.holding.sector ?? "Other", (bySector.get(p.holding.sector ?? "Other") ?? 0) + p.value);
   const sectors = [...bySector.entries()].sort((a, b) => b[1] - a[1]);
   const ent = s.entitlements;
+
+  const quantumStocks = ps.map((p) => ({
+    symbol: p.holding.symbol,
+    entryBase: p.holding.avg_price,
+    entryDate: date(p.holding.created_at),
+    lastPrice: p.quote?.last_price ?? p.holding.avg_price,
+    rsi: p.quote?.rsi,
+    quantity: p.holding.quantity,
+    source: "holding" as const,
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -178,6 +189,15 @@ export default async function PortfolioPage() {
           </Panel>
         </div>
       </div>
+
+      {quantumStocks.length > 0 ? (
+        <Panel
+          title="Quantum Sentiment Audit"
+          meta="Exhaustion nodes, base deltas & systematic action guidance"
+        >
+          <QuantumAudit stocks={quantumStocks} defaultSource="holding" />
+        </Panel>
+      ) : null}
     </div>
   );
 }

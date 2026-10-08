@@ -6,6 +6,16 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Quantum Sentiment Audit Scanner (Portfolio & Market Radar)
+- Interactive `<QuantumAudit>` component (`web/src/components/market/quantum-audit.tsx`):
+  - Audits all portfolio holdings and Market Radar stocks simultaneously against their entry base, current LTP, and RSI exhaustion nodes.
+  - Displays instant KPI overview: total audited count, Sentiment Peak (Node 3) alerts, Overbought (Node 2) alerts, Momentum Expansion (Node 1) runners, and Oversold Accumulation (Node 0) mean-reversion setups.
+  - Interactive source tabs (`Portfolio Holdings` vs `Market Radar`) and node category filters (`Exhaustion`, `Momentum`, `Oversold`).
+  - Action guidance per position (e.g., partial profit de-risking and trailing stop advice on overbought exhaustion).
+  - Expandable Asymmetric Target Roadmap drawer revealing $T_1 (+0.75R)$, $T_2 (+2.0R)$, and $T_3 (+3.0R)$ levels.
+- Embedded `<QuantumAudit>` into `/app/portfolio` (audits user's actual holdings against purchase price base) and `/app/watchlist` (audits watched radar symbols).
+- Implemented `auditStockSentiment` in `web/src/lib/trade-plan.ts` with 3 dedicated unit tests (29/29 test suite passing).
+
 ### Added — Signals Desk Milestone Tracker & Sentiment Badges
 - Upgraded Signals Desk (`/app/signals`):
   - Added quantitative desk overview metrics strip: Active BUY Signals, T1+ De-risked (≥ +0.75R), T2+ Core Targets (≥ +2.0R), and Sentiment Exhaustion Warnings (Node 2/3 RSI ≥ 70).

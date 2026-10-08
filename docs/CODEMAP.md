@@ -104,7 +104,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `news/match.ts` | `SymbolMatcher` (`match`, `matchesSymbol`), `stripLegalSuffix` — sibling-entity guard (`SIBLING_WORDS`) |
 | `news/tone.ts` | `scoreTone(text)` → `{score, label, terms}`; `POSITIVE`, `NEGATIVE` word lists |
 | `news/news.test.mts` | unit tests (`npm run test:unit`) |
-| `trade-plan.ts` | `calculateTradePlan`, `calculatePositionSize`, `evaluateSentiment`, `evaluateSignalProgress`, types `TradePlanResult`, `PositionSizeResult`, `SentimentResult`, `SignalProgressResult`, `TargetStatus` |
+| `trade-plan.ts` | `calculateTradePlan`, `calculatePositionSize`, `evaluateSentiment`, `evaluateSignalProgress`, `auditStockSentiment`, types `TradePlanResult`, `PositionSizeResult`, `SentimentResult`, `SignalProgressResult`, `TargetStatus`, `QuantumAuditItem` |
 | `trade-plan.test.mts` | unit tests (`npm run test:unit`) |
 | `types.ts` | row types: `Plan`, `Entitlements`, `Membership`, `Profile`, `Quote`, `Candle`, `Holding`, `Portfolio`, `Watchlist`, `WatchlistItem`, `PriceAlert`, `Signal`, `NotificationRow` + enums |
 | `env.ts` | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SITE_URL` |
@@ -166,7 +166,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/pager.tsx` | `Pager` (prev/next, keeps params), `pageParam(raw)` — every server-paginated table |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` ("/" shortcut), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
-| `market/*` | `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital-constrained sizing), `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
+| `market/*` | `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital-constrained sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + signal markers), type `ChartMarker` |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
 | `brand/logo.tsx` | `Logo`, `LogoMark` |

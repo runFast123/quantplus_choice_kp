@@ -310,3 +310,79 @@ export function evaluateSignalProgress(
   };
 }
 
+export interface QuantumAuditItem {
+  symbol: string;
+  entryBase: number;
+  entryDate?: string | null;
+  lastPrice: number;
+  rsi: number | null | undefined;
+  pnlPct: number;
+  sentiment: SentimentResult | null;
+  plan: TradePlanResult;
+  actionGuidance: string;
+  source?: "holding" | "radar";
+}
+
+/**
+ * Conducts a quantitative audit of a holding or watched stock against its entry base,
+ * asymmetric targets, and real-time sentiment exhaustion node.
+ */
+export function auditStockSentiment(params: {
+  symbol: string;
+  entryBase: number;
+  entryDate?: string | null;
+  lastPrice: number;
+  rsi?: number | null;
+  stop?: number | null;
+  source?: "holding" | "radar";
+}): QuantumAuditItem {
+  const entry = params.entryBase > 0 ? params.entryBase : params.lastPrice;
+  const stop =
+    params.stop && params.stop < entry
+      ? params.stop
+      : Number((entry * 0.95).toFixed(2));
+
+  const plan = calculateTradePlan({
+    entry,
+    stop,
+    lastPrice: params.lastPrice,
+  });
+
+  const sentiment = evaluateSentiment(params.rsi);
+  const pnlPct =
+    entry > 0
+      ? Number((((params.lastPrice - entry) / entry) * 100).toFixed(2))
+      : 0;
+
+  let actionGuidance =
+    "Stable position within equilibrium range (RSI 30–60). Trend follows moving averages.";
+
+  if (sentiment?.zone === "sentiment_peak") {
+    actionGuidance =
+      "Extreme overbought exhaustion (RSI ≥ 80). Elevated pullback probability; scale out partial gains and trail stop.";
+  } else if (sentiment?.zone === "overbought") {
+    actionGuidance =
+      "Momentum mature (RSI ≥ 70). Approaching exhaustion node; tighten stop protection.";
+  } else if (sentiment?.zone === "momentum") {
+    actionGuidance =
+      "Healthy upward trend expansion (RSI 60–69). Momentum continuation toward Targets 2 and 3.";
+  } else if (sentiment?.zone === "oversold") {
+    actionGuidance =
+      "Oversold accumulation (RSI ≤ 30). Potential mean-reversion setup; monitor for stabilization.";
+  }
+
+  return {
+    symbol: params.symbol,
+    entryBase: entry,
+    entryDate: params.entryDate,
+    lastPrice: params.lastPrice,
+    rsi: params.rsi,
+    pnlPct,
+    sentiment,
+    plan,
+    actionGuidance,
+    source: params.source,
+  };
+}
+
+

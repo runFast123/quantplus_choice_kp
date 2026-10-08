@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  auditStockSentiment,
   calculatePositionSize,
   calculateTradePlan,
   evaluateSentiment,
@@ -204,4 +205,49 @@ describe("evaluateSignalProgress", () => {
     assert.equal(resInvalidStop.statusLabel, "Invalid Stop");
   });
 });
+
+describe("auditStockSentiment", () => {
+  test("audits stock in Sentiment Peak (Node 3) with scale-out guidance", () => {
+    const res = auditStockSentiment({
+      symbol: "TCS",
+      entryBase: 3800,
+      lastPrice: 4200,
+      rsi: 82.5,
+    });
+
+    assert.equal(res.symbol, "TCS");
+    assert.equal(res.pnlPct, 10.53);
+    assert.equal(res.sentiment?.zone, "sentiment_peak");
+    assert.equal(res.sentiment?.node, 3);
+    assert.ok(res.actionGuidance.includes("Extreme overbought exhaustion"));
+    assert.equal(res.plan.isValid, true);
+  });
+
+  test("audits stock in Momentum Expansion (Node 1)", () => {
+    const res = auditStockSentiment({
+      symbol: "INFY",
+      entryBase: 1800,
+      lastPrice: 1890,
+      rsi: 64,
+    });
+
+    assert.equal(res.sentiment?.zone, "momentum");
+    assert.equal(res.sentiment?.node, 1);
+    assert.ok(res.actionGuidance.includes("Healthy upward trend expansion"));
+  });
+
+  test("audits stock in Oversold Accumulation (Node 0)", () => {
+    const res = auditStockSentiment({
+      symbol: "RELIANCE",
+      entryBase: 1300,
+      lastPrice: 1210,
+      rsi: 28,
+    });
+
+    assert.equal(res.sentiment?.zone, "oversold");
+    assert.equal(res.sentiment?.node, 0);
+    assert.ok(res.actionGuidance.includes("Oversold accumulation"));
+  });
+});
+
 
