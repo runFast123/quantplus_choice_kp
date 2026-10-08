@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
-import { PriceChart, type ChartMarker } from "@/components/charts/price-chart";
+import { MarketChartView } from "@/components/charts/market-chart-view";
+import type { ChartMarker } from "@/components/charts/price-chart";
 import { AlertForm } from "@/components/market/alert-form";
 import { BacktestLab } from "@/components/market/backtest-lab";
 import { RadarToggle } from "@/components/market/radar-toggle";
@@ -107,9 +108,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex flex-col gap-6">
-          <Panel title="Price" meta="Daily · NSE">
-            {candles.length ? <PriceChart candles={candles} markers={markers} symbol={q.symbol} /> : <Empty title="No price history yet." />}
-          </Panel>
+          <MarketChartView candles={candles} markers={markers} symbol={q.symbol} exchange={q.exchange} />
 
           {q.last_price ? (
             <Panel

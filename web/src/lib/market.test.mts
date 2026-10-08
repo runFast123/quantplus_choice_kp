@@ -1,7 +1,7 @@
 // Unit tests for NSE session clock and holiday calendar: npm run test:unit
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { nseSession, NSE_HOLIDAYS } from "./market";
+import { nseSession, NSE_HOLIDAYS, toTradingViewSymbol } from "./market";
 
 describe("NSE Holiday Calendar & Session Clock", () => {
   test("identifies official NSE trading holidays", () => {
@@ -79,3 +79,31 @@ describe("NSE Holiday Calendar & Session Clock", () => {
     }
   });
 });
+
+describe("TradingView Symbol Formatter", () => {
+  test("formats standard NSE equities", () => {
+    assert.equal(toTradingViewSymbol("TCS"), "NSE:TCS");
+    assert.equal(toTradingViewSymbol("RELIANCE"), "NSE:RELIANCE");
+    assert.equal(toTradingViewSymbol("INFY"), "NSE:INFY");
+  });
+
+  test("handles special characters in tickers", () => {
+    assert.equal(toTradingViewSymbol("M&M"), "NSE:M_M");
+    assert.equal(toTradingViewSymbol("BAJAJ-AUTO"), "NSE:BAJAJ_AUTO");
+    assert.equal(toTradingViewSymbol("L&TFH"), "NSE:L_TFH");
+  });
+
+  test("maps major NSE indices correctly", () => {
+    assert.equal(toTradingViewSymbol("NIFTY"), "NSE:NIFTY");
+    assert.equal(toTradingViewSymbol("NIFTY 50"), "NSE:NIFTY");
+    assert.equal(toTradingViewSymbol("BANKNIFTY"), "NSE:BANKNIFTY");
+    assert.equal(toTradingViewSymbol("NIFTYIT"), "NSE:CNXIT");
+    assert.equal(toTradingViewSymbol("INDIAVIX"), "NSE:INDIAVIX");
+  });
+
+  test("handles BSE exchange selection", () => {
+    assert.equal(toTradingViewSymbol("TCS", "BSE"), "BSE:TCS");
+    assert.equal(toTradingViewSymbol("500325", "BSE"), "BSE:500325");
+  });
+});
+

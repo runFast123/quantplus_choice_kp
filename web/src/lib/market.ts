@@ -137,3 +137,23 @@ export const SECTORS = [
 
 export type Segment = "equity" | "sme" | "etf" | "index";
 export const SEGMENT_LABEL: Record<Segment, string> = { equity: "Stocks", sme: "SME", etf: "ETFs", index: "Indices" };
+
+/**
+ * Maps an Indian equity, ETF, or index symbol to its corresponding TradingView ticker.
+ * E.g. "TCS" -> "NSE:TCS", "M&M" -> "NSE:M_M", "NIFTY" -> "NSE:NIFTY", "BANKNIFTY" -> "NSE:BANKNIFTY"
+ */
+export function toTradingViewSymbol(symbol: string, exchange: string = "NSE"): string {
+  const clean = symbol.trim().toUpperCase();
+  if (clean === "NIFTY" || clean === "NIFTY 50" || clean === "NIFTY50") return "NSE:NIFTY";
+  if (clean === "BANKNIFTY" || clean === "NIFTY BANK") return "NSE:BANKNIFTY";
+  if (clean === "NIFTYIT" || clean === "CNXIT") return "NSE:CNXIT";
+  if (clean === "INDIAVIX") return "NSE:INDIAVIX";
+  if (clean === "MIDCPNIFTY" || clean === "NIFTYMIDCAP100") return "NSE:NIFTY_MIDCAP_100";
+  if (clean === "NIFTYSMALLCAP100") return "NSE:NIFTY_SMALLCAP_100";
+
+  const ex = exchange.toUpperCase() === "BSE" ? "BSE" : "NSE";
+  // TradingView replaces & and - with _
+  const sanitized = clean.replace(/[& -]/g, "_");
+  return `${ex}:${sanitized}`;
+}
+

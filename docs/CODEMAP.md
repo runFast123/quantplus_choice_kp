@@ -95,7 +95,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Module | Exports |
 |---|---|
 | `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel` |
-| `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
+| `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `toTradingViewSymbol(symbol, exchange)`; `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
 | `market.test.mts` | unit tests (`npm run test:unit`) |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
 | `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
@@ -173,6 +173,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` ("/" shortcut), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
 | `market/*` | `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital-constrained sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + signal markers), type `ChartMarker` |
+| `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
+| `charts/market-chart-view.tsx` | `MarketChartView` (unified tab switcher between QuantsPulse Signals and TradingView Pro) |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
 | `brand/logo.tsx` | `Logo`, `LogoMark` |
 
