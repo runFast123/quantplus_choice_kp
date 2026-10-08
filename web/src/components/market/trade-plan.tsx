@@ -82,10 +82,22 @@ export function TradePlan({
     <div className="flex flex-col gap-4">
       {/* Target Nodes Grid */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <div className="rounded-md border border-border bg-card p-3">
-          <div className="flex items-center gap-1.5 text-loss">
-            <WarningCircleIcon size={14} aria-hidden />
-            <span className="eyebrow text-loss">Stop Loss (1R)</span>
+        <div
+          className={clsx(
+            "rounded-md border p-3 transition-colors",
+            lastPrice <= plan.stop ? "border-loss/60 bg-loss-soft/30" : "border-border bg-card",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-loss">
+              <WarningCircleIcon size={14} aria-hidden />
+              <span className="eyebrow text-loss">Stop Loss (1R)</span>
+            </div>
+            {lastPrice <= plan.stop && (
+              <span className="rounded bg-loss-soft px-1.5 py-0.2 text-[10px] font-semibold text-loss uppercase">
+                Breached
+              </span>
+            )}
           </div>
           <p className="num mt-1 text-[16px] font-medium text-foreground">
             ₹{price(plan.stop)}
@@ -95,10 +107,22 @@ export function TradePlan({
           </p>
         </div>
 
-        <div className="rounded-md border border-border bg-card p-3">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <CrosshairIcon size={14} aria-hidden />
-            <span className="eyebrow">Target 1 (0.75R)</span>
+        <div
+          className={clsx(
+            "rounded-md border p-3 transition-colors",
+            lastPrice >= plan.t1 ? "border-gain/60 bg-gain-soft/30" : "border-border bg-card",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <CrosshairIcon size={14} aria-hidden />
+              <span className="eyebrow">Target 1 (0.75R)</span>
+            </div>
+            {lastPrice >= plan.t1 && (
+              <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                Hit
+              </span>
+            )}
           </div>
           <p className="num mt-1 text-[16px] font-medium text-foreground">
             ₹{price(plan.t1)}
@@ -108,10 +132,22 @@ export function TradePlan({
           </p>
         </div>
 
-        <div className="rounded-md border border-border bg-card p-3">
-          <div className="flex items-center gap-1.5 text-gain">
-            <TargetIcon size={14} aria-hidden />
-            <span className="eyebrow text-gain">Target 2 (2.0R)</span>
+        <div
+          className={clsx(
+            "rounded-md border p-3 transition-colors",
+            lastPrice >= plan.t2 ? "border-gain/60 bg-gain-soft/30" : "border-border bg-card",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-gain">
+              <TargetIcon size={14} aria-hidden />
+              <span className="eyebrow text-gain">Target 2 (2.0R)</span>
+            </div>
+            {lastPrice >= plan.t2 && (
+              <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                Hit
+              </span>
+            )}
           </div>
           <p className="num mt-1 text-[16px] font-medium text-gain">
             ₹{price(plan.t2)}
@@ -121,10 +157,22 @@ export function TradePlan({
           </p>
         </div>
 
-        <div className="rounded-md border border-border bg-card p-3">
-          <div className="flex items-center gap-1.5 text-gain">
-            <TrendUpIcon size={14} aria-hidden />
-            <span className="eyebrow text-gain">Target 3 (3.0R)</span>
+        <div
+          className={clsx(
+            "rounded-md border p-3 transition-colors",
+            lastPrice >= plan.t3 ? "border-gain/60 bg-gain-soft/30" : "border-border bg-card",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-gain">
+              <TrendUpIcon size={14} aria-hidden />
+              <span className="eyebrow text-gain">Target 3 (3.0R)</span>
+            </div>
+            {lastPrice >= plan.t3 && (
+              <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                Hit
+              </span>
+            )}
           </div>
           <p className="num mt-1 text-[16px] font-medium text-gain">
             ₹{price(plan.t3)}
