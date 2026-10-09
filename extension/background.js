@@ -91,22 +91,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// 3. Tab switch & URL update detection
+// 3. Tab switch & URL update detection (manage badge cleanly)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
     if (!tab?.url) return;
 
-    if (isSupportedUrl(tab.url)) {
-      // Ensure detector is running on this tab
-      if (chrome.scripting && tab.id) {
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ["content-scripts/detector.js"],
-        }).catch(() => {});
-      }
-    } else {
-      // Clear badge when on regular web pages
+    if (!isSupportedUrl(tab.url)) {
       if (chrome.action?.setBadgeText) {
         chrome.action.setBadgeText({ text: "" });
       }
@@ -115,12 +106,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.url && isSupportedUrl(tab.url)) {
-    if (chrome.scripting) {
-      chrome.scripting.executeScript({
-        target: { tabId },
-        files: ["content-scripts/detector.js"],
-      }).catch(() => {});
+  if (changeInfo.status === "complete" && tab.url && !isSupportedUrl(tab.url)) {
+    if (chrome.action?.setBadgeText) {
+      chrome.action.setBadgeText({ text: "" });
     }
   }
 });

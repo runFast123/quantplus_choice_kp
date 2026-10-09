@@ -6,13 +6,17 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
-### Fixed — On-Chart Floating Signal HUD Auto-Mount & Synchronous Sync (`extension/`)
-- **Resolved HUD Mount & Visibility on TradingView and Broker Charts**:
-  - Fixed root cause where `cleanTicker` received multi-token strings from TradingView's chart legend (e.g. `HDFCBANK · 1D · NSE · D ...`), stripping non-alphanumerics into a concatenated invalid ticker (`HDFCBANK1DNSED...`), causing symbol detection to fail silently. Added `extractTickerFromText()` to isolate the pure ticker token across legends, titles, headers, and watchlists.
-  - Added immediate startup bootstrap: `detector.js` now reads `chrome.storage.local` on initial script load and immediately mounts the HUD using `activeQuoteData` / `activeSymbol` cached from the Side Panel or background worker without waiting for user interaction or DOM mutations.
-  - Implemented instant 2-way storage synchronization: `detector.js` now listens to `changes.activeQuoteData` and `changes.activeSymbol`, instantly updating the on-chart HUD whenever a stock is selected, typed, or navigated in the Side Panel.
-  - Fixed container layout & coordinate clipping: `hudRoot` is now explicitly configured as a non-interfering fixed portal (`top: 0; left: 0; width: 0; height: 0; overflow: visible; pointer-events: none;`) with `.hud-container` having `pointer-events: auto;`. Default coordinates placed at safe top-left chart quadrant (`top: 65px; left: 75px`), preventing the card from landing under TradingView's watchlist sidebar or Chrome's side panel.
-  - Added direct API fetch fallback (`directFetchFallback`) in content script ensuring data loads seamlessly even if the background service worker is idle.
+### Fixed — Chrome Extension Context Invalidation, Lag Debounce & HUD Body Portal (`extension/`)
+- **Eliminated `Extension context invalidated` Runtime Errors**:
+  - Implemented `isExtensionValid()` lifecycle guard and `safeSendMessage` / `safeStorageGet` / `safeStorageSet` wrappers in `detector.js`, catching context teardown whenever the unpacked extension is reloaded at `chrome://extensions`.
+  - Added auto-cleanup (`destroyContentScript()`) that cleanly disconnects all `MutationObserver`s, clears all `setInterval` / `setTimeout` timers, and detaches event listeners when an orphaned context is detected, preventing rogue background callbacks from throwing unhandled exceptions.
+  - Added singleton guard `window.__qp_detector_loaded` at the entry of `detector.js` preventing duplicate instances from being evaluated in the same document.
+  - Removed duplicate `chrome.scripting.executeScript` injections from `pushHudDirectToTabs` in `sidepanel.js` and `tabs.onActivated` / `tabs.onUpdated` in `background.js`, stopping runaway script re-injection loops.
+- **Fixed TradingView Glitching & Main-Thread Lag**:
+  - Debounced symbol detection with a 300ms scheduler (`scheduleDetect`), stopping high-frequency TradingView canvas mutations from flooding the main thread with repetitive DOM inspection.
+- **Fixed HUD Visibility & DOM Attachment**:
+  - Corrected `getOrCreateShadowRoot()` mounting target to strictly append to `document.body` (instead of `documentElement`), avoiding clipping and overflow issues caused by TradingView's full-screen root layout.
+  - Added immediate visual loading skeleton (`renderHudLoading`) upon ticker detection, ensuring the HUD appears instantly without blank-screen delay while quote data is being fetched.
 
 ### Enhanced — Stateful Clean Pine Script v5 Engine & Multi-Layout On-Chart HUD (`extension/`)
 - **Stateful Clean Pine Script v5 Engine**:

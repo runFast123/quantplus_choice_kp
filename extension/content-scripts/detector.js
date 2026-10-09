@@ -3,6 +3,12 @@
 // Asymmetric Trade Plans & Sentiment Audits directly on TradingView, Zerodha Kite, Groww, etc.
 
 (function () {
+  // Singleton Guard: Prevent duplicate injections into the same document/frame
+  if (window.__qp_detector_loaded) {
+    return;
+  }
+  window.__qp_detector_loaded = true;
+
   const EXCLUDED = new Set([
     "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "UNNAMED", "INDEX", "MARKETS",
     "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "SHARES", "PRICE", "TODAY", "STOCK", "STOCKS",
@@ -12,6 +18,12 @@
     "BUY", "SELL", "LONG", "SHORT", "CANDLE", "CANDLES", "BAR", "BARS", "EQUITY", "EQ",
     "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR"
   ]);
+
+  let isContextDead = false;
+  let syncIntervalId = null;
+  let mutationObserver = null;
+  let titleObserver = null;
+  let detectTimer = null;
 
   let lastDetectedSymbol = "";
   let currentQuoteData = null;
@@ -39,10 +51,116 @@
     }
   } catch {}
 
+  // Context Invalidation Guard: Safely shut down when extension is reloaded/uninstalled
+  function isExtensionValid() {
+    if (isContextDead) return false;
+    try {
+      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.id) {
+        destroyContentScript();
+        return false;
+      }
+      return true;
+    } catch (e) {
+      destroyContentScript();
+      return false;
+    }
+  }
+
+  function destroyContentScript() {
+    if (isContextDead) return;
+    isContextDead = true;
+    try {
+      window.__qp_detector_loaded = false;
+      if (syncIntervalId) {
+        clearInterval(syncIntervalId);
+        syncIntervalId = null;
+      }
+      if (detectTimer) {
+        clearTimeout(detectTimer);
+        detectTimer = null;
+      }
+      if (mutationObserver) {
+        mutationObserver.disconnect();
+        mutationObserver = null;
+      }
+      if (titleObserver) {
+        titleObserver.disconnect();
+        titleObserver = null;
+      }
+      document.removeEventListener("click", onUserInteraction);
+      document.removeEventListener("keyup", onUserKeyup);
+    } catch (e) {}
+  }
+
+  function safeSendMessage(message, callback) {
+    if (!isExtensionValid()) return;
+    try {
+      const res = chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          // Benign error when background receiver doesn't send response
+        }
+        if (typeof callback === "function") {
+          callback(response);
+        }
+      });
+      if (res && typeof res.catch === "function") {
+        res.catch(() => {});
+      }
+    } catch (err) {
+      destroyContentScript();
+    }
+  }
+
+  function safeStorageGet(keys, callback) {
+    if (!isExtensionValid()) return;
+    try {
+      chrome.storage.local.get(keys, (res) => {
+        if (chrome.runtime.lastError) return;
+        if (typeof callback === "function") {
+          callback(res || {});
+        }
+      });
+    } catch (err) {
+      destroyContentScript();
+    }
+  }
+
+  function safeStorageSet(items, callback) {
+    if (!isExtensionValid()) return;
+    try {
+      chrome.storage.local.set(items, () => {
+        if (chrome.runtime.lastError) return;
+        if (typeof callback === "function") {
+          callback();
+        }
+      });
+    } catch (err) {
+      destroyContentScript();
+    }
+  }
+
+  function scheduleDetect(delay = 250) {
+    if (!isExtensionValid()) return;
+    if (detectTimer) clearTimeout(detectTimer);
+    detectTimer = setTimeout(() => {
+      detectSymbol();
+    }, delay);
+  }
+
+  function onUserInteraction() {
+    scheduleDetect(150);
+  }
+
+  function onUserKeyup(e) {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
+      scheduleDetect(150);
+    }
+  }
+
   function savePrefs() {
     try {
       localStorage.setItem("qp_hud_user_prefs", JSON.stringify(prefs));
-      chrome.storage.local.set({ qpHudPrefs: prefs });
+      safeStorageSet({ qpHudPrefs: prefs });
     } catch {}
   }
 
@@ -231,12 +349,12 @@
 
     if (symbol && symbol !== lastDetectedSymbol) {
       lastDetectedSymbol = symbol;
-      chrome.runtime.sendMessage({
+      safeSendMessage({
         type: "SYMBOL_DETECTED",
         symbol,
         exchange: "NSE",
         platform,
-      }).catch(() => {});
+      });
 
       // Fetch quote & render on-chart HUD
       fetchAndRenderHud(symbol);
@@ -247,9 +365,76 @@
   // ON-CHART SIGNAL HUD (Isolated Shadow DOM Overlay with User Customizations)
   // ---------------------------------------------------------------------------
 
+  function renderHudLoading(symbol) {
+    if (!symbol || prefs.isHidden) return;
+    const shadow = getOrCreateShadowRoot();
+    if (!shadow) return;
+
+    let savedPos = { top: "65px", left: "75px" };
+    try {
+      const stored = localStorage.getItem("qp_hud_coords");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.top && parsed.left) savedPos = parsed;
+      }
+    } catch {}
+
+    shadow.innerHTML = `
+      <style>
+        :host { all: initial; }
+        .hud-loading {
+          position: fixed;
+          top: ${savedPos.top};
+          left: ${savedPos.left};
+          z-index: 2147483647;
+          pointer-events: auto;
+          background: rgba(20, 20, 20, 0.95);
+          color: #ECEBE4;
+          border: 1px solid #333333;
+          border-radius: 8px;
+          box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+          font-size: 11.5px;
+          padding: 8px 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          user-select: none;
+        }
+        .tag-sym {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 1px 5px;
+          border-radius: 3px;
+          background: #333333;
+          color: #F26A4B;
+        }
+        .pulse-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #F26A4B;
+          animation: qpPulse 1.2s infinite ease-in-out;
+        }
+        @keyframes qpPulse {
+          0%, 100% { opacity: 0.3; transform: scale(0.85); }
+          50% { opacity: 1; transform: scale(1.15); }
+        }
+      </style>
+      <div class="hud-loading">
+        <div class="pulse-dot"></div>
+        <span class="tag-sym">${symbol}</span>
+        <span style="color:#A1A1AA; font-size:11px;">Syncing QuantsPulse Signals...</span>
+      </div>
+    `;
+  }
+
   function fetchAndRenderHud(symbol) {
     if (!symbol) return;
-    chrome.storage.local.get(["showChartOverlay", "activeQuoteData", "qpHudPrefs", "backendUrl"], (res) => {
+    safeStorageGet(["showChartOverlay", "activeQuoteData", "qpHudPrefs", "backendUrl"], (res) => {
+      if (!res) return;
       if (res.qpHudPrefs) prefs = Object.assign(prefs, res.qpHudPrefs);
       if (res.showChartOverlay === false) {
         if (hudRoot) hudRoot.style.display = "none";
@@ -261,13 +446,16 @@
       if (res.activeQuoteData && res.activeQuoteData.symbol === symbol) {
         currentQuoteData = res.activeQuoteData;
         renderHud(res.activeQuoteData);
+      } else {
+        // Immediate visual feedback so user sees the HUD right away
+        renderHudLoading(symbol);
       }
 
       // 2. Fetch via background service worker
-      chrome.runtime.sendMessage(
+      safeSendMessage(
         { type: "FETCH_QUOTE_DATA", symbol, exchange: "NSE" },
         (resp) => {
-          if (chrome.runtime.lastError || !resp || !resp.ok || !resp.data) {
+          if (!resp || !resp.ok || !resp.data) {
             // Direct fetch fallback if background worker is asleep
             directFetchFallback(symbol, res.backendUrl);
             return;
@@ -289,7 +477,7 @@
       .then((data) => {
         if (data && data.symbol) {
           currentQuoteData = data;
-          chrome.storage.local.set({ activeQuoteData: data, activeSymbol: data.symbol });
+          safeStorageSet({ activeQuoteData: data, activeSymbol: data.symbol });
           renderHud(data);
         }
       })
@@ -302,28 +490,27 @@
       if (!hudRoot) {
         hudRoot = document.createElement("div");
         hudRoot.id = "quantspulse-chart-hud-root";
-        hudRoot.style.position = "fixed";
-        hudRoot.style.top = "0";
-        hudRoot.style.left = "0";
-        hudRoot.style.width = "100vw";
-        hudRoot.style.height = "100vh";
-        hudRoot.style.pointerEvents = "none";
-        hudRoot.style.zIndex = "2147483647";
-        hudRoot.style.display = "block";
         hudShadow = hudRoot.attachShadow({ mode: "open" });
       } else {
         hudShadow = hudRoot.shadowRoot || hudShadow;
       }
     }
 
-    const targetParent = document.documentElement || document.body;
+    hudRoot.style.all = "initial";
+    hudRoot.style.position = "fixed";
+    hudRoot.style.top = "0";
+    hudRoot.style.left = "0";
+    hudRoot.style.width = "0";
+    hudRoot.style.height = "0";
+    hudRoot.style.overflow = "visible";
+    hudRoot.style.pointerEvents = "none";
+    hudRoot.style.zIndex = "2147483647";
+    hudRoot.style.display = "block";
+
+    const targetParent = document.body || document.documentElement;
     if (targetParent && !targetParent.contains(hudRoot)) {
       targetParent.appendChild(hudRoot);
     }
-    hudRoot.style.display = "block";
-    hudRoot.style.pointerEvents = "none";
-    hudRoot.style.width = "100vw";
-    hudRoot.style.height = "100vh";
     return hudShadow;
   }
 
@@ -1234,112 +1421,126 @@ if barstate.islast
 `;
   }
 
-  // 1. Initial Storage Bootstrap & Immediate Render
-  chrome.storage.local.get(["activeQuoteData", "activeSymbol", "showChartOverlay", "qpHudPrefs"], (res) => {
-    if (res.qpHudPrefs) {
-      prefs = Object.assign(prefs, res.qpHudPrefs);
-    }
-    if (res.showChartOverlay === false) {
-      if (hudRoot) hudRoot.style.display = "none";
-    } else {
-      prefs.isHidden = false;
-      if (res.activeQuoteData && res.activeQuoteData.symbol) {
-        lastDetectedSymbol = res.activeQuoteData.symbol;
-        currentQuoteData = res.activeQuoteData;
-        renderHud(res.activeQuoteData);
-      } else if (res.activeSymbol) {
-        lastDetectedSymbol = res.activeSymbol;
-        fetchAndRenderHud(res.activeSymbol);
-      }
-    }
-    detectSymbol();
-  });
+  // Bootstrap observers and sync listeners safely
+  function setupObserversAndListeners() {
+    if (!isExtensionValid()) return;
 
-  // 2. Watch for DOM & Title changes
-  const observer = new MutationObserver(() => {
-    detectSymbol();
-  });
-  const obsTarget = document.body || document.documentElement;
-  if (obsTarget) {
-    observer.observe(obsTarget, {
-      subtree: true,
-      childList: true,
-      characterData: false,
+    // 1. Initial Storage Bootstrap & Immediate Render
+    safeStorageGet(["activeQuoteData", "activeSymbol", "showChartOverlay", "qpHudPrefs"], (res) => {
+      if (!res) return;
+      if (res.qpHudPrefs) {
+        prefs = Object.assign(prefs, res.qpHudPrefs);
+      }
+      if (res.showChartOverlay === false) {
+        if (hudRoot) hudRoot.style.display = "none";
+      } else {
+        prefs.isHidden = false;
+        if (res.activeQuoteData && res.activeQuoteData.symbol) {
+          lastDetectedSymbol = res.activeQuoteData.symbol;
+          currentQuoteData = res.activeQuoteData;
+          renderHud(res.activeQuoteData);
+        } else if (res.activeSymbol) {
+          lastDetectedSymbol = res.activeSymbol;
+          fetchAndRenderHud(res.activeSymbol);
+        }
+      }
+      scheduleDetect(100);
     });
-  }
-  const titleEl = document.querySelector("title");
-  if (titleEl) {
-    const titleObs = new MutationObserver(() => detectSymbol());
-    titleObs.observe(titleEl, { subtree: true, characterData: true, childList: true });
-  }
 
-  // 3. User interactions (clicks, keyboard)
-  document.addEventListener("click", () => {
-    setTimeout(detectSymbol, 150);
-    setTimeout(detectSymbol, 500);
-  }, { passive: true });
-
-  document.addEventListener("keyup", (e) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
-      setTimeout(detectSymbol, 150);
-      setTimeout(detectSymbol, 500);
+    // 2. Watch for DOM & Title changes with debouncing
+    const obsTarget = document.body || document.documentElement;
+    if (obsTarget) {
+      mutationObserver = new MutationObserver(() => {
+        scheduleDetect(300);
+      });
+      mutationObserver.observe(obsTarget, {
+        subtree: true,
+        childList: true,
+        characterData: false,
+      });
     }
-  }, { passive: true });
 
-  // 4. Periodic background sync
-  setInterval(detectSymbol, 1500);
+    const titleEl = document.querySelector("title");
+    if (titleEl) {
+      titleObserver = new MutationObserver(() => {
+        scheduleDetect(150);
+      });
+      titleObserver.observe(titleEl, { subtree: true, characterData: true, childList: true });
+    }
 
-  // 5. Storage synchronization (2-way sync with Side Panel)
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local") {
-      if (changes.showChartOverlay) {
-        if (changes.showChartOverlay.newValue === false) {
-          if (hudRoot) hudRoot.style.display = "none";
-        } else {
+    // 3. User interactions (clicks, keyboard)
+    document.addEventListener("click", onUserInteraction, { passive: true });
+    document.addEventListener("keyup", onUserKeyup, { passive: true });
+
+    // 4. Periodic background sync (every 3s, not spamming main thread)
+    syncIntervalId = setInterval(() => {
+      if (!isExtensionValid()) {
+        destroyContentScript();
+        return;
+      }
+      scheduleDetect(500);
+    }, 3000);
+
+    // 5. Storage synchronization (2-way sync with Side Panel)
+    try {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (!isExtensionValid()) return;
+        if (area === "local") {
+          if (changes.showChartOverlay) {
+            if (changes.showChartOverlay.newValue === false) {
+              if (hudRoot) hudRoot.style.display = "none";
+            } else {
+              prefs.isHidden = false;
+              if (hudRoot) hudRoot.style.display = "block";
+              if (currentQuoteData) {
+                renderHud(currentQuoteData);
+              } else if (lastDetectedSymbol) {
+                fetchAndRenderHud(lastDetectedSymbol);
+              }
+            }
+          }
+          if (changes.qpHudPrefs?.newValue) {
+            prefs = Object.assign(prefs, changes.qpHudPrefs.newValue);
+            if (currentQuoteData && prefs.showChartOverlay !== false) {
+              renderHud(currentQuoteData);
+            }
+          }
+          if (changes.activeQuoteData?.newValue) {
+            const quote = changes.activeQuoteData.newValue;
+            if (quote && quote.symbol) {
+              lastDetectedSymbol = quote.symbol;
+              currentQuoteData = quote;
+              if (prefs.showChartOverlay !== false) {
+                prefs.isHidden = false;
+                renderHud(quote);
+              }
+            }
+          } else if (changes.activeSymbol?.newValue) {
+            const sym = changes.activeSymbol.newValue;
+            if (sym && sym !== lastDetectedSymbol && prefs.showChartOverlay !== false) {
+              lastDetectedSymbol = sym;
+              fetchAndRenderHud(sym);
+            }
+          }
+        }
+      });
+    } catch (e) {}
+
+    // 6. Direct Message from Side Panel / Background
+    try {
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (!isExtensionValid()) return;
+        if (message?.type === "RENDER_HUD_DIRECT" && message.data) {
+          currentQuoteData = message.data;
+          lastDetectedSymbol = message.data.symbol;
           prefs.isHidden = false;
-          if (hudRoot) hudRoot.style.display = "block";
-          if (currentQuoteData) {
-            renderHud(currentQuoteData);
-          } else if (lastDetectedSymbol) {
-            fetchAndRenderHud(lastDetectedSymbol);
-          }
+          renderHud(message.data);
+          try { sendResponse({ ok: true }); } catch {}
+          return true;
         }
-      }
-      if (changes.qpHudPrefs?.newValue) {
-        prefs = Object.assign(prefs, changes.qpHudPrefs.newValue);
-        if (currentQuoteData && prefs.showChartOverlay !== false) {
-          renderHud(currentQuoteData);
-        }
-      }
-      if (changes.activeQuoteData?.newValue) {
-        const quote = changes.activeQuoteData.newValue;
-        if (quote && quote.symbol) {
-          lastDetectedSymbol = quote.symbol;
-          currentQuoteData = quote;
-          if (prefs.showChartOverlay !== false) {
-            prefs.isHidden = false;
-            renderHud(quote);
-          }
-        }
-      } else if (changes.activeSymbol?.newValue) {
-        const sym = changes.activeSymbol.newValue;
-        if (sym && sym !== lastDetectedSymbol && prefs.showChartOverlay !== false) {
-          lastDetectedSymbol = sym;
-          fetchAndRenderHud(sym);
-        }
-      }
-    }
-  });
+      });
+    } catch (e) {}
+  }
 
-  // 6. Direct Message from Side Panel / Background
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message?.type === "RENDER_HUD_DIRECT" && message.data) {
-      currentQuoteData = message.data;
-      lastDetectedSymbol = message.data.symbol;
-      prefs.isHidden = false;
-      renderHud(message.data);
-      sendResponse({ ok: true });
-      return true;
-    }
-  });
+  setupObserversAndListeners();
 })();

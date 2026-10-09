@@ -301,12 +301,6 @@ if barstate.islast
       const tabs = await chrome.tabs.query({});
       for (const t of tabs) {
         if (t.id && t.url && isSupportedFinanceUrl(t.url)) {
-          if (chrome.scripting) {
-            await chrome.scripting.executeScript({
-              target: { tabId: t.id },
-              files: ["content-scripts/detector.js"],
-            }).catch(() => {});
-          }
           chrome.tabs.sendMessage(t.id, {
             type: "RENDER_HUD_DIRECT",
             data: data,
@@ -314,7 +308,7 @@ if barstate.islast
         }
       }
     } catch (e) {
-      console.warn("pushHudDirectToTabs error:", e);
+      // Benign if tabs closed
     }
   }
 
