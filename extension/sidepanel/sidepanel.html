@@ -34,6 +34,12 @@
       <button id="btn-save-settings" class="btn-primary">Save</button>
     </div>
     <p class="settings-note">Use <code>http://localhost:3000</code> for local development.</p>
+    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+      <label class="eyebrow" style="display: flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none;">
+        <input type="checkbox" id="toggle-overlay" checked>
+        <span>Show Live Signal HUD on Broker Charts</span>
+      </label>
+    </div>
   </div>
 
   <!-- Search & Quick Symbol Input -->
@@ -196,8 +202,11 @@
       </div>
     </section>
 
-    <!-- Launch Button -->
+    <!-- Launch & Tool Buttons -->
     <div class="action-footer">
+      <button id="btn-copy-pine" class="btn-pine-script" type="button">
+        <span>📋 Copy TradingView Pine Script Indicator</span>
+      </button>
       <a id="btn-open-app" href="https://quantplus-ten.vercel.app" target="_blank" rel="noopener noreferrer" class="btn-launch">
         <span>Open Deep Analysis on QuantsPulse</span>
         <span aria-hidden="true">↗</span>

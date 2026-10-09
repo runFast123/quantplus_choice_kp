@@ -65,6 +65,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     sendResponse({ ok: true, symbol });
+    return true;
+  }
+
+  // 3. Handle On-Chart Quote & Signal fetch requests from Content Scripts
+  if (message?.type === "FETCH_QUOTE_DATA" && message.symbol) {
+    const symbol = encodeURIComponent(message.symbol.trim());
+    const exchange = message.exchange || "NSE";
+    chrome.storage.local.get(["backendUrl"], (res) => {
+      const baseUrl = (res.backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
+      const url = `${baseUrl}/api/extension/quote?symbol=${symbol}&exchange=${exchange}`;
+      fetch(url)
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((data) => sendResponse({ ok: true, data }))
+        .catch((err) => sendResponse({ ok: false, error: err.message }));
+    });
+    return true; // Keep channel open for async response
   }
   return true;
 });

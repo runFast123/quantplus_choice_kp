@@ -6,6 +6,20 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Live On-Chart Signal HUD & Native TradingView Pine Script Indicator (`extension/`)
+- **Direct On-Chart Floating Signal HUD** (`extension/content-scripts/detector.js`):
+  - Injects a responsive, non-intrusive floating HUD overlay directly on broker charts (**TradingView**, **Zerodha Kite**, **Groww**, **Dhan**, **Angel One**).
+  - Uses **isolated Shadow DOM** so styling never conflicts with or distorts broker chart layouts.
+  - Features draggable repositioning (with `localStorage` coordinate memory), 1-click collapse/minimize to a compact 32px status chip, and minimize-to-bubble.
+  - Displays real-time quantitative signal badge (`▲ BUY SIGNAL` / `▼ EXIT SIGNAL` / `⚖ CONSOLIDATION`), entry price, protective stop loss, asymmetric trade plan targets (Stop 1R, T1 0.75R, T2 2.0R, T3 3.0R), SMAs, and RSI sentiment.
+- **Native Pine Script Indicator Generator**:
+  - Added 1-click **"📋 Copy TradingView Pine Script"** in both the on-chart HUD and the Side Panel.
+  - Generates verified Pine Script v5 code ready to paste into TradingView's Pine Editor to paint native signal arrows and target levels directly on candlesticks.
+- **Overlay Control & Settings**:
+  - Added "Show Live Signal HUD on Broker Charts" preference toggle in the side panel settings drawer and `chrome.storage.local`.
+- **Background Relay Proxy** (`extension/background.js`):
+  - Background service worker proxies `FETCH_QUOTE_DATA` requests to bypass any host-page Content Security Policy (CSP) on TradingView or broker domains.
+
 ### Fixed & Enhanced — Chrome Extension Proactive Tab Sync & TradingView DOM Detection (`extension/`)
 - **Proactive Tab Sync & In-Page Injection**: Fixed empty state on newly opened side panels by adding `"scripting"` permissions, auto-injecting `detector.js` into pre-existing open financial tabs on startup/install, and querying active tabs directly upon panel load.
 - **TradingView DOM Priority over Query Strings**: Prioritized active header toolbar button (`#header-toolbar-symbol-search`), dynamic document title, chart legend, and active watchlist items over URL search parameters, resolving desyncs where TradingView's query string lagged behind chart clicks (e.g. `HINDUNILVR` clicked while URL still had `MANALIPETC`).

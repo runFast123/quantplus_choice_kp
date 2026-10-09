@@ -17,6 +17,8 @@
   const btnSaveSettings = document.getElementById("btn-save-settings");
   const btnSettingsToggle = document.getElementById("btn-settings-toggle");
   const btnRefresh = document.getElementById("btn-refresh");
+  const toggleOverlay = document.getElementById("toggle-overlay");
+  const btnCopyPine = document.getElementById("btn-copy-pine");
 
   // Formatters
   function formatRupees(num) {
@@ -34,7 +36,7 @@
   }
 
   // Load preferences and then inspect active tab
-  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform"], async (res) => {
+  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay"], async (res) => {
     if (res.backendUrl) {
       backendUrl = res.backendUrl.replace(/\/$/, "");
       inputBackend.value = backendUrl;
@@ -42,12 +44,84 @@
     if (res.platform) {
       elPlatformBadge.textContent = res.platform;
     }
+    if (toggleOverlay) {
+      toggleOverlay.checked = res.showChartOverlay !== false;
+    }
     if (res.activeSymbol) {
       loadSymbol(res.activeSymbol);
     }
     // Proactively detect the current active tab immediately upon opening
     detectActiveTab();
   });
+
+  if (toggleOverlay) {
+    toggleOverlay.addEventListener("change", (e) => {
+      chrome.storage.local.set({ showChartOverlay: e.target.checked });
+    });
+  }
+
+  if (btnCopyPine) {
+    btnCopyPine.addEventListener("click", () => {
+      const code = generatePineScript(currentSymbol || "NSE Equities");
+      navigator.clipboard.writeText(code).then(() => {
+        const span = btnCopyPine.querySelector("span");
+        const originalText = span ? span.textContent : "";
+        if (span) span.textContent = "✓ Pine Script Copied to Clipboard!";
+        setTimeout(() => {
+          if (span) span.textContent = originalText;
+        }, 2200);
+      });
+    });
+  }
+
+  function generatePineScript(symbol) {
+    return `//@version=5
+// QuantsPulse Quantitative Indicators for TradingView
+// Stock: ${symbol || "NSE Equities"}
+indicator("QuantsPulse Quantitative Signals & Levels (${symbol || "NSE"})", overlay=true)
+
+// 1. Moving Averages
+sma20 = ta.sma(close, 20)
+sma50 = ta.sma(close, 50)
+sma200 = ta.sma(close, 200)
+
+plot(sma20, "SMA 20", color=color.new(#3B82F6, 0), linewidth=1)
+plot(sma50, "SMA 50", color=color.new(#F59E0B, 0), linewidth=1)
+plot(sma200, "SMA 200", color=color.new(#8B5CF6, 0), linewidth=2)
+
+// 2. Quantitative Signals
+rsiVal = ta.rsi(close, 14)
+oversoldBounce = ta.crossover(rsiVal, 30) and close > ta.ema(close, 9)
+smaBreakout = ta.crossover(close, sma20) and volume > ta.sma(volume, 20) * 1.2
+buySignal = oversoldBounce or smaBreakout
+
+overboughtExit = ta.crossunder(rsiVal, 70) and close < ta.ema(close, 9)
+exitSignal = overboughtExit or ta.crossunder(close, sma20)
+
+plotshape(buySignal, title="QuantsPulse BUY", location=location.belowbar, color=color.new(#0B6A4E, 0), style=shape.triangleup, size=size.small, text="BUY")
+plotshape(exitSignal, title="QuantsPulse EXIT", location=location.abovebar, color=color.new(#A8380B, 0), style=shape.triangledown, size=size.small, text="EXIT")
+
+// 3. Asymmetric Targets (0.75R / 2.0R / 3.0R)
+var float entryPrice = na
+var float stopLoss = na
+var float target1 = na
+var float target2 = na
+var float target3 = na
+
+if buySignal
+    entryPrice := close
+    stopLoss := close * 0.965
+    float risk = entryPrice - stopLoss
+    target1 := entryPrice + (risk * 0.75)
+    target2 := entryPrice + (risk * 2.0)
+    target3 := entryPrice + (risk * 3.0)
+
+plot(buySignal ? na : stopLoss, "Stop Loss (1R)", color=color.new(#A8380B, 20), style=plot.style_linebr, linewidth=1)
+plot(buySignal ? na : target1, "Target 1 (0.75R)", color=color.new(#0B6A4E, 20), style=plot.style_linebr, linewidth=1)
+plot(buySignal ? na : target2, "Target 2 (2.0R)", color=color.new(#0B6A4E, 20), style=plot.style_linebr, linewidth=2)
+plot(buySignal ? na : target3, "Target 3 (3.0R)", color=color.new(#0B6A4E, 20), style=plot.style_linebr, linewidth=2)
+`;
+  }
 
   // Settings toggle & save
   btnSettingsToggle.addEventListener("click", () => {
