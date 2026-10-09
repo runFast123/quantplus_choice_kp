@@ -4,10 +4,13 @@
 
 (function () {
   const EXCLUDED = new Set([
-    "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "INDEX", "MARKETS",
-    "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "PRICE", "TODAY", "STOCK", "STOCKS",
-    "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE",
-    "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD"
+    "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "UNNAMED", "INDEX", "MARKETS",
+    "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "SHARES", "PRICE", "TODAY", "STOCK", "STOCKS",
+    "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO",
+    "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD",
+    "1D", "1W", "1M", "1Y", "5D", "5M", "15M", "30M", "1H", "2H", "4H", "D", "W", "M", "Y",
+    "BUY", "SELL", "LONG", "SHORT", "CANDLE", "CANDLES", "BAR", "BARS", "EQUITY", "EQ",
+    "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR"
   ]);
 
   let lastDetectedSymbol = "";
@@ -56,7 +59,31 @@
     if (s.length < 2 || s.length > 15 || EXCLUDED.has(s)) {
       return "";
     }
+    if (/^\d+$/.test(s)) return ""; // purely numeric
     return s;
+  }
+
+  function extractTickerFromText(text) {
+    if (!text) return "";
+    const sText = String(text).trim();
+    if (sText.startsWith("TradingView") || sText.startsWith("Unnamed")) return "";
+
+    const colonMatch = sText.match(/(?:NSE|BSE)\s*:\s*([A-Z0-9&-]{2,15})/i);
+    if (colonMatch) {
+      const c = cleanTicker(colonMatch[1]);
+      if (c) return c;
+    }
+    const parenMatch = sText.match(/\(([A-Z0-9&-]{2,15})\)/i);
+    if (parenMatch) {
+      const c = cleanTicker(parenMatch[1]);
+      if (c) return c;
+    }
+    const tokens = sText.split(/[\s,·|_\-\/\(\)]+/);
+    for (const t of tokens) {
+      const c = cleanTicker(t);
+      if (c) return c;
+    }
+    return "";
   }
 
   function detectSymbol() {
@@ -71,53 +98,73 @@
     if (host.includes("tradingview.com")) {
       platform = "TradingView";
 
-      // A. Check Top Header Symbol Search Button (shows current loaded chart symbol, e.g. "HINDUNILVR")
-      const tvHeader = document.querySelector(
-        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol']"
-      );
-      if (tvHeader && tvHeader.textContent) {
-        const cleaned = cleanTicker(tvHeader.textContent);
-        if (cleaned) symbol = cleaned;
+      // A. Check Document Title (e.g. "HDFCBANK 707.25 INR...", "HDFCBANK Stock Price...")
+      if (title && !title.startsWith("TradingView") && !title.startsWith("Unnamed")) {
+        const sym = extractTickerFromText(title);
+        if (sym) symbol = sym;
       }
 
-      // B. Check Document Title (first token is almost always the active ticker, e.g. "HINDUNILVR 1,856.70 INR...")
-      if (!symbol && title) {
-        const firstToken = title.trim().split(/[\s,·\-_]+/)[0];
-        const cleaned = cleanTicker(firstToken);
-        if (cleaned) symbol = cleaned;
-      }
-
-      // C. Check Chart Legend series title
-      if (!symbol) {
-        const legend = document.querySelector("[data-name='legend-source-title'], [data-name='legend-series-item'], .chart-widget .pane-legend-line");
-        if (legend && legend.textContent) {
-          const cleaned = cleanTicker(legend.textContent);
-          if (cleaned) symbol = cleaned;
-        }
-      }
-
-      // D. Check Active Item in Watchlist sidebar
-      if (!symbol) {
-        const activeItem = document.querySelector(
-          "[data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], div[class*='selected-'][data-symbol-full], [data-name='watch-list-item'].active"
-        );
-        if (activeItem) {
-          const attr = activeItem.getAttribute("data-symbol-full") || activeItem.getAttribute("data-symbol") || activeItem.textContent;
-          const cleaned = cleanTicker(attr);
-          if (cleaned) symbol = cleaned;
-        }
-      }
-
-      // E. Fallback ONLY if all DOM & Title checks were empty: URL param ?symbol=NSE:TCS
+      // B. Check URL parameter or pathname
       if (!symbol) {
         try {
           const params = new URLSearchParams(window.location.search);
           const symParam = params.get("symbol");
           if (symParam) {
-            const cleaned = cleanTicker(symParam);
-            if (cleaned) symbol = cleaned;
+            const sym = extractTickerFromText(symParam);
+            if (sym) symbol = sym;
+          }
+          if (!symbol && href.includes("/symbols/")) {
+            const pathParts = window.location.pathname.split("/symbols/")[1];
+            if (pathParts) {
+              const sym = extractTickerFromText(pathParts);
+              if (sym) symbol = sym;
+            }
           }
         } catch {}
+      }
+
+      // C. Check Top Header Symbol Search Button (shows current loaded chart symbol)
+      if (!symbol) {
+        const tvHeader = document.querySelector(
+          "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch']"
+        );
+        if (tvHeader && tvHeader.textContent) {
+          const sym = extractTickerFromText(tvHeader.textContent);
+          if (sym) symbol = sym;
+        }
+      }
+
+      // D. Check Chart Legend series title (top left of chart canvas)
+      if (!symbol) {
+        const legendEls = document.querySelectorAll(
+          "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend']"
+        );
+        for (const el of legendEls) {
+          if (el && el.textContent) {
+            const sym = extractTickerFromText(el.textContent);
+            if (sym) {
+              symbol = sym;
+              break;
+            }
+          }
+        }
+      }
+
+      // E. Check Watchlist sidebar / Quote Details pane (Right sidebar)
+      if (!symbol) {
+        const sidebarEls = document.querySelectorAll(
+          "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true']"
+        );
+        for (const el of sidebarEls) {
+          const raw = el.getAttribute("data-symbol-full") || el.getAttribute("data-symbol") || el.textContent;
+          if (raw) {
+            const sym = extractTickerFromText(raw);
+            if (sym) {
+              symbol = sym;
+              break;
+            }
+          }
+        }
       }
     }
 
@@ -129,11 +176,10 @@
         symbol = cleanTicker(kiteUrlMatch[1]);
       } else {
         const activeItem = document.querySelector(".instrument.selected .nice-name, .order-window .instrument-name, .tv-chart-container .instrument");
-        if (activeItem) symbol = cleanTicker(activeItem.textContent);
+        if (activeItem) symbol = extractTickerFromText(activeItem.textContent);
       }
       if (!symbol && title) {
-        const kiteTitleMatch = title.match(/^([A-Z0-9&-]+)\s+[\d,.]+/i);
-        if (kiteTitleMatch) symbol = cleanTicker(kiteTitleMatch[1]);
+        symbol = extractTickerFromText(title);
       }
     }
 
@@ -146,15 +192,13 @@
       } else {
         const breadcrumb = document.querySelector("h1, .cur-p.fs16");
         if (breadcrumb && breadcrumb.textContent) {
-          const m = breadcrumb.textContent.match(/\(([A-Z0-9&-]+)\)/);
-          if (m) symbol = cleanTicker(m[1]);
+          symbol = extractTickerFromText(breadcrumb.textContent);
         }
       }
       if (!symbol && href.includes("/stocks/")) {
         const slug = href.split("/stocks/")[1]?.split(/[?#/]/)[0];
         if (slug) {
-          const cleanSlug = cleanTicker(slug);
-          if (cleanSlug) symbol = cleanSlug;
+          symbol = cleanTicker(slug);
         }
       }
     }
@@ -162,15 +206,13 @@
     // 4. Dhan
     else if (host.includes("dhan.co")) {
       platform = "Dhan";
-      const dhanMatch = title.match(/^([A-Z0-9&-]+)\s+[\d,.]+/i);
-      if (dhanMatch) symbol = cleanTicker(dhanMatch[1]);
+      symbol = extractTickerFromText(title);
     }
 
     // 5. Angel One
     else if (host.includes("angelone.in")) {
       platform = "Angel One";
-      const angelMatch = title.match(/^([A-Z0-9&-]+)\s+[\d,.]+/i);
-      if (angelMatch) symbol = cleanTicker(angelMatch[1]);
+      symbol = extractTickerFromText(title);
     }
 
     // 6. Google Finance
@@ -206,35 +248,80 @@
   // ---------------------------------------------------------------------------
 
   function fetchAndRenderHud(symbol) {
-    chrome.storage.local.get(["showChartOverlay"], (res) => {
+    if (!symbol) return;
+    chrome.storage.local.get(["showChartOverlay", "activeQuoteData", "qpHudPrefs", "backendUrl"], (res) => {
+      if (res.qpHudPrefs) prefs = Object.assign(prefs, res.qpHudPrefs);
       if (res.showChartOverlay === false) {
         if (hudRoot) hudRoot.style.display = "none";
         return;
       }
-      if (hudRoot) hudRoot.style.display = "block";
+      prefs.isHidden = false;
 
+      // 1. Instant Cache Render: If storage already has this symbol's quote, render it immediately
+      if (res.activeQuoteData && res.activeQuoteData.symbol === symbol) {
+        currentQuoteData = res.activeQuoteData;
+        renderHud(res.activeQuoteData);
+      }
+
+      // 2. Fetch via background service worker
       chrome.runtime.sendMessage(
         { type: "FETCH_QUOTE_DATA", symbol, exchange: "NSE" },
         (resp) => {
-          if (resp && resp.ok && resp.data) {
-            currentQuoteData = resp.data;
-            renderHud(resp.data);
+          if (chrome.runtime.lastError || !resp || !resp.ok || !resp.data) {
+            // Direct fetch fallback if background worker is asleep
+            directFetchFallback(symbol, res.backendUrl);
+            return;
           }
+          currentQuoteData = resp.data;
+          renderHud(resp.data);
         }
       );
     });
   }
 
+  function directFetchFallback(symbol, backendUrl) {
+    const base = (backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
+    fetch(`${base}/api/extension/quote?symbol=${encodeURIComponent(symbol)}&exchange=NSE`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (data && data.symbol) {
+          currentQuoteData = data;
+          chrome.storage.local.set({ activeQuoteData: data, activeSymbol: data.symbol });
+          renderHud(data);
+        }
+      })
+      .catch(() => {});
+  }
+
   function getOrCreateShadowRoot() {
-    if (!hudRoot) {
-      hudRoot = document.createElement("div");
-      hudRoot.id = "quantspulse-chart-hud-root";
-      hudRoot.style.all = "initial";
-      hudRoot.style.position = "fixed";
-      hudRoot.style.zIndex = "2147483647"; // Above TradingView/broker canvases
-      document.documentElement.appendChild(hudRoot);
-      hudShadow = hudRoot.attachShadow({ mode: "open" });
+    if (!hudRoot || !document.contains(hudRoot)) {
+      hudRoot = document.getElementById("quantspulse-chart-hud-root");
+      if (!hudRoot) {
+        hudRoot = document.createElement("div");
+        hudRoot.id = "quantspulse-chart-hud-root";
+        hudRoot.style.all = "initial";
+        hudRoot.style.position = "fixed";
+        hudRoot.style.top = "0";
+        hudRoot.style.left = "0";
+        hudRoot.style.width = "0";
+        hudRoot.style.height = "0";
+        hudRoot.style.overflow = "visible";
+        hudRoot.style.pointerEvents = "none";
+        hudRoot.style.zIndex = "2147483647";
+        hudShadow = hudRoot.attachShadow({ mode: "open" });
+      } else {
+        hudShadow = hudRoot.shadowRoot || hudShadow;
+      }
     }
+
+    const targetParent = document.body || document.documentElement;
+    if (targetParent && !targetParent.contains(hudRoot)) {
+      targetParent.appendChild(hudRoot);
+    }
+    if (hudRoot) hudRoot.style.display = "block";
     return hudShadow;
   }
 
@@ -246,11 +333,22 @@
   function renderHud(data) {
     const shadow = getOrCreateShadowRoot();
 
-    // Default or saved coordinates
-    let savedPos = { top: "68px", right: "75px", left: "auto", bottom: "auto" };
+    // Default: Top-Left at top: 65px; left: 75px (clear of right watchlist and side panel)
+    let savedPos = { top: "65px", left: "75px", right: "auto", bottom: "auto" };
     try {
       const stored = localStorage.getItem("qp_hud_coords");
-      if (stored) savedPos = Object.assign(savedPos, JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const topN = parseInt(parsed.top, 10);
+        const leftN = parseInt(parsed.left, 10);
+        if (!isNaN(topN) && topN >= 45 && topN < window.innerHeight - 80) {
+          savedPos.top = `${topN}px`;
+        }
+        if (!isNaN(leftN) && leftN >= 50 && leftN < window.innerWidth - 380) {
+          savedPos.left = `${leftN}px`;
+          savedPos.right = "auto";
+        }
+      }
     } catch {}
 
     const isBuy = data.latestSignal?.kind === "buy";
@@ -290,6 +388,7 @@
           right: ${savedPos.right};
           bottom: ${savedPos.bottom};
           z-index: 2147483647;
+          pointer-events: auto;
           background: rgba(20, 20, 20, 0.95);
           color: #ECEBE4;
           border: 1px solid #333333;
@@ -584,9 +683,11 @@
         /* Floating Restore Bubble */
         .bubble-restore {
           position: fixed;
-          bottom: 20px;
-          right: 20px;
+          bottom: 24px;
+          left: 65px;
+          right: auto;
           z-index: 2147483647;
+          pointer-events: auto;
           background: #F26A4B;
           color: #FFFFFF;
           border: none;
@@ -916,10 +1017,11 @@
     shadow.querySelectorAll(".btn-dock").forEach((btn) => {
       btn.addEventListener("click", () => {
         const dock = btn.getAttribute("data-dock");
-        let newPos = { top: "68px", right: "75px", left: "auto", bottom: "auto" };
-        if (dock === "top-left") newPos = { top: "68px", left: "80px", right: "auto", bottom: "auto" };
-        if (dock === "bottom-right") newPos = { top: "auto", bottom: "40px", right: "75px", left: "auto" };
-        if (dock === "bottom-left") newPos = { top: "auto", bottom: "40px", left: "80px", right: "auto" };
+        let newPos = { top: "65px", left: "75px", right: "auto", bottom: "auto" };
+        if (dock === "top-right") newPos = { top: "65px", left: `${Math.max(50, window.innerWidth - 420)}px`, right: "auto", bottom: "auto" };
+        if (dock === "top-left") newPos = { top: "65px", left: "75px", right: "auto", bottom: "auto" };
+        if (dock === "bottom-right") newPos = { top: `${Math.max(50, window.innerHeight - 380)}px`, left: `${Math.max(50, window.innerWidth - 420)}px`, right: "auto", bottom: "auto" };
+        if (dock === "bottom-left") newPos = { top: `${Math.max(50, window.innerHeight - 380)}px`, left: "75px", right: "auto", bottom: "auto" };
         try {
           localStorage.setItem("qp_hud_coords", JSON.stringify(newPos));
         } catch {}
@@ -1129,26 +1231,51 @@ if barstate.islast
 `;
   }
 
-  // Initial detection immediately
-  detectSymbol();
+  // 1. Initial Storage Bootstrap & Immediate Render
+  chrome.storage.local.get(["activeQuoteData", "activeSymbol", "showChartOverlay", "qpHudPrefs"], (res) => {
+    if (res.qpHudPrefs) {
+      prefs = Object.assign(prefs, res.qpHudPrefs);
+    }
+    if (res.showChartOverlay === false) {
+      if (hudRoot) hudRoot.style.display = "none";
+    } else {
+      prefs.isHidden = false;
+      if (res.activeQuoteData && res.activeQuoteData.symbol) {
+        lastDetectedSymbol = res.activeQuoteData.symbol;
+        currentQuoteData = res.activeQuoteData;
+        renderHud(res.activeQuoteData);
+      } else if (res.activeSymbol) {
+        lastDetectedSymbol = res.activeSymbol;
+        fetchAndRenderHud(res.activeSymbol);
+      }
+    }
+    detectSymbol();
+  });
 
-  // Watch for SPA URL / Title / DOM changes
+  // 2. Watch for DOM & Title changes
   const observer = new MutationObserver(() => {
     detectSymbol();
   });
-  observer.observe(document.querySelector("title") || document.documentElement, {
-    subtree: true,
-    characterData: true,
-    childList: true,
-  });
+  const obsTarget = document.body || document.documentElement;
+  if (obsTarget) {
+    observer.observe(obsTarget, {
+      subtree: true,
+      childList: true,
+      characterData: false,
+    });
+  }
+  const titleEl = document.querySelector("title");
+  if (titleEl) {
+    const titleObs = new MutationObserver(() => detectSymbol());
+    titleObs.observe(titleEl, { subtree: true, characterData: true, childList: true });
+  }
 
-  // Listen to user clicks (e.g. clicking a new row in TradingView watchlist)
+  // 3. User interactions (clicks, keyboard)
   document.addEventListener("click", () => {
     setTimeout(detectSymbol, 150);
     setTimeout(detectSymbol, 500);
   }, { passive: true });
 
-  // Listen to keyboard navigation (e.g. arrow keys moving down watchlist)
   document.addEventListener("keyup", (e) => {
     if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
       setTimeout(detectSymbol, 150);
@@ -1156,23 +1283,47 @@ if barstate.islast
     }
   }, { passive: true });
 
-  // Fallback periodic sync for any background DOM updates
+  // 4. Periodic background sync
   setInterval(detectSymbol, 1500);
 
-  // Listen to storage changes (e.g. user toggles overlay on/off or changes layout from side panel)
+  // 5. Storage synchronization (2-way sync with Side Panel)
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
       if (changes.showChartOverlay) {
         if (changes.showChartOverlay.newValue === false) {
           if (hudRoot) hudRoot.style.display = "none";
         } else {
+          prefs.isHidden = false;
           if (hudRoot) hudRoot.style.display = "block";
-          if (lastDetectedSymbol) fetchAndRenderHud(lastDetectedSymbol);
+          if (currentQuoteData) {
+            renderHud(currentQuoteData);
+          } else if (lastDetectedSymbol) {
+            fetchAndRenderHud(lastDetectedSymbol);
+          }
         }
       }
       if (changes.qpHudPrefs?.newValue) {
         prefs = Object.assign(prefs, changes.qpHudPrefs.newValue);
-        if (currentQuoteData) renderHud(currentQuoteData);
+        if (currentQuoteData && prefs.showChartOverlay !== false) {
+          renderHud(currentQuoteData);
+        }
+      }
+      if (changes.activeQuoteData?.newValue) {
+        const quote = changes.activeQuoteData.newValue;
+        if (quote && quote.symbol) {
+          lastDetectedSymbol = quote.symbol;
+          currentQuoteData = quote;
+          if (prefs.showChartOverlay !== false) {
+            prefs.isHidden = false;
+            renderHud(quote);
+          }
+        }
+      } else if (changes.activeSymbol?.newValue) {
+        const sym = changes.activeSymbol.newValue;
+        if (sym && sym !== lastDetectedSymbol && prefs.showChartOverlay !== false) {
+          lastDetectedSymbol = sym;
+          fetchAndRenderHud(sym);
+        }
       }
     }
   });

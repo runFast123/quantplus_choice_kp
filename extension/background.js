@@ -80,7 +80,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.json();
         })
-        .then((data) => sendResponse({ ok: true, data }))
+        .then((data) => {
+          chrome.storage.local.set({ activeQuoteData: data });
+          sendResponse({ ok: true, data });
+        })
         .catch((err) => sendResponse({ ok: false, error: err.message }));
     });
     return true; // Keep channel open for async response

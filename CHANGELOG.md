@@ -6,6 +6,14 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — On-Chart Floating Signal HUD Auto-Mount & Synchronous Sync (`extension/`)
+- **Resolved HUD Mount & Visibility on TradingView and Broker Charts**:
+  - Fixed root cause where `cleanTicker` received multi-token strings from TradingView's chart legend (e.g. `HDFCBANK · 1D · NSE · D ...`), stripping non-alphanumerics into a concatenated invalid ticker (`HDFCBANK1DNSED...`), causing symbol detection to fail silently. Added `extractTickerFromText()` to isolate the pure ticker token across legends, titles, headers, and watchlists.
+  - Added immediate startup bootstrap: `detector.js` now reads `chrome.storage.local` on initial script load and immediately mounts the HUD using `activeQuoteData` / `activeSymbol` cached from the Side Panel or background worker without waiting for user interaction or DOM mutations.
+  - Implemented instant 2-way storage synchronization: `detector.js` now listens to `changes.activeQuoteData` and `changes.activeSymbol`, instantly updating the on-chart HUD whenever a stock is selected, typed, or navigated in the Side Panel.
+  - Fixed container layout & coordinate clipping: `hudRoot` is now explicitly configured as a non-interfering fixed portal (`top: 0; left: 0; width: 0; height: 0; overflow: visible; pointer-events: none;`) with `.hud-container` having `pointer-events: auto;`. Default coordinates placed at safe top-left chart quadrant (`top: 65px; left: 75px`), preventing the card from landing under TradingView's watchlist sidebar or Chrome's side panel.
+  - Added direct API fetch fallback (`directFetchFallback`) in content script ensuring data loads seamlessly even if the background service worker is idle.
+
 ### Enhanced — Stateful Clean Pine Script v5 Engine & Multi-Layout On-Chart HUD (`extension/`)
 - **Stateful Clean Pine Script v5 Engine**:
   - Eliminated repeating "EXIT" signal clutter with an internal state machine (`tradeState`: Cash vs In-Trade) guaranteeing clean alternating `▲ BUY` -> `▼ EXIT` cycles.

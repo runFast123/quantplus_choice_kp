@@ -60,7 +60,10 @@
 
   if (toggleOverlay) {
     toggleOverlay.addEventListener("change", (e) => {
-      chrome.storage.local.set({ showChartOverlay: e.target.checked });
+      chrome.storage.local.set({
+        showChartOverlay: e.target.checked,
+        qpHudPrefs: { isHidden: !e.target.checked }
+      });
     });
   }
 
@@ -68,8 +71,8 @@
     selectHudMode.addEventListener("change", (e) => {
       const mode = e.target.value;
       chrome.storage.local.get(["qpHudPrefs"], (res) => {
-        const prefs = Object.assign({}, res.qpHudPrefs || {}, { displayMode: mode });
-        chrome.storage.local.set({ qpHudPrefs: prefs });
+        const p = Object.assign({}, res.qpHudPrefs || {}, { displayMode: mode, isHidden: false });
+        chrome.storage.local.set({ qpHudPrefs: p, showChartOverlay: true });
       });
     });
   }
@@ -334,10 +337,13 @@ if barstate.islast
     const host = window.location.hostname.toLowerCase();
     const title = document.title || "";
     const EX = new Set([
-      "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "INDEX", "MARKETS",
-      "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "PRICE", "TODAY", "STOCK", "STOCKS",
-      "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE",
-      "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD"
+      "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "UNNAMED", "INDEX", "MARKETS",
+      "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "SHARES", "PRICE", "TODAY", "STOCK", "STOCKS",
+      "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO",
+      "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD",
+      "1D", "1W", "1M", "1Y", "5D", "5M", "15M", "30M", "1H", "2H", "4H", "D", "W", "M", "Y",
+      "BUY", "SELL", "LONG", "SHORT", "CANDLE", "CANDLES", "BAR", "BARS", "EQUITY", "EQ",
+      "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR"
     ]);
 
     function clean(raw) {
@@ -348,41 +354,71 @@ if barstate.islast
         s = p[p.length - 1];
       }
       s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/g, "");
-      return s.length >= 2 && s.length <= 15 && !EX.has(s) ? s : "";
+      if (s === "NIFTY50" || s === "CNXNIFTY" || s === "NIFTY-50") s = "NIFTY";
+      if (s === "NIFTYBANK" || s === "CNXBANK") s = "BANKNIFTY";
+      if (s.length < 2 || s.length > 15 || EX.has(s)) return "";
+      if (/^\d+$/.test(s)) return "";
+      return s;
+    }
+
+    function extract(text) {
+      if (!text) return "";
+      const sText = String(text).trim();
+      if (sText.startsWith("TradingView") || sText.startsWith("Unnamed")) return "";
+
+      const colonMatch = sText.match(/(?:NSE|BSE)\s*:\s*([A-Z0-9&-]{2,15})/i);
+      if (colonMatch) {
+        const c = clean(colonMatch[1]);
+        if (c) return c;
+      }
+      const parenMatch = sText.match(/\(([A-Z0-9&-]{2,15})\)/i);
+      if (parenMatch) {
+        const c = clean(parenMatch[1]);
+        if (c) return c;
+      }
+      const tokens = sText.split(/[\s,·|_\-\/\(\)]+/);
+      for (const t of tokens) {
+        const c = clean(t);
+        if (c) return c;
+      }
+      return "";
     }
 
     if (host.includes("tradingview.com")) {
-      // 1. Header Toolbar symbol search button (top left pill)
-      const btn = document.querySelector(
-        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol']"
-      );
-      if (btn && btn.textContent) {
-        const c = clean(btn.textContent);
-        if (c) return { symbol: c, platform: "TradingView" };
+      // 1. Title
+      if (title && !title.startsWith("TradingView") && !title.startsWith("Unnamed")) {
+        const sym = extract(title);
+        if (sym) return { symbol: sym, platform: "TradingView" };
       }
 
-      // 2. Document Title (e.g. "HINDUNILVR 1,856.70 INR ...")
-      if (title) {
-        const first = title.trim().split(/[\s,·\-_]+/)[0];
-        const c = clean(first);
-        if (c) return { symbol: c, platform: "TradingView" };
+      // 2. Header Toolbar symbol search button
+      const btn = document.querySelector(
+        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch']"
+      );
+      if (btn && btn.textContent) {
+        const sym = extract(btn.textContent);
+        if (sym) return { symbol: sym, platform: "TradingView" };
       }
 
       // 3. Chart Legend
-      const leg = document.querySelector("[data-name='legend-source-title'], [data-name='legend-series-item'], .chart-widget .pane-legend-line");
-      if (leg && leg.textContent) {
-        const c = clean(leg.textContent);
-        if (c) return { symbol: c, platform: "TradingView" };
+      const legEls = document.querySelectorAll(
+        "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend']"
+      );
+      for (const leg of legEls) {
+        if (leg && leg.textContent) {
+          const sym = extract(leg.textContent);
+          if (sym) return { symbol: sym, platform: "TradingView" };
+        }
       }
 
-      // 4. Watchlist active item
-      const item = document.querySelector(
-        "[data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], div[class*='selected-'][data-symbol-full], [data-name='watch-list-item'].active"
+      // 4. Watchlist / Quote detail
+      const itemEls = document.querySelectorAll(
+        "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true']"
       );
-      if (item) {
-        const val = item.getAttribute("data-symbol-full") || item.getAttribute("data-symbol") || item.textContent;
-        const c = clean(val);
-        if (c) return { symbol: c, platform: "TradingView" };
+      for (const item of itemEls) {
+        const raw = item.getAttribute("data-symbol-full") || item.getAttribute("data-symbol") || item.textContent;
+        const sym = extract(raw);
+        if (sym) return { symbol: sym, platform: "TradingView" };
       }
     }
 
@@ -392,9 +428,13 @@ if barstate.islast
         const c = clean(m[1]);
         if (c) return { symbol: c, platform: "Zerodha Kite" };
       }
-      const item = document.querySelector(".instrument.selected .nice-name, .order-window .instrument-name");
+      const item = document.querySelector(".instrument.selected .nice-name, .order-window .instrument-name, .tv-chart-container .instrument");
       if (item) {
-        const c = clean(item.textContent);
+        const c = extract(item.textContent);
+        if (c) return { symbol: c, platform: "Zerodha Kite" };
+      }
+      if (title) {
+        const c = extract(title);
         if (c) return { symbol: c, platform: "Zerodha Kite" };
       }
     }
@@ -405,6 +445,21 @@ if barstate.islast
         const c = clean(m[1]);
         if (c) return { symbol: c, platform: "Groww" };
       }
+      const breadcrumb = document.querySelector("h1, .cur-p.fs16");
+      if (breadcrumb && breadcrumb.textContent) {
+        const c = extract(breadcrumb.textContent);
+        if (c) return { symbol: c, platform: "Groww" };
+      }
+    }
+
+    if (host.includes("dhan.co")) {
+      const c = extract(title);
+      if (c) return { symbol: c, platform: "Dhan" };
+    }
+
+    if (host.includes("angelone.in")) {
+      const c = extract(title);
+      if (c) return { symbol: c, platform: "Angel One" };
     }
 
     return null;
@@ -426,6 +481,12 @@ if barstate.islast
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       render(data);
+
+      // Save to chrome.storage.local so On-Chart HUD gets the exact payload instantly
+      chrome.storage.local.set({
+        activeQuoteData: data,
+        activeSymbol: data.symbol,
+      });
     } catch (err) {
       showError(err);
     } finally {
