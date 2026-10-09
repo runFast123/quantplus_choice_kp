@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import clsx from "clsx";
-import { ChartLineUpIcon, LightningIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import { PriceChart, type ChartMarker } from "@/components/charts/price-chart";
-import { TradingViewWidget } from "@/components/charts/tradingview-widget";
 import { Empty, Panel } from "@/components/ui/layout";
+import { toTradingViewSymbol } from "@/lib/market";
 import type { Candle } from "@/lib/types";
 
 interface MarketChartViewProps {
@@ -16,11 +14,10 @@ interface MarketChartViewProps {
 }
 
 /**
- * Unified Market Chart panel:
- * 1. "TradingView Signals" — native TradingView Lightweight Charts with verified NSE candles,
- *    strategy Buy/Exit signal markers, SMA 20/50/200 overlays, and range controls.
- * 2. "BSE Live Widget" — official TradingView free embed widget mapped to BSE so it never
- *    defaults to Apple Inc (AAPL).
+ * Unified TradingView Chart:
+ * Powered by TradingView's official charting engine. Displays verified Indian equity candles,
+ * Buy & Exit strategy signals directly on the bars, interactive SMA 20/50/200 overlays,
+ * Volume histogram, and timeline controls in one single, crystal-clear view.
  */
 export function MarketChartView({
   candles,
@@ -28,73 +25,36 @@ export function MarketChartView({
   symbol,
   exchange = "NSE",
 }: MarketChartViewProps) {
-  const [activeTab, setActiveTab] = useState<"signals" | "tradingview">("signals");
+  const tvUrl = `https://in.tradingview.com/chart/?symbol=${encodeURIComponent(toTradingViewSymbol(symbol, exchange))}`;
 
   return (
     <Panel
-      title="Price chart"
-      meta={
-        activeTab === "signals"
-          ? `${symbol} · NSE Daily · Buy/Exit signals & SMA overlays`
-          : `${symbol} · TradingView BSE interactive widget`
-      }
+      title="TradingView Chart"
+      meta={`${symbol} · ${exchange} Daily · Buy & Exit Signals with SMA Overlays`}
       actions={
-        <div role="tablist" aria-label="Chart mode" className="flex rounded-md border border-border p-0.5 bg-muted/20">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "signals"}
-            onClick={() => setActiveTab("signals")}
-            className={clsx(
-              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12px] font-medium transition-colors",
-              activeTab === "signals"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <LightningIcon weight={activeTab === "signals" ? "fill" : "regular"} className="h-3.5 w-3.5" />
-            <span>TradingView Signals</span>
-            {markers.length > 0 ? (
-              <span className="num ml-0.5 rounded px-1.5 text-[10.5px] bg-background/20 font-bold">
-                {markers.length}
-              </span>
-            ) : null}
-          </button>
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "tradingview"}
-            onClick={() => setActiveTab("tradingview")}
-            className={clsx(
-              "inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-1 text-[12px] font-medium transition-colors",
-              activeTab === "tradingview"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <ChartLineUpIcon weight={activeTab === "tradingview" ? "fill" : "regular"} className="h-3.5 w-3.5" />
-            <span>BSE Live Widget</span>
-            <span
-              className={clsx(
-                "num ml-0.5 rounded px-1 text-[9.5px] uppercase font-semibold",
-                activeTab === "tradingview" ? "bg-background/20" : "bg-gain/15 text-gain",
-              )}
-            >
-              Free
+        <div className="flex items-center gap-2">
+          {markers.length > 0 && (
+            <span className="num hidden sm:inline-flex items-center gap-1 rounded bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <strong className="text-foreground">{markers.length}</strong> signal{markers.length === 1 ? "" : "s"} on chart
             </span>
-          </button>
+          )}
+          <a
+            href={tvUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open in full TradingView workstation"
+            className="inline-flex items-center gap-1 rounded-[5px] border border-border px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
+          >
+            <span>TradingView Web</span>
+            <ArrowSquareOutIcon className="h-3 w-3" aria-hidden />
+          </a>
         </div>
       }
     >
-      {activeTab === "signals" ? (
-        candles.length ? (
-          <PriceChart candles={candles} markers={markers} symbol={symbol} exchange={exchange} />
-        ) : (
-          <Empty title="No price history yet." />
-        )
+      {candles.length ? (
+        <PriceChart candles={candles} markers={markers} symbol={symbol} exchange={exchange} />
       ) : (
-        <TradingViewWidget symbol={symbol} exchange={exchange} />
+        <Empty title="No price history yet." />
       )}
     </Panel>
   );

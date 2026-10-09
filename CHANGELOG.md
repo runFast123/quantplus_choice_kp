@@ -13,7 +13,10 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 - Enhanced `<QuantumAudit>` (`web/src/components/market/quantum-audit.tsx`) with historical sentiment exit logs rendering in the expandable roadmap drawer.
 - Integrated quantitative discount gap analysis (>10% below cost basis) and portfolio breadth evaluation (13–15 stocks optimal diversification target) into `portfolioHealthReadWithMyKey` in `web/src/server/privileged/ai.ts`.
 
-### Added & Fixed — Free TradingView Advanced Chart Integration (`/app/markets/[symbol]`)
+### Added & Fixed — Unified Single TradingView Chart View (`/app/markets/[symbol]`)
+- Eliminated confusing dual-chart tab switcher ("TradingView Signals" vs "BSE Live Widget"): unified the market page into **one single, crystal-clear TradingView Chart**.
+- All verified Indian stock candles, Volume, SMA 20/50/200 overlays, and Buy (`▲`) & Exit (`▼`) strategy signals now live in a single, focused workspace.
+- Added direct "TradingView Web ↗" launcher link in the header for fast access to TradingView's full external workstation.
 - Fixed symbol fallback issue where Indian stocks defaulted to Apple Inc (`AAPL`) in the embed widget: added `toTradingViewWidgetSymbol` in `web/src/lib/market.ts` routing to `BSE:${symbol}` for free iframe compatibility.
 - Fixed strategy label mismatch: added `signalDisplayName` in `web/src/lib/format.ts` ensuring exit signals are accurately labeled "SMA Death Cross" or "RSI Overbought Pullback" (rather than erroneously saying "Golden Cross").
 - Replaced bulky 8-card ledger grid with an ultra-compact **Signals Timeline Ribbon** (~36px height) using high-contrast pills (`▲ BUY` / `▼ EXIT`) that click to highlight candle parameters.
