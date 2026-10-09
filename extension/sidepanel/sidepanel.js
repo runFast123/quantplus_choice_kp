@@ -124,6 +124,7 @@ plot(showSMAs ? sma200 : na, "SMA 200", color=color.new(#8B5CF6, 10), linewidth=
 
 rsiVal = ta.rsi(close, rsiPeriod)
 volAvg = ta.sma(volume, 20)
+bool volOk = na(volume) or volume == 0 or volume > volAvg * 1.1
 
 // -----------------------------------------------------------------------------
 // 3. STATEFUL SIGNAL ENGINE (Clean Alternating Signals, Zero Repeats)
@@ -136,12 +137,15 @@ var float target2 = na
 var float target3 = na
 var string lastSignalLabel = "Cash / Neutral"
 
+// Repainting Protection: Real-time confirmation check
+bool isConfirmed = not barstate.isrealtime or barstate.isconfirmed
+
 // Buy Triggers (Only evaluated when OUT of a position)
 oversoldBounce = ta.crossover(rsiVal, 30) and close > ta.ema(close, 9)
-smaBreakout    = ta.crossover(close, sma20) and volume > volAvg * 1.15
+smaBreakout    = ta.crossover(close, sma20) and volOk
 rawBuy         = oversoldBounce or smaBreakout
 
-bool isBuySignal = rawBuy and tradeState == 0
+bool isBuySignal = rawBuy and tradeState == 0 and isConfirmed
 
 if isBuySignal
     tradeState := 1
@@ -159,7 +163,7 @@ bool hitT3      = high >= target3
 bool trendBreak = ta.crossunder(close, sma20) and rsiVal < 48
 bool rawExit    = hitStop or hitT3 or trendBreak
 
-bool isExitSignal = rawExit and tradeState == 1
+bool isExitSignal = rawExit and tradeState == 1 and isConfirmed
 
 if isExitSignal
     tradeState := 0
@@ -182,34 +186,37 @@ plot(tradeState == 1 and showStops ? stopLoss : na, "Stop Loss (1.0R)", color=co
 // -----------------------------------------------------------------------------
 var table hud = table.new(position.top_right, 2, 7, bgcolor=color.new(#161616, 5), border_color=color.new(#2E2E2E, 0), border_width=1)
 
-if barstate.islast and showTable
-    color statusBg = tradeState == 1 ? color.new(#0B6A4E, 0) : color.new(#262626, 0)
-    string statusText = tradeState == 1 ? "▲ LONG TRADE" : "⚖ IN CASH"
-    
-    float curReturn = tradeState == 1 and not na(entryPrice) ? ((close - entryPrice) / entryPrice) * 100 : 0.0
-    color returnColor = curReturn >= 0 ? color.new(#34D399, 0) : color.new(#F87171, 0)
-    string returnStr = (curReturn >= 0 ? "+" : "") + str.tostring(curReturn, "#.##") + "%"
+if barstate.islast
+    if showTable
+        color statusBg = tradeState == 1 ? color.new(#0B6A4E, 0) : color.new(#262626, 0)
+        string statusText = tradeState == 1 ? "▲ LONG TRADE" : "⚖ IN CASH"
+        
+        float curReturn = tradeState == 1 and not na(entryPrice) ? ((close - entryPrice) / entryPrice) * 100 : 0.0
+        color returnColor = curReturn >= 0 ? color.new(#34D399, 0) : color.new(#F87171, 0)
+        string returnStr = (curReturn >= 0 ? "+" : "") + str.tostring(curReturn, "#.##") + "%"
 
-    table.cell(hud, 0, 0, "QuantsPulse", bgcolor=color.new(#242424, 0), text_color=color.new(#F26A4B, 0), text_size=size.small)
-    table.cell(hud, 1, 0, syminfo.ticker, bgcolor=color.new(#242424, 0), text_color=color.white, text_size=size.small)
+        table.cell(hud, 0, 0, "QuantsPulse", bgcolor=color.new(#242424, 0), text_color=color.new(#F26A4B, 0), text_size=size.small)
+        table.cell(hud, 1, 0, syminfo.ticker, bgcolor=color.new(#242424, 0), text_color=color.white, text_size=size.small)
 
-    table.cell(hud, 0, 1, "Status", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 1, statusText, bgcolor=statusBg, text_color=color.white, text_size=size.small)
+        table.cell(hud, 0, 1, "Status", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 1, statusText, bgcolor=statusBg, text_color=color.white, text_size=size.small)
 
-    table.cell(hud, 0, 2, "Entry / Return", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 2, tradeState == 1 ? str.tostring(entryPrice, "#.##") + " (" + returnStr + ")" : "—", text_color=returnColor, text_size=size.small)
+        table.cell(hud, 0, 2, "Entry / Return", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 2, tradeState == 1 ? str.tostring(entryPrice, "#.##") + " (" + returnStr + ")" : "—", text_color=returnColor, text_size=size.small)
 
-    table.cell(hud, 0, 3, "Stop (1.0R)", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 3, tradeState == 1 ? str.tostring(stopLoss, "#.##") + " (-" + str.tostring(riskPercent, "#.#") + "%)" : "—", text_color=color.new(#F87171, 0), text_size=size.small)
+        table.cell(hud, 0, 3, "Stop (1.0R)", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 3, tradeState == 1 ? str.tostring(stopLoss, "#.##") + " (-" + str.tostring(riskPercent, "#.#") + "%)" : "—", text_color=color.new(#F87171, 0), text_size=size.small)
 
-    table.cell(hud, 0, 4, "T1 (0.75R)", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 4, tradeState == 1 ? str.tostring(target1, "#.##") + (high >= target1 ? " [HIT ✓]" : "") : "—", text_color=color.new(#34D399, 0), text_size=size.small)
+        table.cell(hud, 0, 4, "T1 (0.75R)", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 4, tradeState == 1 ? str.tostring(target1, "#.##") + (high >= target1 ? " [HIT ✓]" : "") : "—", text_color=color.new(#34D399, 0), text_size=size.small)
 
-    table.cell(hud, 0, 5, "T2 (2.0R)", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 5, tradeState == 1 ? str.tostring(target2, "#.##") + (high >= target2 ? " [HIT ✓]" : "") : "—", text_color=color.new(#10B981, 0), text_size=size.small)
+        table.cell(hud, 0, 5, "T2 (2.0R)", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 5, tradeState == 1 ? str.tostring(target2, "#.##") + (high >= target2 ? " [HIT ✓]" : "") : "—", text_color=color.new(#10B981, 0), text_size=size.small)
 
-    table.cell(hud, 0, 6, "RSI / Trend", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 6, str.tostring(rsiVal, "#.#") + " (" + (close > sma50 ? "Bullish" : "Bearish") + ")", text_color=color.white, text_size=size.small)
+        table.cell(hud, 0, 6, "RSI / Trend", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 6, str.tostring(rsiVal, "#.#") + " (" + (close > sma50 ? "Bullish" : "Bearish") + ")", text_color=color.white, text_size=size.small)
+    else
+        table.clear(hud, 0, 0, 1, 6)
 `;
   }
 

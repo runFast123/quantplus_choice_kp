@@ -14,6 +14,9 @@
   let currentQuoteData = null;
   let hudRoot = null;
   let hudShadow = null;
+  let isGlobalDragAttached = false;
+  let isDragging = false;
+  let startX = 0, startY = 0, origLeft = 0, origTop = 0;
 
   // Preferences (persisted in localStorage and chrome.storage.local)
   let prefs = {
@@ -48,6 +51,8 @@
       s = parts[parts.length - 1];
     }
     s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/g, "");
+    if (s === "NIFTY50" || s === "CNXNIFTY" || s === "NIFTY-50") s = "NIFTY";
+    if (s === "NIFTYBANK" || s === "CNXBANK") s = "BANKNIFTY";
     if (s.length < 2 || s.length > 15 || EXCLUDED.has(s)) {
       return "";
     }
@@ -242,10 +247,10 @@
     const shadow = getOrCreateShadowRoot();
 
     // Default or saved coordinates
-    let savedPos = { top: "68px", right: "75px", left: "auto" };
+    let savedPos = { top: "68px", right: "75px", left: "auto", bottom: "auto" };
     try {
       const stored = localStorage.getItem("qp_hud_coords");
-      if (stored) savedPos = JSON.parse(stored);
+      if (stored) savedPos = Object.assign(savedPos, JSON.parse(stored));
     } catch {}
 
     const isBuy = data.latestSignal?.kind === "buy";
@@ -283,6 +288,7 @@
           top: ${savedPos.top};
           left: ${savedPos.left};
           right: ${savedPos.right};
+          bottom: ${savedPos.bottom};
           z-index: 2147483647;
           background: rgba(20, 20, 20, 0.95);
           color: #ECEBE4;
@@ -910,8 +916,8 @@
     shadow.querySelectorAll(".btn-dock").forEach((btn) => {
       btn.addEventListener("click", () => {
         const dock = btn.getAttribute("data-dock");
-        let newPos = { top: "68px", right: "75px", left: "auto" };
-        if (dock === "top-left") newPos = { top: "68px", left: "80px", right: "auto" };
+        let newPos = { top: "68px", right: "75px", left: "auto", bottom: "auto" };
+        if (dock === "top-left") newPos = { top: "68px", left: "80px", right: "auto", bottom: "auto" };
         if (dock === "bottom-right") newPos = { top: "auto", bottom: "40px", right: "75px", left: "auto" };
         if (dock === "bottom-left") newPos = { top: "auto", bottom: "40px", left: "80px", right: "auto" };
         try {
@@ -937,11 +943,9 @@
     const dragHandle = shadow.getElementById("qp-drag-handle");
     const hudBox = shadow.getElementById("qp-hud-box");
     if (dragHandle && hudBox) {
-      let isDragging = false;
-      let startX, startY, origLeft, origTop;
-
       dragHandle.addEventListener("mousedown", (e) => {
-        if (e.target.tagName === "BUTTON" || e.target.tagName === "INPUT") return;
+        const tag = (e.target.tagName || "").toUpperCase();
+        if (tag === "BUTTON" || tag === "INPUT" || tag === "SELECT" || tag === "LABEL") return;
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -950,29 +954,41 @@
         origTop = rect.top;
         e.preventDefault();
       });
+    }
+
+    // Attach global window drag handlers once to prevent memory leaks
+    if (!isGlobalDragAttached) {
+      isGlobalDragAttached = true;
 
       window.addEventListener("mousemove", (e) => {
-        if (!isDragging) return;
+        if (!isDragging || !hudShadow) return;
+        const currentBox = hudShadow.getElementById("qp-hud-box");
+        if (!currentBox) return;
+
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-        const newLeft = Math.max(10, Math.min(window.innerWidth - hudBox.offsetWidth - 10, origLeft + dx));
+        const newLeft = Math.max(10, Math.min(window.innerWidth - currentBox.offsetWidth - 10, origLeft + dx));
         const newTop = Math.max(10, Math.min(window.innerHeight - 60, origTop + dy));
 
-        hudBox.style.left = `${newLeft}px`;
-        hudBox.style.top = `${newTop}px`;
-        hudBox.style.right = "auto";
+        currentBox.style.left = `${newLeft}px`;
+        currentBox.style.top = `${newTop}px`;
+        currentBox.style.right = "auto";
+        currentBox.style.bottom = "auto";
       });
 
       window.addEventListener("mouseup", () => {
-        if (isDragging) {
+        if (isDragging && hudShadow) {
           isDragging = false;
-          try {
-            const rect = hudBox.getBoundingClientRect();
-            localStorage.setItem(
-              "qp_hud_coords",
-              JSON.stringify({ top: `${rect.top}px`, left: `${rect.left}px`, right: "auto" })
-            );
-          } catch {}
+          const currentBox = hudShadow.getElementById("qp-hud-box");
+          if (currentBox) {
+            try {
+              const rect = currentBox.getBoundingClientRect();
+              localStorage.setItem(
+                "qp_hud_coords",
+                JSON.stringify({ top: `${rect.top}px`, left: `${rect.left}px`, right: "auto", bottom: "auto" })
+              );
+            } catch {}
+          }
         }
       });
     }
@@ -1017,6 +1033,7 @@ plot(showSMAs ? sma200 : na, "SMA 200", color=color.new(#8B5CF6, 10), linewidth=
 
 rsiVal = ta.rsi(close, rsiPeriod)
 volAvg = ta.sma(volume, 20)
+bool volOk = na(volume) or volume == 0 or volume > volAvg * 1.1
 
 // -----------------------------------------------------------------------------
 // 3. STATEFUL SIGNAL ENGINE (Clean Alternating Signals, Zero Repeats)
@@ -1029,12 +1046,15 @@ var float target2 = na
 var float target3 = na
 var string lastSignalLabel = "Cash / Neutral"
 
+// Repainting Protection: Real-time confirmation check
+bool isConfirmed = not barstate.isrealtime or barstate.isconfirmed
+
 // Buy Triggers (Only evaluated when OUT of a position)
 oversoldBounce = ta.crossover(rsiVal, 30) and close > ta.ema(close, 9)
-smaBreakout    = ta.crossover(close, sma20) and volume > volAvg * 1.15
+smaBreakout    = ta.crossover(close, sma20) and volOk
 rawBuy         = oversoldBounce or smaBreakout
 
-bool isBuySignal = rawBuy and tradeState == 0
+bool isBuySignal = rawBuy and tradeState == 0 and isConfirmed
 
 if isBuySignal
     tradeState := 1
@@ -1052,7 +1072,7 @@ bool hitT3      = high >= target3
 bool trendBreak = ta.crossunder(close, sma20) and rsiVal < 48
 bool rawExit    = hitStop or hitT3 or trendBreak
 
-bool isExitSignal = rawExit and tradeState == 1
+bool isExitSignal = rawExit and tradeState == 1 and isConfirmed
 
 if isExitSignal
     tradeState := 0
@@ -1075,34 +1095,37 @@ plot(tradeState == 1 and showStops ? stopLoss : na, "Stop Loss (1.0R)", color=co
 // -----------------------------------------------------------------------------
 var table hud = table.new(position.top_right, 2, 7, bgcolor=color.new(#161616, 5), border_color=color.new(#2E2E2E, 0), border_width=1)
 
-if barstate.islast and showTable
-    color statusBg = tradeState == 1 ? color.new(#0B6A4E, 0) : color.new(#262626, 0)
-    string statusText = tradeState == 1 ? "▲ LONG TRADE" : "⚖ IN CASH"
-    
-    float curReturn = tradeState == 1 and not na(entryPrice) ? ((close - entryPrice) / entryPrice) * 100 : 0.0
-    color returnColor = curReturn >= 0 ? color.new(#34D399, 0) : color.new(#F87171, 0)
-    string returnStr = (curReturn >= 0 ? "+" : "") + str.tostring(curReturn, "#.##") + "%"
+if barstate.islast
+    if showTable
+        color statusBg = tradeState == 1 ? color.new(#0B6A4E, 0) : color.new(#262626, 0)
+        string statusText = tradeState == 1 ? "▲ LONG TRADE" : "⚖ IN CASH"
+        
+        float curReturn = tradeState == 1 and not na(entryPrice) ? ((close - entryPrice) / entryPrice) * 100 : 0.0
+        color returnColor = curReturn >= 0 ? color.new(#34D399, 0) : color.new(#F87171, 0)
+        string returnStr = (curReturn >= 0 ? "+" : "") + str.tostring(curReturn, "#.##") + "%"
 
-    table.cell(hud, 0, 0, "QuantsPulse", bgcolor=color.new(#242424, 0), text_color=color.new(#F26A4B, 0), text_size=size.small)
-    table.cell(hud, 1, 0, syminfo.ticker, bgcolor=color.new(#242424, 0), text_color=color.white, text_size=size.small)
+        table.cell(hud, 0, 0, "QuantsPulse", bgcolor=color.new(#242424, 0), text_color=color.new(#F26A4B, 0), text_size=size.small)
+        table.cell(hud, 1, 0, syminfo.ticker, bgcolor=color.new(#242424, 0), text_color=color.white, text_size=size.small)
 
-    table.cell(hud, 0, 1, "Status", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 1, statusText, bgcolor=statusBg, text_color=color.white, text_size=size.small)
+        table.cell(hud, 0, 1, "Status", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 1, statusText, bgcolor=statusBg, text_color=color.white, text_size=size.small)
 
-    table.cell(hud, 0, 2, "Entry / Return", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 2, tradeState == 1 ? str.tostring(entryPrice, "#.##") + " (" + returnStr + ")" : "—", text_color=returnColor, text_size=size.small)
+        table.cell(hud, 0, 2, "Entry / Return", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 2, tradeState == 1 ? str.tostring(entryPrice, "#.##") + " (" + returnStr + ")" : "—", text_color=returnColor, text_size=size.small)
 
-    table.cell(hud, 0, 3, "Stop (1.0R)", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 3, tradeState == 1 ? str.tostring(stopLoss, "#.##") + " (-" + str.tostring(riskPercent, "#.#") + "%)" : "—", text_color=color.new(#F87171, 0), text_size=size.small)
+        table.cell(hud, 0, 3, "Stop (1.0R)", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 3, tradeState == 1 ? str.tostring(stopLoss, "#.##") + " (-" + str.tostring(riskPercent, "#.#") + "%)" : "—", text_color=color.new(#F87171, 0), text_size=size.small)
 
-    table.cell(hud, 0, 4, "T1 (0.75R)", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 4, tradeState == 1 ? str.tostring(target1, "#.##") + (high >= target1 ? " [HIT ✓]" : "") : "—", text_color=color.new(#34D399, 0), text_size=size.small)
+        table.cell(hud, 0, 4, "T1 (0.75R)", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 4, tradeState == 1 ? str.tostring(target1, "#.##") + (high >= target1 ? " [HIT ✓]" : "") : "—", text_color=color.new(#34D399, 0), text_size=size.small)
 
-    table.cell(hud, 0, 5, "T2 (2.0R)", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 5, tradeState == 1 ? str.tostring(target2, "#.##") + (high >= target2 ? " [HIT ✓]" : "") : "—", text_color=color.new(#10B981, 0), text_size=size.small)
+        table.cell(hud, 0, 5, "T2 (2.0R)", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 5, tradeState == 1 ? str.tostring(target2, "#.##") + (high >= target2 ? " [HIT ✓]" : "") : "—", text_color=color.new(#10B981, 0), text_size=size.small)
 
-    table.cell(hud, 0, 6, "RSI / Trend", text_color=color.gray, text_size=size.small)
-    table.cell(hud, 1, 6, str.tostring(rsiVal, "#.#") + " (" + (close > sma50 ? "Bullish" : "Bearish") + ")", text_color=color.white, text_size=size.small)
+        table.cell(hud, 0, 6, "RSI / Trend", text_color=color.gray, text_size=size.small)
+        table.cell(hud, 1, 6, str.tostring(rsiVal, "#.#") + " (" + (close > sma50 ? "Bullish" : "Bearish") + ")", text_color=color.white, text_size=size.small)
+    else
+        table.clear(hud, 0, 0, 1, 6)
 `;
   }
 

@@ -57,9 +57,23 @@ export interface ExtensionQuotePayload {
 export function cleanExtensionSymbol(raw: string): string {
   let s = raw.trim().toUpperCase();
   if (s.includes(":")) {
-    s = s.split(":")[1];
+    const parts = s.split(":");
+    s = parts[parts.length - 1];
   }
-  return s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").trim();
+  s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").trim();
+
+  const ALIASES: Record<string, string> = {
+    NIFTY50: "NIFTY",
+    "NIFTY-50": "NIFTY",
+    "NIFTY 50": "NIFTY",
+    CNXNIFTY: "NIFTY",
+    "CNX NIFTY": "NIFTY",
+    NIFTYBANK: "BANKNIFTY",
+    "NIFTY BANK": "BANKNIFTY",
+    CNXBANK: "BANKNIFTY",
+  };
+
+  return ALIASES[s] ?? s;
 }
 
 /**
