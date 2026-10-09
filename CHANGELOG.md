@@ -6,6 +6,17 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Enhanced — Stateful Clean Pine Script v5 Engine & Multi-Layout On-Chart HUD (`extension/`)
+- **Stateful Clean Pine Script v5 Engine**:
+  - Eliminated repeating "EXIT" signal clutter with an internal state machine (`tradeState`: Cash vs In-Trade) guaranteeing clean alternating `▲ BUY` -> `▼ EXIT` cycles.
+  - Eliminated stepped staircase lines extending into empty space: active target lines (T1, T2, T3) and stop loss now plot strictly during active positions and cleanly terminate on exit.
+  - Added a native **TradingView Executive Dashboard Table** in the top-right corner displaying live Trade Status, Entry & Return %, Stop Loss (1.0R), Targets (0.75R/2.0R), RSI, and Trend.
+  - Added TradingView user settings (`input.*`) allowing users to toggle dashboard table, signal arrows, targets, stops, and SMAs with one click.
+- **Multi-Layout On-Chart HUD Customizer (Option 1)**:
+  - Added an interactive customizer drawer (`⚙`) on the HUD and Side Panel letting users choose between 4 distinct layouts: **Full Terminal Card**, **Compact Bar (32px)**, **Targets Roadmap Only**, or **Signal Badge Only**.
+  - Added granular component checkboxes (Signal Card, Targets T1-T3, Key Levels, RSI Sentiment) and quick-snap corner docking (`↗ Top-Right`, `↖ Top-Left`, `↘ Bottom-Right`, `↙ Bottom-Left`).
+  - Saved preferences immediately to `localStorage` and `chrome.storage.local` across all tabs and symbols.
+
 ### Added — Live On-Chart Signal HUD & Native TradingView Pine Script Indicator (`extension/`)
 - **Direct On-Chart Floating Signal HUD** (`extension/content-scripts/detector.js`):
   - Injects a responsive, non-intrusive floating HUD overlay directly on broker charts (**TradingView**, **Zerodha Kite**, **Groww**, **Dhan**, **Angel One**).

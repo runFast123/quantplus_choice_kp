@@ -35,10 +35,19 @@
     </div>
     <p class="settings-note">Use <code>http://localhost:3000</code> for local development.</p>
     <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
-      <label class="eyebrow" style="display: flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none;">
+      <label class="eyebrow" style="display: flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none; margin-bottom: 6px;">
         <input type="checkbox" id="toggle-overlay" checked>
         <span>Show Live Signal HUD on Broker Charts</span>
       </label>
+      <div id="hud-options-wrap" style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; font-size: 11px;">
+        <label class="eyebrow" style="font-size: 9.5px;">On-Chart HUD Style</label>
+        <select id="select-hud-mode" class="input-text" style="padding: 3px 6px; font-size: 11px;">
+          <option value="full">Full Terminal Card</option>
+          <option value="compact">Compact Bar (32px)</option>
+          <option value="targets_only">Targets Roadmap Only</option>
+          <option value="signal_only">Signal Badge Only</option>
+        </select>
+      </div>
     </div>
   </div>
 

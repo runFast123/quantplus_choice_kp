@@ -18,6 +18,7 @@
   const btnSettingsToggle = document.getElementById("btn-settings-toggle");
   const btnRefresh = document.getElementById("btn-refresh");
   const toggleOverlay = document.getElementById("toggle-overlay");
+  const selectHudMode = document.getElementById("select-hud-mode");
   const btnCopyPine = document.getElementById("btn-copy-pine");
 
   // Formatters
@@ -36,7 +37,7 @@
   }
 
   // Load preferences and then inspect active tab
-  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay"], async (res) => {
+  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay", "qpHudPrefs"], async (res) => {
     if (res.backendUrl) {
       backendUrl = res.backendUrl.replace(/\/$/, "");
       inputBackend.value = backendUrl;
@@ -46,6 +47,9 @@
     }
     if (toggleOverlay) {
       toggleOverlay.checked = res.showChartOverlay !== false;
+    }
+    if (selectHudMode && res.qpHudPrefs?.displayMode) {
+      selectHudMode.value = res.qpHudPrefs.displayMode;
     }
     if (res.activeSymbol) {
       loadSymbol(res.activeSymbol);
@@ -60,66 +64,152 @@
     });
   }
 
-  if (btnCopyPine) {
-    btnCopyPine.addEventListener("click", () => {
-      const code = generatePineScript(currentSymbol || "NSE Equities");
-      navigator.clipboard.writeText(code).then(() => {
-        const span = btnCopyPine.querySelector("span");
-        const originalText = span ? span.textContent : "";
-        if (span) span.textContent = "✓ Pine Script Copied to Clipboard!";
-        setTimeout(() => {
-          if (span) span.textContent = originalText;
-        }, 2200);
+  if (selectHudMode) {
+    selectHudMode.addEventListener("change", (e) => {
+      const mode = e.target.value;
+      chrome.storage.local.get(["qpHudPrefs"], (res) => {
+        const prefs = Object.assign({}, res.qpHudPrefs || {}, { displayMode: mode });
+        chrome.storage.local.set({ qpHudPrefs: prefs });
       });
     });
   }
 
-  function generatePineScript(symbol) {
-    return `//@version=5
-// QuantsPulse Quantitative Indicators for TradingView
-// Stock: ${symbol || "NSE Equities"}
-indicator("QuantsPulse Quantitative Signals & Levels (${symbol || "NSE"})", overlay=true)
+  if (btnCopyPine) {
+    btnCopyPine.addEventListener("click", () => {
+      const code = generateCleanPineScript(currentSymbol || "NSE Equities");
+      navigator.clipboard.writeText(code).then(() => {
+        const span = btnCopyPine.querySelector("span");
+        const originalText = span ? span.textContent : "";
+        if (span) span.textContent = "✓ Clean Pine Script Copied to Clipboard!";
+        setTimeout(() => {
+          if (span) span.textContent = originalText;
+        }, 2500);
+      });
+    });
+  }
 
-// 1. Moving Averages
-sma20 = ta.sma(close, 20)
-sma50 = ta.sma(close, 50)
+  function generateCleanPineScript(symbol) {
+    const sym = symbol || "NSE Equities";
+    return `//@version=5
+// =============================================================================
+// QuantsPulse Quantitative Strategy Indicator for TradingView
+// Stock: ${sym}
+// =============================================================================
+indicator("QuantsPulse Quantitative Signals & Levels (${sym})", overlay=true, max_labels_count=500, max_lines_count=500)
+
+// -----------------------------------------------------------------------------
+// 1. USER INPUTS & DISPLAY OPTIONS
+// -----------------------------------------------------------------------------
+grpDisplay   = "Display Options"
+showTable    = input.bool(true, "Show Dashboard Table", group=grpDisplay)
+showSignals  = input.bool(true, "Show Buy / Exit Signals", group=grpDisplay)
+showTargets  = input.bool(true, "Show Active Targets (T1 / T2 / T3)", group=grpDisplay)
+showStops    = input.bool(true, "Show Active Stop Loss", group=grpDisplay)
+showSMAs     = input.bool(true, "Show Moving Averages (20 / 50 / 200)", group=grpDisplay)
+
+grpStrategy  = "Strategy Parameters"
+riskPercent  = input.float(3.5, "Stop Loss Risk Budget %", minval=1.0, maxval=12.0, step=0.5, group=grpStrategy)
+rsiPeriod    = input.int(14, "RSI Length", minval=5, maxval=50, group=grpStrategy)
+
+// -----------------------------------------------------------------------------
+// 2. TECHNICAL INDICATORS
+// -----------------------------------------------------------------------------
+sma20  = ta.sma(close, 20)
+sma50  = ta.sma(close, 50)
 sma200 = ta.sma(close, 200)
 
-plot(sma20, "SMA 20", color=color.new(#3B82F6, 0), linewidth=1)
-plot(sma50, "SMA 50", color=color.new(#F59E0B, 0), linewidth=1)
-plot(sma200, "SMA 200", color=color.new(#8B5CF6, 0), linewidth=2)
+plot(showSMAs ? sma20 : na, "SMA 20", color=color.new(#3B82F6, 15), linewidth=1)
+plot(showSMAs ? sma50 : na, "SMA 50", color=color.new(#F59E0B, 15), linewidth=1)
+plot(showSMAs ? sma200 : na, "SMA 200", color=color.new(#8B5CF6, 10), linewidth=2)
 
-// 2. Quantitative Signals
-rsiVal = ta.rsi(close, 14)
-oversoldBounce = ta.crossover(rsiVal, 30) and close > ta.ema(close, 9)
-smaBreakout = ta.crossover(close, sma20) and volume > ta.sma(volume, 20) * 1.2
-buySignal = oversoldBounce or smaBreakout
+rsiVal = ta.rsi(close, rsiPeriod)
+volAvg = ta.sma(volume, 20)
 
-overboughtExit = ta.crossunder(rsiVal, 70) and close < ta.ema(close, 9)
-exitSignal = overboughtExit or ta.crossunder(close, sma20)
-
-plotshape(buySignal, title="QuantsPulse BUY", location=location.belowbar, color=color.new(#0B6A4E, 0), style=shape.triangleup, size=size.small, text="BUY")
-plotshape(exitSignal, title="QuantsPulse EXIT", location=location.abovebar, color=color.new(#A8380B, 0), style=shape.triangledown, size=size.small, text="EXIT")
-
-// 3. Asymmetric Targets (0.75R / 2.0R / 3.0R)
+// -----------------------------------------------------------------------------
+// 3. STATEFUL SIGNAL ENGINE (Clean Alternating Signals, Zero Repeats)
+// -----------------------------------------------------------------------------
+var int tradeState = 0        // 0 = Cash / Out, 1 = In Active Long Trade
 var float entryPrice = na
 var float stopLoss = na
 var float target1 = na
 var float target2 = na
 var float target3 = na
+var string lastSignalLabel = "Cash / Neutral"
 
-if buySignal
+// Buy Triggers (Only evaluated when OUT of a position)
+oversoldBounce = ta.crossover(rsiVal, 30) and close > ta.ema(close, 9)
+smaBreakout    = ta.crossover(close, sma20) and volume > volAvg * 1.15
+rawBuy         = oversoldBounce or smaBreakout
+
+bool isBuySignal = rawBuy and tradeState == 0
+
+if isBuySignal
+    tradeState := 1
     entryPrice := close
-    stopLoss := close * 0.965
+    lastSignalLabel := oversoldBounce ? "RSI Oversold Bounce" : "SMA 20 Breakout"
+    stopLoss   := close * (1.0 - (riskPercent / 100.0))
     float risk = entryPrice - stopLoss
-    target1 := entryPrice + (risk * 0.75)
-    target2 := entryPrice + (risk * 2.0)
-    target3 := entryPrice + (risk * 3.0)
+    target1    := entryPrice + (risk * 0.75)
+    target2    := entryPrice + (risk * 2.0)
+    target3    := entryPrice + (risk * 3.0)
 
-plot(buySignal ? na : stopLoss, "Stop Loss (1R)", color=color.new(#A8380B, 20), style=plot.style_linebr, linewidth=1)
-plot(buySignal ? na : target1, "Target 1 (0.75R)", color=color.new(#0B6A4E, 20), style=plot.style_linebr, linewidth=1)
-plot(buySignal ? na : target2, "Target 2 (2.0R)", color=color.new(#0B6A4E, 20), style=plot.style_linebr, linewidth=2)
-plot(buySignal ? na : target3, "Target 3 (3.0R)", color=color.new(#0B6A4E, 20), style=plot.style_linebr, linewidth=2)
+// Exit Triggers (Only evaluated when IN an active position)
+bool hitStop    = low <= stopLoss
+bool hitT3      = high >= target3
+bool trendBreak = ta.crossunder(close, sma20) and rsiVal < 48
+bool rawExit    = hitStop or hitT3 or trendBreak
+
+bool isExitSignal = rawExit and tradeState == 1
+
+if isExitSignal
+    tradeState := 0
+    lastSignalLabel := hitStop ? "Stop Loss Hit" : hitT3 ? "Target 3 (+3.0R) Hit" : "Trend Breakdown"
+
+// Clean Signal Markers (Only 1 Buy and 1 Exit per trade cycle)
+plotshape(showSignals and isBuySignal, title="BUY Signal", location=location.belowbar, color=color.new(#0B6A4E, 0), style=shape.triangleup, size=size.small, text="BUY")
+plotshape(showSignals and isExitSignal, title="EXIT Signal", location=location.abovebar, color=color.new(#A8380B, 0), style=shape.triangledown, size=size.small, text="EXIT")
+
+// -----------------------------------------------------------------------------
+// 4. CLEAN TARGETS & STOPS (Only plotted during active trades; no empty staircases)
+// -----------------------------------------------------------------------------
+plot(tradeState == 1 and showTargets ? target1 : na, "Target 1 (0.75R)", color=color.new(#34D399, 0), style=plot.style_linebr, linewidth=1)
+plot(tradeState == 1 and showTargets ? target2 : na, "Target 2 (2.0R)", color=color.new(#10B981, 0), style=plot.style_linebr, linewidth=2)
+plot(tradeState == 1 and showTargets ? target3 : na, "Target 3 (3.0R)", color=color.new(#059669, 0), style=plot.style_linebr, linewidth=2)
+plot(tradeState == 1 and showStops ? stopLoss : na, "Stop Loss (1.0R)", color=color.new(#F87171, 0), style=plot.style_linebr, linewidth=1)
+
+// -----------------------------------------------------------------------------
+// 5. NATIVE TRADINGVIEW EXECUTIVE DASHBOARD TABLE
+// -----------------------------------------------------------------------------
+var table hud = table.new(position.top_right, 2, 7, bgcolor=color.new(#161616, 5), border_color=color.new(#2E2E2E, 0), border_width=1)
+
+if barstate.islast and showTable
+    color statusBg = tradeState == 1 ? color.new(#0B6A4E, 0) : color.new(#262626, 0)
+    string statusText = tradeState == 1 ? "▲ LONG TRADE" : "⚖ IN CASH"
+    
+    float curReturn = tradeState == 1 and not na(entryPrice) ? ((close - entryPrice) / entryPrice) * 100 : 0.0
+    color returnColor = curReturn >= 0 ? color.new(#34D399, 0) : color.new(#F87171, 0)
+    string returnStr = (curReturn >= 0 ? "+" : "") + str.tostring(curReturn, "#.##") + "%"
+
+    table.cell(hud, 0, 0, "QuantsPulse", bgcolor=color.new(#242424, 0), text_color=color.new(#F26A4B, 0), text_size=size.small)
+    table.cell(hud, 1, 0, syminfo.ticker, bgcolor=color.new(#242424, 0), text_color=color.white, text_size=size.small)
+
+    table.cell(hud, 0, 1, "Status", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 1, statusText, bgcolor=statusBg, text_color=color.white, text_size=size.small)
+
+    table.cell(hud, 0, 2, "Entry / Return", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 2, tradeState == 1 ? str.tostring(entryPrice, "#.##") + " (" + returnStr + ")" : "—", text_color=returnColor, text_size=size.small)
+
+    table.cell(hud, 0, 3, "Stop (1.0R)", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 3, tradeState == 1 ? str.tostring(stopLoss, "#.##") + " (-" + str.tostring(riskPercent, "#.#") + "%)" : "—", text_color=color.new(#F87171, 0), text_size=size.small)
+
+    table.cell(hud, 0, 4, "T1 (0.75R)", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 4, tradeState == 1 ? str.tostring(target1, "#.##") + (high >= target1 ? " [HIT ✓]" : "") : "—", text_color=color.new(#34D399, 0), text_size=size.small)
+
+    table.cell(hud, 0, 5, "T2 (2.0R)", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 5, tradeState == 1 ? str.tostring(target2, "#.##") + (high >= target2 ? " [HIT ✓]" : "") : "—", text_color=color.new(#10B981, 0), text_size=size.small)
+
+    table.cell(hud, 0, 6, "RSI / Trend", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 6, str.tostring(rsiVal, "#.#") + " (" + (close > sma50 ? "Bullish" : "Bearish") + ")", text_color=color.white, text_size=size.small)
 `;
   }
 
