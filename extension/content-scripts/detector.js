@@ -302,26 +302,28 @@
       if (!hudRoot) {
         hudRoot = document.createElement("div");
         hudRoot.id = "quantspulse-chart-hud-root";
-        hudRoot.style.all = "initial";
         hudRoot.style.position = "fixed";
         hudRoot.style.top = "0";
         hudRoot.style.left = "0";
-        hudRoot.style.width = "0";
-        hudRoot.style.height = "0";
-        hudRoot.style.overflow = "visible";
+        hudRoot.style.width = "100vw";
+        hudRoot.style.height = "100vh";
         hudRoot.style.pointerEvents = "none";
         hudRoot.style.zIndex = "2147483647";
+        hudRoot.style.display = "block";
         hudShadow = hudRoot.attachShadow({ mode: "open" });
       } else {
         hudShadow = hudRoot.shadowRoot || hudShadow;
       }
     }
 
-    const targetParent = document.body || document.documentElement;
+    const targetParent = document.documentElement || document.body;
     if (targetParent && !targetParent.contains(hudRoot)) {
       targetParent.appendChild(hudRoot);
     }
-    if (hudRoot) hudRoot.style.display = "block";
+    hudRoot.style.display = "block";
+    hudRoot.style.pointerEvents = "none";
+    hudRoot.style.width = "100vw";
+    hudRoot.style.height = "100vh";
     return hudShadow;
   }
 
@@ -331,6 +333,7 @@
   }
 
   function renderHud(data) {
+    if (!data || !data.symbol) return;
     const shadow = getOrCreateShadowRoot();
 
     // Default: Top-Left at top: 65px; left: 75px (clear of right watchlist and side panel)
@@ -1325,6 +1328,18 @@ if barstate.islast
           fetchAndRenderHud(sym);
         }
       }
+    }
+  });
+
+  // 6. Direct Message from Side Panel / Background
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === "RENDER_HUD_DIRECT" && message.data) {
+      currentQuoteData = message.data;
+      lastDetectedSymbol = message.data.symbol;
+      prefs.isHidden = false;
+      renderHud(message.data);
+      sendResponse({ ok: true });
+      return true;
     }
   });
 })();

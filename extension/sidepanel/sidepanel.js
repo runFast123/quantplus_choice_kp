@@ -267,11 +267,60 @@ if barstate.islast
     }
   });
 
-  // Active Tab Detector
+  // Active Tab Detector across any window (including split / popped out views)
+  async function findActiveFinanceTab() {
+    if (!chrome.tabs) return null;
+    try {
+      // 1. Try active tab in current window
+      let tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      let tab = tabs?.find((t) => t?.url && isSupportedFinanceUrl(t.url));
+      if (tab) return tab;
+
+      // 2. Try active tab in last focused window (the browser window before clicking the side panel)
+      tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      tab = tabs?.find((t) => t?.url && isSupportedFinanceUrl(t.url));
+      if (tab) return tab;
+
+      // 3. Try any active tab in any window
+      tabs = await chrome.tabs.query({ active: true });
+      tab = tabs?.find((t) => t?.url && isSupportedFinanceUrl(t.url));
+      if (tab) return tab;
+
+      // 4. Fallback: Search all open tabs for any financial platform tab
+      tabs = await chrome.tabs.query({});
+      tab = tabs?.find((t) => t?.url && isSupportedFinanceUrl(t.url));
+      return tab || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function pushHudDirectToTabs(data) {
+    if (!chrome.tabs || !data) return;
+    try {
+      const tabs = await chrome.tabs.query({});
+      for (const t of tabs) {
+        if (t.id && t.url && isSupportedFinanceUrl(t.url)) {
+          if (chrome.scripting) {
+            await chrome.scripting.executeScript({
+              target: { tabId: t.id },
+              files: ["content-scripts/detector.js"],
+            }).catch(() => {});
+          }
+          chrome.tabs.sendMessage(t.id, {
+            type: "RENDER_HUD_DIRECT",
+            data: data,
+          }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn("pushHudDirectToTabs error:", e);
+    }
+  }
+
   async function detectActiveTab(forceReload = false) {
     try {
-      if (!chrome.tabs) return;
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = await findActiveFinanceTab();
       if (!tab || !tab.url) return;
 
       let detected = null;
@@ -487,6 +536,9 @@ if barstate.islast
         activeQuoteData: data,
         activeSymbol: data.symbol,
       });
+
+      // DIRECT PUSH: Send RENDER_HUD_DIRECT to all open broker/TradingView tabs
+      pushHudDirectToTabs(data);
     } catch (err) {
       showError(err);
     } finally {
