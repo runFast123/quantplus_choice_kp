@@ -33,8 +33,8 @@
     return String(n);
   }
 
-  // Load preferences
-  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform"], (res) => {
+  // Load preferences and then inspect active tab
+  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform"], async (res) => {
     if (res.backendUrl) {
       backendUrl = res.backendUrl.replace(/\/$/, "");
       inputBackend.value = backendUrl;
@@ -45,6 +45,8 @@
     if (res.activeSymbol) {
       loadSymbol(res.activeSymbol);
     }
+    // Proactively detect the current active tab immediately upon opening
+    detectActiveTab();
   });
 
   // Settings toggle & save
@@ -72,9 +74,11 @@
     }
   });
 
-  // Refresh
-  btnRefresh.addEventListener("click", () => {
-    if (currentSymbol) loadSymbol(currentSymbol);
+  // Refresh button: trigger active tab re-probe & symbol reload
+  btnRefresh.addEventListener("click", async () => {
+    btnRefresh.classList.add("spinning");
+    await detectActiveTab(true);
+    setTimeout(() => btnRefresh.classList.remove("spinning"), 600);
   });
 
   // Storage listener for live tab updates
@@ -88,6 +92,152 @@
       }
     }
   });
+
+  // Active Tab Detector
+  async function detectActiveTab(forceReload = false) {
+    try {
+      if (!chrome.tabs) return;
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab || !tab.url) return;
+
+      let detected = null;
+
+      // 1. Try in-tab script execution if permissions allow
+      if (chrome.scripting && tab.id && isSupportedFinanceUrl(tab.url)) {
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: inTabExtractorFunc,
+          });
+          if (results && results[0] && results[0].result) {
+            detected = results[0].result;
+          }
+        } catch (e) {
+          // Fallback to title/url analysis below
+        }
+      }
+
+      // 2. Fallback heuristic from tab title & url
+      if (!detected && isSupportedFinanceUrl(tab.url)) {
+        detected = parseTabMeta(tab.url, tab.title || "");
+      }
+
+      if (detected && detected.symbol) {
+        elPlatformBadge.textContent = detected.platform || "Synced";
+        chrome.storage.local.set({
+          activeSymbol: detected.symbol,
+          platform: detected.platform,
+          exchange: "NSE",
+          detectedAt: Date.now(),
+        });
+        if (detected.symbol !== currentSymbol || forceReload) {
+          loadSymbol(detected.symbol);
+        }
+      } else if (forceReload && currentSymbol) {
+        loadSymbol(currentSymbol);
+      }
+    } catch (err) {
+      console.warn("detectActiveTab error:", err);
+    }
+  }
+
+  function isSupportedFinanceUrl(url) {
+    if (!url) return false;
+    return /(tradingview|zerodha|groww|dhan|angelone|google\.com\/finance|finance\.yahoo)/i.test(url);
+  }
+
+  function parseTabMeta(url, title) {
+    if (!title) return null;
+    const EX = new Set(["TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "INDEX", "MARKETS", "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "PRICE", "TODAY", "STOCK", "STOCKS", "NSE", "BSE", "INR", "USD"]);
+    if (url.includes("tradingview.com")) {
+      const firstToken = title.trim().split(/[\s,·\-_]+/)[0].toUpperCase();
+      if (firstToken.length >= 2 && firstToken.length <= 15 && !EX.has(firstToken)) {
+        return { symbol: firstToken, platform: "TradingView" };
+      }
+    }
+    return null;
+  }
+
+  // Self-contained extractor function passed into the active tab
+  function inTabExtractorFunc() {
+    const host = window.location.hostname.toLowerCase();
+    const title = document.title || "";
+    const EX = new Set([
+      "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "INDEX", "MARKETS",
+      "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "PRICE", "TODAY", "STOCK", "STOCKS",
+      "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE",
+      "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD"
+    ]);
+
+    function clean(raw) {
+      if (!raw) return "";
+      let s = String(raw).trim().toUpperCase();
+      if (s.includes(":")) {
+        const p = s.split(":");
+        s = p[p.length - 1];
+      }
+      s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/g, "");
+      return s.length >= 2 && s.length <= 15 && !EX.has(s) ? s : "";
+    }
+
+    if (host.includes("tradingview.com")) {
+      // 1. Header Toolbar symbol search button (top left pill)
+      const btn = document.querySelector(
+        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol']"
+      );
+      if (btn && btn.textContent) {
+        const c = clean(btn.textContent);
+        if (c) return { symbol: c, platform: "TradingView" };
+      }
+
+      // 2. Document Title (e.g. "HINDUNILVR 1,856.70 INR ...")
+      if (title) {
+        const first = title.trim().split(/[\s,·\-_]+/)[0];
+        const c = clean(first);
+        if (c) return { symbol: c, platform: "TradingView" };
+      }
+
+      // 3. Chart Legend
+      const leg = document.querySelector("[data-name='legend-source-title'], [data-name='legend-series-item'], .chart-widget .pane-legend-line");
+      if (leg && leg.textContent) {
+        const c = clean(leg.textContent);
+        if (c) return { symbol: c, platform: "TradingView" };
+      }
+
+      // 4. Watchlist active item
+      const item = document.querySelector(
+        "[data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], div[class*='selected-'][data-symbol-full], [data-name='watch-list-item'].active"
+      );
+      if (item) {
+        const val = item.getAttribute("data-symbol-full") || item.getAttribute("data-symbol") || item.textContent;
+        const c = clean(val);
+        if (c) return { symbol: c, platform: "TradingView" };
+      }
+    }
+
+    if (host.includes("zerodha.com")) {
+      const m = window.location.href.match(/\/chart\/(?:ext\/tvc\/)?(?:NSE|BSE)\/([A-Z0-9&-]+)/i);
+      if (m) {
+        const c = clean(m[1]);
+        if (c) return { symbol: c, platform: "Zerodha Kite" };
+      }
+      const item = document.querySelector(".instrument.selected .nice-name, .order-window .instrument-name");
+      if (item) {
+        const c = clean(item.textContent);
+        if (c) return { symbol: c, platform: "Zerodha Kite" };
+      }
+    }
+
+    if (host.includes("groww.in")) {
+      const m = title.match(/\(([A-Z0-9&-]+)\)\s+(?:Share|Stock)/i);
+      if (m) {
+        const c = clean(m[1]);
+        if (c) return { symbol: c, platform: "Groww" };
+      }
+    }
+
+    return null;
+  }
 
   // Main fetch & render function
   async function loadSymbol(sym) {

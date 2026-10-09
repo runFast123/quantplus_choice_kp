@@ -7,7 +7,8 @@
     "sidePanel",
     "tabs",
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "*://*.tradingview.com/*",

@@ -2,16 +2,27 @@
 // Automatically detects active stock tickers on TradingView, Zerodha Kite, Groww, Dhan, Angel One, etc.
 
 (function () {
+  const EXCLUDED = new Set([
+    "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "INDEX", "MARKETS",
+    "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "PRICE", "TODAY", "STOCK", "STOCKS",
+    "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE",
+    "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD"
+  ]);
+
   let lastDetectedSymbol = "";
 
   function cleanTicker(raw) {
     if (!raw) return "";
     let s = String(raw).trim().toUpperCase();
     if (s.includes(":")) {
-      s = s.split(":")[1];
+      const parts = s.split(":");
+      s = parts[parts.length - 1];
     }
     s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/g, "");
-    return s.length >= 2 && s.length <= 15 ? s : "";
+    if (s.length < 2 || s.length > 15 || EXCLUDED.has(s)) {
+      return "";
+    }
+    return s;
   }
 
   function detectSymbol() {
@@ -25,25 +36,54 @@
     // 1. TradingView
     if (host.includes("tradingview.com")) {
       platform = "TradingView";
-      // Try URL parameter ?symbol=NSE:TCS
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const symParam = params.get("symbol");
-        if (symParam) symbol = cleanTicker(symParam);
-      } catch {}
 
-      // Try TradingView Legend or Header Symbol Search
+      // A. Check Top Header Symbol Search Button (shows current loaded chart symbol, e.g. "HINDUNILVR")
+      const tvHeader = document.querySelector(
+        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol']"
+      );
+      if (tvHeader && tvHeader.textContent) {
+        const cleaned = cleanTicker(tvHeader.textContent);
+        if (cleaned) symbol = cleaned;
+      }
+
+      // B. Check Document Title (first token is almost always the active ticker, e.g. "HINDUNILVR 1,856.70 INR...")
+      if (!symbol && title) {
+        const firstToken = title.trim().split(/[\s,·\-_]+/)[0];
+        const cleaned = cleanTicker(firstToken);
+        if (cleaned) symbol = cleaned;
+      }
+
+      // C. Check Chart Legend series title
       if (!symbol) {
-        const tvHeader = document.querySelector("#header-toolbar-symbol-search, [data-name='legend-source-title']");
-        if (tvHeader && tvHeader.textContent) {
-          symbol = cleanTicker(tvHeader.textContent);
+        const legend = document.querySelector("[data-name='legend-source-title'], [data-name='legend-series-item'], .chart-widget .pane-legend-line");
+        if (legend && legend.textContent) {
+          const cleaned = cleanTicker(legend.textContent);
+          if (cleaned) symbol = cleaned;
         }
       }
 
-      // Try TradingView Document Title (e.g. "TCS 2084.00 INR ...")
-      if (!symbol && title) {
-        const match = title.match(/^([A-Z0-9&-]+)\s+[\d,.]+\s*(INR|USD)?/i);
-        if (match) symbol = cleanTicker(match[1]);
+      // D. Check Active Item in Watchlist sidebar
+      if (!symbol) {
+        const activeItem = document.querySelector(
+          "[data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], div[class*='selected-'][data-symbol-full], [data-name='watch-list-item'].active"
+        );
+        if (activeItem) {
+          const attr = activeItem.getAttribute("data-symbol-full") || activeItem.getAttribute("data-symbol") || activeItem.textContent;
+          const cleaned = cleanTicker(attr);
+          if (cleaned) symbol = cleaned;
+        }
+      }
+
+      // E. Fallback ONLY if all DOM & Title checks were empty: URL param ?symbol=NSE:TCS
+      if (!symbol) {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const symParam = params.get("symbol");
+          if (symParam) {
+            const cleaned = cleanTicker(symParam);
+            if (cleaned) symbol = cleaned;
+          }
+        } catch {}
       }
     }
 
@@ -56,15 +96,19 @@
         symbol = cleanTicker(kiteUrlMatch[1]);
       } else {
         // Active item in marketwatch or order window
-        const activeItem = document.querySelector(".instrument.selected .nice-name, .order-window .instrument-name");
+        const activeItem = document.querySelector(".instrument.selected .nice-name, .order-window .instrument-name, .tv-chart-container .instrument");
         if (activeItem) symbol = cleanTicker(activeItem.textContent);
+      }
+      if (!symbol && title) {
+        const kiteTitleMatch = title.match(/^([A-Z0-9&-]+)\s+[\d,.]+/i);
+        if (kiteTitleMatch) symbol = cleanTicker(kiteTitleMatch[1]);
       }
     }
 
     // 3. Groww
     else if (host.includes("groww.in")) {
       platform = "Groww";
-      // Document title often has ticker in parentheses: "... (TCS) Share Price"
+      // Document title often has ticker in parentheses: "... (TCS) Share Price" or starts with it
       const growwMatch = title.match(/\(([A-Z0-9&-]+)\)\s+(?:Share|Stock)/i);
       if (growwMatch) {
         symbol = cleanTicker(growwMatch[1]);
@@ -73,6 +117,13 @@
         if (breadcrumb && breadcrumb.textContent) {
           const m = breadcrumb.textContent.match(/\(([A-Z0-9&-]+)\)/);
           if (m) symbol = cleanTicker(m[1]);
+        }
+      }
+      if (!symbol && href.includes("/stocks/")) {
+        const slug = href.split("/stocks/")[1]?.split(/[?#/]/)[0];
+        if (slug) {
+          const cleanSlug = cleanTicker(slug);
+          if (cleanSlug) symbol = cleanSlug;
         }
       }
     }
@@ -84,14 +135,21 @@
       if (dhanMatch) symbol = cleanTicker(dhanMatch[1]);
     }
 
-    // 5. Google Finance
+    // 5. Angel One
+    else if (host.includes("angelone.in")) {
+      platform = "Angel One";
+      const angelMatch = title.match(/^([A-Z0-9&-]+)\s+[\d,.]+/i);
+      if (angelMatch) symbol = cleanTicker(angelMatch[1]);
+    }
+
+    // 6. Google Finance
     else if (host.includes("google.com") && href.includes("/finance")) {
       platform = "Google Finance";
       const gfMatch = href.match(/\/quote\/([A-Z0-9&-]+):(NSE|BSE)/i);
       if (gfMatch) symbol = cleanTicker(gfMatch[1]);
     }
 
-    // 6. Yahoo Finance
+    // 7. Yahoo Finance
     else if (host.includes("finance.yahoo.com")) {
       platform = "Yahoo Finance";
       const yfMatch = href.match(/\/quote\/([A-Z0-9&-]+)\.(?:NS|BO)/i);
@@ -105,14 +163,14 @@
         symbol,
         exchange: "NSE",
         platform,
-      });
+      }).catch(() => {});
     }
   }
 
-  // Initial detection
+  // Initial detection immediately
   detectSymbol();
 
-  // Watch for SPA URL / Title changes
+  // Watch for SPA URL / Title / DOM changes
   const observer = new MutationObserver(() => {
     detectSymbol();
   });
@@ -122,6 +180,20 @@
     childList: true,
   });
 
-  // Check on interval for navigation events
-  setInterval(detectSymbol, 2000);
+  // Listen to user clicks (e.g. clicking a new row in TradingView watchlist)
+  document.addEventListener("click", () => {
+    setTimeout(detectSymbol, 150);
+    setTimeout(detectSymbol, 500);
+  }, { passive: true });
+
+  // Listen to keyboard navigation (e.g. arrow keys moving down watchlist)
+  document.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
+      setTimeout(detectSymbol, 150);
+      setTimeout(detectSymbol, 500);
+    }
+  }, { passive: true });
+
+  // Fallback periodic sync for any background DOM updates
+  setInterval(detectSymbol, 1500);
 })();

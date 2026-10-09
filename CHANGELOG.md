@@ -6,6 +6,11 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed & Enhanced — Chrome Extension Proactive Tab Sync & TradingView DOM Detection (`extension/`)
+- **Proactive Tab Sync & In-Page Injection**: Fixed empty state on newly opened side panels by adding `"scripting"` permissions, auto-injecting `detector.js` into pre-existing open financial tabs on startup/install, and querying active tabs directly upon panel load.
+- **TradingView DOM Priority over Query Strings**: Prioritized active header toolbar button (`#header-toolbar-symbol-search`), dynamic document title, chart legend, and active watchlist items over URL search parameters, resolving desyncs where TradingView's query string lagged behind chart clicks (e.g. `HINDUNILVR` clicked while URL still had `MANALIPETC`).
+- **Interactive Sync Refresh**: Re-wired header "↻" refresh button to immediately re-probe the active tab DOM with spin animation feedback, and added click/keyup listeners for instantaneous detection on TradingView watchlist changes.
+
 ### Added — QuantsPulse Indian Equities Terminal Chrome Extension (`extension/`)
 - Built complete Manifest V3 Chrome Extension utilizing the native **Chrome Side Panel API** (`chrome.sidePanel`).
 - **Auto Ticker Detection** (`extension/content-scripts/detector.js`): Automatically detects active stock tickers across **TradingView**, **Zerodha Kite**, **Groww**, **Dhan**, **Angel One**, **Google Finance**, and **Yahoo Finance**.
