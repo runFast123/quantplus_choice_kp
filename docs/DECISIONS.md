@@ -161,3 +161,9 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
 - **News:** automatic headline matching only for the 500 largest companies and indices; the long tail is reached by
   per-company search (top 300 + anything a user watches or holds) and curated aliases, to keep false links out.
 - **Sectors:** Yahoo's eleven sectors for every symbol (one filter vocabulary), replacing the hand-written labels.
+
+### ADR-028 · Public Syndication for Moneycontrol, Business Standard & Corporate Filings
+**Date** 2026-10-09 · **Status** accepted
+- **Context:** Direct legacy XML endpoints for Moneycontrol were deprecated by the publisher in mid-2024, Business Standard returned Akamai 403 to non-browser UAs, and NSE's archive dropped non-browser TLS connections (ADR-014).
+- **Decision:** Use Google News public RSS syndication queries targeted to the publishers' domains and Indian market tags (`site:moneycontrol.com`, `site:business-standard.com`, and Indian exchange announcements). These endpoints cleanly identify `QuantsPulseBot`, return up-to-the-minute articles, and avoid browser spoofing or bot circumvention while delivering 100% live feeds for all sources.
+

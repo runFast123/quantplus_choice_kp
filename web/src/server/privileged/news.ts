@@ -141,14 +141,31 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
       let fresh = 0;
       for (const item of items) {
         if (source.kind === "filing") {
-          const sym = nseFilingSymbol(item.link);
-          if (!sym || !covered.has(sym)) continue; // only filings for stocks we cover
-          const [about, subject] = (item.summary ?? "").split("|SUBJECT:");
-          const s = covered.get(sym)!;
-          fresh += add(
-            toCandidate(source, { ...item, title: `${stripLegalSuffix(s.name)}: ${subject?.trim() || "Exchange filing"}`, summary: about?.trim() || null },
-              [{ symbol: sym, exchange: "NSE", kind: "filing", text: sym }], { category: subject?.trim() || null }),
-          );
+          const directSym = nseFilingSymbol(item.link);
+          if (directSym && covered.has(directSym)) {
+            const [about, subject] = (item.summary ?? "").split("|SUBJECT:");
+            const s = covered.get(directSym)!;
+            fresh += add(
+              toCandidate(
+                source,
+                { ...item, title: `${stripLegalSuffix(s.name)}: ${subject?.trim() || "Exchange filing"}`, summary: about?.trim() || null },
+                [{ symbol: directSym, exchange: "NSE", kind: "filing", text: directSym }],
+                { category: subject?.trim() || "Exchange filing" },
+              ),
+            );
+          } else {
+            // Corporate announcements feed: match symbols using company matcher
+            const matches = matcher.match(`${item.title} ${item.summary ?? ""}`);
+            const filingLinks = matches.map((m) => ({
+              symbol: m.symbol,
+              exchange: m.exchange,
+              kind: "filing" as const,
+              text: m.text,
+            }));
+            fresh += add(
+              toCandidate(source, item, filingLinks, { category: "Corporate announcement" }),
+            );
+          }
         } else {
           fresh += add(toCandidate(source, item, matcher.match(`${item.title} ${item.summary ?? ""}`)));
         }

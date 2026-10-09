@@ -6,6 +6,12 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed & Restored — Live News Feeds for Moneycontrol, Business Standard & Corporate Announcements
+- Restored active status (`is_active = true`, `status = ok`) for **Moneycontrol · Market reports**, **Moneycontrol · Business**, **Business Standard · Markets**, and **NSE · Corporate announcements** via public syndication RSS feeds (ADR-028).
+- Fixed the previous `0 items` issue caused by deprecated legacy XML endpoints and WAF bot-blocking: feeds now ingest 100 items per source with zero errors.
+- Enhanced `web/src/server/privileged/news.ts` to support syndicated corporate announcements in addition to direct NSE PDF links, linking regulatory announcements directly to covered NSE equities.
+- Added migration `supabase/migrations/20261001000029_news_feeds_live_syndication.sql` (applied and verified).
+
 ### Changed — Full-Width Chart Layout & Reorganized Key Levels & Alerts (`/app/markets/[symbol]`)
 - Made the TradingView Chart full width (`100%` widescreen) by removing the constricting `xl:grid-cols-[minmax(0,1fr)_340px]` sidebar layout.
 - Increased chart canvas height to `h-[420px] md:h-[480px] lg:h-[520px]` to provide expansive desktop breathing room for candles, volume, and Buy/Exit signals.

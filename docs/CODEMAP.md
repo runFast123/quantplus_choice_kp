@@ -36,6 +36,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 26 | `whole_market` | `market_symbols` + `segment`, `vendor_ticker`, `mcap_rank`, `history_days`, `status_note`, `successors`; `market_quotes` (latest quote, written by analytics) behind view `market_snapshot`; `refresh_market_analytics(days, symbols)` per-symbol; `refresh_research_notes(symbols)`; `svc_refresh_market_analytics(p_days, p_symbols)`, `svc_refresh_research(p_symbols)`; `search_symbols(q, limit)`; trigger `ensure_news_cursor` on watchlist_items/holdings; crons `retention-candles`, `retention-rsi-daily`, `retention-research` (10 d) |
 | 27 | `research_latest_columns` | `research_latest` + `segment`, `mcap_rank`, `score_change` |
 | 28 | `exact_sma` | moving averages in exact decimal arithmetic (numeric running sums instead of float8) |
+| 29 | `news_feeds_live_syndication` | restores active feeds for Moneycontrol, Business Standard, and Corporate Announcements via Google News RSS syndication |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,
