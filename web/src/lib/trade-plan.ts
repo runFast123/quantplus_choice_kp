@@ -321,6 +321,7 @@ export interface QuantumAuditItem {
   plan: TradePlanResult;
   actionGuidance: string;
   source?: "holding" | "radar";
+  exitLogs?: ExitLogEntry[];
 }
 
 /**
@@ -335,6 +336,7 @@ export function auditStockSentiment(params: {
   rsi?: number | null;
   stop?: number | null;
   source?: "holding" | "radar";
+  exitLogs?: ExitLogEntry[];
 }): QuantumAuditItem {
   const entry = params.entryBase > 0 ? params.entryBase : params.lastPrice;
   const stop =
@@ -382,6 +384,7 @@ export function auditStockSentiment(params: {
     plan,
     actionGuidance,
     source: params.source,
+    exitLogs: params.exitLogs,
   };
 }
 
@@ -465,6 +468,78 @@ export function deduplicateChartSignals(
   }
 
   return clean;
+}
+
+/**
+ * Classifies an RSI value into Alpha Level nomenclature
+ * conforming to user sentiment specifications (PDF §6 & QuantAnalysis protocol):
+ * - RSI >= 80: "SENTIMENT PEAK"
+ * - RSI >= 70: "NODE LEVEL 2"
+ * - RSI < 70: "ALPHA TARGET"
+ */
+export function getAlphaLevel(rsi: number): string {
+  if (rsi >= 80) return "SENTIMENT PEAK";
+  if (rsi >= 70) return "NODE LEVEL 2";
+  return "ALPHA TARGET";
+}
+
+export interface ExitLogEntry {
+  exitLabel: string;
+  nodeIndex: number;
+  date: string;
+  price: number;
+  rsi: number;
+  alphaLabel: string;
+  pnlPct: number;
+}
+
+/**
+ * Computes sequential sentiment exit qualification logs (Quantum Audit scan).
+ * Conforms to PDF §6.1 / QuantAnalysis:
+ * - Starts from buyDate & buyPrice.
+ * - Iterates chronologically through subsequent events.
+ * - Event qualifies if: eventDate > buyDate AND eventPrice > (lastRefPrice * 1.015) AND eventRsi >= 60.
+ * - Successive exits must be at least 1.5% above previous reference price.
+ * - Returns structured exit logs with P&L delta and Alpha Level tags.
+ */
+export function computeExitNodeHistory(
+  buyDate: string | Date,
+  buyPrice: number,
+  events: Array<{ date: string; price: number; rsi: number }>,
+): ExitLogEntry[] {
+  if (!buyPrice || buyPrice <= 0 || !events || !events.length) return [];
+  const buyTime = new Date(buyDate).getTime();
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+
+  const exitLogs: ExitLogEntry[] = [];
+  let lastRefPrice = buyPrice;
+
+  for (const event of sorted) {
+    const eventTime = new Date(event.date).getTime();
+    const eventPrice = Number(event.price);
+    const eventRsi = Number(event.rsi);
+
+    if (
+      eventTime > buyTime &&
+      eventPrice > lastRefPrice * 1.015 &&
+      eventRsi >= 60
+    ) {
+      exitLogs.push({
+        exitLabel: `Exit ${exitLogs.length + 1}`,
+        nodeIndex: exitLogs.length + 1,
+        date: event.date,
+        price: eventPrice,
+        rsi: eventRsi,
+        alphaLabel: getAlphaLevel(eventRsi),
+        pnlPct: Number((((eventPrice - buyPrice) / buyPrice) * 100).toFixed(2)),
+      });
+      lastRefPrice = eventPrice;
+    }
+  }
+
+  return exitLogs;
 }
 
 

@@ -5,9 +5,11 @@ import {
   auditStockSentiment,
   calculatePositionSize,
   calculateTradePlan,
+  computeExitNodeHistory,
   deduplicateChartSignals,
   evaluateSentiment,
   evaluateSignalProgress,
+  getAlphaLevel,
 } from "./trade-plan";
 
 describe("calculateTradePlan", () => {
@@ -284,6 +286,67 @@ describe("deduplicateChartSignals", () => {
     ];
     const clean = deduplicateChartSignals(raw, "clean");
     assert.equal(clean.length, 3);
+  });
+});
+
+describe("getAlphaLevel", () => {
+  test("categorizes RSI thresholds into alpha levels correctly", () => {
+    assert.equal(getAlphaLevel(85), "SENTIMENT PEAK");
+    assert.equal(getAlphaLevel(80), "SENTIMENT PEAK");
+    assert.equal(getAlphaLevel(75), "NODE LEVEL 2");
+    assert.equal(getAlphaLevel(70), "NODE LEVEL 2");
+    assert.equal(getAlphaLevel(65), "ALPHA TARGET");
+    assert.equal(getAlphaLevel(50), "ALPHA TARGET");
+  });
+});
+
+describe("computeExitNodeHistory", () => {
+  test("reproduces exact worked example from user specification (PDF §6)", () => {
+    // Buy price = 100 on Jan 01
+    // Initial threshold = 100 * 1.015 = 101.50
+    const events = [
+      { date: "2026-01-05", price: 104, rsi: 65 }, // Qualifies (104 > 101.50 & RSI 65 >= 60). Next min: 104 * 1.015 = 105.56
+      { date: "2026-01-08", price: 105, rsi: 72 }, // Rejected (105 < 105.56)
+      { date: "2026-01-12", price: 108, rsi: 74 }, // Qualifies (108 > 105.56 & RSI 74 >= 60). Next min: 108 * 1.015 = 109.62
+      { date: "2026-01-20", price: 118, rsi: 82 }, // Qualifies (118 > 109.62 & RSI 82 >= 60)
+    ];
+
+    const exits = computeExitNodeHistory("2026-01-01", 100, events);
+
+    assert.equal(exits.length, 3);
+
+    // Exit 1
+    assert.equal(exits[0].exitLabel, "Exit 1");
+    assert.equal(exits[0].date, "2026-01-05");
+    assert.equal(exits[0].price, 104);
+    assert.equal(exits[0].rsi, 65);
+    assert.equal(exits[0].alphaLabel, "ALPHA TARGET");
+    assert.equal(exits[0].pnlPct, 4.0);
+
+    // Exit 2
+    assert.equal(exits[1].exitLabel, "Exit 2");
+    assert.equal(exits[1].date, "2026-01-12");
+    assert.equal(exits[1].price, 108);
+    assert.equal(exits[1].rsi, 74);
+    assert.equal(exits[1].alphaLabel, "NODE LEVEL 2");
+    assert.equal(exits[1].pnlPct, 8.0);
+
+    // Exit 3
+    assert.equal(exits[2].exitLabel, "Exit 3");
+    assert.equal(exits[2].date, "2026-01-20");
+    assert.equal(exits[2].price, 118);
+    assert.equal(exits[2].rsi, 82);
+    assert.equal(exits[2].alphaLabel, "SENTIMENT PEAK");
+    assert.equal(exits[2].pnlPct, 18.0);
+  });
+
+  test("handles empty or pre-buy events safely", () => {
+    const events = [
+      { date: "2025-12-31", price: 120, rsi: 75 }, // Prior to buyDate
+      { date: "2026-01-02", price: 100.5, rsi: 55 }, // RSI < 60
+    ];
+    const exits = computeExitNodeHistory("2026-01-01", 100, events);
+    assert.equal(exits.length, 0);
   });
 });
 

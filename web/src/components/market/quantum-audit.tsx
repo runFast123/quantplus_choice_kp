@@ -14,6 +14,7 @@ import { Delta } from "@/components/ui/data";
 import { price } from "@/lib/format";
 import {
   auditStockSentiment,
+  type ExitLogEntry,
   type QuantumAuditItem,
 } from "@/lib/trade-plan";
 
@@ -27,6 +28,7 @@ export interface QuantumAuditStockInput {
   stop?: number | null;
   quantity?: number | null;
   source?: "holding" | "radar";
+  exitLogs?: ExitLogEntry[];
 }
 
 export interface QuantumAuditProps {
@@ -55,6 +57,7 @@ export function QuantumAudit({
         rsi: s.rsi,
         stop: s.stop,
         source: s.source,
+        exitLogs: s.exitLogs,
       }),
     );
   }, [stocks]);
@@ -402,6 +405,42 @@ export function QuantumAudit({
                         <span>Risk per unit: ₹{price(item.plan.riskPerShare)}</span>
                         <span>Multiples: 0.75R · 2.0R · 3.0R</span>
                       </div>
+
+                      {item.exitLogs && item.exitLogs.length > 0 && (
+                        <div className="mt-2 flex flex-col gap-1.5 border-t border-border/60 pt-2">
+                          <span className="eyebrow text-muted-foreground">
+                            Sentiment Exit History ({item.exitLogs.length})
+                          </span>
+                          <div className="flex flex-col gap-1">
+                            {item.exitLogs.map((log, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between rounded bg-muted/40 px-2 py-1 text-[10.5px]"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-foreground">
+                                    {log.exitLabel}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {log.date}
+                                  </span>
+                                  <span className="rounded bg-muted px-1.5 py-0.2 text-[9px] font-medium text-muted-foreground">
+                                    {log.alphaLabel}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="num font-medium text-foreground">
+                                    ₹{price(log.price)}
+                                  </span>
+                                  <span className="num font-semibold text-gain">
+                                    +{log.pnlPct.toFixed(2)}%
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

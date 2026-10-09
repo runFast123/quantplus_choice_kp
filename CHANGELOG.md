@@ -6,6 +6,13 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added & Verified — Quantitative Signal Logic & Sentiment Exit Node Protocol
+- Added `getAlphaLevel` and `computeExitNodeHistory` in `web/src/lib/trade-plan.ts` conforming to user sentiment exit scan protocol (PDF §6 & `QuantAnalysis`):
+  - Enforces minimum +1.5% consecutive step (`eventPrice > lastRefPrice * 1.015`), RSI threshold (`RSI >= 60`), and Alpha Level tiering (`SENTIMENT PEAK` for RSI ≥ 80, `NODE LEVEL 2` for RSI ≥ 70, `ALPHA TARGET` otherwise).
+  - Validated with unit tests in `web/src/lib/trade-plan.test.mts` matching the exact multi-node worked example from the user specification (59/59 unit tests passing).
+- Enhanced `<QuantumAudit>` (`web/src/components/market/quantum-audit.tsx`) with historical sentiment exit logs rendering in the expandable roadmap drawer.
+- Integrated quantitative discount gap analysis (>10% below cost basis) and portfolio breadth evaluation (13–15 stocks optimal diversification target) into `portfolioHealthReadWithMyKey` in `web/src/server/privileged/ai.ts`.
+
 ### Added & Fixed — Free TradingView Advanced Chart Integration (`/app/markets/[symbol]`)
 - Fixed symbol fallback issue where Indian stocks defaulted to Apple Inc (`AAPL`) in the embed widget: added `toTradingViewWidgetSymbol` in `web/src/lib/market.ts` routing to `BSE:${symbol}` for free iframe compatibility.
 - Fixed strategy label mismatch: added `signalDisplayName` in `web/src/lib/format.ts` ensuring exit signals are accurately labeled "SMA Death Cross" or "RSI Overbought Pullback" (rather than erroneously saying "Golden Cross").

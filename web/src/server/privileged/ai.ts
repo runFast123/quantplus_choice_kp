@@ -192,12 +192,12 @@ export async function researchReadWithMyKey(userId: string, tenantId: string, sy
 }
 
 const PORTFOLIO_SYSTEM = `You are a quantitative portfolio risk analyst for Indian equities.
-Analyze the user's portfolio based ONLY on the provided holdings, sector weights, concentration metrics, and technical RSI indicators.
+Analyze the user's portfolio based ONLY on the provided holdings, sector weights, concentration metrics, gap/discount analysis, and technical RSI indicators.
 Structure your analysis into three short, focused sections:
-1. Concentration & Structural Risk: Evaluate top holdings and Herfindahl-Hirschman concentration (HHI). Highlight single-stock exposure risks.
+1. Concentration & Structural Risk: Evaluate portfolio breadth (target 13–15 holdings for optimal risk control), single-stock exposure, and Herfindahl-Hirschman concentration (HHI).
 2. Sector Allocation & Macro Sensitivity: Evaluate sector weights, noting overweights (>30%) or missing defensive/growth sectors.
-3. Momentum & Technical Alignment: Review RSI distribution, noting positions vulnerable to exhaustion or in deep oversold territory.
-Rules: Do not give buy/sell recommendations or price targets. Strictly under 240 words. Professional institutional tone. Use ₹ and IST.`;
+3. Quantitative Gaps & Technical Momentum: Identify stocks at >10% discount from cost basis as potential opportunities to check Signals, evaluate winner retention, and review RSI exhaustion nodes (RSI ≥ 70) vs oversold accumulation.
+Rules: Do not give speculative buy/sell recommendations or price targets. Strictly under 240 words. Professional institutional tone. Use ₹ and IST.`;
 
 export async function portfolioHealthReadWithMyKey(
   userId: string,
@@ -271,14 +271,24 @@ export async function portfolioHealthReadWithMyKey(
     .map(([s, w]) => `- ${s}: ${w.toFixed(1)}%`)
     .join("\n");
 
+  const discountOpportunities = positions
+    .filter((p) => p.avgPrice > 0 && ((p.avgPrice - p.lastPrice) / p.avgPrice) * 100 >= 10)
+    .map((p) => {
+      const gap = (((p.avgPrice - p.lastPrice) / p.avgPrice) * 100).toFixed(1);
+      return `- ${p.symbol}: ${gap}% discount from cost basis (Avg ₹${p.avgPrice.toFixed(1)} vs CMP ₹${p.lastPrice.toFixed(1)}, RSI ${p.rsi != null ? p.rsi.toFixed(1) : "n/a"})`;
+    });
+
   const prompt = [
     `Portfolio Overview:`,
     `- Total Current Value: ₹${totalValue.toFixed(0)} across ${positions.length} holdings (Total Invested: ₹${totalInvested.toFixed(0)})`,
+    `- Holdings Breadth: ${positions.length} stocks (optimal diversification target: 13–15 stocks)`,
     `- Herfindahl-Hirschman Concentration Index (HHI): ${hhi.toFixed(0)} (${hhi < 1500 ? "well-diversified" : hhi <= 2500 ? "moderately concentrated" : "highly concentrated"})`,
     `\nTop Holdings:`,
     topList.join("\n"),
     `\nSector Allocations:`,
     sectorSummary,
+    `\nDiscount & Gap Analysis (>10% below cost basis):`,
+    discountOpportunities.length ? discountOpportunities.join("\n") : "(None currently trading >10% below cost basis)",
     ...(process.env.NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic"
       ? ["\nNote: Prices are synthetic dev data."]
       : []),
