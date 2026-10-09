@@ -154,6 +154,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/app/research` | Research desk (`?scope=mine&stance=&sort=score|low|change|news`) |
 | `/app/news` | News feed (`?scope=all&tone=&kind=news|filing&before=`) |
 | `/api/cron/news` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `ingestNews` |
+| `/api/extension/quote?symbol=` | CORS-enabled quantitative intelligence payload for the Chrome Extension side panel |
 | `/admin` | platform console (404 unless platform admin) |
 
 ## 6. Components (web/src/components)

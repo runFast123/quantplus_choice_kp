@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuantsPulse Terminal</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo-mark">
+        <svg viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
+          <rect x="1" y="1" width="30" height="30" rx="7" fill="#2E2E2E"/>
+          <path d="M6 18.5h6.2l2.1-7.5 3.4 11 2.3-6.2 1.3 2.7H26" fill="none" stroke="#E6E4D7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="26" cy="18.5" r="2.2" fill="#F26A4B"/>
+        </svg>
+      </div>
+      <span class="brand-title">QuantsPulse</span>
+    </div>
+    <div class="header-actions">
+      <span id="platform-badge" class="badge-source">Synced</span>
+      <button id="btn-refresh" class="btn-icon" title="Refresh intelligence" aria-label="Refresh">↻</button>
+      <button id="btn-settings-toggle" class="btn-icon" title="API Settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- Settings Drawer (Hidden by default) -->
+  <div id="settings-panel" class="settings-drawer hidden">
+    <label class="eyebrow" for="backend-url">Backend Server Endpoint</label>
+    <div class="settings-row">
+      <input type="text" id="backend-url" class="input-text num" value="https://quantplus-ten.vercel.app">
+      <button id="btn-save-settings" class="btn-primary">Save</button>
+    </div>
+    <p class="settings-note">Use <code>http://localhost:3000</code> for local development.</p>
+  </div>
+
+  <!-- Search & Quick Symbol Input -->
+  <div class="search-bar">
+    <form id="symbol-form">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="symbol-input" class="search-input num" placeholder="Enter NSE Symbol (e.g. TCS, INFY)" autocomplete="off">
+        <button type="submit" class="search-submit">Go</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading-state" class="state-container hidden">
+    <div class="spinner"></div>
+    <p class="muted-text">Fetching quantitative intelligence…</p>
+  </div>
+
+  <!-- Empty / No Symbol State -->
+  <div id="empty-state" class="state-container">
+    <div class="empty-icon">📊</div>
+    <h3>No active chart detected</h3>
+    <p class="muted-text">Navigate to <strong>TradingView</strong>, <strong>Zerodha Kite</strong>, or <strong>Groww</strong> to auto-sync, or search a symbol above.</p>
+  </div>
+
+  <!-- Main Intelligence Card -->
+  <main id="content-panel" class="content-panel hidden">
+    <!-- Stock Quote Header -->
+    <section class="card quote-card">
+      <div class="quote-top">
+        <div>
+          <span id="stock-exchange" class="eyebrow">NSE · Equity</span>
+          <h1 id="stock-symbol" class="num stock-symbol">TCS</h1>
+          <p id="stock-name" class="stock-name">Tata Consultancy Services Ltd.</p>
+        </div>
+        <div class="text-right">
+          <div id="stock-price" class="num stock-price">₹0.00</div>
+          <div id="stock-delta" class="num stock-delta">▲ +0.00%</div>
+        </div>
+      </div>
+      <div class="quote-meta">
+        <span id="stock-sector" class="meta-tag">IT Services</span>
+        <span id="stock-asof" class="meta-tag num">Close · Oct 08</span>
+      </div>
+    </section>
+
+    <!-- Signal Banner -->
+    <section id="signal-card" class="card signal-card">
+      <div class="signal-header">
+        <span id="signal-badge" class="signal-badge signal-buy">▲ BUY SIGNAL</span>
+        <span id="signal-date" class="num signal-date">15 Sep</span>
+      </div>
+      <h3 id="signal-strategy" class="signal-strategy">SMA 20/50 Golden Cross</h3>
+      <div class="signal-levels">
+        <div class="signal-level-item">
+          <span class="eyebrow">Entry Trigger</span>
+          <span id="signal-entry" class="num level-val">₹0.00</span>
+        </div>
+        <div class="signal-level-item">
+          <span class="eyebrow">Protective Stop</span>
+          <span id="signal-stop" class="num level-val text-loss">₹0.00</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Asymmetric Trade Plan Targets -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Trade plan &amp; targets</h2>
+        <span class="card-meta">Asymmetric 0.75R / 2.0R / 3.0R</span>
+      </div>
+      <div class="targets-grid">
+        <div class="target-card target-stop">
+          <div class="target-head">
+            <span class="target-tag">STOP 1.0R</span>
+            <span id="plan-stop-pct" class="num text-loss">-4.9%</span>
+          </div>
+          <div id="plan-stop-price" class="num target-price">₹0.00</div>
+          <span class="target-sub">Risk budget</span>
+        </div>
+
+        <div class="target-card target-t1">
+          <div class="target-head">
+            <span class="target-tag">T1 0.75R</span>
+            <span id="plan-t1-pct" class="num text-gain">+3.7%</span>
+          </div>
+          <div id="plan-t1-price" class="num target-price">₹0.00</div>
+          <span class="target-sub">De-risk 30%</span>
+        </div>
+
+        <div class="target-card target-t2">
+          <div class="target-head">
+            <span class="target-tag">T2 2.0R</span>
+            <span id="plan-t2-pct" class="num text-gain">+9.9%</span>
+          </div>
+          <div id="plan-t2-price" class="num target-price">₹0.00</div>
+          <span class="target-sub">Core target</span>
+        </div>
+
+        <div class="target-card target-t3">
+          <div class="target-head">
+            <span class="target-tag">T3 3.0R</span>
+            <span id="plan-t3-pct" class="num text-gain">+14.9%</span>
+          </div>
+          <div id="plan-t3-price" class="num target-price">₹0.00</div>
+          <span class="target-sub">Runner trend</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Technical Levels -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Key levels</h2>
+      </div>
+      <dl class="levels-dl">
+        <div class="level-row">
+          <dt>Prev close</dt>
+          <dd id="level-prev" class="num">—</dd>
+        </div>
+        <div class="level-row">
+          <dt>Volume</dt>
+          <dd id="level-vol" class="num">—</dd>
+        </div>
+        <div class="level-row">
+          <dt>SMA 20</dt>
+          <dd id="level-sma20" class="num">—</dd>
+        </div>
+        <div class="level-row">
+          <dt>SMA 50</dt>
+          <dd id="level-sma50" class="num">—</dd>
+        </div>
+        <div class="level-row">
+          <dt>SMA 200</dt>
+          <dd id="level-sma200" class="num">—</dd>
+        </div>
+        <div class="level-row">
+          <dt>52W Range</dt>
+          <dd id="level-52w" class="num">—</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Sentiment & Health Audit -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Sentiment audit</h2>
+        <span id="sentiment-alpha" class="alpha-tag">ALPHA TARGET</span>
+      </div>
+      <div class="sentiment-box">
+        <div class="sentiment-top">
+          <span id="sentiment-zone" class="sentiment-label">Equilibrium</span>
+          <span id="sentiment-rsi" class="num sentiment-rsi">RSI 38.3</span>
+        </div>
+        <div class="rsi-track">
+          <div id="rsi-bar" class="rsi-fill" style="width: 38%;"></div>
+        </div>
+        <p id="sentiment-desc" class="sentiment-desc">Balanced range between 30 and 60.</p>
+      </div>
+    </section>
+
+    <!-- Launch Button -->
+    <div class="action-footer">
+      <a id="btn-open-app" href="https://quantplus-ten.vercel.app" target="_blank" rel="noopener noreferrer" class="btn-launch">
+        <span>Open Deep Analysis on QuantsPulse</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </main>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

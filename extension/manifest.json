@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "QuantsPulse — Indian Equities Terminal",
+  "version": "1.0.0",
+  "description": "Real-time Quantitative Signals, Asymmetric Trade Plans & Sentiment Audits for TradingView & Indian Brokers.",
+  "permissions": [
+    "sidePanel",
+    "tabs",
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "*://*.tradingview.com/*",
+    "*://kite.zerodha.com/*",
+    "*://groww.in/*",
+    "*://*.dhan.co/*",
+    "*://trade.angelone.in/*",
+    "*://*.google.com/finance/*",
+    "*://finance.yahoo.com/*",
+    "http://localhost:3000/*",
+    "https://quantplus-ten.vercel.app/*"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.tradingview.com/*",
+        "*://kite.zerodha.com/*",
+        "*://groww.in/*",
+        "*://*.dhan.co/*",
+        "*://trade.angelone.in/*",
+        "*://*.google.com/finance/*",
+        "*://finance.yahoo.com/*"
+      ],
+      "js": ["content-scripts/detector.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Open QuantsPulse Side Panel",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -6,6 +6,13 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — QuantsPulse Indian Equities Terminal Chrome Extension (`extension/`)
+- Built complete Manifest V3 Chrome Extension utilizing the native **Chrome Side Panel API** (`chrome.sidePanel`).
+- **Auto Ticker Detection** (`extension/content-scripts/detector.js`): Automatically detects active stock tickers across **TradingView**, **Zerodha Kite**, **Groww**, **Dhan**, **Angel One**, **Google Finance**, and **Yahoo Finance**.
+- **Docked Side Panel Terminal** (`extension/sidepanel/`): Renders live quotes, active Buy/Exit signals, Asymmetric Trade Plan milestone targets (Stop 1R, T1 0.75R, T2 2.0R, T3 3.0R), Key Technical Levels (SMA 20/50/200, 52W range), and RSI Sentiment Audit directly beside the chart.
+- **Backend API** (`web/src/app/api/extension/quote/route.ts` & `web/src/server/privileged/extension.ts`): High-speed CORS-enabled endpoint providing quantitative analysis payloads for any NSE stock.
+- Styled strictly with **Zen Linen** design system tokens (light/dark mode, Inter & JetBrains Mono typography, Coral accents, ink gain/loss).
+
 ### Fixed & Restored — Live News Feeds for Moneycontrol, Business Standard & Corporate Announcements
 - Restored active status (`is_active = true`, `status = ok`) for **Moneycontrol · Market reports**, **Moneycontrol · Business**, **Business Standard · Markets**, and **NSE · Corporate announcements** via public syndication RSS feeds (ADR-028).
 - Fixed the previous `0 items` issue caused by deprecated legacy XML endpoints and WAF bot-blocking: feeds now ingest 100 items per source with zero errors.
