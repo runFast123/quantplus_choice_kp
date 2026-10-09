@@ -407,7 +407,7 @@ export function PriceChart({
             )}
             title="Clean Mode groups same-day & clustered signals to prevent overlap"
           >
-            {signalDensity === "clean" ? "✨ Clean" : "Raw"}
+            {signalDensity === "clean" ? "Clean" : "Raw"}
           </button>
 
           {/* Labels Toggle */}
@@ -514,7 +514,7 @@ export function PriceChart({
       </div>
 
       {/* Interactive Chart Canvas */}
-      <div ref={el} className="h-[380px] w-full md:h-[430px] rounded border border-border/40 bg-background/50" role="img" aria-label={`${symbol} daily price chart, ${range}`} />
+      <div ref={el} className="h-[420px] w-full md:h-[480px] lg:h-[520px] rounded border border-border/40 bg-background/50" role="img" aria-label={`${symbol} daily price chart, ${range}`} />
 
       {/* Streamlined Compact Signals Ribbon (Small, Compact & Easy to See) */}
       {recentSignals.length > 0 && (

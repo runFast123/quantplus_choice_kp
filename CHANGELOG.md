@@ -6,6 +6,13 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Changed — Full-Width Chart Layout & Reorganized Key Levels & Alerts (`/app/markets/[symbol]`)
+- Made the TradingView Chart full width (`100%` widescreen) by removing the constricting `xl:grid-cols-[minmax(0,1fr)_340px]` sidebar layout.
+- Increased chart canvas height to `h-[420px] md:h-[480px] lg:h-[520px]` to provide expansive desktop breathing room for candles, volume, and Buy/Exit signals.
+- Relocated **Key levels**, **Price alert**, and **Your position** (when held) directly below the chart in a clean, responsive multi-column grid (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3`).
+- Positioned the full-width **Trade plan & targets** milestone roadmap beneath the stats row, followed by Research Notes and Quantum Audit.
+- Cleaned up UI controls conforming strictly to Zen Linen design system rules (zero emojis, token-only styling).
+
 ### Added & Verified — Quantitative Signal Logic & Sentiment Exit Node Protocol
 - Added `getAlphaLevel` and `computeExitNodeHistory` in `web/src/lib/trade-plan.ts` conforming to user sentiment exit scan protocol (PDF §6 & `QuantAnalysis`):
   - Enforces minimum +1.5% consecutive step (`eventPrice > lastRefPrice * 1.015`), RSI threshold (`RSI >= 60`), and Alpha Level tiering (`SENTIMENT PEAK` for RSI ≥ 80, `NODE LEVEL 2` for RSI ≥ 70, `ALPHA TARGET` otherwise).

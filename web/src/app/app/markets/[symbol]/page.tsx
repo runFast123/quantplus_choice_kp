@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import clsx from "clsx";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { MarketChartView } from "@/components/charts/market-chart-view";
 import type { ChartMarker } from "@/components/charts/price-chart";
@@ -109,75 +110,74 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
         <RadarToggle symbol={q.symbol} exchange={q.exchange} onRadar={Boolean(radarRes.data?.length)} size="md" />
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="flex flex-col gap-6">
-          <MarketChartView candles={candles} markers={markers} symbol={q.symbol} exchange={q.exchange} />
+      {/* 1. Full-Width Interactive Chart */}
+      <MarketChartView candles={candles} markers={markers} symbol={q.symbol} exchange={q.exchange} />
 
-          {q.last_price ? (
-            <Panel
-              title="Trade plan & targets"
-              meta={latestBuySignal ? `Anchored to ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} signal` : "Asymmetric 0.75R / 2.0R / 3.0R model"}
-            >
-              <TradePlan
-                symbol={q.symbol}
-                lastPrice={q.last_price}
-                rsi={q.rsi}
-                sma20={sma20}
-                sma50={sma50}
-                signalEntry={signalEntry}
-                signalStop={signalStop}
-              />
-            </Panel>
-          ) : null}
-        </div>
+      {/* 2. Below the Chart: Key Levels, Price Alert & Your Position */}
+      <div className={clsx("grid gap-6", held > 0 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 md:grid-cols-2")}>
+        <Panel title="Key levels">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
+            <Level label="Prev close" value={price(q.prev_close)} />
+            <Level label="Volume" value={volume(q.volume)} />
+            <Level label="SMA 20" value={price(sma20)} hint={sma20 && q.last_price ? (q.last_price >= sma20 ? "above" : "below") : undefined} />
+            <Level label="SMA 50" value={price(sma50)} hint={sma50 && q.last_price ? (q.last_price >= sma50 ? "above" : "below") : undefined} />
+            <Level label="SMA 200" value={price(sma200)} hint={sma200 && q.last_price ? (q.last_price >= sma200 ? "above" : "below") : undefined} />
+            <Level label="RSI 14" value={q.rsi != null ? q.rsi.toFixed(1) : "—"} hint={q.rsi != null ? (q.rsi >= 70 ? "overbought" : q.rsi <= 30 ? "oversold" : "neutral") : undefined} />
+            <div className="col-span-2 pt-1">
+              <dt className="eyebrow mb-2">52-week range</dt>
+              <dd>
+                <RangeBar low={q.low_52w} high={q.high_52w} value={q.last_price} />
+                <span className="num mt-1.5 flex justify-between text-[11.5px] text-muted-foreground">
+                  <span>{price(q.low_52w)}</span>
+                  <span>{price(q.high_52w)}</span>
+                </span>
+              </dd>
+            </div>
+          </dl>
+        </Panel>
 
-        <div className="flex flex-col gap-6">
-          <Panel title="Key levels">
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
-              <Level label="Prev close" value={price(q.prev_close)} />
-              <Level label="Volume" value={volume(q.volume)} />
-              <Level label="SMA 20" value={price(sma20)} hint={sma20 && q.last_price ? (q.last_price >= sma20 ? "above" : "below") : undefined} />
-              <Level label="SMA 50" value={price(sma50)} hint={sma50 && q.last_price ? (q.last_price >= sma50 ? "above" : "below") : undefined} />
-              <Level label="SMA 200" value={price(sma200)} hint={sma200 && q.last_price ? (q.last_price >= sma200 ? "above" : "below") : undefined} />
-              <Level label="RSI 14" value={q.rsi != null ? q.rsi.toFixed(1) : "—"} hint={q.rsi != null ? (q.rsi >= 70 ? "overbought" : q.rsi <= 30 ? "oversold" : "neutral") : undefined} />
-              <div className="col-span-2 pt-1">
-                <dt className="eyebrow mb-2">52-week range</dt>
-                <dd>
-                  <RangeBar low={q.low_52w} high={q.high_52w} value={q.last_price} />
-                  <span className="num mt-1.5 flex justify-between text-[11.5px] text-muted-foreground">
-                    <span>{price(q.low_52w)}</span>
-                    <span>{price(q.high_52w)}</span>
-                  </span>
+        {can(s, "alerts") ? (
+          <Panel title="Price alert">
+            <AlertForm symbol={q.symbol} lastPrice={q.last_price} compact />
+          </Panel>
+        ) : (
+          <PlanGate feature="Price alerts" />
+        )}
+
+        {held > 0 ? (
+          <Panel title="Your position">
+            <dl className="grid grid-cols-2 gap-3 text-[13px]">
+              <Level label="Quantity" value={qty(held)} />
+              <Level label="Avg cost" value={price(avgCost)} />
+              <Level label="Value" value={rupees(held * (q.last_price ?? 0))} />
+              <div>
+                <dt className="eyebrow">P&amp;L</dt>
+                <dd className="mt-0.5">
+                  <Delta value={(q.last_price! - avgCost) * held} kind="abs" />
                 </dd>
               </div>
             </dl>
           </Panel>
-
-          {can(s, "alerts") ? (
-            <Panel title="Price alert">
-              <AlertForm symbol={q.symbol} lastPrice={q.last_price} compact />
-            </Panel>
-          ) : (
-            <PlanGate feature="Price alerts" />
-          )}
-
-          {held > 0 ? (
-            <Panel title="Your position">
-              <dl className="grid grid-cols-2 gap-3 text-[13px]">
-                <Level label="Quantity" value={qty(held)} />
-                <Level label="Avg cost" value={price(avgCost)} />
-                <Level label="Value" value={rupees(held * (q.last_price ?? 0))} />
-                <div>
-                  <dt className="eyebrow">P&amp;L</dt>
-                  <dd className="mt-0.5">
-                    <Delta value={(q.last_price! - avgCost) * held} kind="abs" />
-                  </dd>
-                </div>
-              </dl>
-            </Panel>
-          ) : null}
-        </div>
+        ) : null}
       </div>
+
+      {/* 3. Trade Plan & Targets (Asymmetric Milestone Roadmap) */}
+      {q.last_price ? (
+        <Panel
+          title="Trade plan & targets"
+          meta={latestBuySignal ? `Anchored to ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} signal` : "Asymmetric 0.75R / 2.0R / 3.0R model"}
+        >
+          <TradePlan
+            symbol={q.symbol}
+            lastPrice={q.last_price}
+            rsi={q.rsi}
+            sma20={sma20}
+            sma50={sma50}
+            signalEntry={signalEntry}
+            signalStop={signalStop}
+          />
+        </Panel>
+      ) : null}
 
       <div id="research" className="grid scroll-mt-24 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <Panel
