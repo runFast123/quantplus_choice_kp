@@ -121,6 +121,7 @@ showStops    = input.bool(true, "Show Active Stop Loss", group=grpDisplay)
 showSMAs     = input.bool(true, "Show Moving Averages (20 / 50 / 200)", group=grpDisplay)
 
 grpStrategy  = "Strategy Parameters"
+stratMode    = input.string("QuantsPulse Core (Platform Match)", "Strategy Mode", options=["QuantsPulse Core (Platform Match)", "Fast Swing (Price vs SMA20)"], group=grpStrategy)
 riskPercent  = input.float(3.5, "Stop Loss Risk Budget %", minval=1.0, maxval=12.0, step=0.5, group=grpStrategy)
 rsiPeriod    = input.int(14, "RSI Length", minval=5, maxval=50, group=grpStrategy)
 
@@ -153,34 +154,40 @@ var string lastSignalLabel = "Cash / Neutral"
 // Repainting Protection: Real-time confirmation check
 bool isConfirmed = not barstate.isrealtime or barstate.isconfirmed
 
-// Buy Triggers (Only evaluated when OUT of a position)
-oversoldBounce = ta.crossover(rsiVal, 30) and close > ta.ema(close, 9)
-smaBreakout    = ta.crossover(close, sma20) and volOk
-rawBuy         = oversoldBounce or smaBreakout
+// QuantsPulse Platform Strategies (Matches Supabase Postgres \`svc_refresh_market_analytics\`):
+// 1. \`sma_20_50_cross\`: SMA 20 crosses SMA 50 (Golden Cross / Death Cross)
+// 2. \`rsi_reversal\`: RSI dips below 30 and crosses back above 30, or rises above 70 and falls back below 70
+bool qpBuyGolden = ta.crossover(sma20, sma50)
+bool qpBuyRsi    = ta.crossover(rsiVal, 30)
+bool qpExitDeath = ta.crossunder(sma20, sma50)
+bool qpExitRsi   = ta.crossunder(rsiVal, 70)
+
+// Fast Swing Alternative (Price vs SMA20 Breakout)
+bool fastBuy     = (ta.crossover(rsiVal, 30) and close > ta.ema(close, 9)) or (ta.crossover(close, sma20) and volOk)
+bool fastExit    = (low <= stopLoss) or (high >= target3) or (ta.crossunder(close, sma20) and rsiVal < 48)
+
+// Active Rules based on selected Strategy Mode
+bool isCoreMode  = stratMode == "QuantsPulse Core (Platform Match)"
+bool rawBuy      = isCoreMode ? (qpBuyGolden or qpBuyRsi) : fastBuy
+bool rawExit     = isCoreMode ? (qpExitDeath or qpExitRsi or (low <= stopLoss)) : fastExit
 
 bool isBuySignal = rawBuy and tradeState == 0 and isConfirmed
 
 if isBuySignal
     tradeState := 1
     entryPrice := close
-    lastSignalLabel := oversoldBounce ? "RSI Oversold Bounce" : "SMA 20 Breakout"
+    lastSignalLabel := isCoreMode ? (qpBuyGolden ? "SMA 20/50 Golden Cross" : "RSI Oversold Reversal") : (ta.crossover(rsiVal, 30) ? "RSI Oversold Bounce" : "SMA 20 Breakout")
     stopLoss   := close * (1.0 - (riskPercent / 100.0))
     float risk = entryPrice - stopLoss
     target1    := entryPrice + (risk * 0.75)
     target2    := entryPrice + (risk * 2.0)
     target3    := entryPrice + (risk * 3.0)
 
-// Exit Triggers (Only evaluated when IN an active position)
-bool hitStop    = low <= stopLoss
-bool hitT3      = high >= target3
-bool trendBreak = ta.crossunder(close, sma20) and rsiVal < 48
-bool rawExit    = hitStop or hitT3 or trendBreak
-
 bool isExitSignal = rawExit and tradeState == 1 and isConfirmed
 
 if isExitSignal
     tradeState := 0
-    lastSignalLabel := hitStop ? "Stop Loss Hit" : hitT3 ? "Target 3 (+3.0R) Hit" : "Trend Breakdown"
+    lastSignalLabel := isCoreMode ? (qpExitDeath ? "SMA 20/50 Death Cross" : qpExitRsi ? "RSI Overbought Exit" : "Stop Loss Hit") : (low <= stopLoss ? "Stop Loss Hit" : high >= target3 ? "Target 3 (+3.0R) Hit" : "Trend Breakdown")
 
 // Clean Signal Markers (Only 1 Buy and 1 Exit per trade cycle)
 plotshape(showSignals and isBuySignal, title="BUY Signal", location=location.belowbar, color=color.new(#0B6A4E, 0), style=shape.triangleup, size=size.small, text="BUY")

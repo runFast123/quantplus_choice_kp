@@ -6,6 +6,14 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — TradingView Pine Script Indicator Strategy Alignment with QuantsPulse Core Engine (`extension/`)
+- **Resolved Indicator vs Platform Strategy Discrepancy**:
+  - Identified cause of signal mismatch between TradingView Pine Script and QuantsPulse web portal: the Pine Script generator previously evaluated fast candle breakouts (`ta.crossover(close, sma20)`) and trend breaks (`ta.crossunder(close, sma20)`), creating rapid whipsaw buy/exit triggers during sideways consolidation. In contrast, the QuantsPulse platform database calculates macro `sma_20_50_cross` (20/50 SMA Golden/Death cross) and `rsi_reversal` (14-day RSI oversold 30 bounce / overbought 70 exit).
+  - Upgraded `generateCleanPineScript` in both `extension/content-scripts/detector.js` and `extension/sidepanel/sidepanel.js` with dual Strategy Modes:
+    1. **`QuantsPulse Core (Platform Match)`** (Default): Exact mathematical match with backend PostgreSQL `svc_refresh_market_analytics`, evaluating `sma_20_50_cross` and `rsi_reversal` with identical targets and stops.
+    2. **`Fast Swing (Price vs SMA20)`**: Available for traders seeking fast price crossovers against the 20-period moving average.
+  - Eliminated false whipsaw exit signals during tight consolidation periods, ensuring signals pasted into TradingView match the main portal charts identically.
+
 ### Added — Production-Grade Admin Console Operations, Database Inventory & Financial Ledger (`web/src/app/admin/`, `web/src/server/privileged/`)
 - **System Health & Market Session Header**:
   - Added live telemetry badges showing active database connection pooler status (`aws-0-ap-northeast-2.pooler.supabase.com:5432`), NSE Cash Market session clock (IST time, Open/Closed/Pre-Open status, Next bell countdown), and EOD market price dataset freshness.
