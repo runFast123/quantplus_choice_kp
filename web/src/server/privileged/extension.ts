@@ -70,7 +70,27 @@ export function cleanExtensionSymbol(raw: string): string {
     "CNX NIFTY": "NIFTY",
     NIFTYBANK: "BANKNIFTY",
     "NIFTY BANK": "BANKNIFTY",
+    BANKNIFTY: "BANKNIFTY",
+    "BANK NIFTY": "BANKNIFTY",
     CNXBANK: "BANKNIFTY",
+    FINNIFTY: "NIFTYFINSERV",
+    "FIN NIFTY": "NIFTYFINSERV",
+    "NIFTY FIN": "NIFTYFINSERV",
+    "NIFTY FINANCIAL": "NIFTYFINSERV",
+    "NIFTY FINANCIAL SERVICES": "NIFTYFINSERV",
+    "NIFTY FIN SERVICE": "NIFTYFINSERV",
+    "NIFTY FIN SERVICES": "NIFTYFINSERV",
+    MIDCPNIFTY: "NIFTYMIDCAP50",
+    "MIDCAP NIFTY": "NIFTYMIDCAP50",
+    "NIFTY MIDCAP": "NIFTYMIDCAP50",
+    "NIFTY MIDCAP 50": "NIFTYMIDCAP50",
+    "NIFTY MIDCAP 100": "NIFTYMIDCAP100",
+    "NIFTY SMALLCAP 100": "NIFTYSMALLCAP100",
+    NIFTYJR: "NIFTY100",
+    "NIFTY JR": "NIFTY100",
+    "NIFTY JUNIOR": "NIFTY100",
+    "NIFTY NEXT 50": "NIFTY100",
+    "JUNIOR NIFTY": "NIFTY100",
   };
 
   return ALIASES[s] ?? s;
@@ -92,15 +112,20 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
       .from("market_candles")
       .select("close")
       .eq("symbol", symbol)
-      .eq("exchange", exchange)
       .eq("interval", "1d")
       .order("ts", { ascending: false })
       .limit(205),
   ]);
 
-  if (!quoteRes.data) return null;
+  let quoteData = quoteRes.data;
+  if (!quoteData) {
+    const fallback = await db.from("market_snapshot").select("*").eq("symbol", symbol).limit(1).maybeSingle();
+    quoteData = fallback.data;
+  }
 
-  const q = normalizeQuote(quoteRes.data as Quote);
+  if (!quoteData) return null;
+
+  const q = normalizeQuote(quoteData as Quote);
   const signals = signalsRes.data ?? [];
   const closes = (candlesRes.data ?? []).map((c) => Number(c.close));
 

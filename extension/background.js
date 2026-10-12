@@ -2,10 +2,26 @@
 
 const SUPPORTED_HOST_PATTERNS = [
   "tradingview.com",
-  "kite.zerodha.com",
+  "choiceindia.com",
+  "zerodha.com",
   "groww.in",
   "dhan.co",
   "angelone.in",
+  "upstox.com",
+  "fyers.in",
+  "kotaksecurities.com",
+  "kotakneo.com",
+  "icicidirect.com",
+  "motilaloswal.com",
+  "paytmmoney.com",
+  "5paisa.com",
+  "sharekhan.com",
+  "hdfcsec.com",
+  "hdfcsky.com",
+  "axisdirect.in",
+  "shoonya.com",
+  "finvasia.com",
+  "aliceblueonline.com",
   "google.com/finance",
   "finance.yahoo.com"
 ];

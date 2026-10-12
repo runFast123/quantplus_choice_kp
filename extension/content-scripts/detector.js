@@ -14,6 +14,10 @@
     "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "SHARES", "PRICE", "TODAY", "STOCK", "STOCKS",
     "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO",
     "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD",
+    "CHOICE", "CHOICEINDIA", "FINX", "UPSTOX", "FYERS", "KOTAK", "NEO", "ICICI", "DIRECT", "ICICIDIRECT",
+    "MOTILAL", "OSWAL", "PAYTM", "PAYTMMONEY", "5PAISA", "SHAREKHAN", "HDFC", "HDFCSKY", "AXIS", "AXISDIRECT",
+    "SHOONYA", "FINVASIA", "ALICEBLUE", "TERMINAL", "CONSOLE", "DASHBOARD", "PORTFOLIO", "ORDER", "ORDERS",
+    "POSITION", "POSITIONS", "HOLDINGS", "FUNDS", "STRATEGY", "INDICATOR", "INDICATORS",
     "1D", "1W", "1M", "1Y", "5D", "5M", "15M", "30M", "1H", "2H", "4H", "D", "W", "M", "Y",
     "BUY", "SELL", "LONG", "SHORT", "CANDLE", "CANDLES", "BAR", "BARS", "EQUITY", "EQ",
     "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR"
@@ -165,6 +169,39 @@
     } catch {}
   }
 
+  const KNOWN_INDICES = [
+    { regex: /\b(?:NIFTY\s*BANK|BANK\s*NIFTY|BANKNIFTY|CNX\s*BANK)\b/i, symbol: "BANKNIFTY" },
+    { regex: /\b(?:NIFTY\s*FIN(?:ANCIAL)?(?:\s*SERVICES?)?|FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "FINNIFTY" },
+    { regex: /\b(?:NIFTY\s*MID(?:CAP)?(?:\s*SELECT)?|MIDCAP\s*NIFTY|MIDCPNIFTY)\b/i, symbol: "MIDCPNIFTY" },
+    { regex: /\b(?:NIFTY\s*NEXT\s*50|JUNIOR\s*NIFTY|NIFTYJR)\b/i, symbol: "NIFTYJR" },
+    { regex: /\b(?:NIFTY\s*50|CNX\s*NIFTY|NIFTY50)\b/i, symbol: "NIFTY" },
+    { regex: /\b(?:NIFTY\s*IT|CNX\s*IT|NIFTYIT)\b/i, symbol: "NIFTYIT" },
+    { regex: /\b(?:NIFTY\s*AUTO|NIFTYAUTO)\b/i, symbol: "NIFTYAUTO" },
+    { regex: /\b(?:NIFTY\s*PHARMA|NIFTYPHARMA)\b/i, symbol: "NIFTYPHARMA" },
+    { regex: /\b(?:NIFTY\s*FMCG|NIFTYFMCG)\b/i, symbol: "NIFTYFMCG" },
+    { regex: /\b(?:NIFTY\s*METAL|NIFTYMETAL)\b/i, symbol: "NIFTYMETAL" },
+    { regex: /\b(?:NIFTY\s*ENERGY|NIFTYENERGY)\b/i, symbol: "NIFTYENERGY" },
+    { regex: /\b(?:NIFTY\s*INFRA|NIFTYINFRA)\b/i, symbol: "NIFTYINFRA" },
+    { regex: /\b(?:NIFTY\s*REALTY|NIFTYREALTY)\b/i, symbol: "NIFTYREALTY" },
+    { regex: /\b(?:NIFTY\s*PSU\s*BANK)\b/i, symbol: "NIFTYPSUBANK" },
+    { regex: /\b(?:NIFTY\s*MEDIA)\b/i, symbol: "NIFTYMEDIA" },
+    { regex: /\b(?:BSE\s*SENSEX|S&P\s*BSE\s*SENSEX|SENSEX)\b/i, symbol: "SENSEX" },
+    { regex: /\b(?:BSE\s*BANKEX|BANKEX)\b/i, symbol: "BANKEX" },
+    { regex: /\b(?:INDIA\s*VIX|NIFTY\s*VIX|INDIAVIX)\b/i, symbol: "INDIAVIX" },
+    { regex: /\bNIFTY\b/i, symbol: "NIFTY" },
+  ];
+
+  function extractIndexSymbol(text) {
+    if (!text) return "";
+    const s = String(text);
+    for (const item of KNOWN_INDICES) {
+      if (item.regex.test(s)) {
+        return item.symbol;
+      }
+    }
+    return "";
+  }
+
   function cleanTicker(raw) {
     if (!raw) return "";
     let s = String(raw).trim().toUpperCase();
@@ -173,8 +210,12 @@
       s = parts[parts.length - 1];
     }
     s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/g, "");
-    if (s === "NIFTY50" || s === "CNXNIFTY" || s === "NIFTY-50") s = "NIFTY";
-    if (s === "NIFTYBANK" || s === "CNXBANK") s = "BANKNIFTY";
+    if (s === "NIFTY50" || s === "CNXNIFTY" || s === "NIFTY-50" || s === "NIFTY 50") s = "NIFTY";
+    if (s === "NIFTYBANK" || s === "CNXBANK" || s === "BANKNIFTY" || s === "NIFTY BANK" || s === "BANK NIFTY") s = "BANKNIFTY";
+    if (s === "FINNIFTY" || s === "FIN NIFTY" || s === "NIFTYFIN" || s === "NIFTYFINSERV") s = "FINNIFTY";
+    if (s === "MIDCPNIFTY" || s === "MIDCAPNIFTY") s = "MIDCPNIFTY";
+    if (s === "SENSEX" || s === "BSESENSEX") s = "SENSEX";
+    if (s === "BANKEX" || s === "BSEBANKEX") s = "BANKEX";
     if (s.length < 2 || s.length > 15 || EXCLUDED.has(s)) {
       return "";
     }
@@ -187,16 +228,25 @@
     const sText = String(text).trim();
     if (sText.startsWith("TradingView") || sText.startsWith("Unnamed")) return "";
 
+    // 1. Check known Indian index phrases first (e.g. "Nifty Bank · 15 · NSE")
+    const idxSym = extractIndexSymbol(sText);
+    if (idxSym) return idxSym;
+
+    // 2. Check exchange colon patterns
     const colonMatch = sText.match(/(?:NSE|BSE)\s*:\s*([A-Z0-9&-]{2,15})/i);
     if (colonMatch) {
       const c = cleanTicker(colonMatch[1]);
       if (c) return c;
     }
+
+    // 3. Check bracketed patterns
     const parenMatch = sText.match(/\(([A-Z0-9&-]{2,15})\)/i);
     if (parenMatch) {
       const c = cleanTicker(parenMatch[1]);
       if (c) return c;
     }
+
+    // 4. Token fallback
     const tokens = sText.split(/[\s,·|_\/\(\)]+/);
     for (const t of tokens) {
       const c = cleanTicker(t);
@@ -205,145 +255,153 @@
     return "";
   }
 
+  function getPlatformName() {
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes("choiceindia.com")) return "Choice FinX";
+    if (host.includes("tradingview.com")) return "TradingView";
+    if (host.includes("zerodha.com")) return "Zerodha Kite";
+    if (host.includes("groww.in")) return "Groww";
+    if (host.includes("dhan.co")) return "Dhan";
+    if (host.includes("angelone.in")) return "Angel One";
+    if (host.includes("upstox.com")) return "Upstox";
+    if (host.includes("fyers.in")) return "Fyers";
+    if (host.includes("kotak")) return "Kotak Neo";
+    if (host.includes("icicidirect")) return "ICICI Direct";
+    if (host.includes("motilaloswal")) return "Motilal Oswal";
+    if (host.includes("paytmmoney")) return "Paytm Money";
+    if (host.includes("5paisa")) return "5paisa";
+    if (host.includes("sharekhan")) return "Sharekhan";
+    if (host.includes("hdfc")) return "HDFC Sky";
+    if (host.includes("axisdirect")) return "Axis Direct";
+    if (host.includes("shoonya") || host.includes("finvasia")) return "Shoonya";
+    if (host.includes("aliceblue")) return "Alice Blue";
+    if (host.includes("google.com")) return "Google Finance";
+    if (host.includes("yahoo.com")) return "Yahoo Finance";
+    return "Broker Terminal";
+  }
+
   function detectSymbol() {
     const host = window.location.hostname.toLowerCase();
     const href = window.location.href;
     const title = document.title || "";
 
     let symbol = "";
-    let platform = "Web";
+    const platform = getPlatformName();
 
-    // 1. TradingView
-    if (host.includes("tradingview.com")) {
-      platform = "TradingView";
+    // 1. Check Document Title
+    if (title && !title.startsWith("TradingView") && !title.startsWith("Unnamed")) {
+      const sym = extractTickerFromText(title);
+      if (sym) symbol = sym;
+    }
 
-      // A. Check Document Title (e.g. "HDFCBANK 707.25 INR...", "HDFCBANK Stock Price...")
-      if (title && !title.startsWith("TradingView") && !title.startsWith("Unnamed")) {
-        const sym = extractTickerFromText(title);
-        if (sym) symbol = sym;
-      }
-
-      // B. Check URL parameter or pathname
-      if (!symbol) {
-        try {
-          const params = new URLSearchParams(window.location.search);
-          const symParam = params.get("symbol");
-          if (symParam) {
-            const sym = extractTickerFromText(symParam);
+    // 2. Check URL parameters & path (e.g. ?symbol=..., /stocks/..., /chart/...)
+    if (!symbol) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        for (const pKey of ["symbol", "symbols", "scrip", "tradingsymbol", "ticker", "instrument"]) {
+          const val = params.get(pKey);
+          if (val && !/^\d+$/.test(val) && !val.includes("@")) {
+            const sym = extractTickerFromText(val);
+            if (sym) {
+              symbol = sym;
+              break;
+            }
+          }
+        }
+        if (!symbol && href.includes("/symbols/")) {
+          const pathParts = window.location.pathname.split("/symbols/")[1];
+          if (pathParts) {
+            const sym = extractTickerFromText(pathParts);
             if (sym) symbol = sym;
           }
-          if (!symbol && href.includes("/symbols/")) {
-            const pathParts = window.location.pathname.split("/symbols/")[1];
-            if (pathParts) {
-              const sym = extractTickerFromText(pathParts);
-              if (sym) symbol = sym;
-            }
-          }
-        } catch {}
-      }
-
-      // C. Check Top Header Symbol Search Button (shows current loaded chart symbol)
-      if (!symbol) {
-        const tvHeader = document.querySelector(
-          "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch']"
-        );
-        if (tvHeader && tvHeader.textContent) {
-          const sym = extractTickerFromText(tvHeader.textContent);
-          if (sym) symbol = sym;
         }
-      }
+      } catch {}
+    }
 
-      // D. Check Chart Legend series title (top left of chart canvas)
-      if (!symbol) {
-        const legendEls = document.querySelectorAll(
-          "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend']"
-        );
-        for (const el of legendEls) {
-          if (el && el.textContent) {
-            const sym = extractTickerFromText(el.textContent);
-            if (sym) {
-              symbol = sym;
-              break;
-            }
-          }
-        }
-      }
-
-      // E. Check Watchlist sidebar / Quote Details pane (Right sidebar)
-      if (!symbol) {
-        const sidebarEls = document.querySelectorAll(
-          "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true']"
-        );
-        for (const el of sidebarEls) {
-          const raw = el.getAttribute("data-symbol-full") || el.getAttribute("data-symbol") || el.textContent;
-          if (raw) {
-            const sym = extractTickerFromText(raw);
-            if (sym) {
-              symbol = sym;
-              break;
-            }
+    // 3. Embedded TradingView Chart Engine Elements (Choice FinX, Dhan, Fyers, Upstox, Zerodha, TradingView)
+    // A. Header Toolbar Symbol Search Button (shows current loaded chart symbol)
+    if (!symbol) {
+      const tvHeaders = document.querySelectorAll(
+        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch'], div[class*='js-button-text'], [class*='button-'][class*='-symbol']"
+      );
+      for (const btn of tvHeaders) {
+        const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
+        if (text) {
+          const sym = extractTickerFromText(text);
+          if (sym) {
+            symbol = sym;
+            break;
           }
         }
       }
     }
 
-    // 2. Zerodha Kite
-    else if (host.includes("zerodha.com")) {
-      platform = "Zerodha Kite";
+    // B. Chart Legend series title (where "Nifty Bank · 15 · NSE" is displayed)
+    if (!symbol) {
+      const legendEls = document.querySelectorAll(
+        "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title']"
+      );
+      for (const el of legendEls) {
+        const text = el.textContent || el.getAttribute("title") || el.getAttribute("aria-label");
+        if (text) {
+          const sym = extractTickerFromText(text);
+          if (sym) {
+            symbol = sym;
+            break;
+          }
+        }
+      }
+    }
+
+    // C. Generic Chart Header / Toolbar scan for known indices
+    if (!symbol) {
+      const chartHeaders = document.querySelectorAll(
+        "header, .header-chart-panel, .tv-header, [class*='header-'], [class*='toolbar-'], [class*='top-bar'], [class*='title-bar']"
+      );
+      for (const bar of chartHeaders) {
+        if (bar && bar.textContent) {
+          const idx = extractIndexSymbol(bar.textContent);
+          if (idx) {
+            symbol = idx;
+            break;
+          }
+        }
+      }
+    }
+
+    // D. Watchlist / Active Selected Instrument / Scrip Details Across All Brokers
+    if (!symbol) {
+      const sidebarEls = document.querySelectorAll(
+        "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], .instrument.selected .nice-name, .instrument.selected, .order-window .instrument-name, .tv-chart-container .instrument, [class*='selected-scrip'], [class*='active-instrument'], [class*='scrip_name'], [class*='symbol_name'], [class*='stock-name'], .scrip-name, [data-testid*='symbol'], [data-testid*='instrument'], [class*='symbol-item-name'], [class*='header-symbol']"
+      );
+      for (const el of sidebarEls) {
+        const raw = el.getAttribute("data-symbol-full") || el.getAttribute("data-symbol") || el.textContent;
+        if (raw) {
+          const sym = extractTickerFromText(raw);
+          if (sym) {
+            symbol = sym;
+            break;
+          }
+        }
+      }
+    }
+
+    // 4. Broker-specific URL / Title fallbacks
+    if (!symbol && host.includes("zerodha.com")) {
       const kiteUrlMatch = href.match(/\/chart\/(?:ext\/tvc\/)?(?:NSE|BSE)\/([A-Z0-9&-]+)/i);
-      if (kiteUrlMatch) {
-        symbol = cleanTicker(kiteUrlMatch[1]);
-      } else {
-        const activeItem = document.querySelector(".instrument.selected .nice-name, .order-window .instrument-name, .tv-chart-container .instrument");
-        if (activeItem) symbol = extractTickerFromText(activeItem.textContent);
-      }
-      if (!symbol && title) {
-        symbol = extractTickerFromText(title);
-      }
-    }
-
-    // 3. Groww
-    else if (host.includes("groww.in")) {
-      platform = "Groww";
+      if (kiteUrlMatch) symbol = cleanTicker(kiteUrlMatch[1]);
+    } else if (!symbol && host.includes("groww.in")) {
       const growwMatch = title.match(/\(([A-Z0-9&-]+)\)\s+(?:Share|Stock)/i);
       if (growwMatch) {
         symbol = cleanTicker(growwMatch[1]);
-      } else {
-        const breadcrumb = document.querySelector("h1, .cur-p.fs16");
-        if (breadcrumb && breadcrumb.textContent) {
-          symbol = extractTickerFromText(breadcrumb.textContent);
-        }
-      }
-      if (!symbol && href.includes("/stocks/")) {
+      } else if (href.includes("/stocks/")) {
         const slug = href.split("/stocks/")[1]?.split(/[?#/]/)[0];
-        if (slug) {
-          symbol = cleanTicker(slug);
-        }
+        if (slug) symbol = cleanTicker(slug);
       }
-    }
-
-    // 4. Dhan
-    else if (host.includes("dhan.co")) {
-      platform = "Dhan";
-      symbol = extractTickerFromText(title);
-    }
-
-    // 5. Angel One
-    else if (host.includes("angelone.in")) {
-      platform = "Angel One";
-      symbol = extractTickerFromText(title);
-    }
-
-    // 6. Google Finance
-    else if (host.includes("google.com") && href.includes("/finance")) {
-      platform = "Google Finance";
+    } else if (!symbol && host.includes("google.com") && href.includes("/finance")) {
       const gfMatch = href.match(/\/quote\/([A-Z0-9&-]+):(NSE|BSE)/i);
       if (gfMatch) symbol = cleanTicker(gfMatch[1]);
-    }
-
-    // 7. Yahoo Finance
-    else if (host.includes("finance.yahoo.com")) {
-      platform = "Yahoo Finance";
+    } else if (!symbol && host.includes("finance.yahoo.com")) {
       const yfMatch = href.match(/\/quote\/([A-Z0-9&-]+)\.(?:NS|BO)/i);
       if (yfMatch) symbol = cleanTicker(yfMatch[1]);
     }
@@ -1541,6 +1599,17 @@ if barstate.islast
           prefs.isHidden = false;
           renderHud(message.data);
           try { sendResponse({ ok: true }); } catch {}
+          return true;
+        }
+        if (message?.type === "POLL_DETECTED_SYMBOL") {
+          detectSymbol();
+          try {
+            sendResponse({
+              ok: true,
+              symbol: lastDetectedSymbol,
+              platform: getPlatformName()
+            });
+          } catch {}
           return true;
         }
       });

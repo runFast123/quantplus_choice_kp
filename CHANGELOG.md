@@ -6,6 +6,20 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — Universal Broker Index Detection & Choice FinX Multi-Frame Sync (`extension/`, `web/`)
+- **Resolved Broker Index Detection Failure (Choice FinX, Zerodha Kite, Upstox, Dhan, etc.)**:
+  - Identified root cause where `choiceindia.com` and other broker domains were omitted from `isSupportedFinanceUrl()` in `sidepanel.js`, causing the active tab inspector to bypass the Choice FinX charting tab and fall back to stale TradingView tabs or cache.
+  - Added full multi-broker coverage across `manifest.json`, `background.js`, `detector.js`, and `sidepanel.js` for **Choice FinX** (`choiceindia.com`), **Zerodha Kite**, **Groww**, **Dhan**, **Angel One**, **Upstox**, **Fyers**, **Kotak Neo**, **ICICI Direct**, **Motilal Oswal**, **Paytm Money**, **5paisa**, **Sharekhan**, **HDFC Sky**, **Axis Direct**, **Shoonya**, and **Alice Blue**.
+- **Multi-Word Indian Index Parsing (`KNOWN_INDICES`)**:
+  - Implemented prioritized phrase-matching dictionary (`KNOWN_INDICES`) before word tokenization, ensuring multi-word index descriptions (e.g. `Nifty Bank · 15 · NSE`, `Bank Nifty`, `CNX Bank`) resolve cleanly to `BANKNIFTY` without being mistakenly truncated to `NIFTY`.
+  - Added support for `BANKNIFTY`, `NIFTY`, `FINNIFTY` (mapped to `NIFTYFINSERV`), `MIDCPNIFTY` (mapped to `NIFTYMIDCAP50`), `NIFTYJR` (mapped to `NIFTY100`), `SENSEX`, and `BANKEX`.
+- **Embedded Broker Chart Iframe Direct Injection (`all_frames: true`)**:
+  - Enabled `"all_frames": true` in `manifest.json` content scripts and `allFrames: true` in `chrome.scripting.executeScript`, ensuring detector scripts hook directly inside nested charting canvas windows (such as Choice FinX `/tv/tv-charts` or broker-hosted TradingView chart frames).
+  - Added direct messaging probe (`POLL_DETECTED_SYMBOL`) between side panel and active broker content scripts for instant symbol sync upon opening or clicking refresh.
+- **Backend Index Tolerance & Alias Resolution** (`web/src/server/privileged/extension.ts`):
+  - Expanded `cleanExtensionSymbol` with Indian index aliases (`FINNIFTY` -> `NIFTYFINSERV`, `MIDCPNIFTY` -> `NIFTYMIDCAP50`, `NIFTYJR` -> `NIFTY100`, `NIFTY BANK` -> `BANKNIFTY`).
+  - Added fallback quote search across `market_snapshot` without hardcoded exchange constraints so index requests succeed regardless of whether `NSE` or `BSE` is passed.
+
 ### Fixed — Chrome Extension Context Invalidation, Lag Debounce & HUD Body Portal (`extension/`)
 - **Eliminated `Extension context invalidated` Runtime Errors**:
   - Implemented `isExtensionValid()` lifecycle guard and `safeSendMessage` / `safeStorageGet` / `safeStorageSet` wrappers in `detector.js`, catching context teardown whenever the unpacked extension is reloaded at `chrome://extensions`.

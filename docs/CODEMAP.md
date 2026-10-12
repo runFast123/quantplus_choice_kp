@@ -203,3 +203,15 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `pipelines/eod/audit.py` | read-only accuracy audit: DB vs fresh Yahoo, sanity, independent recomputation of snapshot/RSI/signals/backtests (`--symbols`, `--days`); exit 1 on any mismatch |
 | `pipelines/eod/test_eod.py` | unit tests (`python -m unittest test_eod`, no network) |
 | `.github/workflows/ci.yml`, `news-ingest.yml`, `market-eod.yml` | CI, scheduled news, scheduled EOD prices |
+
+## 9. Chrome Extension (`extension/`)
+
+| Path | What |
+|---|---|
+| `extension/manifest.json` | Manifest V3: `sidePanel`, permissions, broker matches, `all_frames: true` |
+| `extension/background.js` | Service worker: toolbar badge, active symbol storage, `FETCH_QUOTE_DATA` relay proxy |
+| `extension/content-scripts/detector.js` | Ticker detection ladder (`KNOWN_INDICES`), Shadow DOM On-Chart HUD, drag/layout customization |
+| `extension/sidepanel/sidepanel.html` | Side Panel UI: quote card, signal banner, trade plan roadmap, key levels, sentiment bar |
+| `extension/sidepanel/sidepanel.js` | Side Panel controller: multi-broker detection (`detectActiveTab`), direct tab polling, Pine Script generator |
+| `web/src/server/privileged/extension.ts` | Privileged API (`/api/extension/quote`): index aliases, trade plan calculation, sentiment audit |
+
