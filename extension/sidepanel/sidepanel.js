@@ -376,17 +376,51 @@ if barstate.islast
     return /(tradingview|choiceindia|zerodha|groww|dhan|angelone|upstox|fyers|kotaksecurities|kotakneo|kotak|icicidirect|motilaloswal|paytmmoney|5paisa|sharekhan|hdfcsec|hdfcsky|axisdirect|shoonya|finvasia|aliceblue|google\.com\/finance|finance\.yahoo)/i.test(url);
   }
 
+  // Choice FinX exchange security token dictionary (maps numeric segment@token to canonical symbol)
+  const CHOICE_INDEX_TOKENS = {
+    "26000": "NIFTY",
+    "26009": "BANKNIFTY",
+    "26037": "NIFTYFINSERV",
+    "26014": "NIFTYMIDCAP50",
+    "26002": "NIFTY100",
+    "1": "SENSEX",
+    "12": "BANKEX",
+  };
+
+  function resolveChoiceToken(val) {
+    if (!val) return "";
+    try {
+      const decoded = decodeURIComponent(String(val)).trim();
+      const token = decoded.includes("@") ? decoded.split("@")[1] : decoded;
+      return CHOICE_INDEX_TOKENS[token] || "";
+    } catch {
+      return "";
+    }
+  }
+
   function parseTabMeta(url, title) {
     if (!url && !title) return null;
     const platform = getPlatformFromUrl(url);
 
-    // 1. Check title for known Indian indices first (e.g. "Nifty Bank", "Bank Nifty", "Nifty 50")
+    // 1. Check URL for Choice FinX tokens (e.g. symbols=1@26000)
+    if (url) {
+      try {
+        const u = new URL(url);
+        const p = u.searchParams.get("symbols") || u.searchParams.get("symbol");
+        if (p) {
+          const choiceSym = resolveChoiceToken(p);
+          if (choiceSym) return { symbol: choiceSym, platform };
+        }
+      } catch {}
+    }
+
+    // 2. Check title for known Indian indices first (e.g. "Nifty 50", "Bank Nifty", "Nifty Bank")
     if (title) {
       const idx = extractIndexSymbol(title);
       if (idx) return { symbol: idx, platform };
     }
 
-    // 2. Colon / bracket match in title
+    // 3. Colon / bracket match in title
     if (title) {
       const colonMatch = title.match(/(?:NSE|BSE)\s*:\s*([A-Z0-9&-]{2,15})/i);
       if (colonMatch) {
@@ -396,21 +430,19 @@ if barstate.islast
       if (parenMatch) {
         return { symbol: parenMatch[1].toUpperCase(), platform };
       }
-    }
 
-    // 3. Fallback token extraction from title
-    if (title) {
-      const EX = new Set([
-        "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "UNNAMED", "INDEX", "MARKETS",
-        "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "SHARES", "PRICE", "TODAY", "STOCK", "STOCKS",
-        "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO",
-        "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD",
-        "CHOICE", "FINX", "UPSTOX", "FYERS", "KOTAK", "NEO", "ICICI", "DIRECT", "MOTILAL", "OSWAL",
-        "PAYTM", "5PAISA", "SHAREKHAN", "HDFC", "AXIS"
-      ]);
-      const firstToken = title.trim().split(/[\s,·_|\/]+/)[0].toUpperCase();
-      if (firstToken.length >= 2 && firstToken.length <= 15 && !EX.has(firstToken) && !/^\d+$/.test(firstToken)) {
-        return { symbol: firstToken, platform };
+      // 4. Ticker followed by live price: "RELIANCE 2,950.00 (+1.2%) — TradingView" or "INFY 1,920.00 / Kite"
+      const priceMatch = title.match(/^([A-Z0-9&-]{2,15})\s+[\d,]+(?:\.\d+)?(?:\s*[-+▲▼\(\)]|\s*\/|\s*—|\s*-|\s*·)/i);
+      if (priceMatch) {
+        const sym = priceMatch[1].toUpperCase();
+        return { symbol: sym, platform };
+      }
+
+      // 5. Ticker followed by financial words: "RELIANCE Share Price", "TCS Stock Chart"
+      const nounMatch = title.match(/^([A-Z0-9&-]{2,15})\s+(?:Share\s*Price|Stock\s*Price|Live\s*Chart|Overview)\b/i);
+      if (nounMatch) {
+        const sym = nounMatch[1].toUpperCase();
+        return { symbol: sym, platform };
       }
     }
 
@@ -523,7 +555,7 @@ if barstate.islast
     const EX = new Set([
       "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "UNNAMED", "INDEX", "MARKETS",
       "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "SHARES", "PRICE", "TODAY", "STOCK", "STOCKS",
-      "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO",
+      "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO", "MCX", "CDS",
       "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD",
       "CHOICE", "CHOICEINDIA", "FINX", "UPSTOX", "FYERS", "KOTAK", "NEO", "ICICI", "DIRECT", "ICICIDIRECT",
       "MOTILAL", "OSWAL", "PAYTM", "PAYTMMONEY", "5PAISA", "SHAREKHAN", "HDFC", "HDFCSKY", "AXIS", "AXISDIRECT",
@@ -531,8 +563,35 @@ if barstate.islast
       "POSITION", "POSITIONS", "HOLDINGS", "FUNDS", "STRATEGY", "INDICATOR", "INDICATORS",
       "1D", "1W", "1M", "1Y", "5D", "5M", "15M", "30M", "1H", "2H", "4H", "D", "W", "M", "Y",
       "BUY", "SELL", "LONG", "SHORT", "CANDLE", "CANDLES", "BAR", "BARS", "EQUITY", "EQ",
-      "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR"
+      "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR",
+      "ONLINE", "TRADE", "TRADING", "PLATFORM", "BROKER", "BROKING", "PORTAL", "HOMEPAGE", "HOME",
+      "PAGE", "APP", "WELCOME", "ACCOUNT", "LOGIN", "SIGNIN", "SIGNUP", "REGISTER", "SYSTEM",
+      "CHARTING", "WEB", "INVEST", "INVESTING", "INVESTMENT", "MUTUAL", "WEALTH", "CAPITAL",
+      "SECURITIES", "SECURITY", "OPTION", "OPTIONS", "FUTURE", "FUTURES", "DERIVATIVES", "CURRENCY",
+      "COMMODITY", "EXCHANGE", "DESK", "VIEW", "PANEL", "PRO", "PLUS", "SMART", "DESKTOP", "MOBILE",
+      "CLIENT", "CONNECT", "STATUS", "SERVER", "EXPAND", "SAVE", "CREATE", "FREE", "DEMAT", "OPEN", "BEST", "TOP"
     ]);
+
+    const CHOICE_INDEX_TOKENS = {
+      "26000": "NIFTY",
+      "26009": "BANKNIFTY",
+      "26037": "NIFTYFINSERV",
+      "26014": "NIFTYMIDCAP50",
+      "26002": "NIFTY100",
+      "1": "SENSEX",
+      "12": "BANKEX",
+    };
+
+    function resolveChoiceToken(val) {
+      if (!val) return "";
+      try {
+        const decoded = decodeURIComponent(String(val)).trim();
+        const token = decoded.includes("@") ? decoded.split("@")[1] : decoded;
+        return CHOICE_INDEX_TOKENS[token] || "";
+      } catch {
+        return "";
+      }
+    }
 
     function getPlatform() {
       if (host.includes("choiceindia.com")) return "Choice FinX";
@@ -599,41 +658,53 @@ if barstate.islast
         if (c) return c;
       }
       const tokens = sText.split(/[\s,·|_\/\(\)]+/);
-      for (const t of tokens) {
-        const c = clean(t);
-        if (c) return c;
+      if (tokens.length <= 3) {
+        for (const t of tokens) {
+          const c = clean(t);
+          if (c) return c;
+        }
       }
       return "";
     }
 
-    // 1. Title
-    if (title && !title.startsWith("TradingView") && !title.startsWith("Unnamed")) {
-      const sym = extract(title);
-      if (sym) return { symbol: sym, platform };
+    function extractTitle(title) {
+      if (!title) return "";
+      const s = String(title).trim();
+      if (s.startsWith("TradingView") || s.startsWith("Unnamed")) return "";
+
+      const idx = extractIndex(s);
+      if (idx) return idx;
+
+      const colonMatch = s.match(/(?:NSE|BSE)\s*:\s*([A-Z0-9&-]{2,15})/i);
+      if (colonMatch) {
+        const c = clean(colonMatch[1]);
+        if (c) return c;
+      }
+
+      const parenMatch = s.match(/\(([A-Z0-9&-]{2,15})\)/i);
+      if (parenMatch) {
+        const c = clean(parenMatch[1]);
+        if (c) return c;
+      }
+
+      const priceMatch = s.match(/^([A-Z0-9&-]{2,15})\s+[\d,]+(?:\.\d+)?(?:\s*[-+▲▼\(\)]|\s*\/|\s*—|\s*-|\s*·)/i);
+      if (priceMatch) {
+        const c = clean(priceMatch[1]);
+        if (c) return c;
+      }
+
+      const nounMatch = s.match(/^([A-Z0-9&-]{2,15})\s+(?:Share\s*Price|Stock\s*Price|Live\s*Chart|Overview)\b/i);
+      if (nounMatch) {
+        const c = clean(nounMatch[1]);
+        if (c) return c;
+      }
+
+      return "";
     }
 
-    // 2. URL parameters (e.g. ?symbol=... or ?symbols=...)
-    try {
-      const params = new URLSearchParams(window.location.search);
-      for (const pKey of ["symbol", "symbols", "scrip", "tradingsymbol", "ticker", "instrument"]) {
-        const val = params.get(pKey);
-        if (val && !/^\d+$/.test(val) && !val.includes("@")) {
-          const sym = extract(val);
-          if (sym) return { symbol: sym, platform };
-        }
-      }
-      if (href.includes("/symbols/")) {
-        const pathParts = window.location.pathname.split("/symbols/")[1];
-        if (pathParts) {
-          const sym = extract(pathParts);
-          if (sym) return { symbol: sym, platform };
-        }
-      }
-    } catch {}
-
-    // 3. Embedded TradingView Chart Header Toolbar Button
+    // 1. Embedded TradingView Chart Header Toolbar Button (AUTHORITATIVE ON-CHART TRUTH)
     const tvHeaders = document.querySelectorAll(
-      "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch'], div[class*='js-button-text'], [class*='button-'][class*='-symbol']"
+      "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch'], div[class*='js-button-text'], [class*='button-'][class*='-symbol'], [class*='symbolSearch-'], div[class*='text-'][class*='button-'], div[class*='content-'][class*='button-'], [class*='symbol-edit'], [class*='symbolEdit']"
     );
     for (const btn of tvHeaders) {
       const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
@@ -643,9 +714,9 @@ if barstate.islast
       }
     }
 
-    // 4. Chart Legend Series Title (where "Nifty Bank · 15 · NSE" is shown)
+    // 2. Chart Legend Series Title (where "Nifty 50 · 1D · NSE" or "Nifty Bank · 15 · NSE" is shown)
     const legEls = document.querySelectorAll(
-      "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title']"
+      "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title'], [class*='pane-legend-title'], [class*='sourcesWrapper']"
     );
     for (const leg of legEls) {
       const text = leg.textContent || leg.getAttribute("title") || leg.getAttribute("aria-label");
@@ -655,7 +726,7 @@ if barstate.islast
       }
     }
 
-    // 5. Watchlist & Scrip Selectors across all brokers
+    // 3. Watchlist & Scrip Selectors across all brokers
     const itemEls = document.querySelectorAll(
       "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], .instrument.selected .nice-name, .instrument.selected, .order-window .instrument-name, .tv-chart-container .instrument, [class*='selected-scrip'], [class*='active-instrument'], [class*='scrip_name'], [class*='symbol_name'], [class*='stock-name'], .scrip-name, [data-testid*='symbol'], [data-testid*='instrument'], [class*='symbol-item-name'], [class*='header-symbol']"
     );
@@ -667,7 +738,30 @@ if barstate.islast
       }
     }
 
-    // 6. Broker-specific URL fallbacks
+    // 4. URL parameters & path (e.g. ?symbols=1@26000, ?symbol=RELIANCE, /stocks/..., /chart/...)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      for (const pKey of ["symbol", "symbols", "scrip", "tradingsymbol", "ticker", "instrument"]) {
+        const val = params.get(pKey);
+        if (val) {
+          const choiceSym = resolveChoiceToken(val);
+          if (choiceSym) return { symbol: choiceSym, platform };
+          if (!/^\d+$/.test(val) && !val.includes("@")) {
+            const sym = extract(val);
+            if (sym) return { symbol: sym, platform };
+          }
+        }
+      }
+      if (href.includes("/symbols/")) {
+        const pathParts = window.location.pathname.split("/symbols/")[1];
+        if (pathParts) {
+          const sym = extract(pathParts);
+          if (sym) return { symbol: sym, platform };
+        }
+      }
+    } catch {}
+
+    // 5. Broker-specific URL fallbacks
     if (host.includes("zerodha.com")) {
       const m = href.match(/\/chart\/(?:ext\/tvc\/)?(?:NSE|BSE)\/([A-Z0-9&-]+)/i);
       if (m) {
@@ -675,11 +769,6 @@ if barstate.islast
         if (c) return { symbol: c, platform: "Zerodha Kite" };
       }
     } else if (host.includes("groww.in")) {
-      const m = title.match(/\(([A-Z0-9&-]+)\)\s+(?:Share|Stock)/i);
-      if (m) {
-        const c = clean(m[1]);
-        if (c) return { symbol: c, platform: "Groww" };
-      }
       if (href.includes("/stocks/")) {
         const slug = href.split("/stocks/")[1]?.split(/[?#/]/)[0];
         if (slug) {
@@ -699,6 +788,12 @@ if barstate.islast
         const c = clean(m[1]);
         if (c) return { symbol: c, platform: "Yahoo Finance" };
       }
+    }
+
+    // 6. Strict Document Title Fallback (LAST RESORT ONLY - structured patterns, never arbitrary words)
+    if (title) {
+      const sym = extractTitle(title);
+      if (sym) return { symbol: sym, platform };
     }
 
     return null;
@@ -882,6 +977,27 @@ if barstate.islast
     elContent.classList.add("hidden");
     elEmpty.classList.remove("hidden");
     elEmpty.querySelector("h3").textContent = `Could not load ${currentSymbol}`;
-    elEmpty.querySelector(".muted-text").textContent = `Please verify the backend is active at ${backendUrl}. Check console for details.`;
+    const muted = elEmpty.querySelector(".muted-text");
+    if (muted) {
+      muted.innerHTML = `
+        Symbol <strong>${currentSymbol}</strong> was not recognized or is not listed on NSE/BSE.<br>
+        <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
+          <button type="button" class="quick-sym-btn" data-sym="NIFTY" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">NIFTY</button>
+          <button type="button" class="quick-sym-btn" data-sym="BANKNIFTY" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">BANKNIFTY</button>
+          <button type="button" class="quick-sym-btn" data-sym="RELIANCE" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">RELIANCE</button>
+          <button type="button" class="quick-sym-btn" data-sym="TCS" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">TCS</button>
+        </div>
+      `;
+      const btns = muted.querySelectorAll(".quick-sym-btn");
+      btns.forEach((b) => {
+        b.addEventListener("click", () => {
+          const sym = b.getAttribute("data-sym");
+          if (sym) {
+            inputSymbol.value = sym;
+            loadSymbol(sym);
+          }
+        });
+      });
+    }
   }
 })();

@@ -6,6 +6,20 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — False 'ONLINE' Symbol Extraction & Prioritized On-Chart TradingView Engine Detection (`extension/`)
+- **Eliminated False Positive 'ONLINE' Symbol Extraction**:
+  - Identified root cause where Choice FinX web portals with titles such as `"Choice FinX - Trade Online"` or `"Online Trading"` triggered un-guarded title token fallbacks (`title.split(...)`), taking the word `"ONLINE"` as a ticker before any chart inspection took place.
+  - Expanded `EXCLUDED` and `EX` exclusion dictionaries across `detector.js` and `sidepanel.js` with comprehensive web and broker UI terms (`ONLINE`, `TRADE`, `TRADING`, `PLATFORM`, `BROKER`, `BROKING`, `PORTAL`, `APP`, `FREE`, `DEMAT`, etc.).
+  - Added strict title parser (`extractTickerFromTitle`) restricting page title extraction strictly to structured formats (known indices, `NSE:TICKER`, bracketed `(TICKER)`, or tickers followed by live price/change), completely preventing arbitrary marketing words from being interpreted as symbols.
+  - Restricted token splitting in `extractTickerFromText` strictly to short UI labels (≤ 3 tokens like `"Q NIFTY"` or `"RELIANCE EQ"`), eliminating word extraction from full sentences.
+- **Inverted Detection Priority Ladder (Chart Authoritative Truth First)**:
+  - Reordered detection order across both `detector.js` and `sidepanel.js` so that the **Embedded TradingView Chart Header Toolbar Button** (e.g. `Q NIFTY`, `RELIANCE`) and **Chart Legend Series Title** (`Nifty 50 · 1D · NSE`) are inspected first with highest authority.
+  - Demoted page title analysis from step 1 to the final fallback step (step 6).
+- **Added Choice FinX Exchange Security Token Mapping**:
+  - Implemented `CHOICE_INDEX_TOKENS` and `resolveChoiceToken()` mapping Choice FinX URL segment/token parameters (e.g. `symbols=1@26000` -> `NIFTY`, `1@26009` -> `BANKNIFTY`, `1@26037` -> `NIFTYFINSERV`, `1@26014` -> `NIFTYMIDCAP50`, `1` -> `SENSEX`, `12` -> `BANKEX`) for instant pre-render index detection.
+- **Enhanced Empty / Error State Recovery**:
+  - Replaced generic error text in `showError()` with interactive quick-switch buttons for major Indian symbols (`NIFTY`, `BANKNIFTY`, `RELIANCE`, `TCS`), allowing instant one-click recovery.
+
 ### Fixed — Extension Infinite Reload Loops, Cross-Tab Fighting & UI Flashing (`extension/`)
 - **Eliminated Cross-Tab Symbol Ping-Pong Loops**:
   - Added visibility guard `if (document.hidden) return;` at the entry of `detectSymbol()` and attached a `visibilitychange` listener in `detector.js`. Inactive/background tabs no longer broadcast periodic detections, eliminating the infinite battle where background tabs continuously overrode the foreground chart symbol.

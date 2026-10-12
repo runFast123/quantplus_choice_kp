@@ -12,7 +12,7 @@
   const EXCLUDED = new Set([
     "TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "UNNAMED", "INDEX", "MARKETS",
     "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "SHARES", "PRICE", "TODAY", "STOCK", "STOCKS",
-    "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO",
+    "OVERVIEW", "TECHNICALS", "FINANCIALS", "COMMUNITY", "IDEAS", "SCRIP", "NSE", "BSE", "NFO", "MCX", "CDS",
     "ZERODHA", "KITE", "GROWW", "DHAN", "ANGEL", "ONE", "GOOGLE", "YAHOO", "FINANCE", "INR", "USD",
     "CHOICE", "CHOICEINDIA", "FINX", "UPSTOX", "FYERS", "KOTAK", "NEO", "ICICI", "DIRECT", "ICICIDIRECT",
     "MOTILAL", "OSWAL", "PAYTM", "PAYTMMONEY", "5PAISA", "SHAREKHAN", "HDFC", "HDFCSKY", "AXIS", "AXISDIRECT",
@@ -20,7 +20,13 @@
     "POSITION", "POSITIONS", "HOLDINGS", "FUNDS", "STRATEGY", "INDICATOR", "INDICATORS",
     "1D", "1W", "1M", "1Y", "5D", "5M", "15M", "30M", "1H", "2H", "4H", "D", "W", "M", "Y",
     "BUY", "SELL", "LONG", "SHORT", "CANDLE", "CANDLES", "BAR", "BARS", "EQUITY", "EQ",
-    "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR"
+    "TRACK", "ALL", "MARKET", "SUPERCHARTS", "SCREENER", "HEATMAP", "ECONOMIC", "CALENDAR",
+    "ONLINE", "TRADE", "TRADING", "PLATFORM", "BROKER", "BROKING", "PORTAL", "HOMEPAGE", "HOME",
+    "PAGE", "APP", "WELCOME", "ACCOUNT", "LOGIN", "SIGNIN", "SIGNUP", "REGISTER", "SYSTEM",
+    "CHARTING", "WEB", "INVEST", "INVESTING", "INVESTMENT", "MUTUAL", "WEALTH", "CAPITAL",
+    "SECURITIES", "SECURITY", "OPTION", "OPTIONS", "FUTURE", "FUTURES", "DERIVATIVES", "CURRENCY",
+    "COMMODITY", "EXCHANGE", "DESK", "VIEW", "PANEL", "PRO", "PLUS", "SMART", "DESKTOP", "MOBILE",
+    "CLIENT", "CONNECT", "STATUS", "SERVER", "EXPAND", "SAVE", "CREATE", "FREE", "DEMAT", "OPEN", "BEST", "TOP"
   ]);
 
   let isContextDead = false;
@@ -224,6 +230,28 @@
     return s;
   }
 
+  // Choice FinX exchange security token dictionary (maps numeric segment@token to canonical symbol)
+  const CHOICE_INDEX_TOKENS = {
+    "26000": "NIFTY",
+    "26009": "BANKNIFTY",
+    "26037": "NIFTYFINSERV",
+    "26014": "NIFTYMIDCAP50",
+    "26002": "NIFTY100",
+    "1": "SENSEX",
+    "12": "BANKEX",
+  };
+
+  function resolveChoiceToken(val) {
+    if (!val) return "";
+    try {
+      const decoded = decodeURIComponent(String(val)).trim();
+      const token = decoded.includes("@") ? decoded.split("@")[1] : decoded;
+      return CHOICE_INDEX_TOKENS[token] || "";
+    } catch {
+      return "";
+    }
+  }
+
   function extractTickerFromText(text) {
     if (!text) return "";
     const sText = String(text).trim();
@@ -233,26 +261,69 @@
     const idxSym = extractIndexSymbol(sText);
     if (idxSym) return idxSym;
 
-    // 2. Check exchange colon patterns
+    // 2. Check exchange colon patterns (e.g. "NSE:RELIANCE")
     const colonMatch = sText.match(/(?:NSE|BSE)\s*:\s*([A-Z0-9&-]{2,15})/i);
     if (colonMatch) {
       const c = cleanTicker(colonMatch[1]);
       if (c) return c;
     }
 
-    // 3. Check bracketed patterns
+    // 3. Check bracketed patterns (e.g. "(RELIANCE)")
     const parenMatch = sText.match(/\(([A-Z0-9&-]{2,15})\)/i);
     if (parenMatch) {
       const c = cleanTicker(parenMatch[1]);
       if (c) return c;
     }
 
-    // 4. Token fallback
+    // 4. Token fallback (ONLY for short UI button labels <= 3 tokens like "Q NIFTY" or "RELIANCE EQ")
     const tokens = sText.split(/[\s,·|_\/\(\)]+/);
-    for (const t of tokens) {
-      const c = cleanTicker(t);
+    if (tokens.length <= 3) {
+      for (const t of tokens) {
+        const c = cleanTicker(t);
+        if (c) return c;
+      }
+    }
+    return "";
+  }
+
+  // Strict page title parser: Never guesses arbitrary English words from marketing titles
+  function extractTickerFromTitle(title) {
+    if (!title) return "";
+    const s = String(title).trim();
+    if (s.startsWith("TradingView") || s.startsWith("Unnamed")) return "";
+
+    // 1. Check known indices in title (e.g. "Nifty 50 22,496", "Bank Nifty Live")
+    const idx = extractIndexSymbol(s);
+    if (idx) return idx;
+
+    // 2. Exchange prefix: "NSE:RELIANCE" or "BSE:TCS"
+    const colonMatch = s.match(/(?:NSE|BSE)\s*:\s*([A-Z0-9&-]{2,15})/i);
+    if (colonMatch) {
+      const c = cleanTicker(colonMatch[1]);
       if (c) return c;
     }
+
+    // 3. Bracketed: "Tata Motors (TATAMOTORS) Share Price"
+    const parenMatch = s.match(/\(([A-Z0-9&-]{2,15})\)/i);
+    if (parenMatch) {
+      const c = cleanTicker(parenMatch[1]);
+      if (c) return c;
+    }
+
+    // 4. Ticker followed by live price: "RELIANCE 2,950.00 (+1.2%) — TradingView" or "INFY 1,920.00 / Kite"
+    const priceMatch = s.match(/^([A-Z0-9&-]{2,15})\s+[\d,]+(?:\.\d+)?(?:\s*[-+▲▼\(\)]|\s*\/|\s*—|\s*-|\s*·)/i);
+    if (priceMatch) {
+      const c = cleanTicker(priceMatch[1]);
+      if (c) return c;
+    }
+
+    // 5. Ticker followed by financial words: "RELIANCE Share Price", "TCS Stock Chart"
+    const nounMatch = s.match(/^([A-Z0-9&-]{2,15})\s+(?:Share\s*Price|Stock\s*Price|Live\s*Chart|Overview)\b/i);
+    if (nounMatch) {
+      const c = cleanTicker(nounMatch[1]);
+      if (c) return c;
+    }
+
     return "";
   }
 
@@ -304,41 +375,10 @@
     let symbol = "";
     const platform = getPlatformName();
 
-    // 1. Check Document Title
-    if (title && !title.startsWith("TradingView") && !title.startsWith("Unnamed")) {
-      const sym = extractTickerFromText(title);
-      if (sym) symbol = sym;
-    }
-
-    // 2. Check URL parameters & path (e.g. ?symbol=..., /stocks/..., /chart/...)
-    if (!symbol) {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        for (const pKey of ["symbol", "symbols", "scrip", "tradingsymbol", "ticker", "instrument"]) {
-          const val = params.get(pKey);
-          if (val && !/^\d+$/.test(val) && !val.includes("@")) {
-            const sym = extractTickerFromText(val);
-            if (sym) {
-              symbol = sym;
-              break;
-            }
-          }
-        }
-        if (!symbol && href.includes("/symbols/")) {
-          const pathParts = window.location.pathname.split("/symbols/")[1];
-          if (pathParts) {
-            const sym = extractTickerFromText(pathParts);
-            if (sym) symbol = sym;
-          }
-        }
-      } catch {}
-    }
-
-    // 3. Embedded TradingView Chart Engine Elements (Choice FinX, Dhan, Fyers, Upstox, Zerodha, TradingView)
-    // A. Header Toolbar Symbol Search Button (shows current loaded chart symbol)
+    // 1. Embedded TradingView Chart Header Toolbar Symbol Search Button (AUTHORITATIVE ON-CHART TRUTH)
     if (!symbol) {
       const tvHeaders = document.querySelectorAll(
-        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch'], div[class*='js-button-text'], [class*='button-'][class*='-symbol']"
+        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch'], div[class*='js-button-text'], [class*='button-'][class*='-symbol'], [class*='symbolSearch-'], div[class*='text-'][class*='button-'], div[class*='content-'][class*='button-'], [class*='symbol-edit'], [class*='symbolEdit']"
       );
       for (const btn of tvHeaders) {
         const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
@@ -352,10 +392,10 @@
       }
     }
 
-    // B. Chart Legend series title (where "Nifty Bank · 15 · NSE" is displayed)
+    // 2. Chart Legend series title (where "Nifty 50 · 1D · NSE" or "Nifty Bank · 15 · NSE" is displayed)
     if (!symbol) {
       const legendEls = document.querySelectorAll(
-        "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title']"
+        "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title'], [class*='pane-legend-title'], [class*='sourcesWrapper']"
       );
       for (const el of legendEls) {
         const text = el.textContent || el.getAttribute("title") || el.getAttribute("aria-label");
@@ -369,7 +409,7 @@
       }
     }
 
-    // C. Watchlist / Active Selected Instrument / Scrip Details Across All Brokers
+    // 3. Watchlist / Active Selected Instrument / Scrip Details Across All Brokers
     if (!symbol) {
       const sidebarEls = document.querySelectorAll(
         "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], .instrument.selected .nice-name, .instrument.selected, .order-window .instrument-name, .tv-chart-container .instrument, [class*='selected-scrip'], [class*='active-instrument'], [class*='scrip_name'], [class*='symbol_name'], [class*='stock-name'], .scrip-name, [data-testid*='symbol'], [data-testid*='instrument'], [class*='symbol-item-name'], [class*='header-symbol']"
@@ -386,15 +426,44 @@
       }
     }
 
-    // 4. Broker-specific URL / Title fallbacks
+    // 4. URL parameters & path (e.g. ?symbols=1@26000, ?symbol=RELIANCE, /stocks/..., /chart/...)
+    if (!symbol) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        for (const pKey of ["symbol", "symbols", "scrip", "tradingsymbol", "ticker", "instrument"]) {
+          const val = params.get(pKey);
+          if (val) {
+            // Check Choice FinX exchange security token (e.g. 1@26000 -> NIFTY)
+            const choiceSym = resolveChoiceToken(val);
+            if (choiceSym) {
+              symbol = choiceSym;
+              break;
+            }
+            if (!/^\d+$/.test(val) && !val.includes("@")) {
+              const sym = extractTickerFromText(val);
+              if (sym) {
+                symbol = sym;
+                break;
+              }
+            }
+          }
+        }
+        if (!symbol && href.includes("/symbols/")) {
+          const pathParts = window.location.pathname.split("/symbols/")[1];
+          if (pathParts) {
+            const sym = extractTickerFromText(pathParts);
+            if (sym) symbol = sym;
+          }
+        }
+      } catch {}
+    }
+
+    // 5. Broker-specific URL fallbacks
     if (!symbol && host.includes("zerodha.com")) {
       const kiteUrlMatch = href.match(/\/chart\/(?:ext\/tvc\/)?(?:NSE|BSE)\/([A-Z0-9&-]+)/i);
       if (kiteUrlMatch) symbol = cleanTicker(kiteUrlMatch[1]);
     } else if (!symbol && host.includes("groww.in")) {
-      const growwMatch = title.match(/\(([A-Z0-9&-]+)\)\s+(?:Share|Stock)/i);
-      if (growwMatch) {
-        symbol = cleanTicker(growwMatch[1]);
-      } else if (href.includes("/stocks/")) {
+      if (href.includes("/stocks/")) {
         const slug = href.split("/stocks/")[1]?.split(/[?#/]/)[0];
         if (slug) symbol = cleanTicker(slug);
       }
@@ -404,6 +473,12 @@
     } else if (!symbol && host.includes("finance.yahoo.com")) {
       const yfMatch = href.match(/\/quote\/([A-Z0-9&-]+)\.(?:NS|BO)/i);
       if (yfMatch) symbol = cleanTicker(yfMatch[1]);
+    }
+
+    // 6. Strict Document Title Fallback (LAST RESORT ONLY - structured patterns, never arbitrary words)
+    if (!symbol && title) {
+      const sym = extractTickerFromTitle(title);
+      if (sym) symbol = sym;
     }
 
     if (symbol && symbol !== lastDetectedSymbol) {
