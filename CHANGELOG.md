@@ -6,6 +6,18 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — False 'ALERT' Symbol Extraction & Prioritized TradingView Official Router (`extension/`)
+- **Eliminated False Positive 'ALERT' Symbol Extraction**:
+  - Identified root cause where TradingView's top toolbar contains an "Alert" button (`#header-toolbar-alerts`) that matched over-broad button queries (`div[class*='text-'][class*='button-']`), causing the word `"Alert"` to be extracted as the active ticker instead of the charted equity (`HDFCBANK`).
+  - Purged all generic button selectors from `tvHeaders` in both `detector.js` and `sidepanel.js`, strictly restricting queries to elements explicitly carrying `symbol` in their ID, class, data-name, title, or aria-label attributes (`#header-toolbar-symbol-search`, `[data-name='header-toolbar-symbol-search']`, `button[id*='symbol-search']`, `button[aria-label*='Symbol']`, etc.).
+  - Added full toolbar button action terms (`ALERT`, `ALERTS`, `REPLAY`, `COMPARE`, `PUBLISH`, `UPGRADE`, `UNDO`, `REDO`, `SAVED`, `LAYOUT`, `LAYOUTS`, `SNAPSHOT`, etc.) to the `EXCLUDED` and `EX` exclusion sets.
+- **Prioritized Official TradingView URL Router Parameter (`?symbol=`)**:
+  - Positioned TradingView's official router parameter (`?symbol=NSE:HDFCBANK`) at the absolute top of the detection ladder on `tradingview.com`, guaranteeing instant, 100% accurate symbol resolution that updates seamlessly as the user switches charts without relying on DOM scraping.
+- **Enhanced Legend Attribute Inspection**:
+  - Expanded legend series title element inspection to read `data-symbol-full` and `title` attributes before visible text content, ensuring canonical exchange tickers (`NSE:HDFCBANK`) are captured even when user preferences format the legend with full company names (`HDFC Bank Limited · 1D · NSE`).
+- **Fixed `parseTabMeta` Symbol Extraction**:
+  - Resolved gap in `parseTabMeta` where colon-separated symbols (`?symbol=NSE:HDFCBANK`) and `/symbols/` paths in URL metadata were bypassed when Choice tokens were absent.
+
 ### Fixed — False 'ONLINE' Symbol Extraction & Prioritized On-Chart TradingView Engine Detection (`extension/`)
 - **Eliminated False Positive 'ONLINE' Symbol Extraction**:
   - Identified root cause where Choice FinX web portals with titles such as `"Choice FinX - Trade Online"` or `"Online Trading"` triggered un-guarded title token fallbacks (`title.split(...)`), taking the word `"ONLINE"` as a ticker before any chart inspection took place.

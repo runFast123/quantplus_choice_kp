@@ -402,14 +402,32 @@ if barstate.islast
     if (!url && !title) return null;
     const platform = getPlatformFromUrl(url);
 
-    // 1. Check URL for Choice FinX tokens (e.g. symbols=1@26000)
+    // 1. Check URL for explicit symbol parameters (e.g. ?symbol=NSE:HDFCBANK or Choice tokens symbols=1@26000)
     if (url) {
       try {
         const u = new URL(url);
-        const p = u.searchParams.get("symbols") || u.searchParams.get("symbol");
+        const p = u.searchParams.get("symbol") || u.searchParams.get("symbols") || u.searchParams.get("scrip") || u.searchParams.get("tradingsymbol");
         if (p) {
           const choiceSym = resolveChoiceToken(p);
           if (choiceSym) return { symbol: choiceSym, platform };
+          if (p.includes(":")) {
+            const parts = p.split(":");
+            const raw = parts[parts.length - 1].replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").toUpperCase();
+            if (raw && raw.length >= 2) return { symbol: raw, platform };
+          }
+          if (!/^\d+$/.test(p) && !p.includes("@")) {
+            const cleanSym = p.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/gi, "").toUpperCase();
+            const idx = extractIndexSymbol(cleanSym);
+            if (idx) return { symbol: idx, platform };
+            if (cleanSym && cleanSym.length >= 2) return { symbol: cleanSym, platform };
+          }
+        }
+        if (u.pathname.includes("/symbols/")) {
+          const pathParts = u.pathname.split("/symbols/")[1];
+          if (pathParts) {
+            const raw = pathParts.replace(/^(?:NSE|BSE)-/i, "").split(/[\/?#]/)[0].toUpperCase();
+            if (raw && raw.length >= 2) return { symbol: raw, platform };
+          }
         }
       } catch {}
     }
@@ -569,7 +587,9 @@ if barstate.islast
       "CHARTING", "WEB", "INVEST", "INVESTING", "INVESTMENT", "MUTUAL", "WEALTH", "CAPITAL",
       "SECURITIES", "SECURITY", "OPTION", "OPTIONS", "FUTURE", "FUTURES", "DERIVATIVES", "CURRENCY",
       "COMMODITY", "EXCHANGE", "DESK", "VIEW", "PANEL", "PRO", "PLUS", "SMART", "DESKTOP", "MOBILE",
-      "CLIENT", "CONNECT", "STATUS", "SERVER", "EXPAND", "SAVE", "CREATE", "FREE", "DEMAT", "OPEN", "BEST", "TOP"
+      "CLIENT", "CONNECT", "STATUS", "SERVER", "EXPAND", "SAVE", "CREATE", "FREE", "DEMAT", "OPEN", "BEST", "TOP",
+      "ALERT", "ALERTS", "REPLAY", "COMPARE", "PUBLISH", "UPGRADE", "UNDO", "REDO", "SAVED", "LAYOUT", "LAYOUTS",
+      "LINE", "AREA", "HEIKIN", "RENKO", "SNAPSHOT", "PROPERTIES", "SETTINGS", "FULLSCREEN", "HELP"
     ]);
 
     const CHOICE_INDEX_TOKENS = {
@@ -702,9 +722,29 @@ if barstate.islast
       return "";
     }
 
-    // 1. Embedded TradingView Chart Header Toolbar Button (AUTHORITATIVE ON-CHART TRUTH)
+    // 1. TradingView official URL router parameter (HIGHEST AUTHORITY ON TRADINGVIEW - e.g. ?symbol=NSE:HDFCBANK)
+    if (host.includes("tradingview.com")) {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        const sVal = p.get("symbol");
+        if (sVal) {
+          const sym = extract(sVal);
+          if (sym) return { symbol: sym, platform };
+        }
+        if (href.includes("/symbols/")) {
+          const pathParts = window.location.pathname.split("/symbols/")[1];
+          if (pathParts) {
+            const sym = extract(pathParts);
+            if (sym) return { symbol: sym, platform };
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Embedded TradingView Chart Header Toolbar Button
+    // Strictly target elements with 'symbol' in attributes to prevent matching Alert, Replay, etc.
     const tvHeaders = document.querySelectorAll(
-      "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch'], div[class*='js-button-text'], [class*='button-'][class*='-symbol'], [class*='symbolSearch-'], div[class*='text-'][class*='button-'], div[class*='content-'][class*='button-'], [class*='symbol-edit'], [class*='symbolEdit']"
+      "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], [data-name='symbol-search-items'], button[id*='symbol-search' i], div[id*='symbol-search' i], button[aria-label*='Symbol' i], button[aria-label*='symbol' i], button[title*='Symbol' i], [class*='symbolSearchText'], [class*='symbolSearch-'], div[class*='symbolSearch'], [class*='symbol-edit'], [class*='symbolEdit'], [data-role='button'][id*='symbol' i]"
     );
     for (const btn of tvHeaders) {
       const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
@@ -714,12 +754,12 @@ if barstate.islast
       }
     }
 
-    // 2. Chart Legend Series Title (where "Nifty 50 · 1D · NSE" or "Nifty Bank · 15 · NSE" is shown)
+    // 3. Chart Legend Series Title (where "Nifty 50 · 1D · NSE" or "Nifty Bank · 15 · NSE" is shown)
     const legEls = document.querySelectorAll(
       "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title'], [class*='pane-legend-title'], [class*='sourcesWrapper']"
     );
     for (const leg of legEls) {
-      const text = leg.textContent || leg.getAttribute("title") || leg.getAttribute("aria-label");
+      const text = leg.getAttribute("data-symbol-full") || leg.getAttribute("data-symbol") || leg.getAttribute("title") || leg.getAttribute("aria-label") || leg.textContent;
       if (text) {
         const sym = extract(text);
         if (sym) return { symbol: sym, platform };

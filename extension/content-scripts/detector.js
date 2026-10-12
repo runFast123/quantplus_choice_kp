@@ -26,7 +26,9 @@
     "CHARTING", "WEB", "INVEST", "INVESTING", "INVESTMENT", "MUTUAL", "WEALTH", "CAPITAL",
     "SECURITIES", "SECURITY", "OPTION", "OPTIONS", "FUTURE", "FUTURES", "DERIVATIVES", "CURRENCY",
     "COMMODITY", "EXCHANGE", "DESK", "VIEW", "PANEL", "PRO", "PLUS", "SMART", "DESKTOP", "MOBILE",
-    "CLIENT", "CONNECT", "STATUS", "SERVER", "EXPAND", "SAVE", "CREATE", "FREE", "DEMAT", "OPEN", "BEST", "TOP"
+    "CLIENT", "CONNECT", "STATUS", "SERVER", "EXPAND", "SAVE", "CREATE", "FREE", "DEMAT", "OPEN", "BEST", "TOP",
+    "ALERT", "ALERTS", "REPLAY", "COMPARE", "PUBLISH", "UPGRADE", "UNDO", "REDO", "SAVED", "LAYOUT", "LAYOUTS",
+    "LINE", "AREA", "HEIKIN", "RENKO", "SNAPSHOT", "PROPERTIES", "SETTINGS", "FULLSCREEN", "HELP"
   ]);
 
   let isContextDead = false;
@@ -375,10 +377,30 @@
     let symbol = "";
     const platform = getPlatformName();
 
-    // 1. Embedded TradingView Chart Header Toolbar Symbol Search Button (AUTHORITATIVE ON-CHART TRUTH)
+    // 1. TradingView official URL router parameter (HIGHEST AUTHORITY ON TRADINGVIEW - e.g. ?symbol=NSE:HDFCBANK)
+    if (!symbol && host.includes("tradingview.com")) {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        const sVal = p.get("symbol");
+        if (sVal) {
+          const sym = extractTickerFromText(sVal);
+          if (sym) symbol = sym;
+        }
+        if (!symbol && href.includes("/symbols/")) {
+          const pathParts = window.location.pathname.split("/symbols/")[1];
+          if (pathParts) {
+            const sym = extractTickerFromText(pathParts);
+            if (sym) symbol = sym;
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Embedded TradingView / Broker Chart Header Toolbar Symbol Search Button
+    // Strictly target elements with 'symbol' in attributes to prevent matching Alert, Replay, etc.
     if (!symbol) {
       const tvHeaders = document.querySelectorAll(
-        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], button[id*='symbol-search'], div[id*='symbol-search'], [class*='symbolSearchText'], [data-role='button'][id*='symbol'], div[class*='symbolSearch'], div[class*='js-button-text'], [class*='button-'][class*='-symbol'], [class*='symbolSearch-'], div[class*='text-'][class*='button-'], div[class*='content-'][class*='button-'], [class*='symbol-edit'], [class*='symbolEdit']"
+        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], [data-name='symbol-search-items'], button[id*='symbol-search' i], div[id*='symbol-search' i], button[aria-label*='Symbol' i], button[aria-label*='symbol' i], button[title*='Symbol' i], [class*='symbolSearchText'], [class*='symbolSearch-'], div[class*='symbolSearch'], [class*='symbol-edit'], [class*='symbolEdit'], [data-role='button'][id*='symbol' i]"
       );
       for (const btn of tvHeaders) {
         const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
@@ -392,13 +414,13 @@
       }
     }
 
-    // 2. Chart Legend series title (where "Nifty 50 · 1D · NSE" or "Nifty Bank · 15 · NSE" is displayed)
+    // 3. Chart Legend series title (reads data-symbol-full, title, or visible text)
     if (!symbol) {
       const legendEls = document.querySelectorAll(
         "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title'], [class*='pane-legend-title'], [class*='sourcesWrapper']"
       );
       for (const el of legendEls) {
-        const text = el.textContent || el.getAttribute("title") || el.getAttribute("aria-label");
+        const text = el.getAttribute("data-symbol-full") || el.getAttribute("data-symbol") || el.getAttribute("title") || el.getAttribute("aria-label") || el.textContent;
         if (text) {
           const sym = extractTickerFromText(text);
           if (sym) {
