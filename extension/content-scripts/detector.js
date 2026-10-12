@@ -641,6 +641,15 @@
   }
 
   function getOrCreateShadowRoot() {
+    // If running inside a subframe and the parent window already has the HUD, do not duplicate
+    if (window !== window.top) {
+      try {
+        if (window.top && window.top.document && window.top.document.getElementById("quantspulse-chart-hud-root")) {
+          return null;
+        }
+      } catch {}
+    }
+
     if (!hudRoot || !document.contains(hudRoot)) {
       hudRoot = document.getElementById("quantspulse-chart-hud-root");
       if (!hudRoot) {
@@ -682,6 +691,7 @@
   function renderHud(data) {
     if (!data || !data.symbol) return;
     const shadow = getOrCreateShadowRoot();
+    if (!shadow) return;
 
     // Default: Top-Left at top: 65px; left: 75px (clear of right watchlist and side panel)
     let savedPos = { top: "65px", left: "75px", right: "auto", bottom: "auto" };
