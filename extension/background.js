@@ -39,9 +39,6 @@ chrome.runtime.onInstalled.addListener(() => {
   injectIntoExistingTabs();
 });
 
-// Also trigger on service worker startup
-injectIntoExistingTabs();
-
 function injectIntoExistingTabs() {
   if (!chrome.scripting || !chrome.tabs) return;
   chrome.tabs.query({}, (tabs) => {
@@ -66,12 +63,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const exchange = (message.exchange || "NSE").toUpperCase().trim();
     const platform = message.platform || "Web";
 
-    // Persist in local storage for sidepanel consumption
-    chrome.storage.local.set({
-      activeSymbol: symbol,
-      exchange: exchange,
-      platform: platform,
-      detectedAt: Date.now(),
+    // Persist in local storage for sidepanel consumption only if symbol actually changed
+    chrome.storage.local.get(["activeSymbol"], (stored) => {
+      if (stored?.activeSymbol !== symbol) {
+        chrome.storage.local.set({
+          activeSymbol: symbol,
+          exchange: exchange,
+          platform: platform,
+        });
+      }
     });
 
     // Display symbol on toolbar badge for immediate visual feedback

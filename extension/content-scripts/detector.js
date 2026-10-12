@@ -171,9 +171,9 @@
 
   const KNOWN_INDICES = [
     { regex: /\b(?:NIFTY\s*BANK|BANK\s*NIFTY|BANKNIFTY|CNX\s*BANK)\b/i, symbol: "BANKNIFTY" },
-    { regex: /\b(?:NIFTY\s*FIN(?:ANCIAL)?(?:\s*SERVICES?)?|FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "FINNIFTY" },
-    { regex: /\b(?:NIFTY\s*MID(?:CAP)?(?:\s*SELECT)?|MIDCAP\s*NIFTY|MIDCPNIFTY)\b/i, symbol: "MIDCPNIFTY" },
-    { regex: /\b(?:NIFTY\s*NEXT\s*50|JUNIOR\s*NIFTY|NIFTYJR)\b/i, symbol: "NIFTYJR" },
+    { regex: /\b(?:NIFTY\s*FIN(?:ANCIAL)?(?:\s*SERVICES?)?|FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "NIFTYFINSERV" },
+    { regex: /\b(?:NIFTY\s*MID(?:CAP)?(?:\s*SELECT)?|MIDCAP\s*NIFTY|MIDCPNIFTY)\b/i, symbol: "NIFTYMIDCAP50" },
+    { regex: /\b(?:NIFTY\s*NEXT\s*50|JUNIOR\s*NIFTY|NIFTYJR)\b/i, symbol: "NIFTY100" },
     { regex: /\b(?:NIFTY\s*50|CNX\s*NIFTY|NIFTY50)\b/i, symbol: "NIFTY" },
     { regex: /\b(?:NIFTY\s*IT|CNX\s*IT|NIFTYIT)\b/i, symbol: "NIFTYIT" },
     { regex: /\b(?:NIFTY\s*AUTO|NIFTYAUTO)\b/i, symbol: "NIFTYAUTO" },
@@ -212,8 +212,9 @@
     s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/g, "");
     if (s === "NIFTY50" || s === "CNXNIFTY" || s === "NIFTY-50" || s === "NIFTY 50") s = "NIFTY";
     if (s === "NIFTYBANK" || s === "CNXBANK" || s === "BANKNIFTY" || s === "NIFTY BANK" || s === "BANK NIFTY") s = "BANKNIFTY";
-    if (s === "FINNIFTY" || s === "FIN NIFTY" || s === "NIFTYFIN" || s === "NIFTYFINSERV") s = "FINNIFTY";
-    if (s === "MIDCPNIFTY" || s === "MIDCAPNIFTY") s = "MIDCPNIFTY";
+    if (s === "FINNIFTY" || s === "FIN NIFTY" || s === "NIFTYFIN" || s === "NIFTYFINSERV") s = "NIFTYFINSERV";
+    if (s === "MIDCPNIFTY" || s === "MIDCAPNIFTY" || s === "NIFTYMIDCAP50") s = "NIFTYMIDCAP50";
+    if (s === "NIFTYJR" || s === "NIFTYNEXT50" || s === "NIFTY100") s = "NIFTY100";
     if (s === "SENSEX" || s === "BSESENSEX") s = "SENSEX";
     if (s === "BANKEX" || s === "BSEBANKEX") s = "BANKEX";
     if (s.length < 2 || s.length > 15 || EXCLUDED.has(s)) {
@@ -281,6 +282,21 @@
   }
 
   function detectSymbol() {
+    // 1. Never broadcast detection from background/hidden tabs to eliminate tab-fighting loops
+    if (document.hidden) {
+      return;
+    }
+
+    // 2. In nested subframes, only proceed if this frame actually hosts a chart or instrument container
+    if (window !== window.top) {
+      const hasChart = !!document.querySelector(
+        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], [data-name='legend-source-title'], .pane-legend, div[class*='legendSourceTitle'], div[class*='seriesTitle'], [class*='symbolSearch'], canvas, .chart-container, .tv-chart-container, .instrument.selected"
+      );
+      if (!hasChart) {
+        return;
+      }
+    }
+
     const host = window.location.hostname.toLowerCase();
     const href = window.location.href;
     const title = document.title || "";
@@ -353,23 +369,7 @@
       }
     }
 
-    // C. Generic Chart Header / Toolbar scan for known indices
-    if (!symbol) {
-      const chartHeaders = document.querySelectorAll(
-        "header, .header-chart-panel, .tv-header, [class*='header-'], [class*='toolbar-'], [class*='top-bar'], [class*='title-bar']"
-      );
-      for (const bar of chartHeaders) {
-        if (bar && bar.textContent) {
-          const idx = extractIndexSymbol(bar.textContent);
-          if (idx) {
-            symbol = idx;
-            break;
-          }
-        }
-      }
-    }
-
-    // D. Watchlist / Active Selected Instrument / Scrip Details Across All Brokers
+    // C. Watchlist / Active Selected Instrument / Scrip Details Across All Brokers
     if (!symbol) {
       const sidebarEls = document.querySelectorAll(
         "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], .instrument.selected .nice-name, .instrument.selected, .order-window .instrument-name, .tv-chart-container .instrument, [class*='selected-scrip'], [class*='active-instrument'], [class*='scrip_name'], [class*='symbol_name'], [class*='stock-name'], .scrip-name, [data-testid*='symbol'], [data-testid*='instrument'], [class*='symbol-item-name'], [class*='header-symbol']"
@@ -1531,17 +1531,24 @@ if barstate.islast
       titleObserver.observe(titleEl, { subtree: true, characterData: true, childList: true });
     }
 
-    // 3. User interactions (clicks, keyboard)
+    // 3. User interactions (clicks, keyboard, tab visibility switches)
     document.addEventListener("click", onUserInteraction, { passive: true });
     document.addEventListener("keyup", onUserKeyup, { passive: true });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && isExtensionValid()) {
+        scheduleDetect(150);
+      }
+    });
 
-    // 4. Periodic background sync (every 3s, not spamming main thread)
+    // 4. Periodic background sync (every 3s, only when tab is visible)
     syncIntervalId = setInterval(() => {
       if (!isExtensionValid()) {
         destroyContentScript();
         return;
       }
-      scheduleDetect(500);
+      if (!document.hidden) {
+        scheduleDetect(500);
+      }
     }, 3000);
 
     // 5. Storage synchronization (2-way sync with Side Panel)
@@ -1570,19 +1577,15 @@ if barstate.islast
           }
           if (changes.activeQuoteData?.newValue) {
             const quote = changes.activeQuoteData.newValue;
-            if (quote && quote.symbol) {
+            // Only update HUD if the quote matches our chart symbol or if this tab is the active focused tab
+            const matchesCurrent = lastDetectedSymbol ? quote.symbol === lastDetectedSymbol : !document.hidden;
+            if (quote && quote.symbol && matchesCurrent) {
               lastDetectedSymbol = quote.symbol;
               currentQuoteData = quote;
               if (prefs.showChartOverlay !== false) {
                 prefs.isHidden = false;
                 renderHud(quote);
               }
-            }
-          } else if (changes.activeSymbol?.newValue) {
-            const sym = changes.activeSymbol.newValue;
-            if (sym && sym !== lastDetectedSymbol && prefs.showChartOverlay !== false) {
-              lastDetectedSymbol = sym;
-              fetchAndRenderHud(sym);
             }
           }
         }

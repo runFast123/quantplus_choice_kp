@@ -314,9 +314,9 @@ if barstate.islast
 
   const KNOWN_INDICES = [
     { regex: /\b(?:NIFTY\s*BANK|BANK\s*NIFTY|BANKNIFTY|CNX\s*BANK)\b/i, symbol: "BANKNIFTY" },
-    { regex: /\b(?:NIFTY\s*FIN(?:ANCIAL)?(?:\s*SERVICES?)?|FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "FINNIFTY" },
-    { regex: /\b(?:NIFTY\s*MID(?:CAP)?(?:\s*SELECT)?|MIDCAP\s*NIFTY|MIDCPNIFTY)\b/i, symbol: "MIDCPNIFTY" },
-    { regex: /\b(?:NIFTY\s*NEXT\s*50|JUNIOR\s*NIFTY|NIFTYJR)\b/i, symbol: "NIFTYJR" },
+    { regex: /\b(?:NIFTY\s*FIN(?:ANCIAL)?(?:\s*SERVICES?)?|FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "NIFTYFINSERV" },
+    { regex: /\b(?:NIFTY\s*MID(?:CAP)?(?:\s*SELECT)?|MIDCAP\s*NIFTY|MIDCPNIFTY)\b/i, symbol: "NIFTYMIDCAP50" },
+    { regex: /\b(?:NIFTY\s*NEXT\s*50|JUNIOR\s*NIFTY|NIFTYJR)\b/i, symbol: "NIFTY100" },
     { regex: /\b(?:NIFTY\s*50|CNX\s*NIFTY|NIFTY50)\b/i, symbol: "NIFTY" },
     { regex: /\b(?:NIFTY\s*IT|CNX\s*IT|NIFTYIT)\b/i, symbol: "NIFTYIT" },
     { regex: /\b(?:NIFTY\s*AUTO|NIFTYAUTO)\b/i, symbol: "NIFTYAUTO" },
@@ -465,13 +465,12 @@ if barstate.islast
       if (detected && detected.symbol) {
         const platform = detected.platform || getPlatformFromUrl(tab.url);
         elPlatformBadge.textContent = platform;
-        chrome.storage.local.set({
-          activeSymbol: detected.symbol,
-          platform: platform,
-          exchange: "NSE",
-          detectedAt: Date.now(),
-        });
         if (detected.symbol !== currentSymbol || forceReload) {
+          chrome.storage.local.set({
+            activeSymbol: detected.symbol,
+            platform: platform,
+            exchange: "NSE",
+          });
           loadSymbol(detected.symbol);
         }
       } else if (forceReload && currentSymbol) {
@@ -490,9 +489,9 @@ if barstate.islast
 
     const KNOWN_INDICES = [
       { regex: /\b(?:NIFTY\s*BANK|BANK\s*NIFTY|BANKNIFTY|CNX\s*BANK)\b/i, symbol: "BANKNIFTY" },
-      { regex: /\b(?:NIFTY\s*FIN(?:ANCIAL)?(?:\s*SERVICES?)?|FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "FINNIFTY" },
-      { regex: /\b(?:NIFTY\s*MID(?:CAP)?(?:\s*SELECT)?|MIDCAP\s*NIFTY|MIDCPNIFTY)\b/i, symbol: "MIDCPNIFTY" },
-      { regex: /\b(?:NIFTY\s*NEXT\s*50|JUNIOR\s*NIFTY|NIFTYJR)\b/i, symbol: "NIFTYJR" },
+      { regex: /\b(?:NIFTY\s*FIN(?:ANCIAL)?(?:\s*SERVICES?)?|FIN\s*NIFTY|FINNIFTY)\b/i, symbol: "NIFTYFINSERV" },
+      { regex: /\b(?:NIFTY\s*MID(?:CAP)?(?:\s*SELECT)?|MIDCAP\s*NIFTY|MIDCPNIFTY)\b/i, symbol: "NIFTYMIDCAP50" },
+      { regex: /\b(?:NIFTY\s*NEXT\s*50|JUNIOR\s*NIFTY|NIFTYJR)\b/i, symbol: "NIFTY100" },
       { regex: /\b(?:NIFTY\s*50|CNX\s*NIFTY|NIFTY50)\b/i, symbol: "NIFTY" },
       { regex: /\b(?:NIFTY\s*IT|CNX\s*IT|NIFTYIT)\b/i, symbol: "NIFTYIT" },
       { regex: /\b(?:NIFTY\s*AUTO|NIFTYAUTO)\b/i, symbol: "NIFTYAUTO" },
@@ -571,8 +570,9 @@ if barstate.islast
       s = s.replace(/\.(NS|BO)$/i, "").replace(/-EQ$/i, "").replace(/[^A-Z0-9&-]/g, "");
       if (s === "NIFTY50" || s === "CNXNIFTY" || s === "NIFTY-50" || s === "NIFTY 50") s = "NIFTY";
       if (s === "NIFTYBANK" || s === "CNXBANK" || s === "BANKNIFTY" || s === "NIFTY BANK" || s === "BANK NIFTY") s = "BANKNIFTY";
-      if (s === "FINNIFTY" || s === "FIN NIFTY" || s === "NIFTYFIN" || s === "NIFTYFINSERV") s = "FINNIFTY";
-      if (s === "MIDCPNIFTY" || s === "MIDCAPNIFTY") s = "MIDCPNIFTY";
+      if (s === "FINNIFTY" || s === "FIN NIFTY" || s === "NIFTYFIN" || s === "NIFTYFINSERV") s = "NIFTYFINSERV";
+      if (s === "MIDCPNIFTY" || s === "MIDCAPNIFTY" || s === "NIFTYMIDCAP50") s = "NIFTYMIDCAP50";
+      if (s === "NIFTYJR" || s === "NIFTYNEXT50" || s === "NIFTY100") s = "NIFTY100";
       if (s === "SENSEX" || s === "BSESENSEX") s = "SENSEX";
       if (s === "BANKEX" || s === "BSEBANKEX") s = "BANKEX";
       if (s.length < 2 || s.length > 15 || EX.has(s)) return "";
@@ -655,18 +655,7 @@ if barstate.islast
       }
     }
 
-    // 5. Chart Header / Toolbar scan for known indices
-    const chartHeaders = document.querySelectorAll(
-      "header, .header-chart-panel, .tv-header, [class*='header-'], [class*='toolbar-'], [class*='top-bar'], [class*='title-bar']"
-    );
-    for (const bar of chartHeaders) {
-      if (bar && bar.textContent) {
-        const idx = extractIndex(bar.textContent);
-        if (idx) return { symbol: idx, platform };
-      }
-    }
-
-    // 6. Watchlist & Scrip Selectors across all brokers
+    // 5. Watchlist & Scrip Selectors across all brokers
     const itemEls = document.querySelectorAll(
       "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], .instrument.selected .nice-name, .instrument.selected, .order-window .instrument-name, .tv-chart-container .instrument, [class*='selected-scrip'], [class*='active-instrument'], [class*='scrip_name'], [class*='symbol_name'], [class*='stock-name'], .scrip-name, [data-testid*='symbol'], [data-testid*='instrument'], [class*='symbol-item-name'], [class*='header-symbol']"
     );
@@ -678,7 +667,7 @@ if barstate.islast
       }
     }
 
-    // 7. Broker-specific URL fallbacks
+    // 6. Broker-specific URL fallbacks
     if (host.includes("zerodha.com")) {
       const m = href.match(/\/chart\/(?:ext\/tvc\/)?(?:NSE|BSE)\/([A-Z0-9&-]+)/i);
       if (m) {
@@ -715,15 +704,23 @@ if barstate.islast
     return null;
   }
 
-  // Main fetch & render function
+  // Main fetch & render function with in-flight guard and smooth updating
+  let isLoading = false;
+
   async function loadSymbol(sym) {
     if (!sym) return;
+    if (isLoading && sym === currentSymbol) return;
+
+    const isNewSymbol = sym !== currentSymbol;
     currentSymbol = sym;
     inputSymbol.value = sym;
 
-    elEmpty.classList.add("hidden");
-    elContent.classList.add("hidden");
-    elLoading.classList.remove("hidden");
+    if (isNewSymbol) {
+      elEmpty.classList.add("hidden");
+      elContent.classList.add("hidden");
+      elLoading.classList.remove("hidden");
+    }
+    isLoading = true;
 
     try {
       const url = `${backendUrl}/api/extension/quote?symbol=${encodeURIComponent(sym)}&exchange=NSE`;
@@ -731,18 +728,24 @@ if barstate.islast
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       render(data);
+      if (data && data.symbol) {
+        currentSymbol = data.symbol;
+      }
 
-      // Save to chrome.storage.local so On-Chart HUD gets the exact payload instantly
-      chrome.storage.local.set({
-        activeQuoteData: data,
-        activeSymbol: data.symbol,
+      chrome.storage.local.get(["activeSymbol"], (stored) => {
+        if (stored?.activeSymbol !== data.symbol) {
+          chrome.storage.local.set({
+            activeQuoteData: data,
+            activeSymbol: data.symbol,
+          });
+        }
       });
 
-      // DIRECT PUSH: Send RENDER_HUD_DIRECT to all open broker/TradingView tabs
       pushHudDirectToTabs(data);
     } catch (err) {
-      showError(err);
+      if (isNewSymbol) showError(err);
     } finally {
+      isLoading = false;
       elLoading.classList.add("hidden");
     }
   }

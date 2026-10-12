@@ -6,6 +6,22 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — Extension Infinite Reload Loops, Cross-Tab Fighting & UI Flashing (`extension/`)
+- **Eliminated Cross-Tab Symbol Ping-Pong Loops**:
+  - Added visibility guard `if (document.hidden) return;` at the entry of `detectSymbol()` and attached a `visibilitychange` listener in `detector.js`. Inactive/background tabs no longer broadcast periodic detections, eliminating the infinite battle where background tabs continuously overrode the foreground chart symbol.
+- **Removed Storage Event Hijacking & Inter-Frame Collisions**:
+  - Removed global `storage.onChanged` symbol override in `detector.js` that previously caused all open tabs to re-detect and broadcast back whenever any tab changed storage.
+  - Restricted `activeQuoteData` HUD updates in `detector.js` strictly to quotes matching the active chart's symbol or currently visible tab, preventing HUD thrashing.
+  - Guarded subframes (`window !== window.top`) to only scan if the frame contains actual chart/scrip indicators, avoiding outer page header ticker banners (like persistent `NIFTY 50` tickers) from conflicting with inner iframe chart instruments.
+  - Eliminated generic `<header>` and `[class*='top-bar']` querySelectors on broker portals that previously picked up static site-wide ticker banners instead of active charts.
+- **Normalized Canonical Index Symbols**:
+  - Standardized `KNOWN_INDICES` and ticker cleaners across `detector.js` and `sidepanel.js` to canonical database symbols (`NIFTYFINSERV`, `NIFTYMIDCAP50`, `NIFTY100`), eliminating alias ping-pong where `FINNIFTY` triggered repeated re-fetches against canonical responses.
+- **Removed Background Worker Idle Wakeup Re-Injection**:
+  - Removed top-level `injectIntoExistingTabs()` call in `background.js` outside `onInstalled`. The Manifest V3 service worker no longer re-injected content scripts into all tabs every time it woke up from idle.
+- **Optimized Sidepanel Rendering & Debounced State**:
+  - Added in-flight request guard (`isLoading`) and non-destructive smooth updating in `loadSymbol()`: the sidepanel no longer wipes content or flashes the loading spinner when refreshing an already loaded symbol.
+  - Avoided writing to `chrome.storage.local` when the detected symbol hasn't changed, preventing cascading `storage.onChanged` cycles.
+
 ### Fixed — Universal Broker Index Detection & Choice FinX Multi-Frame Sync (`extension/`, `web/`)
 - **Resolved Broker Index Detection Failure (Choice FinX, Zerodha Kite, Upstox, Dhan, etc.)**:
   - Identified root cause where `choiceindia.com` and other broker domains were omitted from `isSupportedFinanceUrl()` in `sidepanel.js`, causing the active tab inspector to bypass the Choice FinX charting tab and fall back to stale TradingView tabs or cache.
