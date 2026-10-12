@@ -36,6 +36,16 @@
     return String(n);
   }
 
+  function formatSignalDate(d) {
+    if (!d) return "";
+    try {
+      const dt = new Date(d);
+      return isNaN(dt.getTime()) ? "" : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+    } catch {
+      return "";
+    }
+  }
+
   // Load preferences and then inspect active tab
   chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay", "qpHudPrefs"], async (res) => {
     if (res.backendUrl) {
@@ -933,14 +943,7 @@ if barstate.islast
       elSignalBadge.className = `signal-badge ${isBuy ? "signal-buy" : "signal-exit"}`;
       elSignalBadge.innerHTML = `<svg viewBox="0 0 14 14" width="12" height="12" style="margin-right:4px;vertical-align:-1px;">${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}</svg><span>${isBuy ? "BUY SIGNAL" : "EXIT SIGNAL"}</span>`;
       elSignalStrategy.textContent = data.latestSignal.label;
-
-      if (data.latestSignal.date) {
-        const sd = new Date(data.latestSignal.date);
-        elSignalDate.textContent = sd.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
-      } else {
-        elSignalDate.textContent = "";
-      }
-
+      elSignalDate.textContent = formatSignalDate(data.latestSignal.date);
       elSignalEntry.textContent = formatRupees(data.latestSignal.price);
       elSignalStop.textContent = formatRupees(data.latestSignal.stop);
 
@@ -950,9 +953,9 @@ if barstate.islast
         if (data.recentSignals && data.recentSignals.length > 1) {
           elSignalHistoryRow.classList.remove("hidden");
           elSignalHistoryTrack.innerHTML = data.recentSignals.slice(0, 4).map((sig) => `
-            <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label} on ${new Date(sig.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}">
+            <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label || ""}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
               <span class="mini-arrow">${sig.kind === "buy" ? "▲" : "▼"}</span>
-              <span class="mini-kind">${sig.kind.toUpperCase()}</span>
+              <span class="mini-kind">${(sig.kind || "").toUpperCase()}</span>
               <span class="num mini-price">${formatRupees(sig.price)}</span>
             </div>
           `).join("");

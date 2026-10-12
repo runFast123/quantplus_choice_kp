@@ -688,6 +688,16 @@
     return "₹" + Number(num).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function formatSignalDate(d) {
+    if (!d) return "";
+    try {
+      const dt = new Date(d);
+      return isNaN(dt.getTime()) ? "" : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+    } catch {
+      return "";
+    }
+  }
+
   function renderHud(data) {
     if (!data || !data.symbol) return;
     const shadow = getOrCreateShadowRoot();
@@ -1340,7 +1350,7 @@
                     <div style="display:flex; align-items:center; gap:6px;">
                       <span class="chart-marker-tag">CHART ARROW SIGNAL</span>
                       ${data.latestSignal?.date ? `
-                        <span class="num signal-date">${new Date(data.latestSignal.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span>
+                        <span class="num signal-date">${formatSignalDate(data.latestSignal.date)}</span>
                       ` : ""}
                     </div>
                   </div>
@@ -1366,9 +1376,9 @@
                       <div class="signal-history-label">Recent Chart Arrow Signals:</div>
                       <div class="signal-history-track">
                         ${data.recentSignals.slice(0, 4).map(sig => `
-                          <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label} on ${new Date(sig.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}">
+                          <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label || ""}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
                             <span class="mini-arrow">${sig.kind === "buy" ? "▲" : "▼"}</span>
-                            <span class="mini-kind">${sig.kind.toUpperCase()}</span>
+                            <span class="mini-kind">${(sig.kind || "").toUpperCase()}</span>
                             <span class="num mini-price">${formatRupees(sig.price)}</span>
                           </div>
                         `).join("")}
