@@ -966,6 +966,121 @@
           background: ${hasSignal ? (isBuy ? "#0B6A4E" : "#A8380B") : "#3A3A3A"};
           color: #FFFFFF;
         }
+        .header-signal-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.03em;
+          line-height: 1;
+        }
+        .header-signal-badge.is-buy {
+          background: #0B6A4E;
+          color: #FFFFFF;
+          border: 1px solid rgba(52, 211, 153, 0.45);
+        }
+        .header-signal-badge.is-exit {
+          background: #A8380B;
+          color: #FFFFFF;
+          border: 1px solid rgba(248, 113, 113, 0.45);
+        }
+        .header-signal-badge.is-prominent {
+          font-size: 11px;
+          padding: 3px 8px;
+          border-radius: 12px;
+        }
+        .portal-arrow-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 3px 8px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+        }
+        .portal-arrow-badge.is-buy {
+          background: #0B6A4E;
+          color: #FFFFFF;
+          border: 1px solid rgba(52, 211, 153, 0.4);
+          box-shadow: 0 2px 8px rgba(11, 106, 78, 0.35);
+        }
+        .portal-arrow-badge.is-exit {
+          background: #A8380B;
+          color: #FFFFFF;
+          border: 1px solid rgba(248, 113, 113, 0.4);
+          box-shadow: 0 2px 8px rgba(168, 56, 11, 0.35);
+        }
+        .portal-arrow-badge.is-neutral {
+          background: #2E2E2E;
+          color: #94938B;
+          border: 1px solid #444444;
+        }
+        .arrow-svg-icon {
+          flex-shrink: 0;
+        }
+        .chart-marker-tag {
+          font-size: 8.5px;
+          font-weight: 700;
+          color: #94938B;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          background: rgba(255, 255, 255, 0.06);
+          padding: 2px 5px;
+          border-radius: 3px;
+        }
+        .signal-history-row {
+          margin-top: 6px;
+          padding-top: 6px;
+          border-top: 1px dashed rgba(255, 255, 255, 0.08);
+        }
+        .signal-history-label {
+          font-size: 9px;
+          color: #94938B;
+          text-transform: uppercase;
+          margin-bottom: 3px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+        }
+        .signal-history-track {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+        .mini-signal-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 9.5px;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-weight: 600;
+        }
+        .mini-signal-chip.is-buy {
+          background: rgba(11, 106, 78, 0.3);
+          color: #34D399;
+          border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+        .mini-signal-chip.is-exit {
+          background: rgba(168, 56, 11, 0.3);
+          color: #F87171;
+          border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+        .mini-arrow {
+          font-size: 8.5px;
+          font-weight: 800;
+        }
+        .mini-kind {
+          font-weight: 700;
+          font-size: 8.5px;
+        }
+        .mini-price {
+          font-size: 9px;
+          opacity: 0.9;
+        }
         .signal-name {
           font-size: 12.5px;
           font-weight: 600;
@@ -1077,9 +1192,13 @@
                 <span class="tag-symbol">${data.symbol}</span>
                 <span class="num">${formatRupees(data.last_price)}</span>
                 ${hasSignal ? `
-                  <span class="num" style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:3px; background:${isBuy ? "#0B6A4E" : "#A8380B"}; color:#FFF;">
-                    ${isBuy ? "▲ BUY" : "▼ EXIT"} @ ${formatRupees(data.latestSignal.price)}
-                  </span>
+                  <div class="header-signal-badge ${isBuy ? "is-buy" : "is-exit"}" title="Quantitative Chart Signal">
+                    <svg class="arrow-svg-icon" viewBox="0 0 14 14" width="11" height="11">
+                      ${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}
+                    </svg>
+                    <span>${isBuy ? "BUY" : "EXIT"}</span>
+                    <span class="num" style="font-weight:600; opacity:0.95;">@ ${formatRupees(data.latestSignal.price)}</span>
+                  </div>
                 ` : `<span style="font-size:10px; color:#888;">CONSOLIDATION</span>`}
                 ${p ? `
                   <span class="num" style="color:#F87171; font-size:10px;">Stop ${formatRupees(p.stop)}</span>
@@ -1113,12 +1232,17 @@
           <!-- MODE: SIGNAL ONLY -->
           ${prefs.displayMode === "signal_only" ? `
             <div class="hud-header" id="qp-drag-handle">
-              <div style="display:flex; align-items:center; gap:6px;">
+              <div style="display:flex; align-items:center; gap:8px;">
                 <span class="tag-symbol">${data.symbol}</span>
                 ${hasSignal ? `
-                  <span style="font-size:10.5px; font-weight:700; color:#FFF; background:${isBuy ? "#0B6A4E" : "#A8380B"}; padding:2px 8px; border-radius:12px;">
-                    ${isBuy ? "▲ BUY SIGNAL" : "▼ EXIT SIGNAL"} · ${data.latestSignal.label} (Trigger: ${formatRupees(data.latestSignal.price)})
-                  </span>
+                  <div class="header-signal-badge is-prominent ${isBuy ? "is-buy" : "is-exit"}" title="Active Quantitative Chart Signal">
+                    <svg class="arrow-svg-icon" viewBox="0 0 14 14" width="13" height="13">
+                      ${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}
+                    </svg>
+                    <span>${isBuy ? "BUY SIGNAL" : "EXIT SIGNAL"}</span>
+                    <span style="font-weight:500; opacity:0.95;">· ${data.latestSignal.label}</span>
+                    <span class="num" style="font-weight:700;">(Trigger: ${formatRupees(data.latestSignal.price)})</span>
+                  </div>
                 ` : `<span style="font-size:10.5px; color:#888;">Consolidation</span>`}
                 <button id="btn-settings-hud" class="btn-tool" title="Customizer">⚙</button>
                 <button id="btn-set-mode-full" class="btn-tool" title="Full View">⤢</button>
@@ -1139,6 +1263,14 @@
                 </div>
                 <span class="brand-title">QuantsPulse</span>
                 <span class="tag-symbol">${data.symbol}</span>
+                ${hasSignal ? `
+                  <div class="header-signal-badge ${isBuy ? "is-buy" : "is-exit"}" title="Active Quantitative Chart Signal">
+                    <svg class="arrow-svg-icon" viewBox="0 0 14 14" width="10" height="10">
+                      ${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}
+                    </svg>
+                    <span>${isBuy ? "BUY" : "EXIT"}</span>
+                  </div>
+                ` : ""}
               </div>
               <div class="header-tools">
                 <button id="btn-settings-hud" class="btn-tool ${prefs.settingsOpen ? "active" : ""}" title="Customizer / Layout">⚙</button>
@@ -1188,30 +1320,61 @@
                 </div>
               </div>
 
-              <!-- Quantitative Signal Card -->
+              <!-- Quantitative Signal Card with Prominent Portal-Style Arrow Signal -->
               ${prefs.showSignal ? `
                 <div class="signal-box">
                   <div class="signal-top">
-                    <span class="signal-pill">
-                      ${hasSignal ? (isBuy ? "▲ BUY SIGNAL" : "▼ EXIT SIGNAL") : "⚖ IN CONSOLIDATION"}
-                    </span>
-                    ${data.latestSignal?.date ? `
-                      <span class="num signal-date">${new Date(data.latestSignal.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span>
-                    ` : ""}
+                    <div class="portal-arrow-badge ${hasSignal ? (isBuy ? "is-buy" : "is-exit") : "is-neutral"}">
+                      ${hasSignal ? `
+                        <svg viewBox="0 0 16 16" width="14" height="14" class="arrow-svg-icon">
+                          ${isBuy 
+                            ? '<path d="M8 2L15 13H1L8 2Z" fill="currentColor"/>' 
+                            : '<path d="M8 14L1 3H15L8 14Z" fill="currentColor"/>'
+                          }
+                        </svg>
+                        <span>${isBuy ? "BUY SIGNAL" : "EXIT SIGNAL"}</span>
+                      ` : `
+                        <span>CONSOLIDATION</span>
+                      `}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span class="chart-marker-tag">CHART ARROW SIGNAL</span>
+                      ${data.latestSignal?.date ? `
+                        <span class="num signal-date">${new Date(data.latestSignal.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span>
+                      ` : ""}
+                    </div>
                   </div>
                   <div class="signal-name">
                     ${hasSignal ? data.latestSignal.label : "Mean-reversion Equilibrium / Range"}
                   </div>
                   <div class="signal-grid">
                     <div class="signal-metric">
-                      <dt>Entry Trigger</dt>
-                      <dd class="num">${hasSignal ? formatRupees(data.latestSignal.price) : formatRupees(data.last_price)}</dd>
+                      <dt>Arrow Trigger Price</dt>
+                      <dd class="num" style="display:inline-flex; align-items:center; gap:3px; color:${hasSignal ? (isBuy ? "#34D399" : "#F87171") : "inherit"}; font-weight:700;">
+                        ${hasSignal ? (isBuy ? "▲" : "▼") : ""} ${hasSignal ? formatRupees(data.latestSignal.price) : formatRupees(data.last_price)}
+                      </dd>
                     </div>
                     <div class="signal-metric">
                       <dt>Protective Stop</dt>
                       <dd class="num" style="color:#F87171;">${p ? formatRupees(p.stop) : "—"}</dd>
                     </div>
                   </div>
+
+                  <!-- Recent On-Chart Arrow Signals Sequence -->
+                  ${data.recentSignals && data.recentSignals.length > 1 ? `
+                    <div class="signal-history-row">
+                      <div class="signal-history-label">Recent Chart Arrow Signals:</div>
+                      <div class="signal-history-track">
+                        ${data.recentSignals.slice(0, 4).map(sig => `
+                          <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label} on ${new Date(sig.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}">
+                            <span class="mini-arrow">${sig.kind === "buy" ? "▲" : "▼"}</span>
+                            <span class="mini-kind">${sig.kind.toUpperCase()}</span>
+                            <span class="num mini-price">${formatRupees(sig.price)}</span>
+                          </div>
+                        `).join("")}
+                      </div>
+                    </div>
+                  ` : ""}
                 </div>
               ` : ""}
 

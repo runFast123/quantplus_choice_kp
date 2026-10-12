@@ -931,7 +931,7 @@ if barstate.islast
       const isBuy = data.latestSignal.kind === "buy";
       elSignalCard.className = `card signal-card ${isBuy ? "" : "is-exit"}`;
       elSignalBadge.className = `signal-badge ${isBuy ? "signal-buy" : "signal-exit"}`;
-      elSignalBadge.textContent = isBuy ? "▲ BUY SIGNAL" : "▼ EXIT SIGNAL";
+      elSignalBadge.innerHTML = `<svg viewBox="0 0 14 14" width="12" height="12" style="margin-right:4px;vertical-align:-1px;">${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}</svg><span>${isBuy ? "BUY SIGNAL" : "EXIT SIGNAL"}</span>`;
       elSignalStrategy.textContent = data.latestSignal.label;
 
       if (data.latestSignal.date) {
@@ -943,6 +943,23 @@ if barstate.islast
 
       elSignalEntry.textContent = formatRupees(data.latestSignal.price);
       elSignalStop.textContent = formatRupees(data.latestSignal.stop);
+
+      const elSignalHistoryRow = document.getElementById("signal-history-row");
+      const elSignalHistoryTrack = document.getElementById("signal-history-track");
+      if (elSignalHistoryRow && elSignalHistoryTrack) {
+        if (data.recentSignals && data.recentSignals.length > 1) {
+          elSignalHistoryRow.classList.remove("hidden");
+          elSignalHistoryTrack.innerHTML = data.recentSignals.slice(0, 4).map((sig) => `
+            <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label} on ${new Date(sig.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}">
+              <span class="mini-arrow">${sig.kind === "buy" ? "▲" : "▼"}</span>
+              <span class="mini-kind">${sig.kind.toUpperCase()}</span>
+              <span class="num mini-price">${formatRupees(sig.price)}</span>
+            </div>
+          `).join("");
+        } else {
+          elSignalHistoryRow.classList.add("hidden");
+        }
+      }
     } else {
       elSignalCard.classList.add("hidden");
     }

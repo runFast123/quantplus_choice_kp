@@ -32,6 +32,14 @@ export interface ExtensionQuotePayload {
     price: number | null;
     stop: number | null;
   } | null;
+  recentSignals?: Array<{
+    kind: "buy" | "exit";
+    strategy: string;
+    label: string;
+    date: string;
+    price: number | null;
+    stop: number | null;
+  }>;
   tradePlan: {
     entry: number;
     stop: number;
@@ -141,7 +149,7 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
 
   // Latest signals
   const latestSig = signals[0];
-  const latestSignal = latestSig
+  let latestSignal = latestSig
     ? {
         kind: latestSig.signal_type as "buy" | "exit",
         strategy: latestSig.strategy,
@@ -151,6 +159,38 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
         stop: Number(latestSig.payload?.stop ?? 0) || null,
       }
     : null;
+
+  // Fallback: if no historical signal exists in trading_signals, compute live directional baseline
+  if (!latestSignal && q.last_price) {
+    if (sma20 && q.last_price >= sma20 && (q.rsi == null || q.rsi >= 45)) {
+      latestSignal = {
+        kind: "buy",
+        strategy: "trend_following",
+        label: sma50 && q.last_price >= sma50 ? "SMA 20/50 Golden Trend" : "Above SMA 20 Dynamic Baseline",
+        date: q.as_of || new Date().toISOString(),
+        price: q.last_price,
+        stop: sma20 ? Number((sma20 * 0.97).toFixed(2)) : Number((q.last_price * 0.95).toFixed(2)),
+      };
+    } else if (sma20 && q.last_price < sma20 && (q.rsi == null || q.rsi < 45)) {
+      latestSignal = {
+        kind: "exit",
+        strategy: "trend_breakdown",
+        label: "Trend Breakdown (Below SMA 20)",
+        date: q.as_of || new Date().toISOString(),
+        price: q.last_price,
+        stop: Number((q.last_price * 1.03).toFixed(2)),
+      };
+    }
+  }
+
+  const recentSignals = signals.slice(0, 6).map((s) => ({
+    kind: s.signal_type as "buy" | "exit",
+    strategy: s.strategy,
+    label: signalDisplayName(s.strategy, s.signal_type),
+    date: s.generated_at,
+    price: Number(s.payload?.close ?? s.payload?.trigger_price ?? 0) || null,
+    stop: Number(s.payload?.stop ?? 0) || null,
+  }));
 
   // Asymmetric Trade Plan
   const latestBuy = signals.find((s) => s.signal_type === "buy");
@@ -199,6 +239,7 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
     sma50,
     sma200,
     latestSignal,
+    recentSignals,
     tradePlan,
     sentiment,
     quantPulseUrl: `${appBase}/app/markets/${encodeURIComponent(q.symbol)}`,

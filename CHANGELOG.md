@@ -6,6 +6,19 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Prominent Buy & Exit Arrow Signal Markers in On-Chart HUD & Sidepanel (`extension/`, `web/`)
+- **Rendered On-Chart Buy (`▲ BUY`) and Exit (`▼ EXIT`) Arrow Signal Markers in Extension HUD**:
+  - Replicated the visual indicator arrow markers from the main QuantsPulse portal charts (`price-chart.tsx`) directly inside the floating On-Chart HUD overlay across all display modes (`compact`, `signal_only`, and `full` card).
+  - Designed crisp vector arrow badges (`▲ BUY` in Gain Emerald `#0B6A4E` / `#34D399` and `▼ EXIT` in Loss Cinnabar `#A8380B` / `#F87171`) with matching directional markers, high-contrast typography, and trigger price badges.
+  - Added mini arrow signal chips right in the HUD header adjacent to the active symbol tag for instant visibility.
+- **Added Recent Signal Markers Sequence Timeline**:
+  - Extended `/api/extension/quote` payload with `recentSignals`, passing historical buy/exit strategy signals.
+  - Rendered a horizontal timeline of recent arrow signals in both the Full HUD Card and Sidepanel (`[▲ BUY @ ₹...] ➔ [▼ EXIT @ ₹...]`), allowing traders to trace recent signal progression on their charts.
+  - Implemented dynamic trend fallback baseline when a symbol lacks historical `trading_signals` records in the database, ensuring valid directional signals are always available.
+- **Enhanced Sidepanel Signal Card**:
+  - Upgraded `#signal-badge` in `sidepanel.html` and `sidepanel.js` with matching SVG upward/downward arrows and high-contrast pill styling.
+  - Added `#signal-history-row` in sidepanel displaying recent alternating chart arrow signals.
+
 ### Fixed — False 'ALERT' Symbol Extraction & Prioritized TradingView Official Router (`extension/`)
 - **Eliminated False Positive 'ALERT' Symbol Extraction**:
   - Identified root cause where TradingView's top toolbar contains an "Alert" button (`#header-toolbar-alerts`) that matched over-broad button queries (`div[class*='text-'][class*='button-']`), causing the word `"Alert"` to be extracted as the active ticker instead of the charted equity (`HDFCBANK`).
