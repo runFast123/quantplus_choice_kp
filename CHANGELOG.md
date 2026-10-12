@@ -14,9 +14,11 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
   - Removed duplicate `chrome.scripting.executeScript` injections from `pushHudDirectToTabs` in `sidepanel.js` and `tabs.onActivated` / `tabs.onUpdated` in `background.js`, stopping runaway script re-injection loops.
 - **Fixed TradingView Glitching & Main-Thread Lag**:
   - Debounced symbol detection with a 300ms scheduler (`scheduleDetect`), stopping high-frequency TradingView canvas mutations from flooding the main thread with repetitive DOM inspection.
-- **Fixed HUD Visibility & DOM Attachment**:
-  - Corrected `getOrCreateShadowRoot()` mounting target to strictly append to `document.body` (instead of `documentElement`), avoiding clipping and overflow issues caused by TradingView's full-screen root layout.
-  - Added immediate visual loading skeleton (`renderHudLoading`) upon ticker detection, ensuring the HUD appears instantly without blank-screen delay while quote data is being fetched.
+- **Fixed Edge-Case Ticker Tokenization & State Resilience**:
+  - Refined `extractTickerFromText` and `parseTabMeta` regular expressions (`/[\s,·|_\/\(\)]+/`) to preserve hyphens in tickers, preventing hyphenated symbols like `BAJAJ-AUTO` and `M&M-FIN` from being truncated into separate tokens.
+  - Added null-safe fallbacks in `sidepanel.js` for stocks without active trade plans or sentiment audits, clearing static placeholder targets with clean em-dashes (`—`) instead of stale template numbers.
+  - Reset `isDragging = false` in `destroyContentScript()` to prevent stuck drag states if context teardown occurs mid-gesture.
+  - Returned `false` by default in `background.js` `onMessage` handler for unhandled message types, preventing dangling message ports and timeout errors.
 
 ### Enhanced — Stateful Clean Pine Script v5 Engine & Multi-Layout On-Chart HUD (`extension/`)
 - **Stateful Clean Pine Script v5 Engine**:

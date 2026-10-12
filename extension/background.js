@@ -88,7 +88,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true; // Keep channel open for async response
   }
-  return true;
+  return false;
 });
 
 // 3. Tab switch & URL update detection (manage badge cleanly)

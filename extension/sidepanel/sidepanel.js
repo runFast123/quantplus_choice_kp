@@ -367,7 +367,7 @@ if barstate.islast
     if (!title) return null;
     const EX = new Set(["TRADINGVIEW", "CHART", "CHARTS", "WATCHLIST", "UNTITLED", "INDEX", "MARKETS", "SEARCH", "QUOTE", "QUOTES", "LIVE", "SHARE", "PRICE", "TODAY", "STOCK", "STOCKS", "NSE", "BSE", "INR", "USD"]);
     if (url.includes("tradingview.com")) {
-      const firstToken = title.trim().split(/[\s,·\-_]+/)[0].toUpperCase();
+      const firstToken = title.trim().split(/[\s,·_]+/)[0].toUpperCase();
       if (firstToken.length >= 2 && firstToken.length <= 15 && !EX.has(firstToken)) {
         return { symbol: firstToken, platform: "TradingView" };
       }
@@ -419,7 +419,7 @@ if barstate.islast
         const c = clean(parenMatch[1]);
         if (c) return c;
       }
-      const tokens = sText.split(/[\s,·|_\-\/\(\)]+/);
+      const tokens = sText.split(/[\s,·|_\/\(\)]+/);
       for (const t of tokens) {
         const c = clean(t);
         if (c) return c;
@@ -543,6 +543,10 @@ if barstate.islast
   function render(data) {
     elEmpty.classList.add("hidden");
     elContent.classList.remove("hidden");
+    const emptyH3 = elEmpty.querySelector("h3");
+    if (emptyH3) emptyH3.textContent = "No active chart detected";
+    const emptyMuted = elEmpty.querySelector(".muted-text");
+    if (emptyMuted) emptyMuted.innerHTML = "Navigate to <strong>TradingView</strong>, <strong>Zerodha Kite</strong>, or <strong>Groww</strong> to auto-sync, or search a symbol above.";
 
     // 1. Quote Header
     document.getElementById("stock-symbol").textContent = data.symbol;
@@ -602,7 +606,7 @@ if barstate.islast
     const p = data.tradePlan;
     if (p) {
       document.getElementById("plan-stop-price").textContent = formatRupees(p.stop);
-      document.getElementById("plan-stop-pct").textContent = `-${p.riskPercent.toFixed(1)}%`;
+      document.getElementById("plan-stop-pct").textContent = `-${p.riskPercent ? p.riskPercent.toFixed(1) : "0.0"}%`;
 
       const t1Gain = p.entry ? ((p.t1 - p.entry) / p.entry) * 100 : 0;
       document.getElementById("plan-t1-price").textContent = formatRupees(p.t1);
@@ -615,6 +619,15 @@ if barstate.islast
       const t3Gain = p.entry ? ((p.t3 - p.entry) / p.entry) * 100 : 0;
       document.getElementById("plan-t3-price").textContent = formatRupees(p.t3);
       document.getElementById("plan-t3-pct").textContent = `+${t3Gain.toFixed(1)}%`;
+    } else {
+      document.getElementById("plan-stop-price").textContent = "—";
+      document.getElementById("plan-stop-pct").textContent = "—";
+      document.getElementById("plan-t1-price").textContent = "—";
+      document.getElementById("plan-t1-pct").textContent = "—";
+      document.getElementById("plan-t2-price").textContent = "—";
+      document.getElementById("plan-t2-pct").textContent = "—";
+      document.getElementById("plan-t3-price").textContent = "—";
+      document.getElementById("plan-t3-pct").textContent = "—";
     }
 
     // 4. Key Levels
@@ -642,6 +655,12 @@ if barstate.islast
 
       const rsiVal = Math.min(Math.max(s.rsi || 50, 0), 100);
       document.getElementById("rsi-bar").style.width = `${rsiVal}%`;
+    } else {
+      document.getElementById("sentiment-zone").textContent = "—";
+      document.getElementById("sentiment-alpha").textContent = "—";
+      document.getElementById("sentiment-rsi").textContent = "—";
+      document.getElementById("sentiment-desc").textContent = "No sentiment data available.";
+      document.getElementById("rsi-bar").style.width = `50%`;
     }
 
     // 6. Direct Launcher

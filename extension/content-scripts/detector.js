@@ -71,6 +71,7 @@
     isContextDead = true;
     try {
       window.__qp_detector_loaded = false;
+      isDragging = false;
       if (syncIntervalId) {
         clearInterval(syncIntervalId);
         syncIntervalId = null;
@@ -196,7 +197,7 @@
       const c = cleanTicker(parenMatch[1]);
       if (c) return c;
     }
-    const tokens = sText.split(/[\s,·|_\-\/\(\)]+/);
+    const tokens = sText.split(/[\s,·|_\/\(\)]+/);
     for (const t of tokens) {
       const c = cleanTicker(t);
       if (c) return c;
@@ -507,9 +508,13 @@
     hudRoot.style.zIndex = "2147483647";
     hudRoot.style.display = "block";
 
-    const targetParent = document.body || document.documentElement;
-    if (targetParent && !targetParent.contains(hudRoot)) {
-      targetParent.appendChild(hudRoot);
+    if (document.body && hudRoot.parentElement !== document.body) {
+      document.body.appendChild(hudRoot);
+    } else {
+      const targetParent = document.body || document.documentElement;
+      if (targetParent && !targetParent.contains(hudRoot)) {
+        targetParent.appendChild(hudRoot);
+      }
     }
     return hudShadow;
   }
