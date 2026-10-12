@@ -24,6 +24,31 @@ export function ActivateForm({ userId, tenantId, email }: { userId: string; tena
     <form action={action} className="flex flex-col gap-2 rounded-md border border-border bg-background/60 p-3" aria-label={`Activate plan for ${email}`}>
       <input type="hidden" name="userId" value={userId} />
       <input type="hidden" name="tenantId" value={tenantId} />
+
+      {/* Quick Duration Presets */}
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <span className="font-medium">Presets:</span>
+        {[
+          { label: "1 Mo", m: 1 },
+          { label: "3 Mo", m: 3 },
+          { label: "6 Mo", m: 6 },
+          { label: "12 Mo", m: 12 },
+        ].map((p) => (
+          <button
+            key={p.m}
+            type="button"
+            onClick={() => setMonths(p.m)}
+            className={`rounded px-1.5 py-0.5 border text-[11px] transition-colors ${
+              months === p.m
+                ? "bg-foreground/10 border-foreground/30 text-foreground font-semibold"
+                : "border-border hover:bg-foreground/5 text-muted-foreground"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-[110px_80px_110px_120px_1fr]">
         <Select name="plan" aria-label="Plan" value={plan} onChange={(e) => setPlan(e.target.value)} className="h-8 text-[12.5px]">
           <option value="basic">Basic</option>

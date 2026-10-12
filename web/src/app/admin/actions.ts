@@ -3,14 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionState } from "@/lib/errors";
-import { activatePlan, isPlatformAdmin } from "@/server/privileged/admin";
+import {
+  activatePlan,
+  isPlatformAdmin,
+  triggerMarketAnalytics,
+  triggerResearchRefresh,
+  triggerEodNotifier,
+} from "@/server/privileged/admin";
 import { ingestNews } from "@/server/privileged/news";
 import { PrivilegedError } from "@/server/privileged/guards";
 import { requireSession } from "@/server/session";
 
 const schema = z.object({
-  userId: z.uuid(),
-  tenantId: z.uuid(),
+  userId: z.string().uuid(),
+  tenantId: z.string().uuid(),
   plan: z.enum(["basic", "pro", "pro_plus"]),
   months: z.coerce.number().int().min(1).max(24),
   amountRupees: z.coerce.number().min(0),
@@ -53,3 +59,49 @@ export async function fetchNewsNow(): Promise<ActionState> {
     return { error: `Ingestion failed: ${(e as Error).message}` };
   }
 }
+
+export async function refreshMarketAnalyticsAction(): Promise<ActionState> {
+  const s = await requireSession();
+  if (!(await isPlatformAdmin(s.userId))) return { error: "Not a platform admin." };
+  try {
+    const res = await triggerMarketAnalytics(s.userId, 10);
+    revalidatePath("/admin");
+    return {
+      ok: true,
+      message: `Analytics refreshed: ${res.quotes} quotes updated, ${res.signals} signals produced, ${res.rsi_events} RSI milestones calculated.`,
+    };
+  } catch (e) {
+    return { error: `Analytics calculation failed: ${(e as Error).message}` };
+  }
+}
+
+export async function refreshResearchNotesAction(): Promise<ActionState> {
+  const s = await requireSession();
+  if (!(await isPlatformAdmin(s.userId))) return { error: "Not a platform admin." };
+  try {
+    const res = await triggerResearchRefresh(s.userId);
+    revalidatePath("/admin");
+    return {
+      ok: true,
+      message: `Research notes rebuild complete: ${res.rows} symbols updated with multi-factor stances.`,
+    };
+  } catch (e) {
+    return { error: `Research notes rebuild failed: ${(e as Error).message}` };
+  }
+}
+
+export async function runEodNotifierAction(): Promise<ActionState> {
+  const s = await requireSession();
+  if (!(await isPlatformAdmin(s.userId))) return { error: "Not a platform admin." };
+  try {
+    const res = await triggerEodNotifier(s.userId);
+    revalidatePath("/admin");
+    return {
+      ok: true,
+      message: `EOD Notifier executed successfully: alerts, exit signals, and plan expiries dispatched (${JSON.stringify(res)}).`,
+    };
+  } catch (e) {
+    return { error: `EOD Notifier execution failed: ${(e as Error).message}` };
+  }
+}
+

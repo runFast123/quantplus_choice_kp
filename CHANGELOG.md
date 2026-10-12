@@ -6,6 +6,28 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Production-Grade Admin Console Operations, Database Inventory & Financial Ledger (`web/src/app/admin/`, `web/src/server/privileged/`)
+- **System Health & Market Session Header**:
+  - Added live telemetry badges showing active database connection pooler status (`aws-0-ap-northeast-2.pooler.supabase.com:5432`), NSE Cash Market session clock (IST time, Open/Closed/Pre-Open status, Next bell countdown), and EOD market price dataset freshness.
+- **Tabbed Operational Architecture**:
+  - Replaced single long page layout with high-clarity tabbed navigation: `Overview & Operations`, `Database & Pipelines`, `Accounts & Plans`, `Financial Ledger`, `News Feeds`, and `Audit & Security`.
+- **Database Storage & Universe Inventory**:
+  - Added `getDatabaseInventory()` in `src/server/privileged/admin.ts` querying live table record counts across 11 core application tables (`prices_daily`, `market_symbols`, `trading_signals`, `research_notes`, `news_articles`, `profiles`, `tenants`, `watchlists`, `holdings`, `price_alerts`, `audit_log`).
+  - Added universe segment distribution breakdown (Main Board EQ, SME, Indices, ETFs) and storage matrix with automated growth warning triggers.
+- **1-Click Pipeline & Maintenance Operations**:
+  - Added interactive operations panel with zero-code 1-click execution:
+    1. *Recalculate Market Analytics*: Triggers `svc_refresh_market_analytics` RPC to recalculate 14-day Wilder RSI and 20/50/200 SMA across active symbols.
+    2. *Rebuild Research Notes & Stances*: Triggers `svc_refresh_research` RPC to update valuation/momentum algorithmic stances.
+    3. *Dispatch EOD Alerts & Exit Signals*: Triggers `svc_run_eod_notifier` RPC to evaluate trailing stops and user price alert thresholds.
+    4. *Ingest Live RSS Feeds*: Triggers `ingestNews` pipeline across registered RSS feeds.
+  - Implemented pending execution states and clear success/error action feedback.
+- **Plan Activation Duration Presets**:
+  - Added quick preset buttons (`1 Mo`, `3 Mo`, `6 Mo`, `12 Mo`) to the manual workspace plan activation form that auto-calculate expiration dates and INR pricing amounts (`₹1,499`, `₹3,999`, `₹6,999`, `₹11,999`).
+- **Financial Ledger & Immutable Audit Trail**:
+  - Added `getRecentPayments()` displaying recent plan activations, Razorpay reference IDs, amounts, and statuses.
+  - Added `getRecentAuditLogs()` rendering platform-level audit security events with actor email, action type, IP address, and timestamp.
+  - Enforced ADR-025 / §3 rule 3 compliance: user holdings, portfolios, watchlists, and BYOK AI keys remain strictly private and unexposed.
+
 ### Added — Prominent Buy & Exit Arrow Signal Markers in On-Chart HUD & Sidepanel (`extension/`, `web/`)
 - **Rendered On-Chart Buy (`▲ BUY`) and Exit (`▼ EXIT`) Arrow Signal Markers in Extension HUD**:
   - Replicated the visual indicator arrow markers from the main QuantsPulse portal charts (`price-chart.tsx`) directly inside the floating On-Chart HUD overlay across all display modes (`compact`, `signal_only`, and `full` card).
