@@ -10,9 +10,6 @@ export function SiteNav({ signedIn }: { signedIn: boolean }) {
         <Link href="/#terminal" className="hover:text-foreground">
           Terminal HUD
         </Link>
-        <Link href="/#pine" className="hover:text-foreground">
-          Pine Script
-        </Link>
         <Link href="/#how" className="hover:text-foreground">
           How it works
         </Link>

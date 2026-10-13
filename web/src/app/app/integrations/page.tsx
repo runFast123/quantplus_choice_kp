@@ -27,7 +27,7 @@ export default async function IntegrationsPage() {
       <PageHeader
         eyebrow="Connections"
         title="Integrations & Extensions"
-        description="Overlay QuantsPulse quantitative signals directly onto your broker charts, generate clean Pine Script indicators for TradingView, import broker portfolios, or bring your own AI keys."
+        description="Overlay QuantsPulse quantitative signals directly onto your broker charts, export protected TradingView indicators, import broker portfolios, or bring your own AI keys."
       />
 
       {/* 1. Chrome Extension Terminal */}
@@ -61,7 +61,7 @@ export default async function IntegrationsPage() {
                 <p className="eyebrow text-[11px]">Side Panel Terminal</p>
                 <p className="mt-1 text-[13px] font-medium text-foreground">Instant Research Depth</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  Full multi-factor breakdown, sentiment audit, 52-week position, and Pine Script copy without leaving your broker tab.
+                  Full multi-factor breakdown, sentiment audit, 52-week position, and 1-click indicator setup without leaving your broker tab.
                 </p>
               </div>
             </div>
@@ -87,13 +87,13 @@ export default async function IntegrationsPage() {
         </Panel>
       </section>
 
-      {/* 2. TradingView Pine Script Strategy */}
+      {/* 2. TradingView Indicator Integration */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <CodeIcon size={20} className="text-coral-ink" aria-hidden />
-          <h2 className="display text-[22px]">TradingView Pine Script</h2>
+          <h2 className="display text-[22px]">TradingView Indicator Integration</h2>
         </div>
-        <Panel title="Clean Alternating Signal Indicator (Pine v5)">
+        <Panel title="Protected Alternating Signal Indicator (TradingView v5)">
           <PineScriptGeneratorPanel initialSymbol="NIFTY" />
         </Panel>
       </section>

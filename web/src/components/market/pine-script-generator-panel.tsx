@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
+import { CheckIcon, CopyIcon, ShieldCheckIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { generateCleanPineScript, type PineStrategyMode } from "@/lib/pine-script";
 
@@ -10,14 +10,15 @@ export function PineScriptGeneratorPanel({ initialSymbol = "NIFTY" }: { initialS
   const [mode, setMode] = useState<PineStrategyMode>("core");
   const [copied, setCopied] = useState(false);
 
-  const code = generateCleanPineScript(symbol, mode);
-
   const handleCopy = () => {
+    const code = generateCleanPineScript(symbol, mode);
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2400);
     });
   };
+
+  const currentSym = symbol.trim() || "NSE Equities";
 
   return (
     <div className="flex flex-col gap-4 text-[13px]">
@@ -61,27 +62,48 @@ export function PineScriptGeneratorPanel({ initialSymbol = "NIFTY" }: { initialS
           {copied ? (
             <>
               <CheckIcon size={14} weight="bold" className="text-gain" aria-hidden />
-              <span>Copied to Clipboard!</span>
+              <span>Indicator Copied!</span>
             </>
           ) : (
             <>
               <CopyIcon size={14} aria-hidden />
-              <span>Copy Pine Script</span>
+              <span>Copy Indicator to Clipboard</span>
             </>
           )}
         </Button>
       </div>
 
-      <div className="relative">
-        <pre className="max-h-56 overflow-x-auto overflow-y-auto rounded-lg border border-border bg-background/80 p-3.5 font-mono text-[11.5px] leading-relaxed text-muted-foreground">
-          <code>{code}</code>
-        </pre>
-      </div>
+      {/* Protected Algorithm Card - Core logic is encapsulated and not displayed openly */}
+      <div className="rounded-lg border border-border bg-background/60 p-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheckIcon size={16} className="text-gain" aria-hidden />
+            <span className="font-medium text-foreground">TradingView v5 Indicator Package</span>
+          </div>
+          <span className="num text-[11.5px] text-muted-foreground uppercase">Protected Platform Asset</span>
+        </div>
 
-      <p className="text-[12px] leading-5 text-muted-foreground">
-        Paste into TradingView&apos;s <strong>Pine Editor</strong> at the bottom of any chart, then click{" "}
-        <strong>&ldquo;Add to chart&rdquo;</strong>. The indicator evaluates signals on confirmed daily candles to prevent repainting.
-      </p>
+        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3 text-[12px]">
+          <div>
+            <span className="text-muted-foreground">Active Ticker:</span>{" "}
+            <span className="num font-semibold text-foreground">{currentSym}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Engine Mode:</span>{" "}
+            <span className="font-medium text-foreground">
+              {mode === "core" ? "Core (20/50 Cross + RSI 14)" : "Fast Swing (SMA 20)"}
+            </span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Execution:</span>{" "}
+            <span className="num text-gain">Zero-Repaint (Bar Close)</span>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded border border-border/70 bg-card/60 p-2.5 text-[11.5px] leading-relaxed text-muted-foreground">
+          Core quantitative logic is encapsulated. Click &ldquo;<strong>Copy Indicator to Clipboard</strong>&rdquo; above and paste directly into TradingView&apos;s <strong>Pine Editor</strong> (bottom chart bar) &rarr; &ldquo;<strong>Add to chart</strong>&rdquo; to plot platform signals, 1.0R risk stops, and T1/T2/T3 targets.
+        </div>
+      </div>
     </div>
   );
 }

@@ -8,7 +8,6 @@ import {
 } from "@phosphor-icons/react/ssr";
 import { SiteFooter, SiteNav } from "@/components/marketing/site-nav";
 import { ButtonLink } from "@/components/ui/button";
-import { PineScriptGeneratorPanel } from "@/components/market/pine-script-generator-panel";
 import { paiseToRupees } from "@/lib/format";
 import { FEATURE_ROWS } from "@/lib/plans";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -64,7 +63,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             </h1>
             <p className="mt-6 max-w-[34rem] text-[17px] leading-8 text-muted-foreground">
               Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against published rules after every close — moving-average crosses,
-              RSI reversals, 4-tier sentiment audits, the price levels you set — and brings signals right to your broker charts via our Chrome Terminal and TradingView Pine Script generator.
+              RSI reversals, 4-tier sentiment audits, the price levels you set — and brings signals right to your broker charts via our Chrome Terminal HUD.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href={signedIn ? "/app" : "/signup"} size="lg">
@@ -73,8 +72,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <ButtonLink href="#terminal" size="lg" variant="secondary">
                 Terminal HUD
               </ButtonLink>
-              <ButtonLink href="#pine" size="lg" variant="secondary">
-                Pine Script v5
+              <ButtonLink href="#how" size="lg" variant="secondary">
+                See how it works
               </ButtonLink>
             </div>
             <p className="mt-4 text-[12.5px] text-muted-foreground">No card needed. Basic covers a 10-stock radar, CSV portfolio sync, and research on every listing.</p>
@@ -92,7 +91,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <span aria-hidden>/</span>
             <span>Extension HUD across 23+ Brokers</span>
             <span aria-hidden>/</span>
-            <span>TradingView Pine Script v5</span>
+            <span>TradingView Chart Integration</span>
             <span aria-hidden>/</span>
             <span>1-Click CSV Portfolio Sync</span>
             <span aria-hidden>/</span>
@@ -130,7 +129,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               n="03"
               title="Execute on your broker or TradingView"
               className="md:col-span-6 md:col-start-4"
-              body="View signals on your broker's charts without opening another tab via the QuantsPulse Extension HUD (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan) or copy clean Pine Script v5 code directly into TradingView for zero-repainting backtesting."
+              body="View signals directly on your broker's charts without opening another tab via the QuantsPulse Extension HUD (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan) or analyze interactive TradingView charts within your private desk."
             >
               <AllocationSketch />
             </Step>
@@ -193,49 +192,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <div className="lg:col-span-7">
               <TerminalSpecimen />
             </div>
-          </div>
-        </section>
-
-        {/* ---------------- Pine Script Section ---------------- */}
-        <section id="pine" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-20 md:px-8 border-t border-border">
-          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
-            <p className="eyebrow pt-3">Pine Script v5</p>
-            <div>
-              <h2 className="display text-[36px] leading-[1.1] md:text-[44px]">
-                Zero-repainting strategy code. Ready for TradingView.
-              </h2>
-              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-                Every mechanical rule in QuantsPulse can be copied directly as clean, transparent Pine Script v5 code. Paste it into TradingView&apos;s Pine Editor for backtesting, alerts, and target level plots.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            <div className="panel p-5">
-              <p className="num text-[12px] text-coral-ink">01</p>
-              <h4 className="display mt-1 text-[18px]">Zero-Repainting Guarantee</h4>
-              <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
-                Signals evaluate strictly on confirmed bar closes (<span className="num text-[12px]">barstate.isconfirmed</span>). No disappearing arrows mid-candle.
-              </p>
-            </div>
-            <div className="panel p-5">
-              <p className="num text-[12px] text-coral-ink">02</p>
-              <h4 className="display mt-1 text-[18px]">Alternating Execution</h4>
-              <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
-                Strict Buy/Exit alternation prevents duplicate entries. What you backtest on historical charts matches live execution.
-              </p>
-            </div>
-            <div className="panel p-5">
-              <p className="num text-[12px] text-coral-ink">03</p>
-              <h4 className="display mt-1 text-[18px]">Target &amp; Risk Overlay</h4>
-              <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
-                Plots Entry base, 1.0R risk stop line, and scale-out target bands (T1, T2, T3) directly onto your TradingView candlestick chart.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <PineScriptGeneratorPanel initialSymbol="RELIANCE" />
           </div>
         </section>
 
@@ -378,8 +334,8 @@ const FAQ: [string, string][] = [
     "The extension runs locally in your browser and activates on 23+ Indian broker platforms including Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, and TradingView. It injects a sleek On-Chart HUD showing active signals, Entry levels, 1.0R risk stops, and T1/T2/T3 targets, plus a slide-over research drawer. It is completely read-only and never accesses your broker credentials or executes orders.",
   ],
   [
-    "Can I use QuantsPulse signals inside TradingView directly?",
-    "Yes. The Pine Script v5 Strategy Generator creates transparent, zero-repainting TradingView indicator code for any ticker. Paste it into the TradingView Pine Editor to run backtests, set alerts, and see Entry, 1.0R Stop, and multi-tier take-profit levels plotted directly on your candles.",
+    "Can I view TradingView charts directly in QuantsPulse?",
+    "Yes. The Market desk includes interactive TradingView Advanced Charts with real-time indicators, drawing tools, and multi-timeframe analysis seamlessly integrated with QuantsPulse historical signals and 4-tier sentiment audits.",
   ],
   [
     "Can I import my existing stock portfolio from Zerodha, Groww, or Angel One?",

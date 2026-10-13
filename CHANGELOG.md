@@ -6,19 +6,18 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
-### Added — Landing & Integrations Experience Updates (`web/src/app/`, `web/src/components/`)
+### Added & Secured — Landing & Integrations Experience with Core Algorithm IP Protection (`web/src/app/`, `web/src/components/`)
+- **Intellectual Property Protection for Core Trading Logic**:
+  - Removed open Pine Script source code display and public code generator panels from the marketing landing page (`web/src/app/page.tsx`) to protect the platform's proprietary quantitative algorithms, moving average parameters, and risk/target formulas from unauthorized exposure and scraping.
+  - Encapsulated `PineScriptGeneratorPanel` (`web/src/components/market/pine-script-generator-panel.tsx`): removed exposed raw `<pre>` code text blocks on screen. The indicator package is now presented as a protected platform asset that copies directly to the member's clipboard for pasting into TradingView without rendering raw algorithmic source on screen.
 - **QuantsPulse Chrome Extension Terminal Showcase (`web/src/app/page.tsx`)**:
   - Added dedicated `#terminal` section highlighting the Chrome Extension Heads-Up Display (HUD) and slide-over research panel with live on-chart specimens across 23+ Indian brokers (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, TradingView).
   - Outlined on-chart HUD capabilities: live signals (`ACTIVE LONG` / `EXIT`), Entry base, 1.0R trailing stop, and scale-out targets (T1 +3%, T2 +6%, T3 +12%) with 0 broker credentials or trading key requirements.
-- **Interactive TradingView Pine Script v5 Strategy Generator (`web/src/app/page.tsx`, `web/src/components/market/`)**:
-  - Added dedicated `#pine` section with the interactive `PineScriptGeneratorPanel`, letting traders test, configure, and 1-click copy clean, non-repainting Pine Script v5 indicator code directly from the landing page.
-  - Added `CopyPineButton` to individual stock pages (`web/src/app/app/markets/[symbol]/page.tsx`) allowing 1-click Pine Script indicator generation for any tracked equity.
-  - Documented strict alternating execution, `barstate.isconfirmed` zero-repainting guarantee, and automated target overlays.
 - **Enhanced Integrations Desk (`web/src/app/app/integrations/page.tsx`)**:
-  - Restructured the integrations portal into 4 comprehensive operational modules: Chrome Extension Terminal with installation instructions, TradingView Pine Script Generator, Multi-Broker CSV Portfolio Import (Zerodha, Groww, Angel One, ICICI Direct, Upstox), and Bring-Your-Own-Key (BYOK) AI encryption.
-- **Expanded Marketing Dateline, Steps & FAQs**:
-  - Updated marketing dateline to feature 3,600+ listings, 17:00 IST automated settlement, broker HUD overlays, Pine Script v5, and 1-click CSV imports.
-  - Added detailed FAQs covering Chrome Extension broker compatibility, TradingView Pine Script indicators, and CSV portfolio imports.
+  - Restructured the integrations portal into 4 comprehensive operational modules: Chrome Extension Terminal with installation instructions, Protected TradingView Indicator Integration, Multi-Broker CSV Portfolio Import (Zerodha, Groww, Angel One, ICICI Direct, Upstox), and Bring-Your-Own-Key (BYOK) AI encryption.
+- **Updated Marketing Dateline, Steps & FAQs**:
+  - Updated marketing dateline to feature 3,600+ listings, 17:00 IST automated settlement, broker HUD overlays, TradingView chart integration, and 1-click CSV imports.
+  - Added FAQs covering Chrome Extension broker compatibility, TradingView charts, and CSV portfolio imports.
 
 ### Fixed — Chrome Extension Symbol & HUD Sync on Chart Switching (`extension/`)
 - **Resolved Stale Symbol Bug when Switching Charts on Broker Platforms**:
