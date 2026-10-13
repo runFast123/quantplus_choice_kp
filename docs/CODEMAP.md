@@ -158,7 +158,9 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/app/news` | News feed (`?scope=all&tone=&kind=news|filing&before=`) |
 | `/api/cron/news` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `ingestNews` |
 | `/api/cron/market-eod` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `syncEodPrices` (daily 17:00 & 20:00 IST) |
-| `/api/extension/quote?symbol=` | CORS-enabled quantitative intelligence payload for the Chrome Extension side panel |
+| `/api/extension/session` | GET checks active session via Bearer JWT or cookie claims → `{ authenticated, user }` for Chrome Extension |
+| `/api/extension/download` | GET direct download endpoint serving `quantspulse-terminal.zip` package |
+| `/api/extension/quote?symbol=` | CORS-enabled quantitative intelligence payload for the Chrome Extension side panel; gated by 401 authentication guard |
 | `/admin` | platform console (404 unless platform admin) |
 
 ## 6. Components (web/src/components)

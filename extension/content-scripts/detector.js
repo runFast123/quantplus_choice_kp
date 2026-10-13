@@ -632,9 +632,111 @@
     `;
   }
 
+  function renderHudLocked(symbol, loginUrl, signupUrl) {
+    if (!symbol || prefs.isHidden) return;
+    const shadow = getOrCreateShadowRoot();
+    if (!shadow) return;
+
+    const base = loginUrl || "https://quantplus-ten.vercel.app/login";
+    const signup = signupUrl || "https://quantplus-ten.vercel.app/signup";
+
+    let savedPos = { top: "65px", left: "75px" };
+    try {
+      const stored = localStorage.getItem("qp_hud_coords");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.top && parsed.left) savedPos = parsed;
+      }
+    } catch {}
+
+    shadow.innerHTML = `
+      <style>
+        :host { all: initial; }
+        .hud-locked {
+          position: fixed;
+          top: ${savedPos.top};
+          left: ${savedPos.left};
+          z-index: 2147483647;
+          pointer-events: auto;
+          background: rgba(20, 20, 20, 0.95);
+          color: #ECEBE4;
+          border: 1px solid #333333;
+          border-radius: 8px;
+          box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+          font-size: 11.5px;
+          padding: 7px 12px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          user-select: none;
+        }
+        .tag-sym {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: #27272A;
+          color: #ECEBE4;
+        }
+        .lock-badge {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: #F59E0B;
+          font-size: 11px;
+          font-weight: 600;
+        }
+        .btn-unlock {
+          background: #F26A4B;
+          color: #FFFFFF;
+          border: none;
+          border-radius: 4px;
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          transition: opacity 0.15s ease;
+        }
+        .btn-unlock:hover {
+          opacity: 0.9;
+        }
+        .btn-trial {
+          background: #27272A;
+          color: #A1A1AA;
+          border: 1px solid #3F3F46;
+          border-radius: 4px;
+          padding: 3px 8px;
+          font-size: 10.5px;
+          cursor: pointer;
+          text-decoration: none;
+        }
+        .btn-trial:hover {
+          color: #FFFFFF;
+          border-color: #71717A;
+        }
+      </style>
+      <div class="hud-locked">
+        <span class="tag-sym">${symbol}</span>
+        <div class="lock-badge">
+          <span>🔒</span>
+          <span>Account Required</span>
+        </div>
+        <a href="${base}" target="_blank" class="btn-unlock">Sign In to Unlock Signals</a>
+        <a href="${signup}" target="_blank" class="btn-trial">3 Mo Free</a>
+      </div>
+    `;
+  }
+
   function fetchAndRenderHud(symbol) {
     if (!symbol) return;
-    safeStorageGet(["showChartOverlay", "activeQuoteData", "qpHudPrefs", "backendUrl"], (res) => {
+    safeStorageGet(["showChartOverlay", "activeQuoteData", "qpHudPrefs", "backendUrl", "qpAuthToken", "qpAuthenticated"], (res) => {
       if (!res) return;
       if (res.qpHudPrefs) prefs = Object.assign(prefs, res.qpHudPrefs);
       if (res.showChartOverlay === false) {
@@ -643,12 +745,15 @@
       }
       prefs.isHidden = false;
 
-      // 1. Instant Cache Render: If storage already has this symbol's quote, render it immediately
-      if (res.activeQuoteData && res.activeQuoteData.symbol === symbol) {
+      // 1. Instant Cache Render: If storage already has this symbol's quote and user is authenticated
+      if (res.qpAuthenticated && res.activeQuoteData && res.activeQuoteData.symbol === symbol) {
         currentQuoteData = res.activeQuoteData;
         renderHud(res.activeQuoteData);
+      } else if (!res.qpAuthenticated && !res.qpAuthToken) {
+        // Unauthenticated lock display
+        const base = (res.backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
+        renderHudLocked(symbol, `${base}/login`, `${base}/signup`);
       } else {
-        // Immediate visual feedback so user sees the HUD right away
         renderHudLoading(symbol);
       }
 
@@ -656,6 +761,10 @@
       safeSendMessage(
         { type: "FETCH_QUOTE_DATA", symbol, exchange: "NSE" },
         (resp) => {
+          if (resp && resp.isAuthError) {
+            renderHudLocked(symbol, resp.loginUrl, resp.signupUrl);
+            return;
+          }
           if (!resp || !resp.ok || !resp.data) {
             // Direct fetch fallback if background worker is asleep
             directFetchFallback(symbol, res.backendUrl);
@@ -670,19 +779,30 @@
 
   function directFetchFallback(symbol, backendUrl) {
     const base = (backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
-    fetch(`${base}/api/extension/quote?symbol=${encodeURIComponent(symbol)}&exchange=NSE`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        if (data && data.symbol) {
-          currentQuoteData = data;
-          safeStorageSet({ activeQuoteData: data, activeSymbol: data.symbol });
-          renderHud(data);
-        }
-      })
-      .catch(() => {});
+    safeStorageGet(["qpAuthToken"], (authRes) => {
+      const headers = {};
+      if (authRes?.qpAuthToken) {
+        headers["Authorization"] = `Bearer ${authRes.qpAuthToken}`;
+      }
+      fetch(`${base}/api/extension/quote?symbol=${encodeURIComponent(symbol)}&exchange=NSE`, { headers })
+        .then(async (r) => {
+          if (r.status === 401) {
+            safeStorageSet({ qpAuthenticated: false });
+            renderHudLocked(symbol, `${base}/login`, `${base}/signup`);
+            throw new Error("account_required");
+          }
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((data) => {
+          if (data && data.symbol) {
+            currentQuoteData = data;
+            safeStorageSet({ activeQuoteData: data, activeSymbol: data.symbol });
+            renderHud(data);
+          }
+        })
+        .catch(() => {});
+    });
   }
 
   function getOrCreateShadowRoot() {
@@ -1931,6 +2051,14 @@ if barstate.islast
       chrome.storage.onChanged.addListener((changes, area) => {
         if (!isExtensionValid()) return;
         if (area === "local") {
+          if (changes.qpAuthenticated !== undefined) {
+            const isAuth = Boolean(changes.qpAuthenticated.newValue);
+            if (isAuth && lastDetectedSymbol) {
+              fetchAndRenderHud(lastDetectedSymbol);
+            } else if (!isAuth && lastDetectedSymbol) {
+              renderHudLocked(lastDetectedSymbol);
+            }
+          }
           if (changes.showChartOverlay) {
             if (changes.showChartOverlay.newValue === false) {
               if (hudRoot) hudRoot.style.display = "none";
@@ -1977,6 +2105,15 @@ if barstate.islast
     try {
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!isExtensionValid()) return;
+        if (message?.type === "QP_AUTH_UPDATE") {
+          if (message.authenticated && lastDetectedSymbol) {
+            fetchAndRenderHud(lastDetectedSymbol);
+          } else if (!message.authenticated && lastDetectedSymbol) {
+            renderHudLocked(lastDetectedSymbol);
+          }
+          try { sendResponse({ ok: true }); } catch {}
+          return true;
+        }
         if (message?.type === "RENDER_HUD_DIRECT" && message.data) {
           currentQuoteData = message.data;
           lastDetectedSymbol = message.data.symbol;

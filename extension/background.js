@@ -88,11 +88,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "FETCH_QUOTE_DATA" && message.symbol) {
     const symbol = encodeURIComponent(message.symbol.trim());
     const exchange = message.exchange || "NSE";
-    chrome.storage.local.get(["backendUrl"], (res) => {
+    chrome.storage.local.get(["backendUrl", "qpAuthToken", "qpAuthenticated"], (res) => {
       const baseUrl = (res.backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
       const url = `${baseUrl}/api/extension/quote?symbol=${symbol}&exchange=${exchange}`;
-      fetch(url)
-        .then((r) => {
+      const headers = {};
+      if (res.qpAuthToken) {
+        headers["Authorization"] = `Bearer ${res.qpAuthToken}`;
+      }
+
+      fetch(url, { headers })
+        .then(async (r) => {
+          if (r.status === 401) {
+            chrome.storage.local.set({ qpAuthenticated: false });
+            const errData = await r.json().catch(() => ({}));
+            throw { isAuthError: true, ...errData };
+          }
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.json();
         })
@@ -100,9 +110,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.storage.local.set({ activeQuoteData: data, activeSymbol: data.symbol });
           sendResponse({ ok: true, data });
         })
-        .catch((err) => sendResponse({ ok: false, error: err.message }));
+        .catch((err) => {
+          sendResponse({
+            ok: false,
+            isAuthError: Boolean(err?.isAuthError),
+            error: err?.message || err?.error || "Failed to fetch quote",
+            loginUrl: `${baseUrl}/login`,
+            signupUrl: `${baseUrl}/signup`,
+          });
+        });
     });
     return true; // Keep channel open for async response
+  }
+
+  // 4. Handle Auth Status Synchronization Events from Web Platform
+  if (message?.type === "QP_AUTH_STATUS_CHANGED") {
+    // Notify all active tabs running detector.js
+    chrome.tabs.query({}, (tabs) => {
+      if (chrome.runtime.lastError || !tabs) return;
+      for (const tab of tabs) {
+        if (tab.id && tab.url && isSupportedUrl(tab.url)) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: "QP_AUTH_UPDATE",
+            authenticated: Boolean(message.authenticated),
+            user: message.user || null,
+          }).catch(() => {});
+        }
+      }
+    });
+    sendResponse({ ok: true });
+    return true;
   }
   return false;
 });

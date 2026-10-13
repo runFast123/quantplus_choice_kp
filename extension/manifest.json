@@ -73,6 +73,14 @@
       "js": ["content-scripts/detector.js"],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "http://localhost:3000/*",
+        "https://quantplus-ten.vercel.app/*"
+      ],
+      "js": ["content-scripts/auth-sync.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {

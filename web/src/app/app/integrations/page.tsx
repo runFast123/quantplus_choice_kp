@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SparkleIcon, BrowserIcon, CodeIcon, FileCsvIcon } from "@phosphor-icons/react/ssr";
+import {
+  BrowserIcon,
+  CheckCircleIcon,
+  CodeIcon,
+  DownloadSimpleIcon,
+  FileCsvIcon,
+  LockIcon,
+  SparkleIcon,
+} from "@phosphor-icons/react/ssr";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Badge } from "@/components/ui/data";
 import { ButtonLink } from "@/components/ui/button";
@@ -42,6 +50,42 @@ export default async function IntegrationsPage() {
               Run QuantsPulse directly inside your trading tabs. The extension automatically detects the active stock or index on your chart and renders an on-chart HUD bar and slide-over research panel with signals, targets, and sentiment audits.
             </p>
 
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-card/60 p-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground text-[14px]">Terminal Package v1.0.0</span>
+                  <Badge tone="gain">Production Ready</Badge>
+                </div>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  Manifest V3 · 48 KB · Supports 23+ Indian brokers and TradingView
+                </p>
+              </div>
+              <a
+                href="/downloads/quantspulse-terminal.zip"
+                download="quantspulse-terminal.zip"
+                className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
+              >
+                <DownloadSimpleIcon size={16} weight="bold" aria-hidden />
+                Download Extension (.zip)
+              </a>
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircleIcon size={18} className="text-gain shrink-0" aria-hidden />
+                  <span className="text-[13px] font-medium text-foreground">Active Account Authorized</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground text-[11.5px]">
+                  <LockIcon size={13} aria-hidden />
+                  <span className="num">{s.email}</span>
+                </div>
+              </div>
+              <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
+                Your QuantsPulse session is securely authenticated. When you open broker charts in this browser, the extension automatically pairs with your account to deliver proprietary trend signals, 1.0R trailing stops, and sentiment audits. Non-members or logged-out users are locked out by server-side verification.
+              </p>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-background p-3.5">
                 <p className="eyebrow text-[11px]">On-Chart Signal HUD</p>
@@ -54,7 +98,7 @@ export default async function IntegrationsPage() {
                 <p className="eyebrow text-[11px]">23+ Indian Brokers</p>
                 <p className="mt-1 text-[13px] font-medium text-foreground">Zero-Click Detection</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  Works on TradingView, Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, and Kotak Neo.
+                  Works on Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, Kotak Neo, and TradingView.
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-background p-3.5">
@@ -67,19 +111,22 @@ export default async function IntegrationsPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-card/60 p-4">
-              <p className="eyebrow text-[11px]">How to install the extension</p>
+              <p className="eyebrow text-[11px]">How to install the extension (2 minutes)</p>
               <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-[12.5px] leading-relaxed text-muted-foreground">
                 <li>
-                  Open Chrome and navigate to <code className="rounded bg-background px-1 py-0.5 font-mono text-foreground">chrome://extensions</code>.
+                  Click <strong>&ldquo;Download Extension (.zip)&rdquo;</strong> above and extract the downloaded ZIP file to a folder on your computer (e.g. into your Documents or Tools folder).
+                </li>
+                <li>
+                  Open Google Chrome and navigate to <code className="rounded bg-background px-1 py-0.5 font-mono text-foreground">chrome://extensions</code>.
                 </li>
                 <li>
                   Toggle on <strong>&ldquo;Developer mode&rdquo;</strong> in the top-right corner.
                 </li>
                 <li>
-                  Click <strong>&ldquo;Load unpacked&rdquo;</strong> and select the <code className="rounded bg-background px-1 py-0.5 font-mono text-foreground">extension/</code> directory from the repository.
+                  Click <strong>&ldquo;Load unpacked&rdquo;</strong> in the top-left corner and select the folder you just extracted.
                 </li>
                 <li>
-                  Open any broker chart (e.g. Choice FinX or TradingView) — the QuantsPulse badge and HUD will activate automatically.
+                  Open any broker chart (e.g. Choice FinX, Zerodha Kite, Groww, or TradingView) — your QuantsPulse session automatically connects and the signal HUD bar displays on your chart!
                 </li>
               </ol>
             </div>

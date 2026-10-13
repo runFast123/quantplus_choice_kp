@@ -2,6 +2,8 @@ import clsx from "clsx";
 import {
   BrowserIcon,
   CheckIcon,
+  DownloadSimpleIcon,
+  LockIcon,
   MinusIcon,
   ShieldCheckIcon,
   TerminalWindowIcon,
@@ -182,10 +184,28 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 </p>
               </div>
 
-              <div className="pt-2">
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <a
+                  href="/downloads/quantspulse-terminal.zip"
+                  download="quantspulse-terminal.zip"
+                  className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  <DownloadSimpleIcon size={16} weight="bold" aria-hidden />
+                  Download Extension (.zip)
+                </a>
                 <ButtonLink href="/app/integrations" variant="secondary" size="md">
-                  Setup Chrome Extension →
+                  Setup Instructions →
                 </ButtonLink>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card/60 p-4 text-[12.5px] leading-relaxed text-muted-foreground">
+                <div className="flex items-center gap-1.5 font-medium text-foreground">
+                  <LockIcon size={14} className="text-coral-ink shrink-0" aria-hidden />
+                  <span>Account-Gated Quantitative Intelligence</span>
+                </div>
+                <p className="mt-1.5 text-[12px] leading-5">
+                  1-click download the ZIP and load it in Chrome. Signals, 1.0R trailing stops, and sentiment audits are exclusive to QuantsPulse members — your browser session automatically unlocks the on-chart HUD once you sign in.
+                </p>
               </div>
             </div>
 

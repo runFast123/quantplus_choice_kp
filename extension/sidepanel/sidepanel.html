@@ -20,6 +20,10 @@
       <span class="brand-title">QuantsPulse</span>
     </div>
     <div class="header-actions">
+      <div id="user-auth-badge" class="user-auth-badge hidden" title="QuantsPulse Account Connected">
+        <span class="auth-dot"></span>
+        <span id="user-auth-email" class="num auth-email">Account</span>
+      </div>
       <span id="platform-badge" class="badge-source">Synced</span>
       <button id="btn-refresh" class="btn-icon" title="Refresh intelligence" aria-label="Refresh">↻</button>
       <button id="btn-settings-toggle" class="btn-icon" title="API Settings" aria-label="Settings">⚙</button>
@@ -31,7 +35,7 @@
     <label class="eyebrow" for="backend-url">Backend Server Endpoint</label>
     <div class="settings-row">
       <input type="text" id="backend-url" class="input-text num" value="https://quantplus-ten.vercel.app">
-      <button id="btn-save-settings" class="btn-primary">Save</button>
+      <button id="btn-save-settings" class="btn-primary" style="width: auto; padding: 6px 12px;">Save</button>
     </div>
     <p class="settings-note">Use <code>http://localhost:3000</code> for local development.</p>
     <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
@@ -73,6 +77,26 @@
     <div class="empty-icon">📊</div>
     <h3>No active chart detected</h3>
     <p class="muted-text">Navigate to <strong>TradingView</strong>, <strong>Choice FinX</strong>, <strong>Zerodha Kite</strong>, <strong>Groww</strong>, or any broker chart to auto-sync, or search a symbol above.</p>
+  </div>
+
+  <!-- Authentication Gate (Locked State for non-account holders) -->
+  <div id="auth-gate" class="state-container auth-gate-card hidden">
+    <div class="auth-gate-icon">🔒</div>
+    <h3 style="font-size: 17px; margin-top: 6px;">QuantsPulse Account Required</h3>
+    <p class="muted-text" style="font-size: 12.5px; line-height: 1.6; max-width: 280px; margin: 8px auto 16px;">
+      The on-chart terminal and research drawer requires an active QuantsPulse account. Sign in to unlock live trend signals, 1.0R trailing risk stops, and company research on your broker charts.
+    </p>
+    <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 260px; margin: 0 auto;">
+      <a id="btn-auth-login" href="https://quantplus-ten.vercel.app/login" target="_blank" class="btn-primary">
+        Sign In to QuantsPulse
+      </a>
+      <a id="btn-auth-signup" href="https://quantplus-ten.vercel.app/signup" target="_blank" class="btn-secondary">
+        Start Free for 3 Months
+      </a>
+      <button id="btn-auth-check" type="button" class="btn-secondary" style="margin-top: 4px; font-size: 11.5px; padding: 6px 10px;">
+        ↻ Check Login Status
+      </button>
+    </div>
   </div>
 
   <!-- Main Intelligence Card -->

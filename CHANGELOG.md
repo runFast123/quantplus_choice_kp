@@ -6,6 +6,22 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added & Secured — Chrome Extension Public Distribution & Account-Gated Signal Protection (`extension/`, `web/`)
+- **Public 1-Click Extension Distribution**:
+  - Replaced manual developer/repository clone workflows with direct 1-click ZIP package download (`quantspulse-terminal.zip`, 48 KB) available via `/api/extension/download` and `/downloads/quantspulse-terminal.zip`.
+  - Added primary download buttons and clear 3-step setup guides to the marketing homepage (`web/src/app/page.tsx`) and the integrations desk (`web/src/app/app/integrations/page.tsx`).
+  - Generalized `extension/README.md` for public consumers with simple unpack-and-load instructions for Google Chrome, Brave, Edge, and Opera.
+- **Strict Authentication Guard & Anti-Theft Protection (`web/src/app/api/extension/`)**:
+  - Protected `/api/extension/quote` with server-side authentication verification. Requests lacking a valid Supabase JWT or cookie session return `401 Unauthorized` with `{ error: "account_required", login_url, signup_url }`.
+  - Created `/api/extension/session` route enabling the extension to test and confirm account validity via Bearer token or session cookies.
+- **Web-to-Extension Auth Synchronization Bridge (`extension/content-scripts/auth-sync.js`)**:
+  - Created background sync bridge running on QuantsPulse web domains (`quantplus-ten.vercel.app` and `localhost:3000`). Automatically detects the member's active Supabase session from `localStorage` and securely persists `qpAuthToken`, `qpUser`, and `qpAuthenticated` in `chrome.storage.local`.
+  - Listens for tab login/logout events and dispatches `QP_AUTH_STATUS_CHANGED` across the browser.
+- **Locked Extension States & Real-Time Auto-Unlock (`extension/`)**:
+  - **Locked On-Chart HUD (`renderHudLocked`)**: When an unauthenticated user or non-member opens a broker chart, the HUD renders a sleek lock pill (`🔒 Account Required · Sign In to Unlock Signals` + `3 Mo Free` trial link) while completely hiding all proprietary trend signals, 1.0R risk stops, and profit targets.
+  - **Locked Side Panel (`#auth-gate`)**: Unauthenticated users see a branded lock view with 1-click links to `/login` and `/signup`, plus an interactive `Check Login Status` verification button.
+  - **Zero-Reload Live Unlock**: When a member signs in on the website, `QP_AUTH_UPDATE` signals open broker tabs to instantly transition from the locked view to active live signals without requiring page refresh.
+
 ### Added & Secured — Landing & Integrations Experience with Core Algorithm IP Protection (`web/src/app/`, `web/src/components/`)
 - **Intellectual Property Protection for Core Trading Logic**:
   - Removed open Pine Script source code display and public code generator panels from the marketing landing page (`web/src/app/page.tsx`) to protect the platform's proprietary quantitative algorithms, moving average parameters, and risk/target formulas from unauthorized exposure and scraping.

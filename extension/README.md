@@ -6,15 +6,22 @@ Real-time Quantitative Signals, Asymmetric Trade Plans & Sentiment Audits docked
 
 ## 🚀 Quick Install (Load Unpacked in 30 Seconds)
 
-1. Open Google Chrome (or Brave / Edge / Opera).
-2. Navigate to `chrome://extensions` in your address bar.
-3. In the top right corner, toggle **"Developer mode"** to **ON**.
-4. Click the **"Load unpacked"** button in the top left.
-5. Select this folder:
-   ```
-   C:\Users\kaival.trapasia\Desktop\Quantpluse_kp\extension
-   ```
-6. The extension **"QuantsPulse — Indian Equities Terminal"** will appear in your Chrome toolbar!
+1. Download `quantspulse-terminal.zip` from your QuantsPulse dashboard or website and extract it into a folder.
+2. Open Google Chrome (or Brave / Edge / Opera).
+3. Navigate to `chrome://extensions` in your address bar.
+4. In the top right corner, toggle **"Developer mode"** to **ON**.
+5. Click the **"Load unpacked"** button in the top left.
+6. Select the extracted folder containing `manifest.json`.
+7. The extension **"QuantsPulse — Indian Equities Terminal"** will appear in your Chrome toolbar!
+
+---
+
+## 🔒 Authentication & Account Gating
+
+The QuantsPulse Extension Terminal is exclusively available for active QuantsPulse account holders:
+
+1. **Automatic Session Sync**: Log into your QuantsPulse account at [quantplus-ten.vercel.app](https://quantplus-ten.vercel.app) in Chrome. The extension automatically detects your active session and authorizes full access to on-chart signals, 1.0R trailing stops, and sentiment scorecards across all supported brokers.
+2. **Locked State for Non-Members**: If you are not signed in or do not possess an account, the on-chart HUD and side panel will show a locked status badge (`🔒 Account Required`) with direct buttons to sign in or start a 3-month free trial. Proprietary trading signals and entry points remain locked on the server until authenticated.
 
 ---
 

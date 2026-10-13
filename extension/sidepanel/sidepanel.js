@@ -21,6 +21,41 @@
   const selectHudMode = document.getElementById("select-hud-mode");
   const btnCopyPine = document.getElementById("btn-copy-pine");
 
+  // Auth Gate Elements
+  const elAuthGate = document.getElementById("auth-gate");
+  const elUserAuthBadge = document.getElementById("user-auth-badge");
+  const elUserAuthEmail = document.getElementById("user-auth-email");
+  const btnAuthCheck = document.getElementById("btn-auth-check");
+  const btnAuthLogin = document.getElementById("btn-auth-login");
+  const btnAuthSignup = document.getElementById("btn-auth-signup");
+
+  let qpAuthToken = null;
+  let qpUser = null;
+  let qpAuthenticated = false;
+
+  function updateAuthUI(isAuthed, user) {
+    qpAuthenticated = Boolean(isAuthed);
+    qpUser = user || null;
+
+    if (btnAuthLogin) btnAuthLogin.href = `${backendUrl}/login`;
+    if (btnAuthSignup) btnAuthSignup.href = `${backendUrl}/signup`;
+
+    if (isAuthed && user) {
+      if (elAuthGate) elAuthGate.classList.add("hidden");
+      if (elUserAuthBadge) {
+        elUserAuthBadge.classList.remove("hidden");
+        if (elUserAuthEmail) elUserAuthEmail.textContent = user.email ? user.email.split("@")[0] : "Active";
+      }
+    } else {
+      if (elUserAuthBadge) elUserAuthBadge.classList.add("hidden");
+      if (!currentSymbol) {
+        if (elAuthGate) elAuthGate.classList.remove("hidden");
+        if (elEmpty) elEmpty.classList.add("hidden");
+        if (elContent) elContent.classList.add("hidden");
+      }
+    }
+  }
+
   // Formatters
   function formatRupees(num) {
     if (num == null || isNaN(num)) return "—";
@@ -47,11 +82,16 @@
   }
 
   // Load preferences and then inspect active tab
-  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay", "qpHudPrefs"], async (res) => {
+  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay", "qpHudPrefs", "qpAuthToken", "qpAuthenticated", "qpUser"], async (res) => {
     if (res.backendUrl) {
       backendUrl = res.backendUrl.replace(/\/$/, "");
       inputBackend.value = backendUrl;
     }
+    qpAuthToken = res.qpAuthToken || null;
+    qpUser = res.qpUser || null;
+    qpAuthenticated = Boolean(res.qpAuthenticated);
+    updateAuthUI(qpAuthenticated, qpUser);
+
     if (res.platform) {
       elPlatformBadge.textContent = res.platform;
     }
@@ -949,10 +989,31 @@ if barstate.islast
     isLoading = true;
 
     try {
+      const stored = await new Promise((r) => chrome.storage.local.get(["qpAuthToken", "qpAuthenticated", "qpUser"], r));
+      qpAuthToken = stored?.qpAuthToken || null;
+      qpAuthenticated = Boolean(stored?.qpAuthenticated);
+      qpUser = stored?.qpUser || null;
+
       const url = `${backendUrl}/api/extension/quote?symbol=${encodeURIComponent(sym)}&exchange=NSE`;
-      const res = await fetch(url);
+      const headers = {};
+      if (qpAuthToken) {
+        headers["Authorization"] = `Bearer ${qpAuthToken}`;
+      }
+
+      const res = await fetch(url, { headers });
+      if (res.status === 401) {
+        chrome.storage.local.set({ qpAuthenticated: false });
+        updateAuthUI(false, null);
+        elEmpty.classList.add("hidden");
+        elContent.classList.add("hidden");
+        elLoading.classList.add("hidden");
+        if (elAuthGate) elAuthGate.classList.remove("hidden");
+        isLoading = false;
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      updateAuthUI(true, qpUser);
       render(data);
       if (data && data.symbol) {
         currentSymbol = data.symbol;
@@ -1141,4 +1202,49 @@ if barstate.islast
       });
     }
   }
+
+  // Auth Check Button
+  if (btnAuthCheck) {
+    btnAuthCheck.addEventListener("click", async () => {
+      btnAuthCheck.textContent = "Checking...";
+      try {
+        const checkUrl = `${backendUrl}/api/extension/session`;
+        const headers = {};
+        if (qpAuthToken) headers["Authorization"] = `Bearer ${qpAuthToken}`;
+        const sRes = await fetch(checkUrl, { headers });
+        const sData = await sRes.json();
+        if (sData.authenticated) {
+          chrome.storage.local.set({
+            qpAuthenticated: true,
+            qpUser: sData.user,
+            qpAuthToken: sData.token || qpAuthToken,
+          });
+          updateAuthUI(true, sData.user);
+          btnAuthCheck.textContent = "✓ Connected!";
+          if (currentSymbol) loadSymbol(currentSymbol);
+        } else {
+          updateAuthUI(false, null);
+          btnAuthCheck.textContent = "Not logged in yet";
+          setTimeout(() => {
+            btnAuthCheck.textContent = "↻ Check Login Status";
+          }, 2000);
+        }
+      } catch (e) {
+        btnAuthCheck.textContent = "Could not reach server";
+        setTimeout(() => {
+          btnAuthCheck.textContent = "↻ Check Login Status";
+        }, 2000);
+      }
+    });
+  }
+
+  // Real-time auth event synchronization from background worker / auth-sync.js
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type === "QP_AUTH_UPDATE") {
+      updateAuthUI(message.authenticated, message.user);
+      if (message.authenticated && currentSymbol) {
+        loadSymbol(currentSymbol);
+      }
+    }
+  });
 })();
