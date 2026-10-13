@@ -10,7 +10,9 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 - **Native TypeScript EOD Market Price Sync Engine**:
   - Implemented `syncEodPrices` in `web/src/server/privileged/eod-sync.ts` directly fetching and reconciling daily candles from Yahoo Finance v8 chart API without requiring external Python environments on serverless hosts.
   - Automatically identifies active universe (symbols watched in radars, held in portfolios, or monitored in price alerts, plus benchmarks) or full NSE universe (~3,600 symbols).
-  - Validates OHLC integrity and session settlement (stamps candles at 10:00:00 UTC = 15:30 IST session close; suppresses unsettled intraday bars before 15:45 IST).
+  - Implemented dual-exchange backfill fallback: automatically queries BSE (`.BO`) to patch missing or NaN candles if Yahoo's NSE (`.NS`) feed experienced upstream gaps.
+  - Enabled active market bar acceptance (`includeToday`): captures today's live trading bar during market hours so symbols immediately show today's active prices rather than remaining frozen on prior days.
+  - Added `--live` parameter to `pipelines/eod/eod.py` allowing command-line ingestion of the current session's candles.
   - Automatically chains into downstream database pipelines: triggers `svc_refresh_market_analytics` (RSI & SMAs), `svc_refresh_research` (valuation/factor stances), and `svc_run_eod_notifier` (trailing stops and alert delivery).
 - **Automated Vercel Cron Scheduling (`web/vercel.json`)**:
   - Added daily automated schedules to `vercel.json`:

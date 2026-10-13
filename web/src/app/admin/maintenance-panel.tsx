@@ -118,17 +118,29 @@ export function MaintenanceOperations() {
         )}
 
         <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <span className="text-[11.5px] text-muted-foreground">Candle Window:</span>
-            <select
-              name="days"
-              defaultValue="10"
-              className="rounded border border-border bg-background px-2 py-1 text-[11.5px] font-mono text-foreground focus:outline-none"
-            >
-              <option value="5">Last 5 Days (Fast Reconcile)</option>
-              <option value="10">Last 10 Days (Standard EOD)</option>
-              <option value="30">Last 30 Days (Full Month Backfill)</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[11.5px] text-muted-foreground">Candle Window:</span>
+              <select
+                name="days"
+                defaultValue="10"
+                className="rounded border border-border bg-background px-2 py-1 text-[11.5px] font-mono text-foreground focus:outline-none"
+              >
+                <option value="5">Last 5 Days (Fast Reconcile)</option>
+                <option value="10">Last 10 Days (Standard EOD)</option>
+                <option value="30">Last 30 Days (Full Month Backfill)</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-1.5 text-[11.5px] text-foreground/80 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="includeToday"
+                value="true"
+                defaultChecked
+                className="rounded border-border accent-foreground"
+              />
+              <span>Include Today&apos;s Active Trading Bar</span>
+            </label>
           </div>
           <div className="w-full sm:w-auto">
             <SubmitButton size="sm" variant="primary" className="w-full sm:w-auto text-[12px] h-8 px-4" pendingLabel="Fetching & Ingesting EOD Data…">

@@ -113,6 +113,8 @@ export async function syncEodMarketPricesAction(_: ActionState, form: FormData):
   const rawScope = form.get("scope")?.toString() || "active";
   const customSymbolsRaw = form.get("customSymbols")?.toString() || "";
   const daysRaw = Number(form.get("days")?.toString() || 10);
+  const rawIncludeToday = form.get("includeToday")?.toString();
+  const includeToday = rawIncludeToday === undefined || rawIncludeToday === "true" || rawIncludeToday === "on";
 
   const scope = rawScope === "top" || rawScope === "all" || rawScope === "custom" ? rawScope : "active";
   const days = Number.isFinite(daysRaw) && daysRaw > 0 ? daysRaw : 10;
@@ -121,7 +123,7 @@ export async function syncEodMarketPricesAction(_: ActionState, form: FormData):
     : undefined;
 
   try {
-    const report = await triggerEodSync(s.userId, { scope, symbols, days });
+    const report = await triggerEodSync(s.userId, { scope, symbols, days, includeToday });
     revalidatePath("/admin");
     return {
       ok: true,

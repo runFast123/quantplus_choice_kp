@@ -10,6 +10,7 @@ export interface SyncEodOptions {
   symbols?: string[];
   days?: number;
   triggerDownstream?: boolean;
+  includeToday?: boolean;
 }
 
 export interface SyncEodReport {
@@ -35,44 +36,42 @@ interface RawYahooBar {
   volume: number;
 }
 
-const DEFAULT_BENCHMARKS = ["NIFTY", "BANKNIFTY", "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN", "BHARTIARTL", "ITC"];
+const DEFAULT_BENCHMARKS = [
+  "NIFTY", "BANKNIFTY", "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN",
+  "BHARTIARTL", "ITC", "LT", "KOTAKBANK", "AXISBANK", "ASIANPAINT", "MARUTI",
+  "SUNPHARMA", "TITAN", "BAJFINANCE", "TATAMOTORS", "ULTRACEMCO", "WIPRO",
+  "HCLTECH", "NTPC", "POWERGRID", "M&M", "ADANIENT", "ADANIPORTS", "COALINDIA",
+  "TATASTEEL", "BAJAJFINSV", "APOLLOTYRE", "HINDUNILVR"
+];
 
 /**
- * Determine if an IST session is settled.
- * Trading closes at 15:30 IST; closing auction settles by 15:45 IST.
+ * Get the maximum acceptable date for IST trading bars.
+ * By default includes today so that live / latest available trading bars are captured.
  */
-function isSessionSettled(now = new Date()): { settledDateStr: string; isTodaySettled: boolean } {
-  // IST offset is UTC + 5:30 (330 minutes)
+function getSessionMaxDate(allowToday = true): string {
   const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
-  const istTime = new Date(now.getTime() + istOffsetMs);
+  const istTime = new Date(Date.now() + istOffsetMs);
+  const todayStr = istTime.toISOString().slice(0, 10);
+  if (allowToday) return todayStr;
+
   const hours = istTime.getUTCHours();
   const minutes = istTime.getUTCMinutes();
-  const totalMins = hours * 60 + minutes;
+  const isTodaySettled = (hours * 60 + minutes) >= 945; // 15:45 IST
+  if (isTodaySettled) return todayStr;
 
-  // 15:45 IST is 15 * 60 + 45 = 945 minutes
-  const isTodaySettled = totalMins >= 945;
-
-  // Format today in IST as YYYY-MM-DD
-  const todayStr = istTime.toISOString().slice(0, 10);
-  if (isTodaySettled) {
-    return { settledDateStr: todayStr, isTodaySettled: true };
-  }
-
-  // If today is not settled yet, settled date is yesterday
   const prevDay = new Date(istTime.getTime() - 24 * 60 * 60 * 1000);
-  return { settledDateStr: prevDay.toISOString().slice(0, 10), isTodaySettled: false };
+  return prevDay.toISOString().slice(0, 10);
 }
 
 /**
- * Fetch daily candles for a single ticker from Yahoo Finance v8 chart API.
+ * Fetch raw candle array from a specific Yahoo ticker symbol.
  */
-async function fetchYahooBars(
+async function fetchSingleYahooTicker(
   symbol: string,
-  vendorTicker: string | null,
-  rangeDays = 10,
-  settled: { settledDateStr: string; isTodaySettled: boolean },
+  ticker: string,
+  rangeDays: number,
+  maxDateStr: string,
 ): Promise<RawYahooBar[]> {
-  const ticker = vendorTicker || (symbol.startsWith("^") ? symbol : `${symbol}.NS`);
   const range = rangeDays <= 5 ? "5d" : rangeDays <= 15 ? "1mo" : "3mo";
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}`;
 
@@ -81,18 +80,14 @@ async function fetchYahooBars(
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       "Accept": "application/json",
     },
-    signal: AbortSignal.timeout(12000),
+    signal: AbortSignal.timeout(10000),
   });
 
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
+  if (!res.ok) return [];
 
   const data = await res.json();
   const result = data.chart?.result?.[0];
-  if (!result || !result.timestamp || !result.indicators?.quote?.[0]) {
-    return [];
-  }
+  if (!result || !result.timestamp || !result.indicators?.quote?.[0]) return [];
 
   const timestamps: number[] = result.timestamp;
   const quotes = result.indicators.quote[0];
@@ -106,10 +101,8 @@ async function fetchYahooBars(
     const dateObj = new Date(rawTs * 1000);
     const dateStr = dateObj.toISOString().slice(0, 10);
 
-    // If today is not yet settled (before 15:45 IST), skip today's partial moving bar
-    if (dateStr > settled.settledDateStr) {
-      continue;
-    }
+    // Skip bars dated in the future
+    if (dateStr > maxDateStr) continue;
 
     let o = quotes.open?.[i];
     let h = quotes.high?.[i];
@@ -129,12 +122,9 @@ async function fetchYahooBars(
     if (typeof o !== "number" || typeof h !== "number" || typeof l !== "number" || typeof c !== "number") continue;
     if (o <= 0 || h <= 0 || l <= 0 || c <= 0) continue;
 
-    // Sanity checks on OHLC
     const high = Math.max(h, o, c);
     const low = Math.min(l, o, c);
     const volume = Math.max(0, Math.floor(v));
-
-    // Candle ts stamped at 10:00:00Z = 15:30 IST session close per spec
     const isoTs = `${dateStr}T10:00:00.000Z`;
 
     bars.push({
@@ -152,12 +142,46 @@ async function fetchYahooBars(
 }
 
 /**
- * Execute synchronous EOD price sync across active or full market universe.
+ * Fetch daily candles for a symbol, with dual-exchange (NSE -> BSE) resilience.
+ */
+async function fetchYahooBars(
+  symbol: string,
+  vendorTicker: string | null,
+  rangeDays: number,
+  maxDateStr: string,
+): Promise<RawYahooBar[]> {
+  const isIndex = symbol.startsWith("^") || vendorTicker?.startsWith("^");
+  const primaryTicker = vendorTicker || (isIndex ? symbol : `${symbol}.NS`);
+
+  const bars = await fetchSingleYahooTicker(symbol, primaryTicker, rangeDays, maxDateStr);
+
+  // If latest bar is missing or older than maxDateStr, attempt BSE (.BO) fallback for equities
+  if (!isIndex && !vendorTicker && (bars.length === 0 || bars[bars.length - 1].ts.slice(0, 10) < maxDateStr)) {
+    try {
+      const bseBars = await fetchSingleYahooTicker(symbol, `${symbol}.BO`, rangeDays, maxDateStr);
+      if (bseBars.length > 0) {
+        for (const bb of bseBars) {
+          if (!bars.some((b) => b.ts === bb.ts)) {
+            bars.push(bb);
+          }
+        }
+        bars.sort((a, b) => a.ts.localeCompare(b.ts));
+      }
+    } catch {
+      // BSE fallback non-fatal
+    }
+  }
+
+  return bars;
+}
+
+/**
+ * Execute synchronous EOD price sync across active, top, or full market universe.
  */
 export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncEodReport> {
   const t0 = performance.now();
   const db = serviceRole();
-  const { actorId, scope = "active", days = 10, triggerDownstream = true } = options;
+  const { actorId, scope = "active", days = 15, triggerDownstream = true, includeToday = true } = options;
 
   if (actorId && !(await isPlatformAdmin(actorId))) {
     throw new PrivilegedError("NOT_AUTHORIZED");
@@ -169,7 +193,7 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
   if (options.symbols && options.symbols.length > 0) {
     targetSymbols = options.symbols.map((s) => s.trim().toUpperCase()).filter(Boolean);
   } else if (scope === "active") {
-    // Collect watched, held, and alerted symbols
+    // Collect watched, held, alerted symbols + core liquid benchmarks
     const [wRes, hRes, aRes] = await Promise.all([
       db.from("watchlist_items").select("symbol"),
       db.from("holdings").select("symbol"),
@@ -190,9 +214,9 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
       .eq("is_active", true)
       .order("mcap_rank", { ascending: true, nullsFirst: false })
       .limit(100);
-    targetSymbols = (data ?? []).map((r) => r.symbol);
-    if (!targetSymbols.includes("NIFTY")) targetSymbols.push("NIFTY");
-    if (!targetSymbols.includes("BANKNIFTY")) targetSymbols.push("BANKNIFTY");
+    const topSet = new Set<string>(DEFAULT_BENCHMARKS);
+    for (const r of data ?? []) if (r.symbol) topSet.add(r.symbol);
+    targetSymbols = Array.from(topSet);
   } else if (scope === "all") {
     const { data } = await db
       .from("market_symbols")
@@ -228,18 +252,18 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
     vendorMap.set(m.symbol, m.vendor_ticker);
   }
 
-  const settled = isSessionSettled();
+  const maxDateStr = getSessionMaxDate(includeToday);
   const allCandles: RawYahooBar[] = [];
   const failedSymbols: string[] = [];
   const updatedSymbolsSet = new Set<string>();
 
-  // Fetch in chunks of 10 concurrently
-  const CHUNK_SIZE = 10;
+  // Fetch in concurrent chunks of 20
+  const CHUNK_SIZE = 20;
   for (let i = 0; i < targetSymbols.length; i += CHUNK_SIZE) {
     const chunk = targetSymbols.slice(i, i + CHUNK_SIZE);
     const results = await Promise.allSettled(
       chunk.map(async (s) => {
-        const bars = await fetchYahooBars(s, vendorMap.get(s) ?? null, days, settled);
+        const bars = await fetchYahooBars(s, vendorMap.get(s) ?? null, days, maxDateStr);
         return { symbol: s, bars };
       }),
     );
@@ -255,9 +279,8 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
       }
     }
 
-    // Small delay between chunks to be courteous to Yahoo
     if (i + CHUNK_SIZE < targetSymbols.length) {
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      await new Promise((resolve) => setTimeout(resolve, 40));
     }
   }
 
@@ -304,7 +327,7 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
       const part = touchedSymbols.slice(m, m + ANALYTICS_CHUNK);
       try {
         const { data: aData } = await db.rpc("svc_refresh_market_analytics", {
-          p_days: Math.max(10, days + 5),
+          p_days: Math.max(15, days + 5),
           p_symbols: part,
         });
         if (aData && typeof aData === "object") {

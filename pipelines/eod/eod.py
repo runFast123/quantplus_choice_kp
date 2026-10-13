@@ -371,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--symbols", help="comma-separated subset (default: every active symbol)")
     ap.add_argument("--sync-universe", action="store_true", help="refresh market_symbols from Yahoo's NSE screener first")
     ap.add_argument("--repair", action="store_true", help="re-fetch the full history of --symbols and repair price breaks")
+    ap.add_argument("--live", action="store_true", help="include today's live/active trading bar even before session settlement")
     args = ap.parse_args(argv)
 
     if args.repair and not args.symbols:
@@ -384,7 +385,8 @@ def main(argv: list[str] | None = None) -> int:
         meta = {s: meta[s] for s in args.symbols.split(",") if s in meta}
     tick = {s: yahoo_ticker(s, r.get("vendor_ticker")) for s, r in meta.items()}
     have = db.quoted()
-    settled = last_settled_day(datetime.now(timezone.utc))
+    now_utc = datetime.now(timezone.utc)
+    settled = now_utc.astimezone(IST).date() if args.live else last_settled_day(now_utc)
 
     old = [s for s in meta if s in have]
     new = [s for s in meta if s not in have]

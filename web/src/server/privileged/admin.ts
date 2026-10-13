@@ -348,7 +348,7 @@ export async function triggerEodNotifier(actorId: string) {
 
 export async function triggerEodSync(
   actorId: string,
-  options?: { scope?: "active" | "top" | "all" | "custom"; symbols?: string[]; days?: number },
+  options?: { scope?: "active" | "top" | "all" | "custom"; symbols?: string[]; days?: number; includeToday?: boolean },
 ) {
   if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
   const { syncEodPrices } = await import("./eod-sync");
