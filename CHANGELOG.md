@@ -6,6 +6,20 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Landing & Integrations Experience Updates (`web/src/app/`, `web/src/components/`)
+- **QuantsPulse Chrome Extension Terminal Showcase (`web/src/app/page.tsx`)**:
+  - Added dedicated `#terminal` section highlighting the Chrome Extension Heads-Up Display (HUD) and slide-over research panel with live on-chart specimens across 23+ Indian brokers (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, TradingView).
+  - Outlined on-chart HUD capabilities: live signals (`ACTIVE LONG` / `EXIT`), Entry base, 1.0R trailing stop, and scale-out targets (T1 +3%, T2 +6%, T3 +12%) with 0 broker credentials or trading key requirements.
+- **Interactive TradingView Pine Script v5 Strategy Generator (`web/src/app/page.tsx`, `web/src/components/market/`)**:
+  - Added dedicated `#pine` section with the interactive `PineScriptGeneratorPanel`, letting traders test, configure, and 1-click copy clean, non-repainting Pine Script v5 indicator code directly from the landing page.
+  - Added `CopyPineButton` to individual stock pages (`web/src/app/app/markets/[symbol]/page.tsx`) allowing 1-click Pine Script indicator generation for any tracked equity.
+  - Documented strict alternating execution, `barstate.isconfirmed` zero-repainting guarantee, and automated target overlays.
+- **Enhanced Integrations Desk (`web/src/app/app/integrations/page.tsx`)**:
+  - Restructured the integrations portal into 4 comprehensive operational modules: Chrome Extension Terminal with installation instructions, TradingView Pine Script Generator, Multi-Broker CSV Portfolio Import (Zerodha, Groww, Angel One, ICICI Direct, Upstox), and Bring-Your-Own-Key (BYOK) AI encryption.
+- **Expanded Marketing Dateline, Steps & FAQs**:
+  - Updated marketing dateline to feature 3,600+ listings, 17:00 IST automated settlement, broker HUD overlays, Pine Script v5, and 1-click CSV imports.
+  - Added detailed FAQs covering Chrome Extension broker compatibility, TradingView Pine Script indicators, and CSV portfolio imports.
+
 ### Fixed — Chrome Extension Symbol & HUD Sync on Chart Switching (`extension/`)
 - **Resolved Stale Symbol Bug when Switching Charts on Broker Platforms**:
   - Fixed an issue where switching instruments/charts on the same broker terminal (Choice FinX, TradingView, Zerodha Kite, Groww, etc.) caused the extension on-chart HUD and Side Panel to remain stuck on the previously detected symbol.

@@ -7,11 +7,14 @@ export function SiteNav({ signedIn }: { signedIn: boolean }) {
     <header className="mx-auto flex h-16 max-w-[1240px] items-center justify-between px-5 md:px-8">
       <Logo />
       <nav aria-label="Site" className="hidden items-center gap-7 text-[13.5px] text-muted-foreground md:flex">
+        <Link href="/#terminal" className="hover:text-foreground">
+          Terminal HUD
+        </Link>
+        <Link href="/#pine" className="hover:text-foreground">
+          Pine Script
+        </Link>
         <Link href="/#how" className="hover:text-foreground">
           How it works
-        </Link>
-        <Link href="/#privacy" className="hover:text-foreground">
-          Privacy
         </Link>
         <Link href="/#pricing" className="hover:text-foreground">
           Pricing

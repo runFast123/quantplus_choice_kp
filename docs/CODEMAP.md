@@ -113,6 +113,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `news/news.test.mts` | unit tests (`npm run test:unit`) |
 | `trade-plan.ts` | `calculateTradePlan`, `calculatePositionSize`, `evaluateSentiment`, `evaluateSignalProgress`, `auditStockSentiment`, `deduplicateChartSignals`, `getAlphaLevel`, `computeExitNodeHistory`, types `TradePlanResult`, `PositionSizeResult`, `SentimentResult`, `SignalProgressResult`, `TargetStatus`, `QuantumAuditItem`, `RawChartMarker`, `ExitLogEntry` |
 | `trade-plan.test.mts` | unit tests (`npm run test:unit`) |
+| `pine-script.ts` | `generateCleanPineScript(symbol, mode)`, type `PineStrategyMode` ("core" \| "swing") |
+| `pine-script.test.mts` | unit tests (`npm run test:unit`) |
 | `types.ts` | row types: `Plan`, `Entitlements`, `Membership`, `Profile`, `Quote`, `Candle`, `Holding`, `Portfolio`, `Watchlist`, `WatchlistItem`, `PriceAlert`, `Signal`, `NotificationRow` + enums |
 | `env.ts` | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SITE_URL` |
 | `supabase/server.ts` | `supabaseServer()` — RLS client for server components/actions |
@@ -175,7 +177,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/pager.tsx` | `Pager` (prev/next, keeps params), `pageParam(raw)` — every server-paginated table |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` ("/" shortcut), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
-| `market/*` | `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital-constrained sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
+| `market/*` | `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital-constrained sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + signal markers), type `ChartMarker` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
 | `charts/market-chart-view.tsx` | `MarketChartView` (unified tab switcher between QuantsPulse Signals and TradingView Pro) |
