@@ -277,12 +277,20 @@
       if (c) return c;
     }
 
-    // 4. Token fallback (ONLY for short UI button labels <= 3 tokens like "Q NIFTY" or "RELIANCE EQ")
-    const tokens = sText.split(/[\s,·|_\/\(\)]+/);
-    if (tokens.length <= 3) {
-      for (const t of tokens) {
-        const c = cleanTicker(t);
-        if (c) return c;
+    // 4. Token analysis (handles "TCS, 1D, NSE..." or "RELIANCE EQ" or short button labels)
+    const tokens = sText.split(/[\s,·|_\/\(\)]+/).filter(Boolean);
+    if (tokens.length > 0) {
+      const first = cleanTicker(tokens[0]);
+      if (first) {
+        if (tokens.length <= 3 || /^(?:\d+[DWM]?|NSE|BSE|EQ|[\d,]+(?:\.\d+)?)$/i.test(tokens[1])) {
+          return first;
+        }
+      }
+      if (tokens.length <= 3) {
+        for (const t of tokens) {
+          const c = cleanTicker(t);
+          if (c) return c;
+        }
       }
     }
     return "";
@@ -354,6 +362,86 @@
     return "Broker Terminal";
   }
 
+  // 1. Dedicated On-Chart Header & Legend Extractor (HIGHEST AUTHORITY)
+  function extractOnChartSymbol() {
+    // A. Chart Header Toolbar Symbol Search Button / Input (TradingView & broker wrappers)
+    const tvHeaders = document.querySelectorAll(
+      "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], [data-name='symbol-search-items'], button[id*='symbol-search' i], div[id*='symbol-search' i], button[aria-label*='Symbol' i], button[aria-label*='symbol' i], button[title*='Symbol' i], [class*='symbolSearchText'], [class*='symbolSearch-'], div[class*='symbolSearch'], [class*='symbol-edit'], [class*='symbolEdit'], [data-role='button'][id*='symbol' i]"
+    );
+    for (const btn of tvHeaders) {
+      const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
+      if (text) {
+        const sym = extractTickerFromText(text);
+        if (sym) return sym;
+      }
+    }
+
+    // B. Chart Legend Series Title (where "NIFTY, 1D, NSE" or "TCS 15 NSE" is dynamically rendered)
+    const legendEls = document.querySelectorAll(
+      "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title'], [class*='pane-legend-title'], [class*='sourcesWrapper']"
+    );
+    for (const el of legendEls) {
+      const text = el.getAttribute("data-symbol-full") || el.getAttribute("data-symbol") || el.getAttribute("title") || el.getAttribute("aria-label") || el.textContent;
+      if (text) {
+        const sym = extractTickerFromText(text);
+        if (sym) return sym;
+      }
+    }
+    return "";
+  }
+
+  // 2. Dedicated Active / Selected Watchlist Instrument Extractor (PREVENTS ACCIDENTAL ROW 0 MATCHES)
+  function extractActiveWatchlistItem() {
+    const activeSelectors = [
+      "[data-name='watch-list-item'][class*='active']",
+      "[data-name='watch-list-item'][aria-selected='true']",
+      "[data-name='watch-list-item'].selected",
+      ".instrument.selected .nice-name",
+      ".instrument.selected",
+      "[class*='selected-scrip']",
+      "[class*='active-instrument']",
+      "[class*='scrip-item'][class*='active']",
+      "[class*='scrip-item'][class*='selected']",
+      "tr[class*='active'] [class*='scrip']",
+      "tr[class*='selected'] [class*='scrip']",
+      "tr[class*='active'] [class*='symbol']",
+      "tr[class*='selected'] [class*='symbol']",
+      "tr[class*='active']",
+      "tr[class*='selected']",
+      "div[class*='item'][class*='active']",
+      "div[class*='item'][class*='selected']",
+      "li[class*='active']",
+      "li[class*='selected']",
+      "[aria-selected='true'][class*='scrip']",
+      "[aria-selected='true'][class*='symbol']",
+      "[aria-selected='true']",
+      ".order-window .instrument-name",
+      ".tv-chart-container .instrument",
+      "[class*='active-scrip']",
+      "[class*='header-symbol']",
+      "[data-testid*='active-symbol']",
+    ];
+
+    for (const sel of activeSelectors) {
+      try {
+        const els = document.querySelectorAll(sel);
+        for (const el of els) {
+          const raw = el.getAttribute("data-symbol-full") ||
+                      el.getAttribute("data-symbol") ||
+                      el.getAttribute("data-ticker") ||
+                      el.textContent;
+          if (raw) {
+            const sym = extractTickerFromText(raw);
+            if (sym) return sym;
+          }
+        }
+      } catch {}
+    }
+    return "";
+  }
+
+  let lastObservedUrl = "";
+
   function detectSymbol() {
     // 1. Never broadcast detection from background/hidden tabs to eliminate tab-fighting loops
     if (document.hidden) {
@@ -373,11 +461,19 @@
     const host = window.location.hostname.toLowerCase();
     const href = window.location.href;
     const title = document.title || "";
-
-    let symbol = "";
     const platform = getPlatformName();
 
-    // 1. TradingView official URL router parameter (HIGHEST AUTHORITY ON TRADINGVIEW - e.g. ?symbol=NSE:HDFCBANK)
+    let symbol = "";
+
+    // 1. ON-CHART ELEMENTS (HIGHEST PRIORITY - reads the live toolbar button or legend directly rendered on screen)
+    symbol = extractOnChartSymbol();
+
+    // 2. ACTIVE / SELECTED WATCHLIST INSTRUMENT (when user switches stock in broker watchlist)
+    if (!symbol) {
+      symbol = extractActiveWatchlistItem();
+    }
+
+    // 3. TradingView official URL router parameter (if on tradingview.com)
     if (!symbol && host.includes("tradingview.com")) {
       try {
         const p = new URLSearchParams(window.location.search);
@@ -394,58 +490,6 @@
           }
         }
       } catch {}
-    }
-
-    // 2. Embedded TradingView / Broker Chart Header Toolbar Symbol Search Button
-    // Strictly target elements with 'symbol' in attributes to prevent matching Alert, Replay, etc.
-    if (!symbol) {
-      const tvHeaders = document.querySelectorAll(
-        "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], [data-name='symbol-search-items'], button[id*='symbol-search' i], div[id*='symbol-search' i], button[aria-label*='Symbol' i], button[aria-label*='symbol' i], button[title*='Symbol' i], [class*='symbolSearchText'], [class*='symbolSearch-'], div[class*='symbolSearch'], [class*='symbol-edit'], [class*='symbolEdit'], [data-role='button'][id*='symbol' i]"
-      );
-      for (const btn of tvHeaders) {
-        const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
-        if (text) {
-          const sym = extractTickerFromText(text);
-          if (sym) {
-            symbol = sym;
-            break;
-          }
-        }
-      }
-    }
-
-    // 3. Chart Legend series title (reads data-symbol-full, title, or visible text)
-    if (!symbol) {
-      const legendEls = document.querySelectorAll(
-        "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title'], [class*='pane-legend-title'], [class*='sourcesWrapper']"
-      );
-      for (const el of legendEls) {
-        const text = el.getAttribute("data-symbol-full") || el.getAttribute("data-symbol") || el.getAttribute("title") || el.getAttribute("aria-label") || el.textContent;
-        if (text) {
-          const sym = extractTickerFromText(text);
-          if (sym) {
-            symbol = sym;
-            break;
-          }
-        }
-      }
-    }
-
-    // 3. Watchlist / Active Selected Instrument / Scrip Details Across All Brokers
-    if (!symbol) {
-      const sidebarEls = document.querySelectorAll(
-        "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], .instrument.selected .nice-name, .instrument.selected, .order-window .instrument-name, .tv-chart-container .instrument, [class*='selected-scrip'], [class*='active-instrument'], [class*='scrip_name'], [class*='symbol_name'], [class*='stock-name'], .scrip-name, [data-testid*='symbol'], [data-testid*='instrument'], [class*='symbol-item-name'], [class*='header-symbol']"
-      );
-      for (const el of sidebarEls) {
-        const raw = el.getAttribute("data-symbol-full") || el.getAttribute("data-symbol") || el.textContent;
-        if (raw) {
-          const sym = extractTickerFromText(raw);
-          if (sym) {
-            symbol = sym;
-            break;
-          }
-        }
-      }
     }
 
     // 4. URL parameters & path (e.g. ?symbols=1@26000, ?symbol=RELIANCE, /stocks/..., /chart/...)
@@ -497,7 +541,7 @@
       if (yfMatch) symbol = cleanTicker(yfMatch[1]);
     }
 
-    // 6. Strict Document Title Fallback (LAST RESORT ONLY - structured patterns, never arbitrary words)
+    // 6. Strict Document Title Fallback (LAST RESORT ONLY)
     if (!symbol && title) {
       const sym = extractTickerFromTitle(title);
       if (sym) symbol = sym;
@@ -505,6 +549,7 @@
 
     if (symbol && symbol !== lastDetectedSymbol) {
       lastDetectedSymbol = symbol;
+      lastObservedUrl = href;
       safeSendMessage({
         type: "SYMBOL_DETECTED",
         symbol,
@@ -700,8 +745,20 @@
 
   function renderHud(data) {
     if (!data || !data.symbol) return;
-    const shadow = getOrCreateShadowRoot();
-    if (!shadow) return;
+    let shadow = getOrCreateShadowRoot();
+    if (!shadow) {
+      if (window !== window.top) {
+        try {
+          if (window.top && window.top.document) {
+            const topRoot = window.top.document.getElementById("quantspulse-chart-hud-root");
+            if (topRoot && topRoot.shadowRoot) {
+              shadow = topRoot.shadowRoot;
+            }
+          }
+        } catch {}
+      }
+      if (!shadow) return;
+    }
 
     // Default: Top-Left at top: 65px; left: 75px (clear of right watchlist and side panel)
     let savedPos = { top: "65px", left: "75px", right: "auto", bottom: "auto" };
@@ -1797,48 +1854,79 @@ if barstate.islast
       scheduleDetect(100);
     });
 
-    // 2. Watch for DOM & Title changes with debouncing
+    // 2. Hook HTML5 History API for instant detection on SPA client-side route changes
+    function hookHistory() {
+      try {
+        const origPushState = history.pushState;
+        if (typeof origPushState === "function") {
+          history.pushState = function () {
+            const ret = origPushState.apply(this, arguments);
+            scheduleDetect(100);
+            return ret;
+          };
+        }
+        const origReplaceState = history.replaceState;
+        if (typeof origReplaceState === "function") {
+          history.replaceState = function () {
+            const ret = origReplaceState.apply(this, arguments);
+            scheduleDetect(100);
+            return ret;
+          };
+        }
+        window.addEventListener("popstate", () => scheduleDetect(100), { passive: true });
+        window.addEventListener("hashchange", () => scheduleDetect(100), { passive: true });
+      } catch {}
+    }
+    hookHistory();
+
+    // 3. Watch for DOM & Title changes with debouncing (observes characterData and attributes for in-place chart changes)
     const obsTarget = document.body || document.documentElement;
     if (obsTarget) {
       mutationObserver = new MutationObserver(() => {
-        scheduleDetect(300);
+        scheduleDetect(200);
       });
       mutationObserver.observe(obsTarget, {
         subtree: true,
         childList: true,
-        characterData: false,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["title", "aria-label", "data-symbol", "data-symbol-full", "class", "src", "href"],
       });
     }
 
     const titleEl = document.querySelector("title");
     if (titleEl) {
       titleObserver = new MutationObserver(() => {
-        scheduleDetect(150);
+        scheduleDetect(100);
       });
       titleObserver.observe(titleEl, { subtree: true, characterData: true, childList: true });
     }
 
-    // 3. User interactions (clicks, keyboard, tab visibility switches)
-    document.addEventListener("click", onUserInteraction, { passive: true });
+    // 4. User interactions (clicks, keyboard, tab visibility switches)
+    function handleUserClick() {
+      scheduleDetect(100);
+      scheduleDetect(600); // Catch async broker chart re-renders
+    }
+    document.addEventListener("click", handleUserClick, { passive: true });
     document.addEventListener("keyup", onUserKeyup, { passive: true });
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && isExtensionValid()) {
-        scheduleDetect(150);
+        scheduleDetect(100);
       }
     });
 
-    // 4. Periodic background sync (every 3s, only when tab is visible)
+    // 5. Periodic background sync (every 2s, only when tab is visible)
     syncIntervalId = setInterval(() => {
       if (!isExtensionValid()) {
         destroyContentScript();
         return;
       }
       if (!document.hidden) {
-        scheduleDetect(500);
+        scheduleDetect(250);
       }
-    }, 3000);
+    }, 2000);
 
-    // 5. Storage synchronization (2-way sync with Side Panel)
+    // 6. Storage synchronization (2-way sync with Side Panel & other frames)
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (!isExtensionValid()) return;
@@ -1864,22 +1952,28 @@ if barstate.islast
           }
           if (changes.activeQuoteData?.newValue) {
             const quote = changes.activeQuoteData.newValue;
-            // Only update HUD if the quote matches our chart symbol or if this tab is the active focused tab
-            const matchesCurrent = lastDetectedSymbol ? quote.symbol === lastDetectedSymbol : !document.hidden;
-            if (quote && quote.symbol && matchesCurrent) {
+            if (quote && quote.symbol && !document.hidden) {
               lastDetectedSymbol = quote.symbol;
               currentQuoteData = quote;
               if (prefs.showChartOverlay !== false) {
                 prefs.isHidden = false;
+                if (hudRoot) hudRoot.style.display = "block";
                 renderHud(quote);
               }
+            }
+          }
+          if (changes.activeSymbol?.newValue) {
+            const sym = changes.activeSymbol.newValue;
+            if (sym && sym !== lastDetectedSymbol && !document.hidden) {
+              lastDetectedSymbol = sym;
+              fetchAndRenderHud(sym);
             }
           }
         }
       });
     } catch (e) {}
 
-    // 6. Direct Message from Side Panel / Background
+    // 7. Direct Message from Side Panel / Background
     try {
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!isExtensionValid()) return;
@@ -1887,6 +1981,7 @@ if barstate.islast
           currentQuoteData = message.data;
           lastDetectedSymbol = message.data.symbol;
           prefs.isHidden = false;
+          if (hudRoot) hudRoot.style.display = "block";
           renderHud(message.data);
           try { sendResponse({ ok: true }); } catch {}
           return true;

@@ -97,7 +97,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return r.json();
         })
         .then((data) => {
-          chrome.storage.local.set({ activeQuoteData: data });
+          chrome.storage.local.set({ activeQuoteData: data, activeSymbol: data.symbol });
           sendResponse({ ok: true, data });
         })
         .catch((err) => sendResponse({ ok: false, error: err.message }));

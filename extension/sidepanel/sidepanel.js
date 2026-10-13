@@ -272,7 +272,20 @@ if barstate.islast
     setTimeout(() => btnRefresh.classList.remove("spinning"), 600);
   });
 
-  // Storage listener for live tab updates
+  // 1. Direct runtime message listener from content scripts (instant detection without storage lag)
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type === "SYMBOL_DETECTED" && message.symbol) {
+      const sym = message.symbol.toUpperCase().trim();
+      if (message.platform) {
+        elPlatformBadge.textContent = message.platform;
+      }
+      if (sym && sym !== currentSymbol) {
+        loadSymbol(sym);
+      }
+    }
+  });
+
+  // 2. Storage listener for live tab updates
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
       if (changes.platform?.newValue) {
@@ -283,6 +296,25 @@ if barstate.islast
       }
     }
   });
+
+  // 3. Tab switch & URL navigation listeners
+  if (chrome.tabs?.onActivated) {
+    chrome.tabs.onActivated.addListener(() => {
+      detectActiveTab();
+    });
+  }
+  if (chrome.tabs?.onUpdated) {
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+      if (changeInfo.status === "complete" || changeInfo.url) {
+        detectActiveTab();
+      }
+    });
+  }
+
+  // 4. Periodic background sync (every 2.5s) to guarantee side panel tracks in-chart transitions
+  setInterval(() => {
+    detectActiveTab();
+  }, 2500);
 
   // Active Tab Detector across any window (including split / popped out views)
   async function findActiveFinanceTab() {
@@ -491,8 +523,30 @@ if barstate.islast
 
       let detected = null;
 
-      // 1. Direct message probe to content script first (quickest response)
-      if (tab.id) {
+      // 1. In-tab script execution across all frames (identifies exact chart frame vs watchlist container)
+      if (chrome.scripting && tab.id && isSupportedFinanceUrl(tab.url)) {
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id, allFrames: true },
+            func: inTabExtractorFunc,
+          });
+          if (results && Array.isArray(results)) {
+            // Prioritize chart source > watchlist source > url source > title source
+            const chartHit = results.find((r) => r?.result?.source === "chart");
+            const watchlistHit = results.find((r) => r?.result?.source === "watchlist");
+            const anyHit = results.find((r) => r?.result && r.result.symbol);
+            const hit = chartHit || watchlistHit || anyHit;
+            if (hit?.result?.symbol) {
+              detected = hit.result;
+            }
+          }
+        } catch (e) {
+          // Fallback below
+        }
+      }
+
+      // 2. Direct message probe to content script if in-tab execution didn't resolve
+      if (!detected && tab.id) {
         try {
           const resp = await new Promise((resolve) => {
             chrome.tabs.sendMessage(tab.id, { type: "POLL_DETECTED_SYMBOL" }, (r) => {
@@ -504,24 +558,6 @@ if barstate.islast
             detected = { symbol: resp.symbol, platform: resp.platform || getPlatformFromUrl(tab.url) };
           }
         } catch {}
-      }
-
-      // 2. In-tab script execution across all frames (crucial for broker embedded chart iframes like Choice FinX tv-charts)
-      if (!detected && chrome.scripting && tab.id && isSupportedFinanceUrl(tab.url)) {
-        try {
-          const results = await chrome.scripting.executeScript({
-            target: { tabId: tab.id, allFrames: true },
-            func: inTabExtractorFunc,
-          });
-          if (results && Array.isArray(results)) {
-            const hit = results.find((r) => r?.result && r.result.symbol);
-            if (hit?.result) {
-              detected = hit.result;
-            }
-          }
-        } catch (e) {
-          // Fallback to title/url analysis below
-        }
       }
 
       // 3. Fallback heuristic from tab title & url
@@ -694,11 +730,19 @@ if barstate.islast
         const c = clean(parenMatch[1]);
         if (c) return c;
       }
-      const tokens = sText.split(/[\s,·|_\/\(\)]+/);
-      if (tokens.length <= 3) {
-        for (const t of tokens) {
-          const c = clean(t);
-          if (c) return c;
+      const tokens = sText.split(/[\s,·|_\/\(\)]+/).filter(Boolean);
+      if (tokens.length > 0) {
+        const first = clean(tokens[0]);
+        if (first) {
+          if (tokens.length <= 3 || /^(?:\d+[DWM]?|NSE|BSE|EQ|[\d,]+(?:\.\d+)?)$/i.test(tokens[1])) {
+            return first;
+          }
+        }
+        if (tokens.length <= 3) {
+          for (const t of tokens) {
+            const c = clean(t);
+            if (c) return c;
+          }
         }
       }
       return "";
@@ -739,27 +783,7 @@ if barstate.islast
       return "";
     }
 
-    // 1. TradingView official URL router parameter (HIGHEST AUTHORITY ON TRADINGVIEW - e.g. ?symbol=NSE:HDFCBANK)
-    if (host.includes("tradingview.com")) {
-      try {
-        const p = new URLSearchParams(window.location.search);
-        const sVal = p.get("symbol");
-        if (sVal) {
-          const sym = extract(sVal);
-          if (sym) return { symbol: sym, platform };
-        }
-        if (href.includes("/symbols/")) {
-          const pathParts = window.location.pathname.split("/symbols/")[1];
-          if (pathParts) {
-            const sym = extract(pathParts);
-            if (sym) return { symbol: sym, platform };
-          }
-        }
-      } catch {}
-    }
-
-    // 2. Embedded TradingView Chart Header Toolbar Button
-    // Strictly target elements with 'symbol' in attributes to prevent matching Alert, Replay, etc.
+    // 1. Embedded TradingView / Broker Chart Header Toolbar Button (HIGHEST PRIORITY)
     const tvHeaders = document.querySelectorAll(
       "#header-toolbar-symbol-search, [data-name='header-toolbar-symbol-search'], [data-name='symbol-search-items'], button[id*='symbol-search' i], div[id*='symbol-search' i], button[aria-label*='Symbol' i], button[aria-label*='symbol' i], button[title*='Symbol' i], [class*='symbolSearchText'], [class*='symbolSearch-'], div[class*='symbolSearch'], [class*='symbol-edit'], [class*='symbolEdit'], [data-role='button'][id*='symbol' i]"
     );
@@ -767,11 +791,11 @@ if barstate.islast
       const text = btn.textContent || btn.getAttribute("title") || btn.getAttribute("aria-label");
       if (text) {
         const sym = extract(text);
-        if (sym) return { symbol: sym, platform };
+        if (sym) return { symbol: sym, platform, source: "chart" };
       }
     }
 
-    // 3. Chart Legend Series Title (where "Nifty 50 · 1D · NSE" or "Nifty Bank · 15 · NSE" is shown)
+    // 2. Chart Legend Series Title (where active candle ticker is rendered)
     const legEls = document.querySelectorAll(
       "[data-name='legend-source-title'], [data-name='legend-series-item'], div[class*='legendSourceTitle'], div[class*='titleWrapper'], div[class*='seriesTitle'], .chart-widget .pane-legend-line, div[class*='pane-legend'], .pane-legend, [class*='apply-common-tooltip'][class*='title'], [class*='legend-'] [class*='title'], [class*='pane-legend-title'], [class*='sourcesWrapper']"
     );
@@ -779,33 +803,83 @@ if barstate.islast
       const text = leg.getAttribute("data-symbol-full") || leg.getAttribute("data-symbol") || leg.getAttribute("title") || leg.getAttribute("aria-label") || leg.textContent;
       if (text) {
         const sym = extract(text);
-        if (sym) return { symbol: sym, platform };
+        if (sym) return { symbol: sym, platform, source: "chart" };
       }
     }
 
-    // 3. Watchlist & Scrip Selectors across all brokers
-    const itemEls = document.querySelectorAll(
-      "[data-name='symbol-title'], [data-name='quote-ticker'], div[class*='symbolTitle'], div[class*='symbol-title'], div[class*='symbolName'], [data-name='watch-list-item'][class*='active'], [data-name='watch-list-item'][aria-selected='true'], .instrument.selected .nice-name, .instrument.selected, .order-window .instrument-name, .tv-chart-container .instrument, [class*='selected-scrip'], [class*='active-instrument'], [class*='scrip_name'], [class*='symbol_name'], [class*='stock-name'], .scrip-name, [data-testid*='symbol'], [data-testid*='instrument'], [class*='symbol-item-name'], [class*='header-symbol']"
-    );
-    for (const item of itemEls) {
-      const raw = item.getAttribute("data-symbol-full") || item.getAttribute("data-symbol") || item.textContent;
-      if (raw) {
-        const sym = extract(raw);
-        if (sym) return { symbol: sym, platform };
-      }
+    // 3. Active Watchlist & Selected Scrip Selectors across all brokers
+    const activeSelectors = [
+      "[data-name='watch-list-item'][class*='active']",
+      "[data-name='watch-list-item'][aria-selected='true']",
+      "[data-name='watch-list-item'].selected",
+      ".instrument.selected .nice-name",
+      ".instrument.selected",
+      "[class*='selected-scrip']",
+      "[class*='active-instrument']",
+      "[class*='scrip-item'][class*='active']",
+      "[class*='scrip-item'][class*='selected']",
+      "tr[class*='active'] [class*='scrip']",
+      "tr[class*='selected'] [class*='scrip']",
+      "tr[class*='active'] [class*='symbol']",
+      "tr[class*='selected'] [class*='symbol']",
+      "tr[class*='active']",
+      "tr[class*='selected']",
+      "div[class*='item'][class*='active']",
+      "div[class*='item'][class*='selected']",
+      "li[class*='active']",
+      "li[class*='selected']",
+      "[aria-selected='true'][class*='scrip']",
+      "[aria-selected='true'][class*='symbol']",
+      "[aria-selected='true']",
+      ".order-window .instrument-name",
+      ".tv-chart-container .instrument",
+      "[class*='active-scrip']",
+      "[class*='header-symbol']",
+      "[data-testid*='active-symbol']",
+    ];
+    for (const sel of activeSelectors) {
+      try {
+        const itemEls = document.querySelectorAll(sel);
+        for (const item of itemEls) {
+          const raw = item.getAttribute("data-symbol-full") || item.getAttribute("data-symbol") || item.getAttribute("data-ticker") || item.textContent;
+          if (raw) {
+            const sym = extract(raw);
+            if (sym) return { symbol: sym, platform, source: "watchlist" };
+          }
+        }
+      } catch {}
     }
 
-    // 4. URL parameters & path (e.g. ?symbols=1@26000, ?symbol=RELIANCE, /stocks/..., /chart/...)
+    // 4. TradingView official URL router parameter
+    if (host.includes("tradingview.com")) {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        const sVal = p.get("symbol");
+        if (sVal) {
+          const sym = extract(sVal);
+          if (sym) return { symbol: sym, platform, source: "url" };
+        }
+        if (href.includes("/symbols/")) {
+          const pathParts = window.location.pathname.split("/symbols/")[1];
+          if (pathParts) {
+            const sym = extract(pathParts);
+            if (sym) return { symbol: sym, platform, source: "url" };
+          }
+        }
+      } catch {}
+    }
+
+    // 5. URL parameters & path (e.g. ?symbols=1@26000, ?symbol=RELIANCE, /stocks/..., /chart/...)
     try {
       const params = new URLSearchParams(window.location.search);
       for (const pKey of ["symbol", "symbols", "scrip", "tradingsymbol", "ticker", "instrument"]) {
         const val = params.get(pKey);
         if (val) {
           const choiceSym = resolveChoiceToken(val);
-          if (choiceSym) return { symbol: choiceSym, platform };
+          if (choiceSym) return { symbol: choiceSym, platform, source: "url" };
           if (!/^\d+$/.test(val) && !val.includes("@")) {
             const sym = extract(val);
-            if (sym) return { symbol: sym, platform };
+            if (sym) return { symbol: sym, platform, source: "url" };
           }
         }
       }
@@ -813,44 +887,44 @@ if barstate.islast
         const pathParts = window.location.pathname.split("/symbols/")[1];
         if (pathParts) {
           const sym = extract(pathParts);
-          if (sym) return { symbol: sym, platform };
+          if (sym) return { symbol: sym, platform, source: "url" };
         }
       }
     } catch {}
 
-    // 5. Broker-specific URL fallbacks
+    // 6. Broker-specific URL fallbacks
     if (host.includes("zerodha.com")) {
       const m = href.match(/\/chart\/(?:ext\/tvc\/)?(?:NSE|BSE)\/([A-Z0-9&-]+)/i);
       if (m) {
         const c = clean(m[1]);
-        if (c) return { symbol: c, platform: "Zerodha Kite" };
+        if (c) return { symbol: c, platform: "Zerodha Kite", source: "url" };
       }
     } else if (host.includes("groww.in")) {
       if (href.includes("/stocks/")) {
         const slug = href.split("/stocks/")[1]?.split(/[?#/]/)[0];
         if (slug) {
           const c = clean(slug);
-          if (c) return { symbol: c, platform: "Groww" };
+          if (c) return { symbol: c, platform: "Groww", source: "url" };
         }
       }
     } else if (host.includes("google.com") && href.includes("/finance")) {
       const m = href.match(/\/quote\/([A-Z0-9&-]+):(NSE|BSE)/i);
       if (m) {
         const c = clean(m[1]);
-        if (c) return { symbol: c, platform: "Google Finance" };
+        if (c) return { symbol: c, platform: "Google Finance", source: "url" };
       }
     } else if (host.includes("finance.yahoo.com")) {
       const m = href.match(/\/quote\/([A-Z0-9&-]+)\.(?:NS|BO)/i);
       if (m) {
         const c = clean(m[1]);
-        if (c) return { symbol: c, platform: "Yahoo Finance" };
+        if (c) return { symbol: c, platform: "Yahoo Finance", source: "url" };
       }
     }
 
-    // 6. Strict Document Title Fallback (LAST RESORT ONLY - structured patterns, never arbitrary words)
+    // 7. Strict Document Title Fallback
     if (title) {
       const sym = extractTitle(title);
-      if (sym) return { symbol: sym, platform };
+      if (sym) return { symbol: sym, platform, source: "title" };
     }
 
     return null;

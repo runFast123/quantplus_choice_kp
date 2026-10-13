@@ -6,6 +6,20 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed — Chrome Extension Symbol & HUD Sync on Chart Switching (`extension/`)
+- **Resolved Stale Symbol Bug when Switching Charts on Broker Platforms**:
+  - Fixed an issue where switching instruments/charts on the same broker terminal (Choice FinX, TradingView, Zerodha Kite, Groww, etc.) caused the extension on-chart HUD and Side Panel to remain stuck on the previously detected symbol.
+  - **Eliminated Watchlist Row-0 Trap**: Previously, un-scoped queries (e.g. `.scrip-name`, `div[class*='symbolName']`, `[data-name='symbol-title']`) matched the first row of the broker's watchlist table in document order rather than the active selected row, repeatedly locking the detected symbol to row 0. Replaced with `extractActiveWatchlistItem` scoped exclusively to active/selected elements (`.instrument.selected`, `.active`, `[aria-selected='true']`).
+  - **Prioritized Live On-Chart Elements Over Stale URL Parameters**: In TradingView and broker chart wrappers, the active toolbar button (`#header-toolbar-symbol-search`) and legend series title (`[data-name='legend-source-title']`, `.pane-legend-line`) now take highest precedence over static URL search parameters that may not update during client-side charting changes.
+  - **Enhanced Multi-Token Ticker Parsing**: Upgraded `extractTickerFromText` to extract tickers from legend strings containing multiple tokens (e.g. `"TCS, 1D, NSE O:3850..."`), preventing regex failures on multi-token chart headers.
+  - **Enabled CharacterData & Attribute DOM Observers**: MutationObserver in `extension/content-scripts/detector.js` now watches `characterData: true` and `attributes: true` with filters on `data-symbol-full`, `aria-label`, and `class`, detecting in-place chart changes that do not alter the DOM node hierarchy.
+  - **Hooked HTML5 History API for Instant SPA Navigation**: Added hooks for `history.pushState`, `history.replaceState`, `popstate`, and `hashchange` to trigger immediate debounced symbol re-probing whenever single-page broker applications navigate client-side.
+  - **Unblocked Multi-Frame & Storage Sync Deadlocks**:
+    - Fixed a blocking condition in `detector.js` storage listener where `matchesCurrent` discarded incoming quote updates if `quote.symbol !== lastDetectedSymbol`, which incorrectly prevented new symbol updates from applying.
+    - Updated `renderHud` in subframes to resolve and render into the top window's HUD root if hosted at the parent level.
+    - Added direct `chrome.runtime.onMessage` listener, `tabs.onActivated`, and `tabs.onUpdated` event handlers in `sidepanel.js` to ensure the side panel immediately syncs on chart changes.
+    - Prioritized on-chart frame extraction results in `sidepanel.js` over background iframe fallbacks.
+
 ### Added — Automated EOD Market Price Ingestion & Admin Manual Sync Engine (`web/src/`, `pipelines/eod/`)
 - **Native TypeScript EOD Market Price Sync Engine**:
   - Implemented `syncEodPrices` in `web/src/server/privileged/eod-sync.ts` directly fetching and reconciling daily candles from Yahoo Finance v8 chart API without requiring external Python environments on serverless hosts.
