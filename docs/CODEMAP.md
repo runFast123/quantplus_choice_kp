@@ -85,7 +85,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `privileged/audit.ts` | `audit({...})` | Append to `audit_log` with hashed IP |
 | `privileged/tenants.ts` | `switchTenant`, `createOrganization`, `createInvitation`, `previewInvitation`, `acceptInvitation`, `changeMemberRole` | Role-escalation rules live here |
 | `privileged/secrets.ts` | `saveAiKey` | Plan + consent checks, encryption, `svc_put_ai_key_secret` |
-| `privileged/admin.ts` | `isPlatformAdmin`, `searchUsers`, `activatePlan`, `platformStats`, `getDatabaseInventory`, `getRecentPayments`, `getRecentAuditLogs`, `triggerMarketAnalytics`, `triggerResearchRefresh`, `triggerEodNotifier`, types `AdminUserRow`, `DatabaseInventory`, `PaymentRow`, `AuditLogRow` | Platform console |
+| `privileged/admin.ts` | `isPlatformAdmin`, `searchUsers`, `activatePlan`, `platformStats`, `getDatabaseInventory`, `getRecentPayments`, `getRecentAuditLogs`, `triggerMarketAnalytics`, `triggerResearchRefresh`, `triggerEodNotifier`, `triggerEodSync`, types `AdminUserRow`, `DatabaseInventory`, `PaymentRow`, `AuditLogRow` | Platform console |
+| `privileged/eod-sync.ts` | `syncEodPrices`, types `SyncEodOptions`, `SyncEodReport` | Native Yahoo Finance EOD candle fetcher, validation & multi-step pipeline sync engine |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
 | `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
 | `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, `parseContractNoteWithMyKey(userId, tenantId, noteText)`, type `AiRead`, type `ParsedTrade` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
@@ -131,7 +132,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
 | `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey` |
 | `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount` |
-| `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow`, `refreshMarketAnalyticsAction`, `refreshResearchNotesAction`, `runEodNotifierAction` |
+| `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow`, `refreshMarketAnalyticsAction`, `refreshResearchNotesAction`, `runEodNotifierAction`, `syncEodMarketPricesAction` |
 | `app/app/research/actions.ts` | `askMyAi` (BYOK research read; nothing stored) |
 | `app/invite/[token]/page.tsx` | inline `accept` action |
 
@@ -154,6 +155,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/app/research` | Research desk (`?scope=mine&stance=&sort=score|low|change|news`) |
 | `/app/news` | News feed (`?scope=all&tone=&kind=news|filing&before=`) |
 | `/api/cron/news` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `ingestNews` |
+| `/api/cron/market-eod` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `syncEodPrices` (daily 17:00 & 20:00 IST) |
 | `/api/extension/quote?symbol=` | CORS-enabled quantitative intelligence payload for the Chrome Extension side panel |
 | `/admin` | platform console (404 unless platform admin) |
 

@@ -2,6 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["icn1"],
   "crons": [
-    { "path": "/api/cron/news", "schedule": "30 4 * * *" }
+    { "path": "/api/cron/news", "schedule": "30 4 * * *" },
+    { "path": "/api/cron/market-eod", "schedule": "30 11 * * 1-5" },
+    { "path": "/api/cron/market-eod", "schedule": "30 14 * * 1-5" }
   ]
 }

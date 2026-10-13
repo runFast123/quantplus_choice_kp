@@ -6,6 +6,29 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Automated EOD Market Price Ingestion & Admin Manual Sync Engine (`web/src/`, `pipelines/eod/`)
+- **Native TypeScript EOD Market Price Sync Engine**:
+  - Implemented `syncEodPrices` in `web/src/server/privileged/eod-sync.ts` directly fetching and reconciling daily candles from Yahoo Finance v8 chart API without requiring external Python environments on serverless hosts.
+  - Automatically identifies active universe (symbols watched in radars, held in portfolios, or monitored in price alerts, plus benchmarks) or full NSE universe (~3,600 symbols).
+  - Validates OHLC integrity and session settlement (stamps candles at 10:00:00 UTC = 15:30 IST session close; suppresses unsettled intraday bars before 15:45 IST).
+  - Automatically chains into downstream database pipelines: triggers `svc_refresh_market_analytics` (RSI & SMAs), `svc_refresh_research` (valuation/factor stances), and `svc_run_eod_notifier` (trailing stops and alert delivery).
+- **Automated Vercel Cron Scheduling (`web/vercel.json`)**:
+  - Added daily automated schedules to `vercel.json`:
+    - `30 11 * * 1-5`: Mon–Fri at 11:30 UTC = **17:00 IST** (immediately after daily session settles).
+    - `30 14 * * 1-5`: Mon–Fri at 14:30 UTC = **20:00 IST** (evening settlement retry).
+- **Secured Cron Route Handler (`/api/cron/market-eod`)**:
+  - Added timing-safe authorization via `CRON_SECRET` for Vercel Cron and external webhook triggers.
+- **Admin Console Manual Sync Panel (`web/src/app/admin/`)**:
+  - Added prominent **EOD Market Price Ingestion Engine** controls to the Admin Maintenance Panel (`web/src/app/admin/maintenance-panel.tsx`).
+  - Allows platform admins to manually trigger 1-click syncs anytime across:
+    - *Watched & Held Active Universe* (~50–200 symbols, fast sync in ~15–30s).
+    - *Top 100 Large Caps + Indices*.
+    - *Full NSE Universe* (~3,600 symbols).
+    - *Custom Tickers* with arbitrary scrip input.
+  - Added backfill window selection (5 days, 10 days, 30 days) and instant execution summary.
+- **Enhanced GitHub Workflow Resilience (`.github/workflows/market-eod.yml`)**:
+  - Added dual-path execution supporting Python `pipelines/eod/eod.py` when direct database secrets exist, and fallback webhook to `/api/cron/market-eod` when `CRON_SECRET` is set, with clear diagnostic notices.
+
 ### Fixed — TradingView Pine Script Indicator Strategy Alignment with QuantsPulse Core Engine (`extension/`)
 - **Resolved Indicator vs Platform Strategy Discrepancy**:
   - Identified cause of signal mismatch between TradingView Pine Script and QuantsPulse web portal: the Pine Script generator previously evaluated fast candle breakouts (`ta.crossover(close, sma20)`) and trend breaks (`ta.crossunder(close, sma20)`), creating rapid whipsaw buy/exit triggers during sideways consolidation. In contrast, the QuantsPulse platform database calculates macro `sma_20_50_cross` (20/50 SMA Golden/Death cross) and `rsi_reversal` (14-day RSI oversold 30 bounce / overbought 70 exit).

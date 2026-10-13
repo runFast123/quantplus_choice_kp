@@ -9,6 +9,7 @@ import {
   triggerMarketAnalytics,
   triggerResearchRefresh,
   triggerEodNotifier,
+  triggerEodSync,
 } from "@/server/privileged/admin";
 import { ingestNews } from "@/server/privileged/news";
 import { PrivilegedError } from "@/server/privileged/guards";
@@ -102,6 +103,32 @@ export async function runEodNotifierAction(): Promise<ActionState> {
     };
   } catch (e) {
     return { error: `EOD Notifier execution failed: ${(e as Error).message}` };
+  }
+}
+
+export async function syncEodMarketPricesAction(_: ActionState, form: FormData): Promise<ActionState> {
+  const s = await requireSession();
+  if (!(await isPlatformAdmin(s.userId))) return { error: "Not a platform admin." };
+
+  const rawScope = form.get("scope")?.toString() || "active";
+  const customSymbolsRaw = form.get("customSymbols")?.toString() || "";
+  const daysRaw = Number(form.get("days")?.toString() || 10);
+
+  const scope = rawScope === "top" || rawScope === "all" || rawScope === "custom" ? rawScope : "active";
+  const days = Number.isFinite(daysRaw) && daysRaw > 0 ? daysRaw : 10;
+  const symbols = scope === "custom" && customSymbolsRaw
+    ? customSymbolsRaw.split(/[,;\s]+/).map((t) => t.trim().toUpperCase()).filter(Boolean)
+    : undefined;
+
+  try {
+    const report = await triggerEodSync(s.userId, { scope, symbols, days });
+    revalidatePath("/admin");
+    return {
+      ok: true,
+      message: `✓ EOD Ingestion Complete: ${report.symbolsUpdated}/${report.symbolsTargeted} symbols updated (${report.candlesUpserted} candles written). Analytics recalculated for ${Object.keys(report.analyticsTotals).length > 0 ? "active" : "0"} symbols. Finished in ${(report.durationMs / 1000).toFixed(1)}s.`,
+    };
+  } catch (e) {
+    return { error: `EOD Ingestion failed: ${(e as Error).message}` };
   }
 }
 

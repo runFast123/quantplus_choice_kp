@@ -346,3 +346,12 @@ export async function triggerEodNotifier(actorId: string) {
   return data as Record<string, unknown>;
 }
 
+export async function triggerEodSync(
+  actorId: string,
+  options?: { scope?: "active" | "top" | "all" | "custom"; symbols?: string[]; days?: number },
+) {
+  if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
+  const { syncEodPrices } = await import("./eod-sync");
+  return syncEodPrices({ actorId, ...options });
+}
+
