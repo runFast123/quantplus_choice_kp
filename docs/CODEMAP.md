@@ -132,7 +132,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `app/app/portfolio/actions.ts` | `addHolding` (merges at weighted avg), `updateHolding`, `deleteHolding`, `createPortfolio` |
 | `app/app/alerts/actions.ts` | `createAlert`, `setAlertStatus`, `deleteAlert` |
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
-| `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey` |
+| `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey`, `fetchProviderModelsAction` |
 | `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount` |
 | `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow`, `refreshMarketAnalyticsAction`, `refreshResearchNotesAction`, `runEodNotifierAction`, `syncEodMarketPricesAction` |
 | `app/app/research/actions.ts` | `askMyAi` (BYOK research read; nothing stored) |

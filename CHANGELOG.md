@@ -6,6 +6,18 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added & Improved — AI Model Auto-Detection & Dynamic Provider Selector (`web/src/app/app/integrations/`)
+- **Dynamic Provider-Specific Model Selector (`forms.tsx`)**:
+  - Replaced the error-prone freeform text input with a curated, provider-tailored dropdown for Anthropic, OpenAI, and Google Gemini.
+  - Pre-populates recommended default models (e.g. Claude 3.7 Sonnet for Anthropic, GPT-4o for OpenAI, Gemini 2.0 Flash for Gemini) so members never need to memorize complex model strings.
+  - Added "Custom model ID…" fallback option for custom fine-tuned or unlisted enterprise model IDs.
+- **Live Model Auto-Detection with API Key Verification (`actions.ts`, `forms.tsx`)**:
+  - Introduced [`fetchProviderModelsAction`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/app/app/integrations/actions.ts): queries the official models API of Anthropic (`/v1/models`), OpenAI (`/v1/models`), or Google Gemini (`/v1beta/models`) directly via server-side fetch with the entered key.
+  - Added an interactive **"Auto-detect models"** action on the key field that instantly validates the key and updates the dropdown with all active, authorized models available to the member's account.
+  - Displays inline real-time status feedback (`✓ Key verified (N models loaded)` or `✕ Key rejected by provider`).
+- **Browser Autofill Prevention**:
+  - Eliminated accidental email/username auto-population into the model field (e.g. browser autofill inserting emails into model inputs) by switching to a `<Select>` element and tagging the API key input with `autoComplete="new-password"` and `data-lpignore="true"`.
+
 ### Improved & Hardened — Chrome DevTools Extension Audit & Industry-Standard Logic Upgrades (`extension/`, `web/`)
 - **Chrome DevTools Audit Completed (Zero Errors, Zero Warnings)**:
   - Audited the Chrome extension runtime across background service worker (`background.js`), side panel controller (`sidepanel.html`/`sidepanel.js`), and content script (`detector.js`) using Chrome DevTools Protocol via Chromium.
