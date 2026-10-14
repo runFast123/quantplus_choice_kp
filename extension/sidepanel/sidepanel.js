@@ -1035,6 +1035,8 @@ if barstate.islast
       isLoading = false;
       elLoading.classList.add("hidden");
     }
+  }
+
   let latestRenderedData = null;
 
   function render(data) {

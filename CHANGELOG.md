@@ -16,8 +16,10 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
   - **Network Retry Resilience**: Added transient network retry logic (`fetchWithRetry`) with backoff before failing requests on intermittent connection hiccups.
 - **Institutional Trading UX Upgrades (`extension/sidepanel/`)**:
   - **Pro Keyboard Shortcuts**: Added `/` and `Ctrl+K` / `Cmd+K` global shortcuts to instantly focus the symbol search input; `Escape` clears focus or closes open settings drawers. Added `<kbd>/</kbd>` shortcut indicator badge.
-  - **1-Click Level Copy to Clipboard**: Added interactive click-to-copy handlers on all key numeric price levels (Entry Trigger, Stop Loss, T1, T2, T3, Prev Close, SMA 20/50/200) with animated feedback tooltips (`Copied!`), enabling rapid order placement in broker trading tickets.
-  - **Repackaged Distribution Package**: Recompressed and verified [`web/public/downloads/quantspulse-terminal.zip`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/public/downloads/quantspulse-terminal.zip) (49 KB).
+- **Fixed Side Panel Load State & Added Compile-Time CI Guard (`extension/sidepanel/sidepanel.js`, `web/src/lib/extension-syntax.test.mts`)**:
+  - Fixed a missing closing brace on `loadSymbol` in `sidepanel.js` which previously caused a V8 compilation `SyntaxError: Unexpected token ')'` that aborted side panel script execution upon opening and left the UI frozen on the default "No active chart detected" placeholder.
+  - Added [`web/src/lib/extension-syntax.test.mts`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/lib/extension-syntax.test.mts) checking manifest validity and running `node -c` compilation on all extension scripts during `npm run test:unit` to guarantee zero syntax regressions.
+  - Re-packaged and verified [`web/public/downloads/quantspulse-terminal.zip`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/public/downloads/quantspulse-terminal.zip).
 
 ### Improved & Polished — 21st.dev Inspired Micro-Animations & Fluid Visual Interactions (`web/src/`, `extension/`)
 - **21st.dev "Zen Linen" Smooth Motion & Micro-Interactions**:
