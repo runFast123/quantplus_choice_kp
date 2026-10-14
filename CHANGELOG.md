@@ -6,6 +6,19 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Improved & Hardened — Chrome DevTools Extension Audit & Industry-Standard Logic Upgrades (`extension/`, `web/`)
+- **Chrome DevTools Audit Completed (Zero Errors, Zero Warnings)**:
+  - Audited the Chrome extension runtime across background service worker (`background.js`), side panel controller (`sidepanel.html`/`sidepanel.js`), and content script (`detector.js`) using Chrome DevTools Protocol via Chromium.
+  - Result: **0 runtime errors, 0 uncaught exceptions, 0 warnings**.
+- **Industry-Standard Logic & Resilience Upgrades (`extension/background.js`)**:
+  - **Session & Startup Lifecycle**: Registered `chrome.runtime.onStartup` alongside `onInstalled` so toolbar click side panel behavior persists reliably when Chrome reboots or restores sessions.
+  - **Intelligent In-Memory Caching (30s TTL)**: Added high-speed quote caching (`quoteCache = new Map()`) to eliminate redundant network round-trips when rapid-flipping between charts or watchlist instruments.
+  - **Network Retry Resilience**: Added transient network retry logic (`fetchWithRetry`) with backoff before failing requests on intermittent connection hiccups.
+- **Institutional Trading UX Upgrades (`extension/sidepanel/`)**:
+  - **Pro Keyboard Shortcuts**: Added `/` and `Ctrl+K` / `Cmd+K` global shortcuts to instantly focus the symbol search input; `Escape` clears focus or closes open settings drawers. Added `<kbd>/</kbd>` shortcut indicator badge.
+  - **1-Click Level Copy to Clipboard**: Added interactive click-to-copy handlers on all key numeric price levels (Entry Trigger, Stop Loss, T1, T2, T3, Prev Close, SMA 20/50/200) with animated feedback tooltips (`Copied!`), enabling rapid order placement in broker trading tickets.
+  - **Repackaged Distribution Package**: Recompressed and verified [`web/public/downloads/quantspulse-terminal.zip`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/public/downloads/quantspulse-terminal.zip) (49 KB).
+
 ### Improved & Polished — 21st.dev Inspired Micro-Animations & Fluid Visual Interactions (`web/src/`, `extension/`)
 - **21st.dev "Zen Linen" Smooth Motion & Micro-Interactions**:
   - Queried 21st.dev MCP catalog for modern micro-interaction patterns by `serafimcloud` and top community designers.

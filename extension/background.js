@@ -32,11 +32,19 @@ function isSupportedUrl(url) {
 }
 
 // 1. Enable Side Panel to open automatically when user clicks the extension toolbar icon
-chrome.runtime.onInstalled.addListener(() => {
+function initializeSidePanelBehavior() {
   if (chrome.sidePanel?.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
   }
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  initializeSidePanelBehavior();
   injectIntoExistingTabs();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  initializeSidePanelBehavior();
 });
 
 function injectIntoExistingTabs() {
@@ -55,6 +63,10 @@ function injectIntoExistingTabs() {
     }
   });
 }
+
+// In-Memory Intelligent Quote Cache (30s TTL for zero-latency chart switching)
+const quoteCache = new Map();
+const CACHE_TTL_MS = 30000;
 
 // 2. Manage Detected Symbols across Active Tabs
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -86,8 +98,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // 3. Handle On-Chart Quote & Signal fetch requests from Content Scripts
   if (message?.type === "FETCH_QUOTE_DATA" && message.symbol) {
-    const symbol = encodeURIComponent(message.symbol.trim());
+    const cleanSym = message.symbol.toUpperCase().trim();
+    const symbol = encodeURIComponent(cleanSym);
     const exchange = message.exchange || "NSE";
+
+    // Check in-memory cache first for instant zero-latency render
+    const cached = quoteCache.get(cleanSym);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      sendResponse({ ok: true, data: cached.data, fromCache: true });
+      return true;
+    }
+
     chrome.storage.local.get(["backendUrl", "qpAuthToken", "qpAuthenticated"], (res) => {
       const baseUrl = (res.backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
       const url = `${baseUrl}/api/extension/quote?symbol=${symbol}&exchange=${exchange}`;
@@ -96,17 +117,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         headers["Authorization"] = `Bearer ${res.qpAuthToken}`;
       }
 
-      fetch(url, { headers })
-        .then(async (r) => {
-          if (r.status === 401) {
-            chrome.storage.local.set({ qpAuthenticated: false });
-            const errData = await r.json().catch(() => ({}));
-            throw { isAuthError: true, ...errData };
-          }
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
+      const fetchWithRetry = (retriesLeft = 1) => {
+        return fetch(url, { headers })
+          .then(async (r) => {
+            if (r.status === 401) {
+              chrome.storage.local.set({ qpAuthenticated: false });
+              const errData = await r.json().catch(() => ({}));
+              throw { isAuthError: true, ...errData };
+            }
+            if (!r.ok) {
+              if (retriesLeft > 0 && r.status >= 500) {
+                await new Promise((resolve) => setTimeout(resolve, 350));
+                return fetchWithRetry(retriesLeft - 1);
+              }
+              throw new Error(`HTTP ${r.status}`);
+            }
+            return r.json();
+          });
+      };
+
+      fetchWithRetry()
         .then((data) => {
+          // Store in fast in-memory cache
+          quoteCache.set(cleanSym, { data, timestamp: Date.now() });
           chrome.storage.local.set({ activeQuoteData: data, activeSymbol: data.symbol });
           sendResponse({ ok: true, data });
         })

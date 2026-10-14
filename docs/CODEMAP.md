@@ -215,9 +215,9 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Path | What |
 |---|---|
 | `extension/manifest.json` | Manifest V3: `sidePanel`, permissions, broker matches, `all_frames: true` |
-| `extension/background.js` | Service worker: toolbar badge, active symbol storage, `FETCH_QUOTE_DATA` relay proxy |
+| `extension/background.js` | Service worker: toolbar badge, active symbol storage, `FETCH_QUOTE_DATA` relay with 30s in-memory quote cache & retry backoff, `onStartup` sidePanel initializer |
 | `extension/content-scripts/detector.js` | Ticker detection ladder (`KNOWN_INDICES`), Shadow DOM On-Chart HUD, drag/layout customization |
 | `extension/sidepanel/sidepanel.html` | Side Panel UI: quote card, signal banner, trade plan roadmap, key levels, sentiment bar |
-| `extension/sidepanel/sidepanel.js` | Side Panel controller: multi-broker detection (`detectActiveTab`), direct tab polling, Pine Script generator |
+| `extension/sidepanel/sidepanel.js` | Side Panel controller: multi-broker detection (`detectActiveTab`), direct tab polling, Pine Script generator, `/` & `Ctrl+K` shortcuts, 1-click level copy to clipboard |
 | `web/src/server/privileged/extension.ts` | Privileged API (`/api/extension/quote`): index aliases, trade plan calculation, sentiment audit |
 

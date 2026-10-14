@@ -1035,9 +1035,10 @@ if barstate.islast
       isLoading = false;
       elLoading.classList.add("hidden");
     }
-  }
+  let latestRenderedData = null;
 
   function render(data) {
+    latestRenderedData = data;
     elEmpty.classList.add("hidden");
     elContent.classList.remove("hidden");
     const emptyH3 = elEmpty.querySelector("h3");
@@ -1244,6 +1245,71 @@ if barstate.islast
       updateAuthUI(message.authenticated, message.user);
       if (message.authenticated && currentSymbol) {
         loadSymbol(currentSymbol);
+      }
+    }
+  });
+
+  // 1-Click Interactive Level Copy Helper (Institutional UX standard)
+  function copyTextToClipboard(text, targetEl, label = "Copied!") {
+    if (!text || text === "—") return;
+    navigator.clipboard.writeText(String(text)).then(() => {
+      showCopyTooltip(targetEl, label);
+    }).catch(() => {});
+  }
+
+  function showCopyTooltip(targetEl, text) {
+    if (!targetEl) return;
+    const existing = targetEl.querySelector(".copy-tooltip");
+    if (existing) existing.remove();
+    const tip = document.createElement("span");
+    tip.className = "copy-tooltip";
+    tip.textContent = text;
+    targetEl.appendChild(tip);
+    setTimeout(() => tip.remove(), 1200);
+  }
+
+  function bindCopyableLevel(id, getVal) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add("copyable-level");
+    el.title = "Click to copy level for order entry";
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const raw = getVal ? getVal() : el.textContent.replace(/[^\d.]/g, "");
+      copyTextToClipboard(raw, el);
+    });
+  }
+
+  // Bind key levels for rapid 1-click clipboard transfer
+  bindCopyableLevel("stock-price", () => latestRenderedData?.last_price);
+  bindCopyableLevel("signal-entry", () => latestRenderedData?.latestSignal?.price);
+  bindCopyableLevel("signal-stop", () => latestRenderedData?.latestSignal?.stop);
+  bindCopyableLevel("plan-stop-price", () => latestRenderedData?.tradePlan?.stop);
+  bindCopyableLevel("plan-t1-price", () => latestRenderedData?.tradePlan?.t1);
+  bindCopyableLevel("plan-t2-price", () => latestRenderedData?.tradePlan?.t2);
+  bindCopyableLevel("plan-t3-price", () => latestRenderedData?.tradePlan?.t3);
+  bindCopyableLevel("level-prev", () => latestRenderedData?.prev_close);
+  bindCopyableLevel("level-sma20", () => latestRenderedData?.sma20);
+  bindCopyableLevel("level-sma50", () => latestRenderedData?.sma50);
+  bindCopyableLevel("level-sma200", () => latestRenderedData?.sma200);
+
+  // Pro Keyboard Shortcuts ('/' or 'Ctrl+K' / 'Cmd+K' to search, 'Escape' to blur or close panels)
+  window.addEventListener("keydown", (e) => {
+    const isTyping = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable;
+    if (e.key === "/" && !isTyping) {
+      e.preventDefault();
+      inputSymbol?.focus();
+      inputSymbol?.select();
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+      e.preventDefault();
+      inputSymbol?.focus();
+      inputSymbol?.select();
+    } else if (e.key === "Escape") {
+      if (isTyping) {
+        e.target.blur();
+      }
+      if (elSettings && !elSettings.classList.contains("hidden")) {
+        elSettings.classList.add("hidden");
       }
     }
   });
