@@ -6,6 +6,18 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Improved & Polished — 21st.dev Inspired Micro-Animations & Fluid Visual Interactions (`web/src/`, `extension/`)
+- **21st.dev "Zen Linen" Smooth Motion & Micro-Interactions**:
+  - Queried 21st.dev MCP catalog for modern micro-interaction patterns by `serafimcloud` and top community designers.
+  - Upgraded [`Button`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/components/ui/button.tsx) with tactile micro-interactions: added smooth cubic-bezier transitions, micro-scale down on active click (`active:scale-[0.985] active:translate-y-0.5`), and subtle shadow depth.
+  - Added live pulse dot support to [`Badge`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/components/ui/data.tsx) (`pulse?: boolean`), rendering a gentle radar ping animation (`animate-ping-soft`) for live production, active signals, and connected states.
+  - Enhanced [`MarketClock`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/components/shell/market-clock.tsx) with a soft pulsing live ring during active NSE cash market sessions.
+  - Introduced `.panel-interactive` class in [`globals.css`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/app/globals.css) and [`layout.tsx`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/components/ui/layout.tsx): smooth card elevation (`translateY(-2px)`), subtle border tone tint, and shadow bloom on hover without jarring layout shifts.
+  - Enhanced table rows (`tr`) with smooth `duration-150 ease-out` hover background fades.
+  - Added modern focus rings to form inputs and selects with subtle tone border transitions.
+  - Refined [`TickerTape`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/components/shell/ticker-tape.tsx) and sidebar navigation with smooth hover highlights and edge fade masks.
+  - Enhanced Chrome Extension Side Panel ([`extension/sidepanel/sidepanel.css`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/extension/sidepanel/sidepanel.css)) with smooth card hover transitions and a live pulsing auth indicator dot. Repackaged into [`quantspulse-terminal.zip`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/public/downloads/quantspulse-terminal.zip).
+
 ### Added & Secured — Chrome Extension Public Distribution & Account-Gated Signal Protection (`extension/`, `web/`)
 - **Public 1-Click Extension Distribution**:
   - Replaced manual developer/repository clone workflows with direct 1-click ZIP package download (`quantspulse-terminal.zip`, 48 KB) available via `/api/extension/download` and `/downloads/quantspulse-terminal.zip`.

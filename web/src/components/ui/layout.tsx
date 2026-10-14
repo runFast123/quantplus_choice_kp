@@ -34,6 +34,7 @@ export function Panel({
   className,
   bodyClassName,
   id,
+  interactive = false,
 }: {
   title?: ReactNode;
   meta?: ReactNode;
@@ -42,9 +43,10 @@ export function Panel({
   className?: string;
   bodyClassName?: string;
   id?: string;
+  interactive?: boolean;
 }) {
   return (
-    <section id={id} className={clsx("panel min-w-0", className)}>
+    <section id={id} className={clsx(interactive ? "panel-interactive" : "panel", "min-w-0", className)}>
       {title || actions ? (
         <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex min-w-0 flex-1 items-baseline gap-2">
@@ -108,4 +110,4 @@ export const th = "eyebrow h-9 whitespace-nowrap px-3 text-left font-medium firs
 export const thNum = th + " text-right";
 export const td = "h-10 whitespace-nowrap px-3 first:pl-0 last:pr-0 text-[13px]";
 export const tdNum = td + " num text-right";
-export const tr = "border-t border-border/80 transition-colors hover:bg-foreground/[0.025]";
+export const tr = "border-t border-border/80 transition-colors duration-150 ease-out hover:bg-foreground/[0.035]";

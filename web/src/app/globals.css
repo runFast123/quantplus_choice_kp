@@ -240,11 +240,32 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
+  .panel-interactive {
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .panel-interactive:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--border) 60%, var(--foreground));
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  }
+  .dark .panel-interactive:hover {
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+  }
   .rule-dotted {
     background-image: linear-gradient(to right, var(--border) 50%, transparent 0);
     background-size: 6px 1px;
     background-repeat: repeat-x;
     height: 1px;
+  }
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, transparent, black 28px, black calc(100% - 28px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 28px, black calc(100% - 28px), transparent);
   }
 }
 
@@ -259,4 +280,34 @@
 [data-ticker]:focus-within .animate-marquee,
 [data-ticker][data-paused="true"] .animate-marquee {
   animation-play-state: paused;
+}
+
+@keyframes ping-soft {
+  0% { transform: scale(1); opacity: 0.8; }
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.animate-ping-soft {
+  animation: ping-soft 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.55; }
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in-up 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

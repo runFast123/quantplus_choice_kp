@@ -15,7 +15,7 @@ export function TickerTape({ quotes }: { quotes: Quote[] }) {
         href={`/app/markets/${encodeURIComponent(q.symbol)}`}
         tabIndex={hidden ? -1 : undefined}
         aria-hidden={hidden || undefined}
-        className="inline-flex items-baseline gap-2 px-4 text-[12px] hover:text-foreground"
+        className="inline-flex items-baseline gap-2 px-3 py-0.5 text-[12px] rounded-[4px] transition-colors duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground"
       >
         <span className="num font-medium text-foreground">{q.symbol}</span>
         <span className="num text-muted-foreground">{price(q.last_price)}</span>

@@ -46,11 +46,20 @@ export function MarketClock() {
   const time = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false }).format(now);
   return (
     <span className="hidden items-center gap-2 text-[12px] text-muted-foreground lg:inline-flex">
-      <span
-        className={clsx("size-1.5 rounded-full", s.state === "open" ? "bg-gain" : s.state === "pre-open" ? "bg-coral" : "bg-muted-foreground/60")}
-        aria-hidden
-      />
-      <span className="text-foreground">NSE</span>
+      <span className="relative flex size-2 items-center justify-center shrink-0" aria-hidden>
+        {s.state === "open" ? (
+          <span className="absolute inline-flex size-full animate-ping-soft rounded-full bg-gain/60" />
+        ) : s.state === "pre-open" ? (
+          <span className="absolute inline-flex size-full animate-ping-soft rounded-full bg-coral/60" />
+        ) : null}
+        <span
+          className={clsx(
+            "relative size-1.5 rounded-full transition-colors duration-300",
+            s.state === "open" ? "bg-gain" : s.state === "pre-open" ? "bg-coral" : "bg-muted-foreground/60"
+          )}
+        />
+      </span>
+      <span className="text-foreground font-medium">NSE</span>
       <span>{s.label}</span>
       <span className="num">{time} IST</span>
     </span>

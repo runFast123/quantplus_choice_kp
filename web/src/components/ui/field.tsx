@@ -3,8 +3,8 @@ import type { ComponentProps, ReactNode } from "react";
 
 export const inputClass =
   "h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground " +
-  "placeholder:text-muted-foreground/70 transition-colors duration-150 " +
-  "hover:border-muted-foreground/50 focus:border-foreground focus:outline-none focus-visible:outline-none " +
+  "placeholder:text-muted-foreground/70 transition-all duration-200 ease-out " +
+  "hover:border-muted-foreground/50 focus:border-foreground focus:ring-1 focus:ring-foreground/20 focus:outline-none focus-visible:outline-none " +
   "aria-[invalid=true]:border-loss disabled:opacity-60";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {

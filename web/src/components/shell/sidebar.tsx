@@ -64,10 +64,10 @@ export function Sidebar({
           href={i.href}
           aria-current={active ? "page" : undefined}
           className={clsx(
-            "group flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13.5px] transition-colors duration-150",
+            "group relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13.5px] transition-all duration-200 ease-out active:scale-[0.985]",
             active
-              ? "bg-sidebar-primary text-sidebar-primary-foreground"
-              : "text-sidebar-foreground/80 hover:bg-foreground/[0.06] hover:text-sidebar-foreground",
+              ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm"
+              : "text-sidebar-foreground/80 hover:bg-foreground/[0.06] hover:text-sidebar-foreground hover:translate-x-0.5",
           )}
         >
           <Icon size={17} weight={active ? "fill" : "regular"} aria-hidden />

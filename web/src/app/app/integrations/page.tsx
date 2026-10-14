@@ -54,7 +54,7 @@ export default async function IntegrationsPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground text-[14px]">Terminal Package v1.0.0</span>
-                  <Badge tone="gain">Production Ready</Badge>
+                  <Badge tone="gain" pulse>Production Ready</Badge>
                 </div>
                 <p className="mt-1 text-[12px] text-muted-foreground">
                   Manifest V3 · 48 KB · Supports 23+ Indian brokers and TradingView
@@ -87,21 +87,21 @@ export default async function IntegrationsPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-background p-3.5">
+              <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">
                 <p className="eyebrow text-[11px]">On-Chart Signal HUD</p>
                 <p className="mt-1 text-[13px] font-medium text-foreground">Live Signals &amp; Targets</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
                   Displays Entry, Stop Loss (1.0R), and Profit Targets (0.75R, 2.0R, 3.0R) directly on top of your broker chart.
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-background p-3.5">
+              <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">
                 <p className="eyebrow text-[11px]">23+ Indian Brokers</p>
                 <p className="mt-1 text-[13px] font-medium text-foreground">Zero-Click Detection</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
                   Works on Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, Kotak Neo, and TradingView.
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-background p-3.5">
+              <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">
                 <p className="eyebrow text-[11px]">Side Panel Terminal</p>
                 <p className="mt-1 text-[13px] font-medium text-foreground">Instant Research Depth</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">

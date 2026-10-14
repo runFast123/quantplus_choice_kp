@@ -41,16 +41,18 @@ export function Delta({
 export function Badge({
   children,
   tone = "neutral",
+  pulse = false,
   className,
 }: {
   children: ReactNode;
   tone?: "neutral" | "gain" | "loss" | "coral" | "ink";
+  pulse?: boolean;
   className?: string;
 }) {
   return (
     <span
       className={clsx(
-        "inline-flex h-5 items-center gap-1 whitespace-nowrap rounded-[4px] px-1.5 text-[11px] font-medium tracking-wide",
+        "inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded-[4px] px-1.5 text-[11px] font-medium tracking-wide transition-colors duration-150",
         tone === "neutral" && "bg-foreground/[0.06] text-foreground/75",
         tone === "gain" && "bg-gain-soft text-gain",
         tone === "loss" && "bg-loss-soft text-loss",
@@ -59,6 +61,30 @@ export function Badge({
         className,
       )}
     >
+      {pulse && (
+        <span className="relative flex h-1.5 w-1.5 items-center justify-center shrink-0" aria-hidden>
+          <span
+            className={clsx(
+              "absolute inline-flex h-full w-full animate-ping-soft rounded-full opacity-75",
+              tone === "gain" && "bg-gain",
+              tone === "loss" && "bg-loss",
+              tone === "coral" && "bg-coral",
+              tone === "neutral" && "bg-foreground/50",
+              tone === "ink" && "bg-primary-foreground",
+            )}
+          />
+          <span
+            className={clsx(
+              "relative inline-flex h-1.5 w-1.5 rounded-full",
+              tone === "gain" && "bg-gain",
+              tone === "loss" && "bg-loss",
+              tone === "coral" && "bg-coral",
+              tone === "neutral" && "bg-foreground/50",
+              tone === "ink" && "bg-primary-foreground",
+            )}
+          />
+        </span>
+      )}
       {children}
     </span>
   );

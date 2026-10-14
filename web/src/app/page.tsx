@@ -154,7 +154,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
           <div className="mt-12 grid gap-8 lg:grid-cols-12 lg:items-center">
             <div className="flex flex-col gap-4 lg:col-span-5">
-              <div className="panel p-5">
+              <div className="panel-interactive p-5">
                 <div className="flex items-center gap-2.5">
                   <TerminalWindowIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
                   <h3 className="text-[15px] font-semibold">On-Chart Heads-Up Display (HUD)</h3>
@@ -164,7 +164,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 </p>
               </div>
 
-              <div className="panel p-5">
+              <div className="panel-interactive p-5">
                 <div className="flex items-center gap-2.5">
                   <BrowserIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
                   <h3 className="text-[15px] font-semibold">Slide-over Research Drawer</h3>
@@ -174,7 +174,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 </p>
               </div>
 
-              <div className="panel p-5">
+              <div className="panel-interactive p-5">
                 <div className="flex items-center gap-2.5">
                   <ShieldCheckIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
                   <h3 className="text-[15px] font-semibold">23+ Brokers &amp; Zero Account Access</h3>

@@ -7,15 +7,15 @@ type Size = "sm" | "md" | "lg";
 
 const base =
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium select-none " +
-  "transition-[background-color,border-color,color,transform] duration-150 ease-out active:translate-y-px " +
+  "transition-all duration-200 ease-out active:scale-[0.985] active:translate-y-0.5 " +
   "disabled:opacity-50 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-primary-foreground hover:bg-primary/90",
-  secondary: "border border-border bg-card text-foreground hover:bg-accent hover:border-muted-foreground/40",
-  ghost: "text-foreground hover:bg-foreground/[0.06]",
-  danger: "border border-loss/40 text-loss hover:bg-loss-soft",
-  coral: "bg-coral text-[#1E1E1E] hover:brightness-95",
+  primary: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow active:shadow-none",
+  secondary: "border border-border bg-card text-foreground shadow-sm hover:bg-accent hover:border-muted-foreground/40 hover:shadow active:shadow-none",
+  ghost: "text-foreground hover:bg-foreground/[0.06] active:bg-foreground/[0.1]",
+  danger: "border border-loss/40 text-loss hover:bg-loss-soft active:border-loss",
+  coral: "bg-coral text-[#1E1E1E] shadow-sm hover:brightness-95 hover:shadow active:shadow-none",
 };
 
 const sizes: Record<Size, string> = {

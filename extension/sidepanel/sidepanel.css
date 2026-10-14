@@ -250,6 +250,14 @@ body {
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 10px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover {
+  border-color: rgba(148, 147, 139, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
 }
 
 .card-header {
@@ -674,8 +682,23 @@ body {
 }
 
 .auth-dot {
+  position: relative;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--gain);
+}
+
+.auth-dot::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  background: var(--gain);
+  animation: ping-soft 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping-soft {
+  0% { transform: scale(1); opacity: 0.8; }
+  75%, 100% { transform: scale(2.4); opacity: 0; }
 }
