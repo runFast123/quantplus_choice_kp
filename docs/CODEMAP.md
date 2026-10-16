@@ -105,7 +105,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `plans.ts` | `FEATURE_ROWS` (feature key → label, display order) |
 | `csv-parser.ts` | `parseHoldingsCsv(csvText)`, `cleanBrokerSymbol`, `parseNumeric`, types `ParsedHoldingRow`, `ParseHoldingsResult` (Zerodha, Groww, Angel One, Upstox, generic) |
 | `csv-parser.test.mts` | unit tests (`npm run test:unit`) |
-| `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, types `SipResult`, `StrategyResult`, `StrategyTrade` |
+| `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, `simulateCustomStrategy(candles, params)`, `generateBacktestPineScript(params, symbol)`, `computeSma`, `computeRsi`, types `SipResult`, `StrategyResult`, `DetailedStrategyResult`, `DetailedStrategyTrade`, `EquityPoint`, `AdvancedStrategyParams` |
 | `backtest-engine.test.mts` | unit tests (`npm run test:unit`) |
 | `news/feed.ts` | `parseFeed(xml)`, `parseFeedDate`, `cleanText`, `decodeEntities`, `normaliseUrl`, `nseFilingSymbol` |
 | `news/match.ts` | `SymbolMatcher` (`match`, `matchesSymbol`), `stripLegalSuffix` — sibling-entity guard (`SIBLING_WORDS`) |
@@ -179,7 +179,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/pager.tsx` | `Pager` (prev/next, keeps params), `pageParam(raw)` — every server-paginated table |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
-| `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
+| `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + signal markers), type `ChartMarker` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
 | `charts/market-chart-view.tsx` | `MarketChartView` (unified tab switcher between QuantsPulse Signals and TradingView Pro) |

@@ -1,19 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
   ChartLineUpIcon,
+  CheckIcon,
+  CodeIcon,
+  DownloadSimpleIcon,
   RepeatIcon,
+  SlidersHorizontalIcon,
 } from "@phosphor-icons/react";
 import { Delta } from "@/components/ui/data";
 import { TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import {
+  generateBacktestPineScript,
+  simulateCustomStrategy,
   simulateSip,
-  simulateTechnicalStrategy,
-  type StrategyResult,
+  type AdvancedStrategyParams,
+  type DetailedStrategyResult,
 } from "@/lib/backtest-engine";
-import { price, rupees } from "@/lib/format";
+import { date, price, rupees } from "@/lib/format";
 import type { Candle } from "@/lib/types";
 
 interface BacktestLabProps {
@@ -22,70 +28,693 @@ interface BacktestLabProps {
 }
 
 export function BacktestLab({ candles, symbol }: BacktestLabProps) {
-  const [activeTab, setActiveTab] = useState<"sip" | "strategy">("sip");
+  const [activeTab, setActiveTab] = useState<"strategy" | "sip">("strategy");
+
+  // Strategy configuration state
+  const [strategyType, setStrategyType] = useState<"sma_cross" | "rsi_reversal" | "breakout">("sma_cross");
+  const [fastMa, setFastMa] = useState<number>(20);
+  const [slowMa, setSlowMa] = useState<number>(50);
+  const [rsiPeriod, setRsiPeriod] = useState<number>(14);
+  const [rsiOversold, setRsiOversold] = useState<number>(30);
+  const [rsiOverbought, setRsiOverbought] = useState<number>(70);
+  const [breakoutPeriod, setBreakoutPeriod] = useState<number>(20);
+  const [stopLossPct, setStopLossPct] = useState<number>(4.0);
+  const [takeProfitPct, setTakeProfitPct] = useState<number>(0);
+  const [initialCapital, setInitialCapital] = useState<number>(100000);
+
+  // SIP configuration state
   const [monthlyAmount, setMonthlyAmount] = useState<number>(10000);
-  const [strategyType, setStrategyType] = useState<"sma_cross" | "rsi_pullback">("sma_cross");
+
+  // Filter & interaction state
+  const [tradeFilter, setTradeFilter] = useState<"all" | "wins" | "losses">("all");
+  const [copiedPine, setCopiedPine] = useState<boolean>(false);
+  const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
+
+  const customSipInputId = useId();
+
+  // Run dynamic strategy simulation
+  const strategyParams: AdvancedStrategyParams = useMemo(
+    () => ({
+      type: strategyType,
+      fastMa,
+      slowMa,
+      rsiPeriod,
+      rsiOversold,
+      rsiOverbought,
+      breakoutPeriod,
+      stopLossPct,
+      takeProfitPct,
+      initialCapital,
+    }),
+    [
+      strategyType,
+      fastMa,
+      slowMa,
+      rsiPeriod,
+      rsiOversold,
+      rsiOverbought,
+      breakoutPeriod,
+      stopLossPct,
+      takeProfitPct,
+      initialCapital,
+    ],
+  );
+
+  const stratResult: DetailedStrategyResult | null = useMemo(() => {
+    return simulateCustomStrategy(candles, strategyParams);
+  }, [candles, strategyParams]);
 
   // Run dynamic SIP simulation
   const sipResult = useMemo(() => {
     return simulateSip(candles, monthlyAmount);
   }, [candles, monthlyAmount]);
 
-  // Run technical rule simulation
-  const stratResult: StrategyResult | null = useMemo(() => {
-    return simulateTechnicalStrategy(candles, strategyType);
-  }, [candles, strategyType]);
+  // Filtered trades for trade log
+  const displayedTrades = useMemo(() => {
+    if (!stratResult) return [];
+    if (tradeFilter === "wins") return stratResult.trades.filter((t) => t.isWin);
+    if (tradeFilter === "losses") return stratResult.trades.filter((t) => !t.isWin);
+    return stratResult.trades;
+  }, [stratResult, tradeFilter]);
+
+  // Handle Export Trades CSV
+  const handleExportCsv = () => {
+    if (!stratResult || stratResult.trades.length === 0) return;
+    const headers = ["Entry Date", "Entry Price (INR)", "Exit Date", "Exit Price (INR)", "Duration (Days)", "P&L (%)", "Exit Reason", "Win/Loss"];
+    const rows = stratResult.trades.map((t) => [
+      t.entryDate,
+      t.entryPrice.toFixed(2),
+      t.exitDate,
+      t.exitPrice.toFixed(2),
+      t.barsHeld,
+      t.pnlPct.toFixed(2),
+      t.exitReason,
+      t.isWin ? "WIN" : "LOSS",
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `quantspulse-${symbol.toLowerCase()}-backtest.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Handle Copy Pine Script v5
+  const handleCopyPineScript = async () => {
+    const script = generateBacktestPineScript(strategyParams, symbol);
+    await navigator.clipboard.writeText(script);
+    setCopiedPine(true);
+    setTimeout(() => setCopiedPine(false), 2000);
+  };
+
+  // SVG Equity Curve geometry computation
+  const svgMetrics = useMemo(() => {
+    if (!stratResult || stratResult.equityCurve.length < 2) return null;
+    const curve = stratResult.equityCurve;
+    const minVal = Math.min(...curve.map((p) => Math.min(p.equity, p.benchmark))) * 0.96;
+    const maxVal = Math.max(...curve.map((p) => Math.max(p.equity, p.benchmark))) * 1.04;
+    const range = maxVal - minVal || 1;
+
+    const width = 640;
+    const height = 140;
+    const padding = 10;
+
+    const points = curve.map((p, idx) => {
+      const x = padding + (idx / (curve.length - 1)) * (width - padding * 2);
+      const yEquity = height - padding - ((p.equity - minVal) / range) * (height - padding * 2);
+      const yBench = height - padding - ((p.benchmark - minVal) / range) * (height - padding * 2);
+      return { x, yEquity, yBench, data: p };
+    });
+
+    const equityPath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yEquity.toFixed(1)}`).join(" ");
+    const benchPath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.yBench.toFixed(1)}`).join(" ");
+
+    return { width, height, points, equityPath, benchPath, minVal, maxVal };
+  }, [stratResult]);
 
   const SIP_PRESETS = [5000, 10000, 25000, 50000];
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Mode Switcher Tabs */}
-      <div className="flex items-center justify-between border-b border-border pb-2.5">
-        <div className="flex items-center gap-1.5" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "sip"}
-            onClick={() => setActiveTab("sip")}
-            className={clsx(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors",
-              activeTab === "sip"
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
-            )}
-          >
-            <RepeatIcon size={14} aria-hidden />
-            <span>SIP vs Lump Sum</span>
-          </button>
-
+      {/* Top Mode Navigation */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex items-center gap-1.5" role="tablist" aria-label="Backtest modes">
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === "strategy"}
             onClick={() => setActiveTab("strategy")}
             className={clsx(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors",
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors",
               activeTab === "strategy"
                 ? "bg-foreground text-background"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
             )}
           >
-            <ChartLineUpIcon size={14} aria-hidden />
-            <span>Rule Strategy Simulation</span>
+            <ChartLineUpIcon size={15} aria-hidden />
+            <span>Interactive Strategy Simulator</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "sip"}
+            onClick={() => setActiveTab("sip")}
+            className={clsx(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+              activeTab === "sip"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+            )}
+          >
+            <RepeatIcon size={15} aria-hidden />
+            <span>SIP vs Lump Sum</span>
           </button>
         </div>
 
-        <span className="num text-[11px] text-muted-foreground">
-          {candles.length} historical bars
-        </span>
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <span className="num">{candles.length} NSE daily candles</span>
+          {candles.length > 0 && (
+            <span>
+              · {date(candles[0].ts)} to {date(candles[candles.length - 1].ts)}
+            </span>
+          )}
+        </div>
       </div>
 
+      {/* TAB 1: STRATEGY SIMULATOR */}
+      {activeTab === "strategy" && (
+        <div className="flex flex-col gap-5">
+          {/* Strategy Model & Parameter Bar */}
+          <div className="rounded-lg border border-border bg-card/60 p-3.5 space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="eyebrow flex items-center gap-1.5 text-foreground">
+                  <SlidersHorizontalIcon size={14} className="text-muted-foreground" aria-hidden />
+                  Strategy Model:
+                </span>
+                {(
+                  [
+                    { id: "sma_cross", label: "Dual MA Crossover" },
+                    { id: "rsi_reversal", label: "RSI Mean Reversion" },
+                    { id: "breakout", label: "Donchian Breakout" },
+                  ] as const
+                ).map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => {
+                      setStrategyType(st.id);
+                      if (st.id === "sma_cross") {
+                        setFastMa(20);
+                        setSlowMa(50);
+                      }
+                    }}
+                    className={clsx(
+                      "rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors",
+                      strategyType === st.id
+                        ? "bg-foreground text-background"
+                        : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+                    )}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Action Buttons: Pine Script & CSV */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyPineScript}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[12px] font-medium text-foreground transition-colors hover:bg-foreground/[0.04]"
+                >
+                  {copiedPine ? (
+                    <>
+                      <CheckIcon size={14} className="text-gain" aria-hidden />
+                      <span className="text-gain">Copied Pine Script!</span>
+                    </>
+                  ) : (
+                    <>
+                      <CodeIcon size={14} className="text-muted-foreground" aria-hidden />
+                      <span>TradingView Pine v5</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  disabled={!stratResult || stratResult.trades.length === 0}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[12px] font-medium text-foreground transition-colors hover:bg-foreground/[0.04] disabled:opacity-40"
+                >
+                  <DownloadSimpleIcon size={14} className="text-muted-foreground" aria-hidden />
+                  <span>Export CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Parameter Adjustment Row */}
+            <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4 border-t border-border/70 text-[12px]">
+              {strategyType === "sma_cross" && (
+                <>
+                  <div>
+                    <label className="eyebrow block mb-1">Fast MA Period</label>
+                    <div className="flex items-center gap-1.5">
+                      {[9, 13, 20].map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setFastMa(v)}
+                          className={clsx(
+                            "num rounded px-2 py-0.5 text-[11px]",
+                            fastMa === v ? "bg-foreground text-background font-medium" : "border border-border text-muted-foreground",
+                          )}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        min="2"
+                        max="100"
+                        aria-label="Fast MA period"
+                        value={fastMa}
+                        onChange={(e) => setFastMa(Math.max(2, Number(e.target.value) || 2))}
+                        className="num h-6 w-12 rounded border border-border bg-card px-1.5 text-[11px] text-foreground text-center"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="eyebrow block mb-1">Slow MA Period</label>
+                    <div className="flex items-center gap-1.5">
+                      {[30, 50, 200].map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setSlowMa(v)}
+                          className={clsx(
+                            "num rounded px-2 py-0.5 text-[11px]",
+                            slowMa === v ? "bg-foreground text-background font-medium" : "border border-border text-muted-foreground",
+                          )}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        min="5"
+                        max="250"
+                        aria-label="Slow MA period"
+                        value={slowMa}
+                        onChange={(e) => setSlowMa(Math.max(fastMa + 1, Number(e.target.value) || 5))}
+                        className="num h-6 w-12 rounded border border-border bg-card px-1.5 text-[11px] text-foreground text-center"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {strategyType === "rsi_reversal" && (
+                <>
+                  <div>
+                    <label className="eyebrow block mb-1">RSI Length</label>
+                    <div className="flex items-center gap-1.5">
+                      {[7, 9, 14, 21].map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setRsiPeriod(v)}
+                          className={clsx(
+                            "num rounded px-2 py-0.5 text-[11px]",
+                            rsiPeriod === v ? "bg-foreground text-background font-medium" : "border border-border text-muted-foreground",
+                          )}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="eyebrow block mb-1">Buy / Exit Thresholds</label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground">Buy &le;</span>
+                      <input
+                        type="number"
+                        min="15"
+                        max="45"
+                        aria-label="RSI buy threshold"
+                        value={rsiOversold}
+                        onChange={(e) => setRsiOversold(Number(e.target.value) || 30)}
+                        className="num h-6 w-11 rounded border border-border bg-card px-1 text-[11px] text-foreground text-center"
+                      />
+                      <span className="text-[11px] text-muted-foreground">Exit &ge;</span>
+                      <input
+                        type="number"
+                        min="55"
+                        max="85"
+                        aria-label="RSI exit threshold"
+                        value={rsiOverbought}
+                        onChange={(e) => setRsiOverbought(Number(e.target.value) || 70)}
+                        className="num h-6 w-11 rounded border border-border bg-card px-1 text-[11px] text-foreground text-center"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {strategyType === "breakout" && (
+                <div>
+                  <label className="eyebrow block mb-1">Donchian Lookback</label>
+                  <div className="flex items-center gap-1.5">
+                    {[10, 20, 55].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setBreakoutPeriod(v)}
+                        className={clsx(
+                          "num rounded px-2 py-0.5 text-[11px]",
+                          breakoutPeriod === v ? "bg-foreground text-background font-medium" : "border border-border text-muted-foreground",
+                        )}
+                      >
+                        {v}d
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Stop Loss & Profit Target */}
+              <div>
+                <label className="eyebrow block mb-1">Stop Loss %</label>
+                <div className="flex items-center gap-1.5">
+                  {[0, 3, 5, 7].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setStopLossPct(s)}
+                      className={clsx(
+                        "num rounded px-2 py-0.5 text-[11px]",
+                        stopLossPct === s ? "bg-foreground text-background font-medium" : "border border-border text-muted-foreground",
+                      )}
+                    >
+                      {s === 0 ? "Off" : `${s}%`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="eyebrow block mb-1">Profit Target %</label>
+                <div className="flex items-center gap-1.5">
+                  {[0, 8, 15, 25].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTakeProfitPct(t)}
+                      className={clsx(
+                        "num rounded px-2 py-0.5 text-[11px]",
+                        takeProfitPct === t ? "bg-foreground text-background font-medium" : "border border-border text-muted-foreground",
+                      )}
+                    >
+                      {t === 0 ? "Off" : `+${t}%`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="eyebrow block mb-1">Starting Capital</label>
+                <div className="flex items-center gap-1.5">
+                  {[25000, 50000, 100000, 500000].map((cap) => (
+                    <button
+                      key={cap}
+                      type="button"
+                      onClick={() => setInitialCapital(cap)}
+                      className={clsx(
+                        "num rounded px-2 py-0.5 text-[11px]",
+                        initialCapital === cap ? "bg-foreground text-background font-medium" : "border border-border text-muted-foreground",
+                      )}
+                    >
+                      ₹{cap >= 100000 ? `${cap / 100000}L` : `${cap / 1000}k`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {stratResult ? (
+            <>
+              {/* Quantitative Desk Performance Summary Grid */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8 border-y border-border py-3 text-[13px]">
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Strategy Return</p>
+                  <div className="mt-1 text-[17px] font-medium">
+                    <Delta value={stratResult.totalReturnPct} />
+                  </div>
+                  <p className="num text-[11px] text-muted-foreground">
+                    {rupees(stratResult.finalCapital, { decimals: false })}
+                  </p>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Buy &amp; Hold</p>
+                  <div className="mt-1 text-[17px] font-medium">
+                    <Delta value={stratResult.benchmarkReturnPct} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Stock benchmark</p>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Alpha Generated</p>
+                  <div className="mt-1 text-[17px] font-medium">
+                    <Delta value={stratResult.alphaPct} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Excess over hold</p>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Win Rate</p>
+                  <p className="num mt-1 text-[17px] font-medium text-foreground">
+                    {stratResult.winRatePct}%
+                  </p>
+                  <p className="num text-[11px] text-muted-foreground">
+                    {stratResult.winningTrades}W / {stratResult.losingTrades}L
+                  </p>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Profit Factor</p>
+                  <p className="num mt-1 text-[17px] font-medium text-foreground">
+                    {stratResult.profitFactor}x
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Gross gain / loss</p>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Max Drawdown</p>
+                  <p className="num mt-1 text-[17px] font-medium text-loss">
+                    &minus;{stratResult.maxDrawdownPct}%
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Peak to trough</p>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Payoff Ratio</p>
+                  <p className="num mt-1 text-[17px] font-medium text-foreground">
+                    {stratResult.payoffRatio}x
+                  </p>
+                  <p className="num text-[11px] text-muted-foreground">
+                    +{stratResult.avgWinPct}% / &minus;{stratResult.avgLossPct}%
+                  </p>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="eyebrow">Avg Duration</p>
+                  <p className="num mt-1 text-[17px] font-medium text-foreground">
+                    {stratResult.avgBarsHeld}d
+                  </p>
+                  <p className="num text-[11px] text-muted-foreground">
+                    {stratResult.totalTrades} closed trades
+                  </p>
+                </div>
+              </div>
+
+              {/* Interactive Visual Equity Curve (SVG) */}
+              {svgMetrics && (
+                <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-[12px]">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className="size-2.5 rounded-full bg-foreground" aria-hidden />
+                        <span className="font-medium text-foreground">Strategy Equity</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-3 bg-muted-foreground/60 border-t border-dashed" aria-hidden />
+                        <span className="text-muted-foreground">Buy &amp; Hold Benchmark</span>
+                      </div>
+                    </div>
+
+                    {hoveredPointIndex != null && svgMetrics.points[hoveredPointIndex] ? (
+                      <div className="flex items-center gap-3 text-[11.5px] num bg-muted/20 px-2.5 py-0.5 rounded border border-border">
+                        <span className="text-muted-foreground">{svgMetrics.points[hoveredPointIndex].data.date}</span>
+                        <span>Strategy: <strong>{rupees(svgMetrics.points[hoveredPointIndex].data.equity, { decimals: false })}</strong></span>
+                        <span className="text-muted-foreground">Hold: {rupees(svgMetrics.points[hoveredPointIndex].data.benchmark, { decimals: false })}</span>
+                        <span className="text-loss">DD: &minus;{svgMetrics.points[hoveredPointIndex].data.drawdownPct}%</span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">Hover curve to inspect historical points</span>
+                    )}
+                  </div>
+
+                  <div className="relative w-full overflow-hidden">
+                    <svg
+                      viewBox={`0 0 ${svgMetrics.width} ${svgMetrics.height}`}
+                      className="w-full h-36 overflow-visible"
+                    >
+                      {/* Grid Lines */}
+                      <line x1="10" y1="20" x2={svgMetrics.width - 10} y2="20" stroke="currentColor" strokeOpacity="0.07" strokeDasharray="3 3" />
+                      <line x1="10" y1="70" x2={svgMetrics.width - 10} y2="70" stroke="currentColor" strokeOpacity="0.07" strokeDasharray="3 3" />
+                      <line x1="10" y1="120" x2={svgMetrics.width - 10} y2="120" stroke="currentColor" strokeOpacity="0.07" strokeDasharray="3 3" />
+
+                      {/* Benchmark Line */}
+                      <path d={svgMetrics.benchPath} fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.5" strokeDasharray="4 3" />
+
+                      {/* Strategy Equity Line */}
+                      <path d={svgMetrics.equityPath} fill="none" stroke="currentColor" strokeWidth="2.2" className="text-foreground" />
+
+                      {/* Interactive Hover Point */}
+                      {hoveredPointIndex != null && svgMetrics.points[hoveredPointIndex] && (
+                        <circle
+                          cx={svgMetrics.points[hoveredPointIndex].x}
+                          cy={svgMetrics.points[hoveredPointIndex].yEquity}
+                          r="4"
+                          fill="currentColor"
+                          className="text-foreground animate-ping-soft"
+                        />
+                      )}
+
+                      {/* Interactive Hover Area Slices */}
+                      {svgMetrics.points.map((p, idx) => (
+                        <rect
+                          key={p.data.date}
+                          x={p.x - 3}
+                          y="0"
+                          width="6"
+                          height={svgMetrics.height}
+                          fill="transparent"
+                          onMouseEnter={() => setHoveredPointIndex(idx)}
+                          onMouseLeave={() => setHoveredPointIndex(null)}
+                          className="cursor-crosshair"
+                        />
+                      ))}
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* Complete Trade Log & Audit */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="eyebrow">Trade Log:</span>
+                    <div className="flex items-center gap-1" role="group" aria-label="Filter trades">
+                      {(["all", "wins", "losses"] as const).map((filter) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          onClick={() => setTradeFilter(filter)}
+                          className={clsx(
+                            "rounded px-2.5 py-0.5 text-[11.5px] font-medium transition-colors",
+                            tradeFilter === filter
+                              ? "bg-foreground text-background"
+                              : "border border-border text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {filter === "all"
+                            ? `All (${stratResult.totalTrades})`
+                            : filter === "wins"
+                              ? `Wins (${stratResult.winningTrades})`
+                              : `Losses (${stratResult.losingTrades})`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <span className="num text-[11.5px] text-muted-foreground">
+                    Expectancy per trade: <strong>{stratResult.expectancyPct > 0 ? `+${stratResult.expectancyPct}%` : `${stratResult.expectancyPct}%`}</strong>
+                  </span>
+                </div>
+
+                {displayedTrades.length > 0 ? (
+                  <TableWrap>
+                    <table className="w-full min-w-[540px]">
+                      <thead>
+                        <tr>
+                          <th className={th}>Entry Date</th>
+                          <th className={thNum}>Entry Price</th>
+                          <th className={th}>Exit Date</th>
+                          <th className={thNum}>Exit Price</th>
+                          <th className={thNum}>Hold</th>
+                          <th className={th}>Exit Trigger</th>
+                          <th className={thNum}>Trade P&amp;L</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {displayedTrades.slice(-10).reverse().map((t, idx) => (
+                          <tr key={`${t.entryDate}-${idx}`} className={tr}>
+                            <td className={td + " num text-muted-foreground"}>{t.entryDate}</td>
+                            <td className={tdNum}>{price(t.entryPrice)}</td>
+                            <td className={td + " num text-muted-foreground"}>{t.exitDate}</td>
+                            <td className={tdNum}>{price(t.exitPrice)}</td>
+                            <td className={tdNum}>{t.barsHeld}d</td>
+                            <td className={td}>
+                              <span
+                                className={clsx(
+                                  "rounded px-1.5 py-0.5 text-[10.5px] font-medium capitalize",
+                                  t.exitReason === "stop_loss"
+                                    ? "bg-loss-soft text-loss"
+                                    : t.exitReason === "take_profit"
+                                      ? "bg-gain-soft text-gain"
+                                      : "bg-muted/40 text-muted-foreground",
+                                )}
+                              >
+                                {t.exitReason.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                            <td className={tdNum}>
+                              <Delta value={t.pnlPct} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableWrap>
+                ) : (
+                  <p className="text-[12.5px] text-muted-foreground py-2">
+                    No trades match the selected filter.
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-[12.5px] text-muted-foreground py-4">
+              Insufficient candle history ({candles.length} bars) to run this strategy configuration.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: SIP VS LUMP SUM */}
       {activeTab === "sip" && sipResult && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 animate-fadeIn">
           {/* Controls */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="eyebrow">Monthly SIP:</span>
               <div className="flex items-center gap-1.5">
                 {SIP_PRESETS.map((amt) => (
@@ -107,15 +736,15 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              <label htmlFor="custom-sip" className="eyebrow">Custom ₹:</label>
+              <label htmlFor={customSipInputId} className="eyebrow">Custom ₹:</label>
               <input
-                id="custom-sip"
+                id={customSipInputId}
                 type="number"
                 step="1000"
                 min="500"
                 value={monthlyAmount}
                 onChange={(e) => setMonthlyAmount(Math.max(500, Number(e.target.value) || 500))}
-                className="num h-7 w-24 rounded border border-input bg-card px-2 text-[12px] text-foreground focus:border-foreground focus:outline-none"
+                className="num h-7 w-24 rounded border border-border bg-card px-2 text-[12px] text-foreground focus:border-foreground focus:outline-none"
               />
             </div>
           </div>
@@ -186,122 +815,6 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
               </tbody>
             </table>
           </TableWrap>
-        </div>
-      )}
-
-      {activeTab === "strategy" && (
-        <div className="flex flex-col gap-4">
-          {/* Strategy selector */}
-          <div className="flex items-center gap-3">
-            <span className="eyebrow">Strategy:</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setStrategyType("sma_cross")}
-                className={clsx(
-                  "rounded border px-2.5 py-1 text-[12px] font-medium transition-colors",
-                  strategyType === "sma_cross"
-                    ? "border-foreground bg-foreground/5 text-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground/30",
-                )}
-              >
-                SMA 20/50 Golden Cross
-              </button>
-              <button
-                type="button"
-                onClick={() => setStrategyType("rsi_pullback")}
-                className={clsx(
-                  "rounded border px-2.5 py-1 text-[12px] font-medium transition-colors",
-                  strategyType === "rsi_pullback"
-                    ? "border-foreground bg-foreground/5 text-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground/30",
-                )}
-              >
-                SMA 20 Pullback &amp; Trail
-              </button>
-            </div>
-          </div>
-
-          {stratResult ? (
-            <>
-              {/* Metrics */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 border-y border-border py-3 text-[13px]">
-                <div>
-                  <p className="eyebrow">Cumulative Return</p>
-                  <div className="mt-1 text-[16px] font-medium">
-                    <Delta value={stratResult.totalReturnPct} />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">Sum of trade returns</p>
-                </div>
-
-                <div>
-                  <p className="eyebrow">Win Rate</p>
-                  <p className="num mt-1 text-[16px] font-medium text-foreground">
-                    {stratResult.winRatePct}%
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {stratResult.totalTrades} closed trade{stratResult.totalTrades === 1 ? "" : "s"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="eyebrow">Profit Factor</p>
-                  <p className="num mt-1 text-[16px] font-medium text-foreground">
-                    {stratResult.profitFactor}x
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">Gross gain / gross loss</p>
-                </div>
-
-                <div>
-                  <p className="eyebrow">Max Drawdown</p>
-                  <p className="num mt-1 text-[16px] font-medium text-loss">
-                    −{stratResult.maxDrawdownPct}%
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">Peak-to-trough decline</p>
-                </div>
-              </div>
-
-              {/* Trade Log */}
-              {stratResult.trades.length > 0 ? (
-                <TableWrap>
-                  <table className="w-full min-w-[420px]">
-                    <thead>
-                      <tr>
-                        <th className={th}>Entry</th>
-                        <th className={thNum}>Entry ₹</th>
-                        <th className={th}>Exit</th>
-                        <th className={thNum}>Exit ₹</th>
-                        <th className={thNum}>Duration</th>
-                        <th className={thNum}>P&amp;L</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stratResult.trades.slice(-6).reverse().map((t, idx) => (
-                        <tr key={`${t.entryDate}-${idx}`} className={tr}>
-                          <td className={td + " num text-muted-foreground"}>{t.entryDate}</td>
-                          <td className={tdNum}>{price(t.entryPrice)}</td>
-                          <td className={td + " num text-muted-foreground"}>{t.exitDate}</td>
-                          <td className={tdNum}>{price(t.exitPrice)}</td>
-                          <td className={tdNum}>{t.barsHeld}d</td>
-                          <td className={tdNum}>
-                            <Delta value={t.pnlPct} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </TableWrap>
-              ) : (
-                <p className="text-[12.5px] text-muted-foreground">
-                  No crossover triggers occurred in this historical time window for {symbol}.
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="text-[12.5px] text-muted-foreground">
-              Insufficient candle history to run strategy simulation.
-            </p>
-          )}
         </div>
       )}
 

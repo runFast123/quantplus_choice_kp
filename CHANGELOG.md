@@ -6,6 +6,24 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added & Improved — Interactive Quantitative Strategy Simulator & Backtest Lab (`web/src/components/market/`, `web/src/lib/`)
+- **Advanced Quantitative Strategy Backtester (`backtest-engine.ts`, `backtest-lab.tsx`)**:
+  - Implemented `simulateCustomStrategy` supporting three systematic models:
+    - **Dual Moving Average Crossover**: Configurable fast SMA (default 20) and slow SMA (default 50) with golden-cross entries and death-cross exits.
+    - **Wilder RSI Mean Reversion**: 14-period smoothed RSI with oversold entry thresholds (e.g. RSI ≤ 30) and overbought/exhaustion exits (e.g. RSI ≥ 70).
+    - **Donchian Channel Breakout**: N-period rolling high breakout entry and rolling low exit.
+  - Added institutional risk parameters: Stop Loss % (1% - 15%), Take Profit % (2% - 30%), and flexible starting capital presets (`₹25,000`, `₹50,000`, `₹1,00,000`, `₹5,00,000`).
+  - Added daily marked-to-market equity curve calculation and maximum peak-to-trough drawdown (`maxDrawdownPct`) metrics.
+- **Interactive SVG Equity Curve & Metrics HUD (`backtest-lab.tsx`)**:
+  - Rendered a lightweight responsive SVG equity curve comparing systematic strategy performance against a Buy & Hold benchmark.
+  - Built interactive hover inspection slice displaying exact date, strategy equity, and benchmark value with delta badge.
+  - Metric summary cards: Net Strategy Return, Buy & Hold Return, Strategy Alpha, Win Rate %, Profit Factor, Max Drawdown %, Payoff Ratio, and Average Holding Duration.
+- **Filterable Systematic Trade Log with CSV & Pine Script v5 Export**:
+  - Full trade execution ledger with filter tabs (`All`, `Wins`, `Losses`), trade duration in days, P&L in ₹ and %, and trigger badges (`strategy`, `stop_loss`, `take_profit`, `end_of_period`).
+  - 1-click **Export CSV** action downloading trades directly into a spreadsheet-ready `.csv` file.
+  - 1-click **TradingView Pine v5** generator copying clean Pine Script v5 strategy code matching the exact user-configured parameters for live deployment on TradingView.
+
+
 ### Added & Improved — Market Breadth Radar, Global Command Palette, Sector Pulse & E2E Hardening (`web/`)
 - **Interactive Market Breadth & Sentiment Radar (`web/src/components/market/market-breadth-card.tsx`, `web/src/app/app/page.tsx`)**:
   - Added an institutional Advance/Decline ratio bar (`up` vs `down`) calculating market breadth and real-time bias (`Broad Advance`, `Risk-Off Drag`, `Consolidating`).
