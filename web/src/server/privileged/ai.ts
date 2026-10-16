@@ -2,6 +2,7 @@ import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { AiProvider } from "@/lib/types";
+import { calculatePortfolioHealth, type HealthPosition, type PortfolioDiagnosticFocus } from "@/lib/portfolio-health";
 import { open } from "./crypto";
 import { assertMember, hasActiveConsent, planHasFeature, PrivilegedError } from "./guards";
 import { serviceRole } from "./service-role";
@@ -191,18 +192,48 @@ export async function researchReadWithMyKey(userId: string, tenantId: string, sy
   return executeAiCall(userId, tenantId, "news_summary", SYSTEM, prompt);
 }
 
-const PORTFOLIO_SYSTEM = `You are a quantitative portfolio risk analyst for Indian equities.
-Analyze the user's portfolio based ONLY on the provided holdings, sector weights, concentration metrics, gap/discount analysis, and technical RSI indicators.
-Structure your analysis into three short, focused sections:
-1. Concentration & Structural Risk: Evaluate portfolio breadth (target 13–15 holdings for optimal risk control), single-stock exposure, and Herfindahl-Hirschman concentration (HHI).
-2. Sector Allocation & Macro Sensitivity: Evaluate sector weights, noting overweights (>30%) or missing defensive/growth sectors.
-3. Quantitative Gaps & Technical Momentum: Identify stocks at >10% discount from cost basis as potential opportunities to check Signals, evaluate winner retention, and review RSI exhaustion nodes (RSI ≥ 70) vs oversold accumulation.
-Rules: Do not give speculative buy/sell recommendations or price targets. Strictly under 240 words. Professional institutional tone. Use ₹ and IST.`;
+export type { PortfolioDiagnosticFocus };
+
+const PORTFOLIO_SYSTEMS: Record<PortfolioDiagnosticFocus, string> = {
+  comprehensive: `You are an institutional quantitative portfolio risk analyst for Indian equities (NSE/BSE).
+Analyze the user's portfolio using ONLY the provided verified metrics: Health Score, concentration (HHI), breadth, single-stock and sector exposure, RSI indicators, cost-basis gaps, and technical signals.
+Structure your report into four concise, high-conviction sections:
+1. Executive Health Verdict: Summarize portfolio balance, diversification quality, and overall structural durability.
+2. Concentration & Sector Sensitivities: Review top holding weights against the 15% prudential threshold, HHI, and sector overweights (>30%).
+3. Momentum & RSI Health: Highlight positions exhibiting RSI overbought exhaustion (RSI ≥ 70) vs oversold accumulation (RSI ≤ 30) and signal alignment.
+4. Systematic Research Priorities: Identify key holdings requiring watchlist monitoring or disciplined review.
+Rules: Professional institutional tone. Strictly under 260 words. No speculative price targets. Do not give direct financial advice. Use ₹ and IST.`,
+
+  risk_audit: `You are a chief risk officer (CRO) auditing an Indian equities portfolio for structural stress and downside vulnerabilities.
+Analyze the user's portfolio focusing specifically on downside risk containment and tail-risk exposure:
+1. Downside Vulnerabilities & Tail Risk: Examine concentrated positions (>15% weight) and high HHI index risks during market corrections.
+2. Loss Containment & Underwater Positions: Audit positions trading >10% below cost basis. Distinguish temporary pullbacks from capital erosion.
+3. Overbought / Exhaustion Vulnerability: Scrutinize holdings with RSI ≥ 70 where risk/reward is unfavorable.
+4. Capital Preservation Actions: Recommend disciplined stop-loss and risk mitigation checks.
+Rules: Direct, risk-first institutional tone. Strictly under 250 words. No speculative price targets. Do not give financial advice. Use ₹ and IST.`,
+
+  rebalancing: `You are a quantitative portfolio rebalancing specialist for Indian equities.
+Analyze the user's portfolio focusing on systematic capital reallocation, profit-taking discipline, and rebalancing:
+1. Trimming Candidates: Pinpoint positions with extended gains, outsized portfolio weights (>20%), or RSI overbought exhaustion (RSI ≥ 70).
+2. Stagnant / Dead-Weight Capital: Identify chronic laggards that are tying up capital without momentum.
+3. Sector Rebalancing: Highlight sectors exceeding 30% allocation to restore optimal risk parity.
+4. Phased Rebalancing Framework: Suggest systematic rules for staged trimming and capital redeployment.
+Rules: Professional institutional tone. Strictly under 250 words. No speculative price targets. Do not give financial advice. Use ₹ and IST.`,
+
+  tax_cost_basis: `You are a quantitative cost-basis and portfolio efficiency analyst for Indian equities.
+Analyze the user's portfolio focusing on purchase cost basis, discount gaps, and capital efficiency:
+1. Cost-Basis Gap Analysis: Evaluate holdings trading at >10% discount from average cost basis. Assess whether technical indicators support accumulation or caution.
+2. Winner Retention vs Loss Trimming: Compare unrealized gains vs losses across the book.
+3. Tax & Reallocation Opportunities: Identify potential tax-loss harvesting candidates or capital consolidation points.
+4. Systematic Entry Discipline: Outline rules for staggered accumulation vs cutting losers.
+Rules: Objective, disciplined institutional tone. Strictly under 250 words. No speculative price targets. Do not give financial advice. Use ₹ and IST.`,
+};
 
 export async function portfolioHealthReadWithMyKey(
   userId: string,
   tenantId: string,
   portfolioId?: string,
+  focus: PortfolioDiagnosticFocus = "comprehensive",
 ): Promise<AiRead> {
   await assertMember(userId, tenantId);
   if (!(await planHasFeature(userId, tenantId, "ai_byok"))) throw new PrivilegedError("AI diagnostics are part of Pro and Pro Plus.");
@@ -224,77 +255,91 @@ export async function portfolioHealthReadWithMyKey(
   const symbols = [...new Set(holdings.map((h) => h.symbol))];
   const { data: quotes } = await db
     .from("market_snapshot")
-    .select("symbol, last_price, change_pct, rsi, sector")
+    .select("symbol, last_price, change_pct, rsi, sector, last_signal, last_signal_strategy, high_52w, low_52w")
     .in("symbol", symbols)
     .eq("exchange", "NSE");
 
   const quoteMap = new Map((quotes ?? []).map((q) => [q.symbol, q]));
 
-  // Calculate position values and portfolio totals
-  let totalInvested = 0;
-  let totalValue = 0;
-  const positions = holdings.map((h) => {
+  // Build HealthPosition array for deterministic calculation
+  const healthPositions: HealthPosition[] = holdings.map((h) => {
     const q = quoteMap.get(h.symbol);
     const lastPrice = q?.last_price ?? Number(h.avg_price);
     const value = Number(h.quantity) * Number(lastPrice);
-    const cost = Number(h.quantity) * Number(h.avg_price);
-    totalInvested += cost;
-    totalValue += value;
+    const invested = Number(h.quantity) * Number(h.avg_price);
+    const totalPnl = value - invested;
+    const totalPct = invested > 0 ? (totalPnl / invested) * 100 : 0;
     return {
       symbol: h.symbol,
       quantity: Number(h.quantity),
       avgPrice: Number(h.avg_price),
       lastPrice: Number(lastPrice),
       value,
+      invested,
+      totalPnl,
+      totalPct,
       sector: h.sector || q?.sector || "Other",
       rsi: q?.rsi != null ? Number(q.rsi) : null,
+      changePct: q?.change_pct != null ? Number(q.change_pct) : null,
     };
   });
 
-  // Calculate weights & HHI
-  const sorted = positions.sort((a, b) => b.value - a.value);
-  let hhi = 0;
-  const topList: string[] = [];
-  const sectorWeights = new Map<string, number>();
+  const healthReport = calculatePortfolioHealth(healthPositions);
 
-  for (const pos of sorted) {
-    const weightPct = totalValue > 0 ? (pos.value / totalValue) * 100 : 0;
-    hhi += weightPct * weightPct;
-    sectorWeights.set(pos.sector, (sectorWeights.get(pos.sector) ?? 0) + weightPct);
-    if (topList.length < 5) {
-      topList.push(`- ${pos.symbol}: ${weightPct.toFixed(1)}% of portfolio (₹${pos.value.toFixed(0)}, RSI ${pos.rsi != null ? pos.rsi.toFixed(1) : "n/a"})`);
-    }
-  }
+  const sorted = [...healthPositions].sort((a, b) => b.value - a.value);
+  const topList = sorted.slice(0, 6).map((pos) => {
+    const weightPct = healthReport.totalValue > 0 ? (pos.value / healthReport.totalValue) * 100 : 0;
+    const q = quoteMap.get(pos.symbol);
+    const sig = q?.last_signal ? ` | Signal: ${q.last_signal.toUpperCase()} (${q.last_signal_strategy ?? "rule"})` : "";
+    const pnlPct = pos.totalPct ?? 0;
+    return `- ${pos.symbol} (${pos.sector}): ${weightPct.toFixed(1)}% of book (₹${pos.value.toFixed(0)}, P&L ${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%, RSI ${pos.rsi != null ? pos.rsi.toFixed(1) : "n/a"}${sig})`;
+  });
 
-  const sectorSummary = [...sectorWeights.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([s, w]) => `- ${s}: ${w.toFixed(1)}%`)
+  const sectorSummary = healthReport.sectors
+    .map((s) => `- ${s.sector}: ${s.weightPct.toFixed(1)}% (₹${s.value.toFixed(0)})`)
     .join("\n");
 
-  const discountOpportunities = positions
+  const discountOpportunities = sorted
     .filter((p) => p.avgPrice > 0 && ((p.avgPrice - p.lastPrice) / p.avgPrice) * 100 >= 10)
     .map((p) => {
       const gap = (((p.avgPrice - p.lastPrice) / p.avgPrice) * 100).toFixed(1);
-      return `- ${p.symbol}: ${gap}% discount from cost basis (Avg ₹${p.avgPrice.toFixed(1)} vs CMP ₹${p.lastPrice.toFixed(1)}, RSI ${p.rsi != null ? p.rsi.toFixed(1) : "n/a"})`;
+      return `- ${p.symbol}: ${gap}% below cost basis (Avg ₹${p.avgPrice.toFixed(1)} vs CMP ₹${p.lastPrice.toFixed(1)}, RSI ${p.rsi != null ? p.rsi.toFixed(1) : "n/a"})`;
+    });
+
+  const rsiExhaustionList = sorted
+    .filter((p) => p.rsi != null && p.rsi >= 70)
+    .map((p) => {
+      const retPct = p.totalPct ?? 0;
+      return `- ${p.symbol}: Overbought RSI ${p.rsi?.toFixed(1)} (CMP ₹${p.lastPrice.toFixed(1)}, Return ${retPct >= 0 ? "+" : ""}${retPct.toFixed(1)}%)`;
     });
 
   const prompt = [
-    `Portfolio Overview:`,
-    `- Total Current Value: ₹${totalValue.toFixed(0)} across ${positions.length} holdings (Total Invested: ₹${totalInvested.toFixed(0)})`,
-    `- Holdings Breadth: ${positions.length} stocks (optimal diversification target: 13–15 stocks)`,
-    `- Herfindahl-Hirschman Concentration Index (HHI): ${hhi.toFixed(0)} (${hhi < 1500 ? "well-diversified" : hhi <= 2500 ? "moderately concentrated" : "highly concentrated"})`,
-    `\nTop Holdings:`,
+    `Portfolio Quantitative Metrics (Focus: ${focus.toUpperCase()}):`,
+    `- Total Portfolio Value: ₹${healthReport.totalValue.toFixed(0)} across ${healthReport.positionCount} holdings`,
+    `- Total Invested Capital: ₹${healthReport.totalInvested.toFixed(0)} (Overall P&L: ${healthReport.totalPnlPct >= 0 ? "+" : ""}${healthReport.totalPnlPct.toFixed(2)}%)`,
+    `- Portfolio Health Score: ${healthReport.scores.overall}/100 (${healthReport.verdict})`,
+    `  * Diversification Score: ${healthReport.scores.diversification}/30`,
+    `  * Sector Balance Score: ${healthReport.scores.sectorBalance}/25`,
+    `  * Technical / Momentum Score: ${healthReport.scores.technicalHealth}/25`,
+    `  * Loss Containment Score: ${healthReport.scores.capitalPreservation}/20`,
+    `- Herfindahl-Hirschman Concentration Index (HHI): ${healthReport.hhi} (${healthReport.concentrationRating.replace("_", " ")})`,
+    `- Effective Breadth (N_eff): ${healthReport.effectiveN} equivalent holdings`,
+    `- Top Holding Exposure: ${healthReport.topHolding?.symbol ?? "None"} at ${healthReport.topHolding?.weightPct ?? 0}% (Top 3 Concentration: ${healthReport.top3WeightPct}%)`,
+    `\nTop Position Breakdown:`,
     topList.join("\n"),
     `\nSector Allocations:`,
     sectorSummary,
-    `\nDiscount & Gap Analysis (>10% below cost basis):`,
+    `\nRSI Overbought Exhaustion Nodes (RSI ≥ 70):`,
+    rsiExhaustionList.length ? rsiExhaustionList.join("\n") : "(None currently in RSI overbought zone)",
+    `\nDiscount / Underwater Holdings (>10% below cost basis):`,
     discountOpportunities.length ? discountOpportunities.join("\n") : "(None currently trading >10% below cost basis)",
     ...(process.env.NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic"
       ? ["\nNote: Prices are synthetic dev data."]
       : []),
   ].join("\n");
 
-  return executeAiCall(userId, tenantId, "portfolio_health", PORTFOLIO_SYSTEM, prompt);
+  const systemPrompt = PORTFOLIO_SYSTEMS[focus] || PORTFOLIO_SYSTEMS.comprehensive;
+  return executeAiCall(userId, tenantId, `portfolio_health_${focus}`, systemPrompt, prompt);
 }
 
 const CHAT_SYSTEM = `You are a disciplined Indian equities research assistant.

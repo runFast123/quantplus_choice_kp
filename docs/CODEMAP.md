@@ -89,7 +89,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `privileged/eod-sync.ts` | `syncEodPrices`, types `SyncEodOptions`, `SyncEodReport` | Native Yahoo Finance EOD candle fetcher, validation & multi-step pipeline sync engine |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
 | `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
-| `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, `parseContractNoteWithMyKey(userId, tenantId, noteText)`, type `AiRead`, type `ParsedTrade` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
+| `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?, focus?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, `parseContractNoteWithMyKey(userId, tenantId, noteText)`, type `AiRead`, type `ParsedTrade`, type `PortfolioDiagnosticFocus` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
 | `news-data.ts` | `getNews(db, {symbols?, tone?, kind?, limit?, before?})`, `getResearch(db, symbols?)`, `normalizeNote`, types `NewsItem`, `ResearchNote`, `ResearchFactor` | RLS client reads |
 
 ## 3. Lib (web/src/lib) — pure, safe anywhere
@@ -107,6 +107,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `csv-parser.test.mts` | unit tests (`npm run test:unit`) |
 | `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, `simulateCustomStrategy(candles, params)`, `generateBacktestPineScript(params, symbol)`, `computeSma`, `computeRsi`, types `SipResult`, `StrategyResult`, `DetailedStrategyResult`, `DetailedStrategyTrade`, `EquityPoint`, `AdvancedStrategyParams` |
 | `backtest-engine.test.mts` | unit tests (`npm run test:unit`) |
+| `portfolio-health.ts` | `calculatePortfolioHealth(positions)`, types `PortfolioHealthReport`, `HealthPosition`, `PortfolioDiagnosticFocus`, `RiskFlag`, `HealthVerdict`, `SectorAllocation` |
+| `portfolio-health.test.mts` | unit tests (`npm run test:unit`) |
 | `news/feed.ts` | `parseFeed(xml)`, `parseFeedDate`, `cleanText`, `decodeEntities`, `normaliseUrl`, `nseFilingSymbol` |
 | `news/match.ts` | `SymbolMatcher` (`match`, `matchesSymbol`), `stripLegalSuffix` — sibling-entity guard (`SIBLING_WORDS`) |
 | `news/tone.ts` | `scoreTone(text)` → `{score, label, terms}`; `POSITIVE`, `NEGATIVE` word lists |

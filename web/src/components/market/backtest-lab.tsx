@@ -279,9 +279,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
             <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4 border-t border-border/70 text-[12px]">
               {strategyType === "sma_cross" && (
                 <>
-                  <div>
-                    <label className="eyebrow block mb-1">Fast MA Period</label>
-                    <div className="flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <label className="eyebrow block mb-1 truncate">Fast MA Period</label>
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {[9, 13, 20].map((v) => (
                         <button
                           key={v}
@@ -307,9 +307,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="eyebrow block mb-1">Slow MA Period</label>
-                    <div className="flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <label className="eyebrow block mb-1 truncate">Slow MA Period</label>
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {[30, 50, 200].map((v) => (
                         <button
                           key={v}
@@ -339,9 +339,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
 
               {strategyType === "rsi_reversal" && (
                 <>
-                  <div>
-                    <label className="eyebrow block mb-1">RSI Length</label>
-                    <div className="flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <label className="eyebrow block mb-1 truncate">RSI Length</label>
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {[7, 9, 14, 21].map((v) => (
                         <button
                           key={v}
@@ -358,9 +358,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="eyebrow block mb-1">Buy / Exit Thresholds</label>
-                    <div className="flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <label className="eyebrow block mb-1 truncate">Buy / Exit Thresholds</label>
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[11px] text-muted-foreground">Buy &le;</span>
                       <input
                         type="number"
@@ -387,9 +387,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
               )}
 
               {strategyType === "breakout" && (
-                <div>
-                  <label className="eyebrow block mb-1">Donchian Lookback</label>
-                  <div className="flex items-center gap-1.5">
+                <div className="min-w-0">
+                  <label className="eyebrow block mb-1 truncate">Donchian Lookback</label>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {[10, 20, 55].map((v) => (
                       <button
                         key={v}
@@ -408,9 +408,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
               )}
 
               {/* Stop Loss & Profit Target */}
-              <div>
-                <label className="eyebrow block mb-1">Stop Loss %</label>
-                <div className="flex items-center gap-1.5">
+              <div className="min-w-0">
+                <label className="eyebrow block mb-1 truncate">Stop Loss %</label>
+                <div className="flex flex-wrap items-center gap-1.5">
                   {[0, 3, 5, 7].map((s) => (
                     <button
                       key={s}
@@ -427,9 +427,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
                 </div>
               </div>
 
-              <div>
-                <label className="eyebrow block mb-1">Profit Target %</label>
-                <div className="flex items-center gap-1.5">
+              <div className="min-w-0">
+                <label className="eyebrow block mb-1 truncate">Profit Target %</label>
+                <div className="flex flex-wrap items-center gap-1.5">
                   {[0, 8, 15, 25].map((t) => (
                     <button
                       key={t}
@@ -446,9 +446,9 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
                 </div>
               </div>
 
-              <div>
-                <label className="eyebrow block mb-1">Starting Capital</label>
-                <div className="flex items-center gap-1.5">
+              <div className="min-w-0">
+                <label className="eyebrow block mb-1 truncate">Starting Capital</label>
+                <div className="flex flex-wrap items-center gap-1.5">
                   {[25000, 50000, 100000, 500000].map((cap) => (
                     <button
                       key={cap}
@@ -470,75 +470,75 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
           {stratResult ? (
             <>
               {/* Quantitative Desk Performance Summary Grid */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8 border-y border-border py-3 text-[13px]">
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Strategy Return</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3.5 border-y border-border py-3 text-[13px]">
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Strategy Return</p>
                   <div className="mt-1 text-[17px] font-medium">
                     <Delta value={stratResult.totalReturnPct} />
                   </div>
-                  <p className="num text-[11px] text-muted-foreground">
+                  <p className="num text-[11px] text-muted-foreground truncate">
                     {rupees(stratResult.finalCapital, { decimals: false })}
                   </p>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Buy &amp; Hold</p>
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Buy &amp; Hold</p>
                   <div className="mt-1 text-[17px] font-medium">
                     <Delta value={stratResult.benchmarkReturnPct} />
                   </div>
-                  <p className="text-[11px] text-muted-foreground">Stock benchmark</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Stock benchmark</p>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Alpha Generated</p>
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Alpha Generated</p>
                   <div className="mt-1 text-[17px] font-medium">
                     <Delta value={stratResult.alphaPct} />
                   </div>
-                  <p className="text-[11px] text-muted-foreground">Excess over hold</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Excess over hold</p>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Win Rate</p>
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Win Rate</p>
                   <p className="num mt-1 text-[17px] font-medium text-foreground">
                     {stratResult.winRatePct}%
                   </p>
-                  <p className="num text-[11px] text-muted-foreground">
+                  <p className="num text-[11px] text-muted-foreground truncate">
                     {stratResult.winningTrades}W / {stratResult.losingTrades}L
                   </p>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Profit Factor</p>
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Profit Factor</p>
                   <p className="num mt-1 text-[17px] font-medium text-foreground">
                     {stratResult.profitFactor}x
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Gross gain / loss</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Gross gain / loss</p>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Max Drawdown</p>
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Max Drawdown</p>
                   <p className="num mt-1 text-[17px] font-medium text-loss">
                     &minus;{stratResult.maxDrawdownPct}%
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Peak to trough</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Peak to trough</p>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Payoff Ratio</p>
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Payoff Ratio</p>
                   <p className="num mt-1 text-[17px] font-medium text-foreground">
                     {stratResult.payoffRatio}x
                   </p>
-                  <p className="num text-[11px] text-muted-foreground">
+                  <p className="num text-[11px] text-muted-foreground truncate">
                     +{stratResult.avgWinPct}% / &minus;{stratResult.avgLossPct}%
                   </p>
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <p className="eyebrow">Avg Duration</p>
+                <div className="min-w-0">
+                  <p className="eyebrow truncate">Avg Duration</p>
                   <p className="num mt-1 text-[17px] font-medium text-foreground">
                     {stratResult.avgBarsHeld}d
                   </p>
-                  <p className="num text-[11px] text-muted-foreground">
+                  <p className="num text-[11px] text-muted-foreground truncate">
                     {stratResult.totalTrades} closed trades
                   </p>
                 </div>

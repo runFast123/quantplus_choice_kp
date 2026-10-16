@@ -8,7 +8,7 @@ import { Badge, Delta, Sparkline, Stat, StanceBadge } from "@/components/ui/data
 import { Empty, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { daysUntil, date, isoDaysAgo, longDate, pct, price, relative, rupeesCompact, strategyLabel } from "@/lib/format";
 import { nseSession } from "@/lib/market";
-import type { Holding, Quote, Signal, WatchlistItem } from "@/lib/types";
+import type { Holding, Signal, WatchlistItem } from "@/lib/types";
 import { getBreadth, getQuotes, getSparks, positions, summarize } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
 import { can, displayName, requireSession } from "@/server/session";
@@ -139,8 +139,6 @@ export default async function OverviewPage() {
         />
       </section>
 
-      <MarketBreadthCard breadth={breadth} />
-
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Panel
           title="Market Radar"
@@ -258,24 +256,10 @@ export default async function OverviewPage() {
               <NewsList items={headlines} showSummary={false} />
             )}
           </Panel>
-
-          <Panel
-            title="Breadth"
-            meta={
-              <span>
-                <span className="num">{breadth.total.toLocaleString("en-IN")}</span> NSE stocks
-                <span className="hidden sm:inline"> · movers among the 500 largest</span>
-              </span>
-            }
-          >
-            <BreadthBar up={advancers} down={decliners} />
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <MoverList title="Leaders" rows={breadth.leaders} />
-              <MoverList title="Laggards" rows={breadth.laggards} />
-            </div>
-          </Panel>
         </div>
       </div>
+
+      <MarketBreadthCard breadth={breadth} />
     </div>
   );
 }
@@ -288,39 +272,5 @@ function RsiCell({ rsi }: { rsi: number | null }) {
       {zone ? <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{zone === "overbought" ? "OB" : "OS"}</span> : null}
       <span className={zone ? "font-semibold" : undefined}>{rsi.toFixed(1)}</span>
     </span>
-  );
-}
-
-function BreadthBar({ up, down }: { up: number; down: number }) {
-  const total = up + down || 1;
-  return (
-    <div>
-      <div className="flex h-2 gap-[2px] overflow-hidden rounded-full" role="img" aria-label={`${up} advancing, ${down} declining`}>
-        <span className="h-full rounded-l-full bg-gain" style={{ width: `${(up / total) * 100}%` }} />
-        <span className="h-full rounded-r-full bg-loss" style={{ width: `${(down / total) * 100}%` }} />
-      </div>
-      <div className="mt-2 flex justify-between text-[12px]">
-        <span className="num text-gain">▲ {up} advancing</span>
-        <span className="num text-loss">{down} declining ▼</span>
-      </div>
-    </div>
-  );
-}
-
-function MoverList({ title, rows }: { title: string; rows: Quote[] }) {
-  return (
-    <div className="min-w-0">
-      <p className="eyebrow mb-1.5">{title}</p>
-      <ul className="flex flex-col gap-1.5">
-        {rows.map((q) => (
-          <li key={q.symbol} className="flex min-w-0 items-baseline justify-between gap-2 text-[12.5px]">
-            <Link href={`/app/markets/${encodeURIComponent(q.symbol)}`} className="num min-w-0 truncate hover:underline">
-              {q.symbol}
-            </Link>
-            <Delta value={q.change_pct} showGlyph={false} className="shrink-0 text-[12px]" />
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

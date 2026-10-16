@@ -8,6 +8,7 @@ import {
   parseContractNoteWithMyKey,
   portfolioHealthReadWithMyKey,
   type ParsedTrade,
+  type PortfolioDiagnosticFocus,
 } from "@/server/privileged/ai";
 import { can, requireSession } from "@/server/session";
 
@@ -237,20 +238,24 @@ export type PortfolioAiState = {
   provider?: string;
   model?: string;
   error?: string;
+  focus?: PortfolioDiagnosticFocus;
 };
 
-export async function askPortfolioAi(portfolioId?: string): Promise<PortfolioAiState> {
+export async function askPortfolioAi(
+  portfolioId?: string,
+  focus: PortfolioDiagnosticFocus = "comprehensive",
+): Promise<PortfolioAiState> {
   const s = await requireSession();
   if (!s.activeTenantId) return { error: "No active workspace." };
   if (!can(s, "ai_byok")) {
     return { error: "AI diagnostics are part of Pro and Pro Plus." };
   }
   try {
-    const res = await portfolioHealthReadWithMyKey(s.userId, s.activeTenantId, portfolioId);
-    return { text: res.text, provider: res.provider, model: res.model };
+    const res = await portfolioHealthReadWithMyKey(s.userId, s.activeTenantId, portfolioId, focus);
+    return { text: res.text, provider: res.provider, model: res.model, focus };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Couldn't generate portfolio diagnostic.";
-    return { error: msg };
+    return { error: msg, focus };
   }
 }
 

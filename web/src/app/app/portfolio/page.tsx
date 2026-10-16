@@ -66,6 +66,20 @@ export default async function PortfolioPage() {
     source: "holding" as const,
   }));
 
+  const diagnosticPositions = ps.map((p) => ({
+    symbol: p.holding.symbol,
+    quantity: p.holding.quantity,
+    avgPrice: p.holding.avg_price,
+    lastPrice: p.quote?.last_price ?? p.holding.avg_price,
+    value: p.value,
+    invested: p.invested,
+    totalPnl: p.totalPnl,
+    totalPct: p.totalPct,
+    sector: p.holding.sector || p.quote?.sector || "Other",
+    rsi: p.quote?.rsi,
+    changePct: p.quote?.change_pct,
+  }));
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -98,13 +112,14 @@ export default async function PortfolioPage() {
 
       {ps.length > 0 ? (
         <Panel
-          title="Portfolio AI Diagnostic"
-          meta="Concentration, HHI & sector balance"
+          title="Portfolio AI Diagnostic (BYOK)"
+          meta="Concentration, HHI, sector balance & risk audit"
         >
           <AiPortfolioDiagnostic
             portfolioId={portfolios[0]?.id}
             ready={!aiReason}
             reason={aiReason}
+            positions={diagnosticPositions}
           />
         </Panel>
       ) : null}

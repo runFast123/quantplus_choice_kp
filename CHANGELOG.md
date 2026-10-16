@@ -6,7 +6,27 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
-### Added & Improved — Interactive Quantitative Strategy Simulator & Backtest Lab (`web/src/components/market/`, `web/src/lib/`)
+### Added & Improved — Advanced AI Portfolio Health Check (BYOK), Desk Reordering & BacktestLab Hardening (`web/`)
+- **Advanced AI Portfolio Health Check (BYOK) (`web/src/lib/portfolio-health.ts`, `web/src/components/portfolio/ai-diagnostic.tsx`, `web/src/server/privileged/ai.ts`, `web/src/app/app/portfolio/`)**:
+  - **Deterministic Quantitative Health Engine (`portfolio-health.ts`)**:
+    - Calculates Herfindahl-Hirschman Index (HHI) concentration, Effective N holdings count (`N_eff`), single-stock allocation alerts (>15%), and sector concentration caps (>35%).
+    - Computes momentum dispersion (overbought RSI ≥ 70 vs oversold RSI ≤ 30) and underwater cost-basis drag (>10% unrealized loss).
+    - Generates a composite 0-100 institutional health score weighted across Diversification (30%), Sector Exposure (25%), Momentum Dispersion (25%), and Loss Containment (20%).
+  - **Targeted AI Diagnostic Modes (`ai.ts`, `actions.ts`, `ai-diagnostic.tsx`)**:
+    - Added 4 BYOK diagnostic focus modes: `Comprehensive Diagnostic`, `Risk & Downside Audit`, `Trimming & Rebalancing Plan`, and `Cost-Basis & Tax Drag Audit`.
+    - Injects deterministic quantitative KPIs, portfolio concentration metrics, and sector allocations directly into member-encrypted BYOK LLM prompts (Claude 3.7 / GPT-4o / Gemini 2.0).
+  - **Portfolio Health HUD & Interactive Actions (`ai-diagnostic.tsx`)**:
+    - Instant quantitative health rating HUD showing composite score, HHI rating, Effective N, and dynamic risk/opportunity chips without waiting for LLM generation.
+    - Animated multi-stage diagnostic synthesis progress indicators.
+    - Formatted AI analysis with interactive ticker links directly navigating to `/app/markets/[symbol]`.
+    - Added 1-click **Copy Brief** and **Export Markdown (.md)** actions for local archival.
+- **Overview Desk Hierarchy & Layout Reordering (`web/src/app/app/page.tsx`)**:
+  - Restructured Overview workspace hierarchy to place **Market Radar** (watchlist equities, user signals, and top headlines) at the top immediately below the summary KPIs.
+  - Positioned **Market Breadth & Movers** (`MarketBreadthCard`) full-width directly below Market Radar, providing clear macro market sentiment without displacing user-tracked symbols.
+- **BacktestLab Responsive Metric Grid & Parameter Wrapping (`web/src/components/market/backtest-lab.tsx`)**:
+  - Replaced cramped 8-column metric row (`lg:grid-cols-8`) with a responsive 4-column grid (`grid-cols-2 sm:grid-cols-4`) with `truncate` and `min-w-0`, preventing horizontal text collisions on high-res and standard screens.
+  - Added `flex-wrap` and `min-w-0` to parameter button strips and input groups, eliminating sideways page scroll.
+
 - **Advanced Quantitative Strategy Backtester (`backtest-engine.ts`, `backtest-lab.tsx`)**:
   - Implemented `simulateCustomStrategy` supporting three systematic models:
     - **Dual Moving Average Crossover**: Configurable fast SMA (default 20) and slow SMA (default 50) with golden-cross entries and death-cross exits.
