@@ -408,7 +408,61 @@ export function TradePlan({
         </button>
 
         {isCalculatorOpen && (
-          <div className="border-t border-border p-3.5 animate-fadeIn">
+          <div className="border-t border-border p-3.5 animate-fadeIn space-y-4">
+            {/* Quick Capital & Risk Presets */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/20 p-2.5 rounded-md border border-border/70">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="eyebrow mr-1">Capital:</span>
+                {[25000, 50000, 100000, 250000, 500000].map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCapital(c)}
+                    className={clsx(
+                      "num rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
+                      capital === c
+                        ? "bg-foreground text-background"
+                        : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+                    )}
+                  >
+                    ₹{(c / 1000).toFixed(0)}k
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="eyebrow mr-1">Risk:</span>
+                {[0.5, 1.0, 1.5, 2.0].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRiskPct(r)}
+                    className={clsx(
+                      "num rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
+                      riskPct === r
+                        ? "bg-foreground text-background"
+                        : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-foreground/40",
+                    )}
+                  >
+                    {r.toFixed(1)}%
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomEntry(baseEntry);
+                    setCustomStop(defaultStop);
+                    setCapital(100000);
+                    setRiskPct(1.0);
+                  }}
+                  className="text-[11px] text-muted-foreground underline underline-offset-2 ml-1 hover:text-foreground"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            {/* Inputs Grid */}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className="flex flex-col gap-1">
                 <span className="eyebrow">Account Capital (₹)</span>
@@ -459,50 +513,76 @@ export function TradePlan({
             </div>
 
             {/* Sizing Results */}
-            <div className="mt-4 grid grid-cols-2 gap-2.5 border-t border-border pt-3 sm:grid-cols-4">
-              <div className="rounded border border-border/70 p-2.5">
+            <div className="grid grid-cols-2 gap-2.5 border-t border-border pt-3 sm:grid-cols-4">
+              <div className="rounded border border-border/70 p-2.5 bg-card">
                 <span className="eyebrow">Recommended Size</span>
                 <p className="num mt-0.5 text-[15px] font-semibold text-foreground">
                   {sizing.units.toLocaleString("en-IN")} units
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  ₹{price(sizing.exposure)} outlay
+                  ₹{price(sizing.exposure)} outlay ({sizing.exposurePct.toFixed(1)}% capital)
                 </p>
               </div>
 
-              <div className="rounded border border-border/70 p-2.5">
-                <span className="eyebrow">Risk at Stop</span>
+              <div className="rounded border border-border/70 p-2.5 bg-card">
+                <span className="eyebrow">Risk at Stop (-1.0R)</span>
                 <p className="num mt-0.5 text-[15px] font-semibold text-loss">
                   −₹{price(sizing.maxLoss)}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Budget: ₹{price(sizing.riskBudget)}
+                  Risk budget: ₹{price(sizing.riskBudget)}
                 </p>
               </div>
 
-              <div className="rounded border border-border/70 p-2.5">
-                <span className="eyebrow">Gain at Target 2</span>
+              <div className="rounded border border-border/70 p-2.5 bg-card">
+                <span className="eyebrow">Gain at Target 2 (+2.0R)</span>
                 <p className="num mt-0.5 text-[15px] font-semibold text-gain">
                   +₹{price(sizing.gainT2)}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  2.0R target (₹{price(plan.t2)})
+                  Target: ₹{price(plan.t2)}
                 </p>
               </div>
 
-              <div className="rounded border border-border/70 p-2.5">
-                <span className="eyebrow">Capital Utilization</span>
-                <p className="num mt-0.5 text-[15px] font-semibold text-foreground">
-                  {sizing.exposurePct.toFixed(1)}%
+              <div className="rounded border border-border/70 p-2.5 bg-card">
+                <span className="eyebrow">Gain at Target 3 (+3.0R)</span>
+                <p className="num mt-0.5 text-[15px] font-semibold text-gain">
+                  +₹{price(sizing.gainT3)}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  of ₹{price(capital)} capital
+                  Target: ₹{price(plan.t3)}
                 </p>
               </div>
             </div>
 
+            {/* Asymmetrical Payoff Spectrum */}
+            <div className="rounded border border-border/70 bg-card p-3">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground pb-2">
+                <span className="eyebrow">Asymmetrical Trade Payoff Spectrum</span>
+                <span className="num">Risk ₹{price(sizing.maxLoss)} to make ₹{price(sizing.gainT2)} (1 : 2.0R)</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-center text-[11px]">
+                <div className="rounded bg-loss-soft/40 p-1.5 border border-loss/20">
+                  <span className="block text-[10px] text-muted-foreground uppercase">Stop (1.0R)</span>
+                  <span className="num font-semibold text-loss">−₹{price(sizing.maxLoss)}</span>
+                </div>
+                <div className="rounded bg-gain-soft/30 p-1.5 border border-gain/20">
+                  <span className="block text-[10px] text-muted-foreground uppercase">T1 (0.75R)</span>
+                  <span className="num font-semibold text-gain">+₹{price(sizing.gainT1)}</span>
+                </div>
+                <div className="rounded bg-gain-soft/50 p-1.5 border border-gain/30">
+                  <span className="block text-[10px] text-muted-foreground uppercase">T2 (2.0R)</span>
+                  <span className="num font-semibold text-gain">+₹{price(sizing.gainT2)}</span>
+                </div>
+                <div className="rounded bg-gain-soft/70 p-1.5 border border-gain/40">
+                  <span className="block text-[10px] text-muted-foreground uppercase">T3 (3.0R)</span>
+                  <span className="num font-semibold text-gain">+₹{price(sizing.gainT3)}</span>
+                </div>
+              </div>
+            </div>
+
             {sizing.isCappedByCash && (
-              <div className="mt-3 flex items-start gap-2 rounded border border-border bg-muted/40 p-2.5 text-[12px] text-muted-foreground">
+              <div className="flex items-start gap-2 rounded border border-border bg-muted/40 p-2.5 text-[12px] text-muted-foreground">
                 <ShieldCheckIcon size={16} className="mt-0.5 shrink-0 text-foreground" aria-hidden />
                 <span>
                   <strong>Capital Protection Active:</strong> For a tight stop, unconstrained fractional sizing would exceed your account capital. Position size is capped at 100% available cash ({sizing.units} shares).

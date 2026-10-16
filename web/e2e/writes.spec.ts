@@ -29,6 +29,7 @@ test("radar: add from Markets, see it on Market Radar, remove it", async ({ proP
 });
 
 test("radar: Basic plan stops at 10 distinct symbols", async ({ browser }) => {
+  test.slow();
   const u = await oneOffUser("limit", "basic");
   const ctx = await browser.newContext();
   const page = await ctx.newPage();

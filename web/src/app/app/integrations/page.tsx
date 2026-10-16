@@ -71,14 +71,14 @@ export default async function IntegrationsPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-background p-4">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <CheckCircleIcon size={18} className="text-gain shrink-0" aria-hidden />
                   <span className="text-[13px] font-medium text-foreground">Active Account Authorized</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground text-[11.5px]">
-                  <LockIcon size={13} aria-hidden />
-                  <span className="num">{s.email}</span>
+                <div className="flex items-center gap-1.5 text-muted-foreground text-[11.5px] min-w-0 max-w-full">
+                  <LockIcon size={13} className="shrink-0" aria-hidden />
+                  <span className="num truncate">{s.email}</span>
                 </div>
               </div>
               <p className="mt-2 text-[12px] leading-5 text-muted-foreground">

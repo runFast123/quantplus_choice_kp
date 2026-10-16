@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FilterBar } from "@/components/market/filter-bar";
+import { SectorPulse } from "@/components/market/sector-pulse";
 import { RadarToggle } from "@/components/market/radar-toggle";
 import { Badge, Delta, RangeBar } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
@@ -61,6 +62,8 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
         title="Markets"
         description="Every NSE-listed stock, SME issue, major ETF and NSE index, with the last session's move, where it sits in its 52-week range, momentum, and the most recent rule-based signal."
       />
+
+      <SectorPulse />
 
       <FilterBar
         filters={[

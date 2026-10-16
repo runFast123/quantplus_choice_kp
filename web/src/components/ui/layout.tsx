@@ -48,12 +48,12 @@ export function Panel({
   return (
     <section id={id} className={clsx(interactive ? "panel-interactive" : "panel", "min-w-0", className)}>
       {title || actions ? (
-        <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex min-w-0 flex-1 items-baseline gap-2">
-            {title ? <h2 className="shrink-0 truncate text-[13px] font-semibold tracking-wide text-foreground">{title}</h2> : null}
+            {title ? <h2 className="min-w-0 truncate text-[13px] font-semibold tracking-wide text-foreground">{title}</h2> : null}
             {meta ? <span className="min-w-0 truncate text-[12px] text-muted-foreground">{meta}</span> : null}
           </div>
-          {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+          {actions ? <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
       ) : null}
       <div className={clsx("p-4", bodyClassName)}>{children}</div>

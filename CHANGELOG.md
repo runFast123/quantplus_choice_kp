@@ -6,6 +6,25 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added & Improved — Market Breadth Radar, Global Command Palette, Sector Pulse & E2E Hardening (`web/`)
+- **Interactive Market Breadth & Sentiment Radar (`web/src/components/market/market-breadth-card.tsx`, `web/src/app/app/page.tsx`)**:
+  - Added an institutional Advance/Decline ratio bar (`up` vs `down`) calculating market breadth and real-time bias (`Broad Advance`, `Risk-Off Drag`, `Consolidating`).
+  - Integrated top NSE 500 movers (top 3 gainers and losers) with live `<Delta>` pills and 1-click ticker jumps directly into the signed-in Overview desk.
+- **Global Command Palette with Keyboard Navigation (`web/src/components/shell/symbol-search.tsx`)**:
+  - Upgraded the top symbol search into a global command palette supporting `Ctrl+K`, `Cmd+K`, and `/` hotkeys with accessible `<kbd>` indicator badges.
+  - Added quick benchmark shortcuts (`NIFTY`, `BANKNIFTY`, `FINNIFTY`, `RELIANCE`, `TCS`, `HDFCBANK`) and desk navigation links (`Market Radar`, `Signals`, `Portfolio`, `Research`, `Integrations`).
+- **Interactive Position Sizing & Asymmetric Payoff Ladder (`web/src/components/market/trade-plan.tsx`)**:
+  - Enhanced the trade plan position calculator with quick capital preset chips (`₹25k`, `₹50k`, `₹100k`, `₹250k`, `₹500k`), risk percentage presets (`0.5%`, `1.0%`, `1.5%`, `2.0%`), and a reset action.
+  - Rendered complete asymmetric target payoff spectrum (Stop Loss, T1 +0.75R de-risking, T2 +2.0R systematic target, T3 +3.0R runner).
+- **Sector Pulse Rotator (`web/src/components/market/sector-pulse.tsx`, `web/src/app/app/markets/page.tsx`)**:
+  - Added horizontal sector rotation strip across all 11 Indian equity sectors (Automobile, Banking, Financials, IT, Pharma, Energy, Metals, FMCG, Realty, Media, Telecom) with 1-click filtering and reset controls.
+- **Accessibility & Mobile Layout Hardening (`web/src/components/`, `web/e2e/`)**:
+  - Refactored SMA overlay indicators in [`price-chart.tsx`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/components/charts/price-chart.tsx) with solid high-contrast dots and `text-foreground` labels, satisfying WCAG 2.1 AA 4.5:1 color contrast.
+  - Fixed mobile horizontal overflow across all pages by enabling responsive header wrapping in [`layout.tsx`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/components/ui/layout.tsx) (`Panel`) and removing restrictive `shrink-0` from `<h2>` titles.
+  - Consolidated single-message AI reason rendering on [`markets/[symbol]/page.tsx`](file:///c:/Users/kaival.trapasia/Desktop/Quantpluse_kp/web/src/app/app/markets/[symbol]/page.tsx) to prevent duplicate text strict-mode violations.
+  - Fully verified across all 91 Playwright end-to-end tests (90 passed, 0 failures), 67 unit tests, and the 29-migration PGlite isolation suite.
+
+
 ### Added & Improved — AI Model Auto-Detection & Dynamic Provider Selector (`web/src/app/app/integrations/`)
 - **Dynamic Provider-Specific Model Selector (`forms.tsx`)**:
   - Replaced the error-prone freeform text input with a curated, provider-tailored dropdown for Anthropic, OpenAI, and Google Gemini.

@@ -317,11 +317,11 @@ export function PriceChart({
             type="button"
             onClick={() => setShowSma20((v) => !v)}
             className={clsx(
-              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
-              showSma20 ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium" : "border-border text-muted-foreground hover:text-foreground",
+              "num inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10.5px] transition-colors",
+              showSma20 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#B45309]" />
             SMA 20
           </button>
 
@@ -329,11 +329,11 @@ export function PriceChart({
             type="button"
             onClick={() => setShowSma50((v) => !v)}
             className={clsx(
-              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
-              showSma50 ? "border-sky-500/50 bg-sky-500/15 text-sky-600 dark:text-sky-400 font-medium" : "border-border text-muted-foreground hover:text-foreground",
+              "num inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10.5px] transition-colors",
+              showSma50 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#0284C7]" />
             SMA 50
           </button>
 
@@ -341,11 +341,11 @@ export function PriceChart({
             type="button"
             onClick={() => setShowSma200((v) => !v)}
             className={clsx(
-              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
-              showSma200 ? "border-purple-500/50 bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium" : "border-border text-muted-foreground hover:text-foreground",
+              "num inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10.5px] transition-colors",
+              showSma200 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />
             SMA 200
           </button>
 
@@ -535,11 +535,11 @@ export function PriceChart({
                 type="button"
                 onClick={() => setSelectedSignal(selectedSignal?.ts === sig.ts ? null : sig)}
                 className={clsx(
-                  "num inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] transition-all cursor-pointer",
+                  "num inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] transition-all cursor-pointer bg-card",
                   sig.kind === "buy"
-                    ? "border-gain/35 bg-gain/5 hover:border-gain hover:bg-gain/15 text-gain"
-                    : "border-loss/35 bg-loss/5 hover:border-loss hover:bg-loss/15 text-loss",
-                  selectedSignal?.ts === sig.ts ? "ring-1 ring-primary shadow-xs font-semibold" : "opacity-90",
+                    ? "border-gain/40 text-gain hover:border-gain hover:bg-gain-soft"
+                    : "border-loss/40 text-loss hover:border-loss hover:bg-loss-soft",
+                  selectedSignal?.ts === sig.ts && "ring-1 ring-primary shadow-xs font-semibold",
                 )}
                 title={`${sig.label} on ${new Date(sig.ts).toLocaleDateString("en-IN")}`}
               >
@@ -548,7 +548,7 @@ export function PriceChart({
                   {new Date(sig.ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
                 </span>
                 {sig.price ? <span className="font-medium text-foreground">₹{fmtPrice(sig.price)}</span> : null}
-                <span className="opacity-70 text-[10px]">({sig.label})</span>
+                <span className="text-muted-foreground text-[10px]">({sig.label})</span>
               </button>
             ))}
           </div>

@@ -79,7 +79,8 @@ test.describe("news", () => {
     await proPage.goto("/app/news?scope=all");
     const sources = proPage.locator("section", { hasText: "How tone is scored" });
     await expect(sources.getByText("Economic Times · Markets")).toBeVisible();
-    await expect(sources.getByText("Moneycontrol · Market reports")).toHaveCount(0);
+    await expect(sources.getByText("Moneycontrol · Market reports")).toBeVisible();
+    await expect(sources.getByText("Disabled Source · Test")).toHaveCount(0);
   });
 
   test("'My stocks' with an empty radar explains itself", async ({ basicPage }) => {

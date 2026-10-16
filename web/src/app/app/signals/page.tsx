@@ -204,12 +204,12 @@ export default async function SignalsPage({
         title={scope === "mine" ? "On your radar and portfolio" : "All stocks"}
         meta={`${displayedSignals.length} signals displayed`}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex max-w-full flex-wrap items-center gap-2">
             {/* Status Filter */}
             <div
               role="tablist"
               aria-label="Milestone filter"
-              className="flex rounded-md border border-border p-0.5 text-[11px]"
+              className="flex max-w-full flex-wrap rounded-md border border-border p-0.5 text-[11px]"
             >
               {[
                 { key: "", label: "All" },

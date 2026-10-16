@@ -12,6 +12,7 @@ import type { Holding, Quote, Signal, WatchlistItem } from "@/lib/types";
 import { getBreadth, getQuotes, getSparks, positions, summarize } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
 import { can, displayName, requireSession } from "@/server/session";
+import { MarketBreadthCard } from "@/components/market/market-breadth-card";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -137,6 +138,8 @@ export default async function OverviewPage() {
           sub={ent ? ent.plan_name : "—"}
         />
       </section>
+
+      <MarketBreadthCard breadth={breadth} />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Panel

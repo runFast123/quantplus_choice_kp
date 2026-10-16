@@ -198,7 +198,19 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
               <Empty title="No note yet.">Notes are rebuilt after each close and whenever new headlines arrive.</Empty>
               <div className="border-t border-border pt-4">
                 <p className="eyebrow mb-2">Interactive AI Research</p>
-                <SymbolAiChat symbol={q.symbol} ready={!aiReason} reason={aiReason} />
+                {aiReason ? (
+                  <p className="text-[12.5px] leading-5 text-muted-foreground">
+                    {aiReason}{" "}
+                    <Link
+                      href="/app/integrations"
+                      className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                    >
+                      Integrations
+                    </Link>
+                  </p>
+                ) : (
+                  <SymbolAiChat symbol={q.symbol} ready={true} />
+                )}
               </div>
             </div>
           ) : (
@@ -216,14 +228,31 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
               <p className="display text-[20px] leading-snug">{note.headline}</p>
               <FactorBreakdown factors={note.factors} />
               <div className="border-t border-border pt-4 flex flex-col gap-4">
-                <div>
-                  <p className="eyebrow mb-2">Interactive AI Research</p>
-                  <SymbolAiChat symbol={q.symbol} ready={!aiReason} reason={aiReason} />
-                </div>
-                <div>
-                  <p className="eyebrow mb-2">Full AI Research Note</p>
-                  <AiRead symbol={q.symbol} ready={!aiReason} reason={aiReason} />
-                </div>
+                {aiReason ? (
+                  <div>
+                    <p className="eyebrow mb-2">AI Research & Reads</p>
+                    <p className="text-[12.5px] leading-5 text-muted-foreground">
+                      {aiReason}{" "}
+                      <Link
+                        href="/app/integrations"
+                        className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                      >
+                        Integrations
+                      </Link>
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="eyebrow mb-2">Interactive AI Research</p>
+                      <SymbolAiChat symbol={q.symbol} ready={true} />
+                    </div>
+                    <div>
+                      <p className="eyebrow mb-2">Full AI Research Note</p>
+                      <AiRead symbol={q.symbol} ready={true} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
