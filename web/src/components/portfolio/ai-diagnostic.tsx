@@ -329,7 +329,7 @@ export function AiPortfolioDiagnostic({
               href="/app/integrations"
               className="text-foreground underline underline-offset-4 hover:text-foreground/80 font-medium"
             >
-              Configure in Integrations
+              Integrations
             </Link>
           </div>
         )}

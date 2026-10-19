@@ -424,7 +424,7 @@ export function QuantumAudit({
                                   <span className="text-[10px] text-muted-foreground">
                                     {log.date}
                                   </span>
-                                  <span className="rounded bg-muted px-1.5 py-0.2 text-[9px] font-medium text-muted-foreground">
+                                  <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
                                     {log.alphaLabel}
                                   </span>
                                 </div>

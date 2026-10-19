@@ -54,6 +54,15 @@ export function TradePlan({
   const [customEntry, setCustomEntry] = useState<number>(baseEntry);
   const [customStop, setCustomStop] = useState<number>(defaultStop);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [prevSymbol, setPrevSymbol] = useState(symbol);
+
+  // Sync state if symbol changes
+  if (symbol !== prevSymbol) {
+    setPrevSymbol(symbol);
+    setCustomEntry(baseEntry);
+    setCustomStop(defaultStop);
+  }
+
   const [alertStatus, setAlertStatus] = useState<
     Record<string, { loading?: boolean; ok?: boolean; msg?: string }>
   >({});
@@ -146,7 +155,7 @@ export function TradePlan({
             </div>
             <div className="flex items-center gap-1.5">
               {lastPrice <= plan.stop && (
-                <span className="rounded bg-loss-soft px-1.5 py-0.2 text-[10px] font-semibold text-loss uppercase">
+                <span className="rounded bg-loss-soft px-1.5 py-0.5 text-[10px] font-semibold text-loss uppercase">
                   Breached
                 </span>
               )}
@@ -203,7 +212,7 @@ export function TradePlan({
             </div>
             <div className="flex items-center gap-1.5">
               {lastPrice >= plan.t1 && (
-                <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                <span className="rounded bg-gain-soft px-1.5 py-0.5 text-[10px] font-semibold text-gain uppercase">
                   Hit
                 </span>
               )}
@@ -260,7 +269,7 @@ export function TradePlan({
             </div>
             <div className="flex items-center gap-1.5">
               {lastPrice >= plan.t2 && (
-                <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                <span className="rounded bg-gain-soft px-1.5 py-0.5 text-[10px] font-semibold text-gain uppercase">
                   Hit
                 </span>
               )}
@@ -317,7 +326,7 @@ export function TradePlan({
             </div>
             <div className="flex items-center gap-1.5">
               {lastPrice >= plan.t3 && (
-                <span className="rounded bg-gain-soft px-1.5 py-0.2 text-[10px] font-semibold text-gain uppercase">
+                <span className="rounded bg-gain-soft px-1.5 py-0.5 text-[10px] font-semibold text-gain uppercase">
                   Hit
                 </span>
               )}
@@ -511,6 +520,16 @@ export function TradePlan({
                 />
               </label>
             </div>
+
+            {/* Validation Feedback */}
+            {!plan.isValid && (
+              <div className="flex items-center gap-2 rounded-md border border-loss/30 bg-loss-soft/30 p-2.5 text-[12px] text-loss">
+                <WarningCircleIcon size={16} className="shrink-0" aria-hidden />
+                <span>
+                  Stop loss must be lower than entry price (₹{price(Number(customEntry) || lastPrice)}).
+                </span>
+              </div>
+            )}
 
             {/* Sizing Results */}
             <div className="grid grid-cols-2 gap-2.5 border-t border-border pt-3 sm:grid-cols-4">

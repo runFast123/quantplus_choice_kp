@@ -150,6 +150,7 @@ export function toTradingViewSymbol(symbol: string, exchange: string = "NSE"): s
   if (clean === "INDIAVIX") return "NSE:INDIAVIX";
   if (clean === "MIDCPNIFTY" || clean === "NIFTYMIDCAP100") return "NSE:NIFTY_MIDCAP_100";
   if (clean === "NIFTYSMALLCAP100") return "NSE:NIFTY_SMALLCAP_100";
+  if (clean === "NIFTYFINSERV" || clean === "FINNIFTY") return "NSE:CNXFIN";
 
   const ex = exchange.toUpperCase() === "BSE" ? "BSE" : "NSE";
   // TradingView replaces & and - with _

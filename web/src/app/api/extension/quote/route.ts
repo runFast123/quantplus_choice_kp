@@ -6,18 +6,24 @@ import { getExtensionQuote } from "@/server/privileged/extension";
 
 export const dynamic = "force-dynamic";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Cache-Control": "private, no-cache, no-store, must-revalidate",
-};
+function getCorsHeaders(req: NextRequest) {
+  const origin = req.headers.get("origin");
+  return {
+    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+    "Cache-Control": "private, no-cache, no-store, must-revalidate",
+    Vary: "Origin",
+  };
+}
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders });
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(req) });
 }
 
 export async function GET(req: NextRequest) {
+  const corsHeaders = getCorsHeaders(req);
   // 1. Enforce Authentication Guard — Active QuantsPulse account required
   const authHeader = req.headers.get("authorization");
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;

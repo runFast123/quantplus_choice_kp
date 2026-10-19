@@ -99,6 +99,8 @@ describe("TradingView Symbol Formatter", () => {
     assert.equal(toTradingViewSymbol("BANKNIFTY"), "NSE:BANKNIFTY");
     assert.equal(toTradingViewSymbol("NIFTYIT"), "NSE:CNXIT");
     assert.equal(toTradingViewSymbol("INDIAVIX"), "NSE:INDIAVIX");
+    assert.equal(toTradingViewSymbol("NIFTYFINSERV"), "NSE:CNXFIN");
+    assert.equal(toTradingViewSymbol("FINNIFTY"), "NSE:CNXFIN");
   });
 
   test("handles BSE exchange selection", () => {

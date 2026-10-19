@@ -6,6 +6,21 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed & Hardened — Trade Plan State Sync, Dynamic CORS Headers, Alias Routing & CSS Animation Integrity (`web/`)
+- **Trade Plan Prop Synchronization & Clean Keying (`web/src/components/market/trade-plan.tsx`, `web/src/app/app/markets/[symbol]/page.tsx`)**:
+  - Fixed persistent state retention issue when navigating between symbols in `/app/markets/[symbol]`: bound `<TradePlan key={q.symbol} />` and added prop synchronization so switching stocks immediately clears previous entry/stop levels and recalculates fresh asymmetric targets for the active stock.
+  - Added user feedback warning when Stop Loss is configured greater than or equal to Entry Price in the interactive position calculator.
+  - Corrected invalid Tailwind badge classes (`py-0.2` → `py-0.5`) across `<TradePlan>`, `<QuantumAudit>`, and platform console admin tabs.
+- **Dynamic CORS Credentials Support (`web/src/app/api/extension/session/route.ts`, `web/src/app/api/extension/quote/route.ts`)**:
+  - Dynamically reflected request `Origin` in `Access-Control-Allow-Origin` with `Vary: Origin` to comply with browser CORS specifications when requests use `credentials: 'include'`, preventing browser request rejections on extension authentication checks.
+- **Index Alias Redirection & Command Palette Link Resolution (`web/src/app/app/markets/[symbol]/page.tsx`, `web/src/components/shell/symbol-search.tsx`, `web/src/lib/market.ts`)**:
+  - Added automatic alias redirection for popular Indian index names (`FINNIFTY` → `NIFTYFINSERV`, `NIFTY50` → `NIFTY`, `NIFTYBANK` → `BANKNIFTY`, `MIDCPNIFTY` → `NIFTYMIDCAP50`) preventing 404 not found errors.
+  - Updated Nifty Financial Services quick benchmark in the global command palette (`symbol-search.tsx`) to link directly to canonical `NIFTYFINSERV`.
+  - Added TradingView ticker mapping for `NIFTYFINSERV` and `FINNIFTY` (`NSE:CNXFIN`) in `toTradingViewSymbol`.
+- **CSS Animation & Micro-Interaction Fixes (`web/src/app/globals.css`, `web/src/components/portfolio/ai-diagnostic.tsx`)**:
+  - Added `.animate-fadeIn` alias to `.animate-fade-in` in `globals.css` so modal dialogs, calculators, and audit cards trigger the smooth 21st.dev fade-in animation.
+  - Streamlined "Integrations" link copy in the BYOK diagnostic notice.
+
 ### Added & Improved — Advanced AI Portfolio Health Check (BYOK), Desk Reordering & BacktestLab Hardening (`web/`)
 - **Advanced AI Portfolio Health Check (BYOK) (`web/src/lib/portfolio-health.ts`, `web/src/components/portfolio/ai-diagnostic.tsx`, `web/src/server/privileged/ai.ts`, `web/src/app/app/portfolio/`)**:
   - **Deterministic Quantitative Health Engine (`portfolio-health.ts`)**:

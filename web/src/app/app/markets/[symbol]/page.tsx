@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import clsx from "clsx";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { MarketChartView } from "@/components/charts/market-chart-view";
@@ -30,6 +30,19 @@ export async function generateMetadata({ params }: PageProps<"/app/markets/[symb
 
 export default async function SymbolPage({ params }: PageProps<"/app/markets/[symbol]">) {
   const symbol = decodeURIComponent((await params).symbol).toUpperCase();
+  const ALIAS_MAP: Record<string, string> = {
+    FINNIFTY: "NIFTYFINSERV",
+    "FIN-NIFTY": "NIFTYFINSERV",
+    NIFTY50: "NIFTY",
+    CNXNIFTY: "NIFTY",
+    NIFTYBANK: "BANKNIFTY",
+    CNXBANK: "BANKNIFTY",
+    MIDCPNIFTY: "NIFTYMIDCAP50",
+    NIFTYJR: "NIFTY100",
+  };
+  if (ALIAS_MAP[symbol]) {
+    redirect(`/app/markets/${ALIAS_MAP[symbol]}`);
+  }
   const s = await requireSession();
   const db = s.supabase;
 
@@ -172,6 +185,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           meta={latestBuySignal ? `Anchored to ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} signal` : "Asymmetric 0.75R / 2.0R / 3.0R model"}
         >
           <TradePlan
+            key={q.symbol}
             symbol={q.symbol}
             lastPrice={q.last_price}
             rsi={q.rsi}

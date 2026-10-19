@@ -27,7 +27,7 @@ interface QuickLink {
 const QUICK_BENCHMARKS = [
   { symbol: "NIFTY", name: "Nifty 50 Index", segment: "index" },
   { symbol: "BANKNIFTY", name: "Nifty Bank Index", segment: "index" },
-  { symbol: "FINNIFTY", name: "Nifty Financial Services", segment: "index" },
+  { symbol: "NIFTYFINSERV", name: "Nifty Financial Services", segment: "index" },
   { symbol: "RELIANCE", name: "Reliance Industries", segment: "equity" },
   { symbol: "TCS", name: "Tata Consultancy Services", segment: "equity" },
   { symbol: "HDFCBANK", name: "HDFC Bank Limited", segment: "equity" },
