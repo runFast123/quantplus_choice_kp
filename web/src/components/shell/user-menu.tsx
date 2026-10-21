@@ -41,7 +41,7 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
         {initials || "QP"}
       </button>
       {open ? (
-        <div role="menu" className="absolute right-0 top-11 z-40 w-[240px] rounded-lg border border-border bg-popover p-1.5 shadow-pop">
+        <div role="menu" className="absolute right-0 top-11 z-40 w-[240px] rounded-lg border border-border bg-popover p-1.5 shadow-pop animate-scale-in">
           <div className="px-2.5 py-2">
             <p className="truncate text-[13px] font-medium">{name}</p>
             <p className="truncate text-[12px] text-muted-foreground">{email}</p>

@@ -204,20 +204,25 @@ export async function importHoldingsCsv(
         existing.avg_price = avg;
       }
     } else {
-      const { error } = await s.supabase.from("holdings").insert({
-        portfolio_id: pid,
-        symbol: row.cleanSymbol,
-        exchange: "NSE",
-        quantity: row.quantity,
-        avg_price: row.avgPrice,
-        sector: meta.sector,
-        source: "import",
-      });
-      if (error) {
+      const { data: inserted, error } = await s.supabase
+        .from("holdings")
+        .insert({
+          portfolio_id: pid,
+          symbol: row.cleanSymbol,
+          exchange: "NSE",
+          quantity: row.quantity,
+          avg_price: row.avgPrice,
+          sector: meta.sector,
+          source: "import",
+        })
+        .select("id, symbol, exchange, quantity, avg_price")
+        .single();
+      if (error || !inserted) {
         skipped++;
-        details.push(`${row.cleanSymbol}: ${friendlyDbError(error.message)}`);
+        details.push(`${row.cleanSymbol}: ${friendlyDbError(error?.message ?? "Insert failed")}`);
       } else {
         imported++;
+        existingMap.set(row.cleanSymbol, inserted);
       }
     }
   }
@@ -331,6 +336,17 @@ export async function applyParsedTrades(
     const existing = existingMap.get(t.symbol);
 
     if (t.action === "BUY") {
+      if (meta.segment === "index") {
+        skipped++;
+        details.push(`${t.symbol}: index cannot be held directly`);
+        continue;
+      }
+      if (!meta.is_active) {
+        skipped++;
+        details.push(`${t.symbol}: symbol is no longer active`);
+        continue;
+      }
+
       if (existing) {
         const q0 = Number(existing.quantity);
         const qty = q0 + t.quantity;
@@ -348,20 +364,25 @@ export async function applyParsedTrades(
           existing.avg_price = avg;
         }
       } else {
-        const { error } = await s.supabase.from("holdings").insert({
-          portfolio_id: pid,
-          symbol: t.symbol,
-          exchange: t.exchange,
-          quantity: t.quantity,
-          avg_price: t.price,
-          sector: meta.sector,
-          source: "import",
-        });
-        if (error) {
+        const { data: inserted, error } = await s.supabase
+          .from("holdings")
+          .insert({
+            portfolio_id: pid,
+            symbol: t.symbol,
+            exchange: t.exchange,
+            quantity: t.quantity,
+            avg_price: t.price,
+            sector: meta.sector,
+            source: "import",
+          })
+          .select("id, symbol, exchange, quantity, avg_price")
+          .single();
+        if (error || !inserted) {
           skipped++;
-          details.push(`${t.symbol}: ${friendlyDbError(error.message)}`);
+          details.push(`${t.symbol}: ${friendlyDbError(error?.message ?? "Insert failed")}`);
         } else {
           imported++;
+          existingMap.set(t.symbol, inserted);
         }
       }
     } else if (t.action === "SELL") {

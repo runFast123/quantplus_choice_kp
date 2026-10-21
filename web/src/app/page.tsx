@@ -78,7 +78,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 See how it works
               </ButtonLink>
             </div>
-            <p className="mt-4 text-[12.5px] text-muted-foreground">No card needed. Basic covers a 10-stock radar, CSV portfolio sync, and research on every listing.</p>
+            <p className="mt-4 text-[12.5px] text-muted-foreground">No card needed. Basic covers a 10-stock radar, rule-based signals, and research on every listing.</p>
           </div>
 
           <Specimen />
@@ -475,12 +475,12 @@ function TerminalSpecimen() {
               <p className="num font-medium text-loss mt-0.5">₹3,940.00</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Target 1 (+3%)</p>
-              <p className="num font-medium text-gain mt-0.5">₹4,202.40</p>
+              <p className="text-muted-foreground">Target 1 (0.75R)</p>
+              <p className="num font-medium text-gain mt-0.5">₹4,185.00</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Target 2 (+6%)</p>
-              <p className="num font-medium text-gain mt-0.5">₹4,324.80</p>
+              <p className="text-muted-foreground">Target 2 (2.0R)</p>
+              <p className="num font-medium text-gain mt-0.5">₹4,360.00</p>
             </div>
           </div>
         </div>
@@ -489,18 +489,18 @@ function TerminalSpecimen() {
         <div className="relative mt-4 h-36 w-full rounded-md border border-border/80 bg-background/40 p-2 overflow-hidden">
           <svg viewBox="0 0 500 130" className="w-full h-full text-foreground" aria-hidden preserveAspectRatio="none">
             {/* Target lines */}
-            <line x1="0" x2="500" y1="20" y2="20" stroke="#16a34a" strokeDasharray="3 3" strokeWidth="1" />
-            <text x="6" y="16" fill="#16a34a" fontSize="9" fontFamily="monospace">Target 2 ₹4,324.80</text>
-            <line x1="0" x2="500" y1="46" y2="46" stroke="#16a34a" strokeDasharray="3 3" strokeWidth="1" />
-            <text x="6" y="42" fill="#16a34a" fontSize="9" fontFamily="monospace">Target 1 ₹4,202.40</text>
+            <line x1="0" x2="500" y1="20" y2="20" stroke="var(--gain)" strokeDasharray="3 3" strokeWidth="1" />
+            <text x="6" y="16" fill="var(--gain)" fontSize="9" fontFamily="monospace">Target 2 (2.0R) ₹4,360.00</text>
+            <line x1="0" x2="500" y1="46" y2="46" stroke="var(--gain)" strokeDasharray="3 3" strokeWidth="1" />
+            <text x="6" y="42" fill="var(--gain)" fontSize="9" fontFamily="monospace">Target 1 (0.75R) ₹4,185.00</text>
 
             {/* Entry line */}
-            <line x1="0" x2="500" y1="75" y2="75" stroke="#888888" strokeDasharray="2 2" strokeWidth="1" />
-            <text x="6" y="71" fill="#888888" fontSize="9" fontFamily="monospace">Entry ₹4,080.00</text>
+            <line x1="0" x2="500" y1="75" y2="75" stroke="var(--muted-foreground)" strokeDasharray="2 2" strokeWidth="1" />
+            <text x="6" y="71" fill="var(--muted-foreground)" fontSize="9" fontFamily="monospace">Entry ₹4,080.00</text>
 
             {/* Stop loss line */}
-            <line x1="0" x2="500" y1="110" y2="110" stroke="#dc2626" strokeDasharray="3 3" strokeWidth="1" />
-            <text x="6" y="106" fill="#dc2626" fontSize="9" fontFamily="monospace">Stop Loss ₹3,940.00</text>
+            <line x1="0" x2="500" y1="110" y2="110" stroke="var(--loss)" strokeDasharray="3 3" strokeWidth="1" />
+            <text x="6" y="106" fill="var(--loss)" fontSize="9" fontFamily="monospace">Stop Loss (1.0R) ₹3,940.00</text>
 
             {/* Price path */}
             <path
@@ -511,7 +511,7 @@ function TerminalSpecimen() {
               strokeLinejoin="round"
             />
             {/* Buy marker */}
-            <circle cx="160" cy="74" r="4.5" fill="#16a34a" />
+            <circle cx="160" cy="74" r="4.5" fill="var(--gain)" />
           </svg>
         </div>
 

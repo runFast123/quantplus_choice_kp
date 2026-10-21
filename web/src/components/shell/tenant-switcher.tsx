@@ -42,7 +42,7 @@ export function TenantSwitcher({ memberships, activeTenantId }: { memberships: M
         <CaretDownIcon size={12} className="shrink-0 text-muted-foreground" aria-hidden />
       </button>
       {open ? (
-        <div role="menu" className="absolute left-0 top-11 z-40 w-[260px] rounded-lg border border-border bg-popover p-1.5 shadow-pop">
+        <div role="menu" className="absolute left-0 top-11 z-40 w-[260px] rounded-lg border border-border bg-popover p-1.5 shadow-pop animate-scale-in">
           <p className="eyebrow px-2 pb-1 pt-1.5">Workspaces</p>
           {memberships.map((m) => {
             const isActive = m.tenant_id === activeTenantId;

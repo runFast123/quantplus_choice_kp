@@ -178,6 +178,8 @@ export function QuantumAudit({
             >
               <button
                 type="button"
+                role="tab"
+                aria-selected={sourceFilter === "all"}
                 onClick={() => setSourceFilter("all")}
                 className={clsx(
                   "rounded-[4px] px-2.5 py-1 transition-colors",
@@ -190,6 +192,8 @@ export function QuantumAudit({
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={sourceFilter === "holding"}
                 onClick={() => setSourceFilter("holding")}
                 className={clsx(
                   "rounded-[4px] px-2.5 py-1 transition-colors",
@@ -202,6 +206,8 @@ export function QuantumAudit({
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={sourceFilter === "radar"}
                 onClick={() => setSourceFilter("radar")}
                 className={clsx(
                   "rounded-[4px] px-2.5 py-1 transition-colors",
@@ -230,6 +236,8 @@ export function QuantumAudit({
               <button
                 key={nf.key}
                 type="button"
+                role="tab"
+                aria-selected={nodeFilter === nf.key}
                 onClick={() => setNodeFilter(nf.key)}
                 className={clsx(
                   "rounded-[4px] px-2 py-0.5 transition-colors",

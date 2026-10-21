@@ -16,7 +16,9 @@ interface TradingViewWidgetProps {
  */
 export function TradingViewWidget({ symbol, exchange = "NSE", className }: TradingViewWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isDark, setIsDark] = useState<boolean>(true);
+  const [isDark, setIsDark] = useState<boolean>(() =>
+    typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Synchronize theme with html class (Zen Linen theme switcher)

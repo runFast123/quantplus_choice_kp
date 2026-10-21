@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import clsx from "clsx";
 import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import { PriceChart, type ChartMarker } from "@/components/charts/price-chart";
+import { TradingViewWidget } from "@/components/charts/tradingview-widget";
 import { Empty, Panel } from "@/components/ui/layout";
 import { toTradingViewSymbol } from "@/lib/market";
 import type { Candle } from "@/lib/types";
@@ -14,10 +17,10 @@ interface MarketChartViewProps {
 }
 
 /**
- * Unified TradingView Chart:
- * Powered by TradingView's official charting engine. Displays verified Indian equity candles,
- * Buy & Exit strategy signals directly on the bars, interactive SMA 20/50/200 overlays,
- * Volume histogram, and timeline controls in one single, crystal-clear view.
+ * Unified Market Chart View:
+ * Switches seamlessly between QuantsPulse's native Signals Chart (verified NSE EOD candles,
+ * non-overlapping Buy/Exit markers, full-history SMA 20/50/200, and OHLCV data table)
+ * and TradingView Pro's multi-indicator workstation.
  */
 export function MarketChartView({
   candles,
@@ -25,6 +28,7 @@ export function MarketChartView({
   symbol,
   exchange = "NSE",
 }: MarketChartViewProps) {
+  const [viewMode, setViewMode] = useState<"signals" | "tradingview">("signals");
   const tvUrl = `https://in.tradingview.com/chart/?symbol=${encodeURIComponent(toTradingViewSymbol(symbol, exchange))}`;
 
   return (
@@ -32,12 +36,40 @@ export function MarketChartView({
       title="TradingView Chart"
       meta={`${symbol} · ${exchange} Daily · Buy & Exit Signals with SMA Overlays`}
       actions={
-        <div className="flex items-center gap-2">
-          {markers.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {markers.length > 0 && viewMode === "signals" && (
             <span className="num hidden sm:inline-flex items-center gap-1 rounded bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
               <strong className="text-foreground">{markers.length}</strong> signal{markers.length === 1 ? "" : "s"} on chart
             </span>
           )}
+          <div role="group" aria-label="Chart engine" className="inline-flex rounded-md border border-border bg-background/60 p-0.5 text-[11.5px]">
+            <button
+              type="button"
+              aria-pressed={viewMode === "signals"}
+              onClick={() => setViewMode("signals")}
+              className={clsx(
+                "rounded-[4px] px-2.5 py-0.5 font-medium transition-colors",
+                viewMode === "signals"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Signals Chart
+            </button>
+            <button
+              type="button"
+              aria-pressed={viewMode === "tradingview"}
+              onClick={() => setViewMode("tradingview")}
+              className={clsx(
+                "rounded-[4px] px-2.5 py-0.5 font-medium transition-colors",
+                viewMode === "tradingview"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              TradingView Pro
+            </button>
+          </div>
           <a
             href={tvUrl}
             target="_blank"
@@ -51,7 +83,9 @@ export function MarketChartView({
         </div>
       }
     >
-      {candles.length ? (
+      {viewMode === "tradingview" ? (
+        <TradingViewWidget symbol={symbol} exchange={exchange} />
+      ) : candles.length ? (
         <PriceChart candles={candles} markers={markers} symbol={symbol} exchange={exchange} />
       ) : (
         <Empty title="No price history yet." />

@@ -182,16 +182,16 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
-| `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + signal markers), type `ChartMarker` |
+| `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + signal markers + collapsible daily OHLCV table view), type `ChartMarker` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
-| `charts/market-chart-view.tsx` | `MarketChartView` (unified tab switcher between QuantsPulse Signals and TradingView Pro) |
+| `charts/market-chart-view.tsx` | `MarketChartView` (unified switcher between QuantsPulse Signals Chart and TradingView Pro) |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
 | `brand/logo.tsx` | `Logo`, `LogoMark` |
 
 ## 7. CSS utilities (globals.css)
-`.panel`, `.num` (mono tabular), `.display` (serif), `.eyebrow` (small caps label), `.linen` (page grain),
-`.hairline`, `.rule-dotted`, `.animate-marquee`, shadow `shadow-pop`; color tokens incl. `gain`/`loss` (ink), `coral`
-(decoration), `coral-ink` (text), `*-soft`. Chart code reads CSS vars `--gain`/`--loss` (mark colours).
+`.panel`, `.panel-interactive`, `.num` (mono tabular), `.display` (serif), `.eyebrow` (small caps label), `.linen` (page grain),
+`.hairline`, `.rule-dotted`, `.animate-marquee`, `.animate-fade-in` / `.animate-fadeIn`, `.animate-scale-in`, `.animate-slide-up`, `.bar-fill`, shadow `shadow-pop`; color tokens incl. `gain`/`loss` (ink), `coral` / `coral-foreground`
+(decoration), `coral-ink` (text), `*-soft`, `sma-20`/`sma-50`/`sma-200`. Chart code reads CSS vars `--gain`/`--loss` (mark colours) and `--sma-20`/`--sma-50`/`--sma-200`.
 
 ## 8. Scripts & tests
 

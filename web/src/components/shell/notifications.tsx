@@ -66,7 +66,7 @@ export function Notifications({ userId, initial }: { userId: string; initial: No
         {unread ? <span className="absolute right-2 top-2 size-2 rounded-full bg-coral ring-2 ring-background" aria-hidden /> : null}
       </button>
       {open ? (
-        <div role="dialog" aria-label="Notifications" className="absolute right-0 top-11 z-40 w-[340px] max-w-[calc(100vw-24px)] rounded-lg border border-border bg-popover shadow-pop">
+        <div role="dialog" aria-label="Notifications" className="absolute right-0 top-11 z-40 w-[340px] max-w-[calc(100vw-24px)] rounded-lg border border-border bg-popover shadow-pop animate-scale-in">
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <p className="text-[13px] font-semibold">Notifications</p>
             {unread ? (

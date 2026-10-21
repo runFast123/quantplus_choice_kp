@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   CheckIcon,
   CircleNotchIcon,
@@ -27,6 +27,19 @@ export function CsvImportModal({ portfolios }: CsvImportModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputId = useId();
+  const dialogTitleId = useId();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSubmitting) {
+        setIsOpen(false);
+        setImportResult(null);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen, isSubmitting]);
 
   // Instant preview parsing
   const preview = useMemo(() => {
@@ -81,12 +94,25 @@ export function CsvImportModal({ portfolios }: CsvImportModalProps) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSubmitting) {
+              setIsOpen(false);
+              setImportResult(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={dialogTitleId}
+            className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl overflow-hidden animate-scale-in"
+          >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
-                <h2 className="display text-[20px] font-medium leading-none text-foreground">
+                <h2 id={dialogTitleId} className="display text-[20px] font-medium leading-none text-foreground">
                   Import Holdings from Broker CSV
                 </h2>
                 <p className="mt-1 text-[12.5px] text-muted-foreground">

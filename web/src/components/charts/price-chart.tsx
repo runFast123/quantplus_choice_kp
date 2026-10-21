@@ -92,6 +92,7 @@ export function PriceChart({
   const [signalDensity, setSignalDensity] = useState<"clean" | "all">("clean");
   const [showLabels, setShowLabels] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<ChartMarker | null>(null);
+  const [showDataTable, setShowDataTable] = useState(false);
 
   const visible = useMemo(() => {
     const days = RANGES.find((r) => r.key === range)!.days;
@@ -99,6 +100,12 @@ export function PriceChart({
     const cutoff = new Date(candles[candles.length - 1].ts).getTime() - days * 86400000;
     return candles.filter((c) => new Date(c.ts).getTime() >= cutoff);
   }, [candles, range]);
+
+  // Compute SMAs over the full historical candle series so short ranges (1M/3M/6M)
+  // plot continuous moving averages right from the leftmost visible bar.
+  const fullSma20 = useMemo(() => computeSma(candles, 20), [candles]);
+  const fullSma50 = useMemo(() => computeSma(candles, 50), [candles]);
+  const fullSma200 = useMemo(() => computeSma(candles, 200), [candles]);
 
   // Filtered and deduplicated markers
   const activeMarkers = useMemo(() => {
@@ -122,6 +129,11 @@ export function PriceChart({
     const border = cssVar("--border");
     const gain = cssVar("--gain");
     const loss = cssVar("--loss");
+    const sma20Color = cssVar("--sma-20") || "#D97706";
+    const sma50Color = cssVar("--sma-50") || "#0284C7";
+    const sma200Color = cssVar("--sma-200") || "#7C3AED";
+    const firstTime = toTime(visible[0].ts);
+    const lastTime = toTime(visible[visible.length - 1].ts);
 
     const chart = createChart(el.current, {
       autoSize: true,
@@ -169,38 +181,38 @@ export function PriceChart({
       mainSeries.setData(visible.map((c) => ({ time: toTime(c.ts), open: c.open, high: c.high, low: c.low, close: c.close })));
     }
 
-    // Technical Overlays
+    // Technical Overlays (computed over full history, sliced to visible range)
     if (showSma20) {
       const sma20 = chart.addSeries(LineSeries, {
-        color: "#F59E0B",
+        color: sma20Color,
         lineWidth: 2,
         title: "SMA 20",
         priceLineVisible: false,
         lastValueVisible: false,
       });
-      sma20.setData(computeSma(visible, 20));
+      sma20.setData(fullSma20.filter((p) => p.time >= firstTime && p.time <= lastTime));
     }
 
     if (showSma50) {
       const sma50 = chart.addSeries(LineSeries, {
-        color: "#0284C7",
+        color: sma50Color,
         lineWidth: 2,
         title: "SMA 50",
         priceLineVisible: false,
         lastValueVisible: false,
       });
-      sma50.setData(computeSma(visible, 50));
+      sma50.setData(fullSma50.filter((p) => p.time >= firstTime && p.time <= lastTime));
     }
 
     if (showSma200) {
       const sma200 = chart.addSeries(LineSeries, {
-        color: "#9333EA",
+        color: sma200Color,
         lineWidth: 2,
         title: "SMA 200",
         priceLineVisible: false,
         lastValueVisible: false,
       });
-      sma200.setData(computeSma(visible, 200));
+      sma200.setData(fullSma200.filter((p) => p.time >= firstTime && p.time <= lastTime));
     }
 
     // Volume histogram
@@ -253,11 +265,42 @@ export function PriceChart({
       chart.remove();
       chartRef.current = null;
     };
-  }, [visible, activeMarkers, theme, chartType, showSma20, showSma50, showSma200, showVolume, showLabels]);
+  }, [visible, activeMarkers, theme, chartType, showSma20, showSma50, showSma200, showVolume, showLabels, fullSma20, fullSma50, fullSma200]);
 
-  const shown = hover ?? visible[visible.length - 1];
-  const prev = shown ? visible[visible.indexOf(shown) - 1] : undefined;
-  const chg = shown && prev ? ((shown.close - prev.close) / prev.close) * 100 : null;
+  // Smoothly focus the visible time range around a selected signal without recreating the canvas
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !visible.length) return;
+    if (!selectedSignal) {
+      chart.timeScale().fitContent();
+      return;
+    }
+    const sigDay = selectedSignal.ts.slice(0, 10);
+    let idx = visible.findIndex((c) => c.ts.slice(0, 10) === sigDay);
+    if (idx === -1) {
+      const sigTime = toTime(selectedSignal.ts);
+      idx = visible.findIndex((c) => toTime(c.ts) >= sigTime);
+    }
+    if (idx !== -1) {
+      const fromIdx = Math.max(0, idx - 22);
+      const toIdx = Math.min(visible.length - 1, idx + 22);
+      chart.timeScale().setVisibleRange({
+        from: toTime(visible[fromIdx].ts),
+        to: toTime(visible[toIdx].ts),
+      });
+    }
+  }, [selectedSignal, visible]);
+
+  const selectedCandle = useMemo(() => {
+    if (!selectedSignal) return null;
+    const day = selectedSignal.ts.slice(0, 10);
+    return candles.find((c) => c.ts.slice(0, 10) === day) ?? null;
+  }, [selectedSignal, candles]);
+
+  const shown = hover ?? selectedCandle ?? visible[visible.length - 1];
+  const fullIdx = shown ? candles.findIndex((c) => c.ts === shown.ts) : -1;
+  const prev = fullIdx > 0 ? candles[fullIdx - 1] : undefined;
+  const chg = shown && prev && prev.close ? ((shown.close - prev.close) / prev.close) * 100 : null;
 
   // Active signal for hovered or selected candle
   const activeSignal = useMemo(() => {
@@ -321,7 +364,7 @@ export function PriceChart({
               showSma20 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#B45309]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-sma-20" />
             SMA 20
           </button>
 
@@ -333,7 +376,7 @@ export function PriceChart({
               showSma50 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#0284C7]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-sma-50" />
             SMA 50
           </button>
 
@@ -345,7 +388,7 @@ export function PriceChart({
               showSma200 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-sma-200" />
             SMA 200
           </button>
 
@@ -444,6 +487,21 @@ export function PriceChart({
             ))}
           </div>
 
+          <button
+            type="button"
+            aria-expanded={showDataTable}
+            onClick={() => setShowDataTable((v) => !v)}
+            className={clsx(
+              "num inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
+              showDataTable
+                ? "border-primary bg-primary text-primary-foreground font-medium"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+            title="Toggle accessible daily OHLCV data table"
+          >
+            <span>Table</span>
+          </button>
+
           <a
             href={`https://in.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`}
             target="_blank"
@@ -515,6 +573,52 @@ export function PriceChart({
 
       {/* Interactive Chart Canvas */}
       <div ref={el} className="h-[420px] w-full md:h-[480px] lg:h-[520px] rounded border border-border/40 bg-background/50" role="img" aria-label={`${symbol} daily price chart, ${range}`} />
+
+      {/* Accessible Daily OHLCV Table View (MASTER.md §Charts & WCAG 2.1 AA) */}
+      {showDataTable && visible.length > 0 && (
+        <div className="rounded-md border border-border bg-card p-3 animate-fade-in">
+          <div className="mb-2 flex items-center justify-between text-[11.5px]">
+            <span className="eyebrow">Daily OHLCV Data ({symbol} · Latest 20 sessions in {range})</span>
+            <button
+              type="button"
+              onClick={() => setShowDataTable(false)}
+              className="text-[11px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              Hide table
+            </button>
+          </div>
+          <div className="max-h-56 overflow-y-auto overflow-x-auto [scrollbar-width:thin]">
+            <table className="w-full min-w-[520px] text-[12px]">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th className="py-1.5 text-left font-medium">Date</th>
+                  <th className="py-1.5 text-right font-medium">Open</th>
+                  <th className="py-1.5 text-right font-medium">High</th>
+                  <th className="py-1.5 text-right font-medium">Low</th>
+                  <th className="py-1.5 text-right font-medium">Close</th>
+                  <th className="py-1.5 text-right font-medium">Volume</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60 num">
+                {visible.slice(-20).reverse().map((c) => (
+                  <tr key={c.ts} className="hover:bg-foreground/[0.03]">
+                    <td className="py-1.5 text-muted-foreground">
+                      {new Date(c.ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="py-1.5 text-right">₹{fmtPrice(c.open)}</td>
+                    <td className="py-1.5 text-right">₹{fmtPrice(c.high)}</td>
+                    <td className="py-1.5 text-right">₹{fmtPrice(c.low)}</td>
+                    <td className={clsx("py-1.5 text-right font-medium", c.close >= c.open ? "text-gain" : "text-loss")}>
+                      ₹{fmtPrice(c.close)}
+                    </td>
+                    <td className="py-1.5 text-right text-muted-foreground">{fmtVolume(c.volume)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Streamlined Compact Signals Ribbon (Small, Compact & Easy to See) */}
       {recentSignals.length > 0 && (

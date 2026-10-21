@@ -48,6 +48,7 @@
   --letter-spacing: 0.01em;
 
   --coral: #F26A4B;
+  --coral-foreground: #1E1E1E;
   --coral-ink: #A8402A; /* coral as text: 4.5:1+ on linen */
   /* Marks (candles, chart fills) — validated categorical pair. */
   --gain: #0F7B5C;
@@ -57,6 +58,9 @@
   --loss-ink: #A8380B;
   --gain-soft: color-mix(in oklab, var(--gain-ink) 9%, transparent);
   --loss-soft: color-mix(in oklab, var(--loss-ink) 9%, transparent);
+  --sma-20: #B45309;
+  --sma-50: #0284C7;
+  --sma-200: #7C3AED;
   --grain-opacity: 0.35;
 }
 
@@ -102,6 +106,9 @@
   --coral-ink: #F26A4B;
   --gain-ink: #4CC39C;
   --loss-ink: #F07E5C;
+  --sma-20: #F59E0B;
+  --sma-50: #38BDF8;
+  --sma-200: #A855F7;
   --grain-opacity: 0.12;
 }
 
@@ -140,11 +147,15 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-coral: var(--coral);
+  --color-coral-foreground: var(--coral-foreground);
   --color-coral-ink: var(--coral-ink);
   --color-gain: var(--gain-ink);
   --color-loss: var(--loss-ink);
   --color-gain-soft: var(--gain-soft);
   --color-loss-soft: var(--loss-soft);
+  --color-sma-20: var(--sma-20);
+  --color-sma-50: var(--sma-50);
+  --color-sma-200: var(--sma-200);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
@@ -166,6 +177,7 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
+    scroll-padding-top: 6rem;
   }
   body {
     background: var(--background);
@@ -318,4 +330,54 @@
 .animate-fade-in,
 .animate-fadeIn {
   animation: fade-in-up 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-scale-in {
+  animation: scale-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-up {
+  animation: slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.bar-fill {
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fadeIn,
+  .animate-scale-in,
+  .animate-slide-up,
+  .animate-ping-soft,
+  .animate-pulse-subtle,
+  .animate-marquee {
+    animation: none !important;
+  }
+  .panel-interactive,
+  .panel-interactive:hover,
+  .bar-fill {
+    transition: none !important;
+    transform: none !important;
+  }
 }

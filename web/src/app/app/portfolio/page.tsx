@@ -177,9 +177,7 @@ export default async function PortfolioPage() {
                         <td className={tdNum + " text-muted-foreground"}>{sum.value ? ((p.value / sum.value) * 100).toFixed(1) : "0.0"}%</td>
                         <td className={td + " text-right"}>
                           <span className="inline-flex items-center gap-1">
-                            {p.holding.source === "manual" ? (
-                              <EditHolding id={p.holding.id} quantity={p.holding.quantity} avgPrice={p.holding.avg_price} symbol={p.holding.symbol} />
-                            ) : null}
+                            <EditHolding id={p.holding.id} quantity={p.holding.quantity} avgPrice={p.holding.avg_price} symbol={p.holding.symbol} />
                             <ConfirmButton label={`Remove ${p.holding.symbol}`} confirmLabel="Remove" onConfirm={deleteHolding.bind(null, p.holding.id)}>
                               <TrashIcon size={15} aria-hidden />
                             </ConfirmButton>
@@ -209,7 +207,7 @@ export default async function PortfolioPage() {
                         <span className="num text-muted-foreground">{w.toFixed(1)}%</span>
                       </div>
                       <div className="mt-1 h-1.5 rounded-full bg-foreground/[0.07]">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${w}%` }} />
+                        <div className="bar-fill h-full rounded-full bg-primary" style={{ width: `${w}%` }} />
                       </div>
                     </li>
                   );

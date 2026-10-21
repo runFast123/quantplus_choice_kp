@@ -35,6 +35,12 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
 
   return (
     <div className="flex min-h-dvh">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-1.5 focus:text-[13px] focus:font-medium focus:text-primary-foreground focus:shadow-pop"
+      >
+        Skip to main content
+      </a>
       <Sidebar
         locked={{ portfolio: !can(s, "portfolio"), alerts: !can(s, "alerts") }}
         isPlatformAdmin={admin}

@@ -72,7 +72,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
               </span>
             </div>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-foreground/10" role="meter" aria-valuenow={used} aria-valuemin={0} aria-valuemax={limit ?? used} aria-label="Radar symbols used">
-              <div className={clsx("h-full rounded-full", full ? "bg-coral" : "bg-primary")} style={{ width: limit ? `${Math.min(100, (used / limit) * 100)}%` : "8%" }} />
+              <div className={clsx("bar-fill h-full rounded-full", full ? "bg-coral" : "bg-primary")} style={{ width: limit ? `${Math.min(100, (used / limit) * 100)}%` : "8%" }} />
             </div>
             {full ? (
               <p className="mt-1.5 text-[12px] text-muted-foreground">

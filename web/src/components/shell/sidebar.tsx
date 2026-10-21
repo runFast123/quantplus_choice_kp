@@ -150,7 +150,7 @@ export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boole
           id="mobile-more"
           role="dialog"
           aria-label="More pages"
-          className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-50 rounded-t-xl border-t border-sidebar-border bg-sidebar p-3 md:hidden"
+          className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-50 rounded-t-xl border-t border-sidebar-border bg-sidebar p-3 md:hidden animate-slide-up"
         >
           <ul className="grid grid-cols-3 gap-1">
             {more.map((i) => {

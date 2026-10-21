@@ -21,7 +21,7 @@ export function FactorBreakdown({ factors }: { factors: ResearchFactor[] }) {
               <span className="relative block h-1.5 w-14 rounded-full bg-foreground/[0.07]">
                 <span className="absolute inset-y-[-2px] left-1/2 w-px bg-foreground/30" aria-hidden />
                 <span
-                  className={clsx("absolute inset-y-0 rounded-full", f.score >= 0 ? "bg-gain" : "bg-loss")}
+                  className={clsx("bar-fill absolute inset-y-0 rounded-full", f.score >= 0 ? "bg-gain" : "bg-loss")}
                   style={f.score >= 0 ? { left: "50%", width: `${pct}%` } : { right: "50%", width: `${pct}%` }}
                   aria-hidden
                 />

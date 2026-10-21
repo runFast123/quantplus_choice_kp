@@ -6,6 +6,27 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed, Hardened & Polished — Full-History Chart SMAs, Multi-Fill Import Merging, WCAG 2.2 AA Accessibility & Zen Linen Motion System (`web/`, `extension/`)
+- **Chart SMA Continuity, Signal Candle Focus & Accessible Data Table (`web/src/components/charts/price-chart.tsx`, `web/src/components/charts/market-chart-view.tsx`, `web/src/components/charts/tradingview-widget.tsx`)**:
+  - Fixed moving average truncation on shorter time horizons (`1M`, `3M`, `6M`, `1Y`): `SMA 20`, `SMA 50`, and `SMA 200` are now computed over the full historical candle series before slicing to the visible range so moving averages plot continuously from the leftmost visible bar.
+  - Fixed daily `%` change lookup on the leftmost visible candle by resolving the prior session against the full `candles` array.
+  - Decoupled `selectedSignal` from the Lightweight Charts creation `useEffect` and added a dedicated range-focus effect so clicking a signal pill in the Signals Timeline smoothly zooms/pans to the signal's candle and displays its OHLCV values without destroying and recreating the chart canvas.
+  - Added an accessible, toggleable **Daily OHLCV Table** (`Table`) in `PriceChart` (`MASTER.md` §Charts & WCAG 2.1 AA chart fallback).
+  - Restored the unified **Signals Chart** / **TradingView Pro** view switcher in `MarketChartView` and initialized `TradingViewWidget` theme state from `document.documentElement` on mount to prevent double iframe initialization in light mode.
+- **Portfolio CSV & Contract Note Multi-Fill Merging & Validation (`web/src/app/app/portfolio/actions.ts`, `web/src/app/app/portfolio/page.tsx`)**:
+  - Updated `importHoldingsCsv` and `applyParsedTrades` to track newly inserted holdings in `existingMap` within the same batch so multiple rows or partial fills for the same symbol in a single CSV or contract note merge accurately at the volume-weighted average price (or reduce/close on intraday `SELL`) instead of failing unique constraints.
+  - Enforced `segment === "index"` and `!is_active` validation on `BUY` trades in `applyParsedTrades`.
+  - Enabled `<EditHolding />` inline editing for all portfolio holdings (including CSV and Contract Note imported positions, not only `source === "manual"`).
+- **WCAG 2.1 / 2.2 AA Accessibility, ARIA & Hydration Hardening (`web/src/components/shell/symbol-search.tsx`, `web/src/components/market/quantum-audit.tsx`, `web/src/components/portfolio/csv-import.tsx`, `web/src/components/portfolio/contract-note-modal.tsx`, `web/src/app/app/layout.tsx`)**:
+  - Fixed `SymbolSearch` `isMac` detection using `useSyncExternalStore` to prevent SSR/Client hydration mismatches on macOS/iOS, guarded `aria-activedescendant` when `totalItems === 0`, and restricted global `/` and `Ctrl+K` listeners to the visible search input instance (`offsetParent !== null`).
+  - Added missing `role="tab"` and `aria-selected` attributes to filter buttons inside `role="tablist"` in `QuantumAudit`.
+  - Added `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `Escape`-key dismissal, and backdrop-click dismissal to `CsvImportModal` and `ContractNoteModal`.
+  - Added an accessible `Skip to main content` link in `AppLayout` and `scroll-padding-top: 6rem` on `html` (`focus-not-obscured`).
+- **Zen Linen Design Tokens, Copy Accuracy & Motion System (`web/src/app/globals.css`, `web/src/app/page.tsx`, `web/src/components/ui/button.tsx`, `extension/`)**:
+  - Replaced remaining hardcoded hex colors in `web/src/app/page.tsx`, `web/src/components/charts/price-chart.tsx`, and `web/src/components/ui/button.tsx` with semantic CSS tokens (`--coral-foreground`, `--sma-20`, `--sma-50`, `--sma-200`, `--gain`, `--loss`).
+  - Corrected landing page hero subcopy to accurately reflect Basic plan entitlements (`public.plans`) and aligned `TerminalSpecimen` target labels with `0.75R` and `2.0R`.
+  - Added `.animate-scale-in`, `.animate-slide-up`, and `.bar-fill` micro-interaction utilities plus comprehensive `@media (prefers-reduced-motion: reduce)` guards across `web/src/app/globals.css`, `extension/sidepanel/sidepanel.css`, and `extension/content-scripts/detector.js`.
+
 ### Fixed & Hardened — Trade Plan State Sync, Dynamic CORS Headers, Alias Routing & CSS Animation Integrity (`web/`)
 - **Trade Plan Prop Synchronization & Clean Keying (`web/src/components/market/trade-plan.tsx`, `web/src/app/app/markets/[symbol]/page.tsx`)**:
   - Fixed persistent state retention issue when navigating between symbols in `/app/markets/[symbol]`: bound `<TradePlan key={q.symbol} />` and added prop synchronization so switching stocks immediately clears previous entry/stop levels and recalculates fresh asymmetric targets for the active stock.

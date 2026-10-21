@@ -11,7 +11,7 @@ import {
   PlugsIcon,
 } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { useSymbolSearch } from "@/components/market/use-symbol-search";
 import { price } from "@/lib/format";
 import { SEGMENT_LABEL } from "@/lib/market";
@@ -41,6 +41,10 @@ const QUICK_NAV: QuickLink[] = [
   { href: "/app/integrations", label: "Integrations & Terminal", sub: "Chrome extension & TV", icon: PlugsIcon },
 ];
 
+const noopSubscribe = () => () => {};
+const getIsMacSnapshot = () => /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent);
+const getIsMacServerSnapshot = () => false;
+
 /** Ticker/company search & command palette across covered symbols. "/" or "Ctrl+K" / "Cmd+K" opens it. */
 export function SymbolSearch() {
   const router = useRouter();
@@ -49,11 +53,12 @@ export function SymbolSearch() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
-  const [isMac] = useState(() => typeof navigator !== "undefined" && /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent));
+  const isMac = useSyncExternalStore(noopSubscribe, getIsMacSnapshot, getIsMacServerSnapshot);
   const { hits: results, pending } = useSymbolSearch(q, 8);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!inputRef.current || inputRef.current.offsetParent === null) return;
       const t = e.target as HTMLElement;
       const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName) || t.isContentEditable;
       if (
@@ -61,7 +66,7 @@ export function SymbolSearch() {
         ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey))
       ) {
         e.preventDefault();
-        inputRef.current?.focus();
+        inputRef.current.focus();
         setOpen(true);
       }
     };
@@ -110,7 +115,7 @@ export function SymbolSearch() {
         aria-controls={listId}
         aria-autocomplete="list"
         aria-busy={pending || undefined}
-        aria-activedescendant={open ? `${listId}-${cursor}` : undefined}
+        aria-activedescendant={open && totalItems > 0 ? `${listId}-${cursor}` : undefined}
         aria-label="Search stocks or jump to desk"
         placeholder="Search NSE stocks or jump to desk…"
         value={q}
@@ -199,7 +204,7 @@ export function SymbolSearch() {
                     const isSelected = cursor === actualIdx;
                     const Icon = nav.icon;
                     return (
-                      <li key={nav.href}>
+                      <li key={nav.href} role="presentation">
                         <button
                           id={`${listId}-${actualIdx}`}
                           role="option"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import {
   CheckIcon,
@@ -45,6 +45,20 @@ export function ContractNoteModal({
     updated?: number;
     skipped?: number;
   } | null>(null);
+  const dialogTitleId = useId();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isParsing && !isApplying) {
+        setIsOpen(false);
+        setError(null);
+        setApplyResult(null);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen, isParsing, isApplying]);
 
   const handleParse = async () => {
     if (!noteText.trim() || isParsing) return;
@@ -101,14 +115,28 @@ export function ContractNoteModal({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isParsing && !isApplying) {
+              setIsOpen(false);
+              setError(null);
+              setApplyResult(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={dialogTitleId}
+            className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg border border-border bg-card shadow-xl overflow-hidden animate-scale-in"
+          >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div className="flex items-center gap-2">
                 <FileTextIcon size={20} className="text-foreground" aria-hidden />
                 <div>
-                  <h2 className="display text-[20px] font-medium leading-none text-foreground">
+                  <h2 id={dialogTitleId} className="display text-[20px] font-medium leading-none text-foreground">
                     Import Contract Note
                   </h2>
                   <p className="mt-1 text-[12.5px] text-muted-foreground">
