@@ -187,7 +187,7 @@ export default async function SignalsPage({
       </section>
 
       {/* Strategy Selector Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         {STRATEGIES.map((st) => (
           <Link
             key={st.key}
