@@ -401,6 +401,8 @@ export interface RawChartMarker {
   pnlPct?: number | null;
   resultType?: string | null;
   barsHeld?: number | null;
+  action?: "buy" | "sell" | "exit" | "cover";
+  direction?: "buy" | "sell" | "long" | "short";
 }
 
 /**

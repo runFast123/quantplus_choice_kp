@@ -3,8 +3,18 @@
 All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Newest first.
 **Every change adds a line under _Unreleased_** — what changed, why, and where. Agents: read this before
 building something; it may already exist (then check `docs/CODEMAP.md`).
-
 ## [Unreleased]
+
+### Fixed & Enhanced — Multi-Directional Chart Signals & 500 Nifty Equities Full Database Ingestion (`web/`, `scripts/`)
+- **Multi-Directional Chart Signal Rendering Parity (`web/src/components/charts/price-chart.tsx`, `web/src/lib/backtest-engine.ts`, `web/src/lib/trade-plan.ts`)**:
+  - Investigated and resolved chart signal display discrepancies where SELL (short breakdown) trades and milestone exits were misrendered or inverted:
+    - **Entry vs Exit Directional Distinction**: Explicitly distinguished `action: "buy"` (long entry, arrow up below bar, gain), `action: "sell"` (short breakdown entry, arrow down above bar, loss), `action: "exit"` (long target/stop exit, arrow down above bar), and `action: "cover"` (short target/stop cover, arrow up below bar).
+    - **Milestone Labels & Color-Coding**: Resolved label inversion where short covers hitting $+2.0R$ were displayed as green BUY arrows. Now accurately displays `T2 +2R Cover` (gain), `T1 +0.75R Cover` (gain), `SL Cover` (loss), and `5d Cover`.
+    - **Active Signal HUD & Timeline Ribbon**: Enhanced crosshair hover HUD and timeline chip strip to render distinctive badges (`▲ BUY`, `▼ SELL`, `★ TARGET`, `★ COVER`, `▼ EXIT`) with R-multiples, P&L percentages, and trade holding durations.
+- **Full Nifty 500 Equities Database Signal Ingestion (`scripts/ingest_kk_signals.py`, `web/src/app/app/markets/[symbol]/page.tsx`)**:
+  - Resolved PostgREST pagination limit (default 1,000 rows) by implementing recursive pagination across all 3,615 active NSE symbols with explicit corporate name overrides.
+  - Ingested 16,687 rich trading signals spanning 2024–2026 across all 500 Nifty equities into Supabase `public.trading_signals`, covering both BUY breakouts and SELL breakdowns with complete target milestone payloads.
+  - Increased symbol page `trading_signals` query limit from 40 to 200, ensuring complete historical coverage across multi-year chart views.
 
 ### Fixed & Aligned — KK Breakout Empirical Signal Parity, Database Ingestion & Multi-Strategy Precision Audit (`web/`, `scripts/`)
 - **Empirical Signal & Target Anchoring Parity (`web/src/lib/backtest-engine.ts`, `web/src/lib/backtest-engine.test.mts`)**:

@@ -1125,6 +1125,8 @@ export function generateKkChartMarkers(
     markers.push({
       ts: entryTs,
       kind: isBuy ? "buy" : "exit",
+      action: isBuy ? "buy" : "sell",
+      direction: isBuy ? "buy" : "sell",
       label: isBuy ? "KK 20d Breakout Buy" : "KK 20d Breakdown Sell",
       strategy: "kk_breakout",
       price: t.entryPrice,
@@ -1151,7 +1153,9 @@ export function generateKkChartMarkers(
 
       markers.push({
         ts: exitTs,
-        kind: isBuy ? "exit" : "buy",
+        kind: "exit",
+        action: isBuy ? "exit" : "cover",
+        direction: isBuy ? "buy" : "sell",
         label: exitLabel,
         strategy: "kk_breakout",
         price: t.exitPrice,

@@ -298,15 +298,39 @@ export function PriceChart({
         .map((m) => {
           const t = toTime(m.ts);
           const bar = [...visible].reverse().find((c) => toTime(c.ts) <= t) ?? visible[0];
-          const isBuy = m.kind === "buy";
+          const isBuyEntry =
+            m.action === "buy" ||
+            (!m.action && m.kind === "buy" && !m.label.toLowerCase().includes("cover"));
+          const isSellEntry =
+            m.action === "sell" ||
+            (!m.action &&
+              (m.label.toLowerCase().includes("breakdown") || m.label.toLowerCase().includes("sell")) &&
+              !m.label.toLowerCase().includes("cover") &&
+              !m.resultType);
+          const isCover =
+            m.action === "cover" ||
+            m.label.toLowerCase().includes("cover");
           const isWinExit =
-            m.kind === "exit" &&
-            ((m.realizedR ?? 0) > 0 || (m.pnlPct ?? 0) > 0 || m.resultType === "TARGET_2_HIT");
+            (m.realizedR ?? 0) > 0 ||
+            (m.pnlPct ?? 0) > 0 ||
+            m.resultType === "TARGET_2_HIT" ||
+            m.resultType === "TARGET_1_HIT_TIME_EXIT";
 
           let textLabel: string | undefined = undefined;
           if (showLabels) {
-            if (isBuy) {
+            if (isBuyEntry) {
               textLabel = m.strategy === "kk_breakout" ? "KK BUY" : "BUY";
+            } else if (isSellEntry) {
+              textLabel = m.strategy === "kk_breakout" ? "KK SELL" : "SELL";
+            } else if (isCover) {
+              if (m.resultType === "TARGET_2_HIT") textLabel = "T2 +2R";
+              else if (
+                m.resultType === "TARGET_1_HIT_TIME_EXIT" ||
+                m.resultType === "T1_HIT_THEN_TIME_EXIT"
+              )
+                textLabel = "T1 +0.75R";
+              else if (m.resultType === "SL_HIT") textLabel = "SL Cover";
+              else textLabel = "COVER";
             } else {
               if (m.resultType === "TARGET_2_HIT") textLabel = "T2 +2R";
               else if (
@@ -319,11 +343,28 @@ export function PriceChart({
             }
           }
 
+          // Positioning and arrows:
+          // BUY entry -> belowBar, arrowUp, gain
+          // SELL entry -> aboveBar, arrowDown, loss
+          // Short cover -> belowBar, arrowUp, win ? gain : loss
+          // Long exit -> aboveBar, arrowDown, win ? gain : loss
+          const position =
+            isBuyEntry || isCover ? ("belowBar" as const) : ("aboveBar" as const);
+          const shape =
+            isBuyEntry || isCover ? ("arrowUp" as const) : ("arrowDown" as const);
+          const color = isBuyEntry
+            ? gain
+            : isSellEntry
+              ? loss
+              : isWinExit
+                ? gain
+                : loss;
+
           return {
             time: toTime(bar.ts),
-            position: isBuy ? ("belowBar" as const) : ("aboveBar" as const),
-            shape: isBuy ? ("arrowUp" as const) : ("arrowDown" as const),
-            color: isBuy ? gain : isWinExit ? gain : loss,
+            position,
+            shape,
+            color,
             text: textLabel,
             size: 1.3,
           };
@@ -737,53 +778,82 @@ export function PriceChart({
           ) : null}
         </dl>
 
-        {activeSignal ? (
-          <div
-            className={clsx(
-              "num inline-flex flex-wrap items-center gap-1.5 rounded-md px-2.5 py-0.5 text-[11px] font-medium border shadow-xs transition-all",
-              activeSignal.kind === "buy"
-                ? "border-gain/40 bg-gain/10 text-gain"
-                : (activeSignal.realizedR ?? 0) > 0 || (activeSignal.pnlPct ?? 0) > 0
+        {activeSignal ? (() => {
+          const isBuyEntry =
+            activeSignal.action === "buy" ||
+            (!activeSignal.action &&
+              activeSignal.kind === "buy" &&
+              !activeSignal.label.toLowerCase().includes("cover"));
+          const isSellEntry =
+            activeSignal.action === "sell" ||
+            (!activeSignal.action &&
+              (activeSignal.label.toLowerCase().includes("breakdown") ||
+                activeSignal.label.toLowerCase().includes("sell")) &&
+              !activeSignal.label.toLowerCase().includes("cover") &&
+              !activeSignal.resultType);
+          const isCover =
+            activeSignal.action === "cover" ||
+            activeSignal.label.toLowerCase().includes("cover");
+          const isWin =
+            (activeSignal.realizedR ?? 0) > 0 ||
+            (activeSignal.pnlPct ?? 0) > 0 ||
+            activeSignal.resultType === "TARGET_2_HIT" ||
+            activeSignal.resultType === "TARGET_1_HIT_TIME_EXIT";
+
+          const badgeTitle = isBuyEntry
+            ? "▲ BUY"
+            : isSellEntry
+              ? "▼ SELL"
+              : isCover && isWin
+                ? "★ COVER +R"
+                : isCover
+                  ? "▲ COVER"
+                  : isWin
+                    ? "★ TARGET HIT"
+                    : "▼ EXIT";
+
+          const isGainTone = isBuyEntry || isWin;
+
+          return (
+            <div
+              className={clsx(
+                "num inline-flex flex-wrap items-center gap-1.5 rounded-md px-2.5 py-0.5 text-[11px] font-medium border shadow-xs transition-all",
+                isGainTone
                   ? "border-gain/40 bg-gain/10 text-gain"
                   : "border-loss/40 bg-loss/10 text-loss",
-            )}
-          >
-            <span className="font-bold">
-              {activeSignal.kind === "buy"
-                ? "▲ BUY"
-                : (activeSignal.realizedR ?? 0) > 0 || (activeSignal.pnlPct ?? 0) > 0
-                  ? "★ TARGET HIT"
-                  : "▼ EXIT"}
-            </span>
-            <span className="font-semibold text-foreground">· {activeSignal.label}</span>
-            {activeSignal.price ? <span>@ ₹{fmtPrice(activeSignal.price)}</span> : null}
-            {activeSignal.stop ? <span className="text-muted-foreground">(Stop: ₹{fmtPrice(activeSignal.stop)})</span> : null}
-            {activeSignal.target1 ? <span className="text-gain font-semibold">(T1: ₹{fmtPrice(activeSignal.target1)})</span> : null}
-            {activeSignal.target2 ? <span className="text-gain font-semibold">(T2: ₹{fmtPrice(activeSignal.target2)})</span> : null}
-            {activeSignal.realizedR != null ? (
-              <span className={clsx("font-bold px-1.5 py-0.2 rounded text-[10px]", activeSignal.realizedR >= 0 ? "bg-gain/20 text-gain" : "bg-loss/20 text-loss")}>
-                {activeSignal.realizedR >= 0 ? "+" : ""}{activeSignal.realizedR.toFixed(2)}R
-              </span>
-            ) : null}
-            {activeSignal.pnlPct != null ? (
-              <span className={clsx("font-bold", activeSignal.pnlPct >= 0 ? "text-gain" : "text-loss")}>
-                ({activeSignal.pnlPct >= 0 ? "+" : ""}{activeSignal.pnlPct.toFixed(2)}%)
-              </span>
-            ) : null}
-            {activeSignal.barsHeld != null ? (
-              <span className="text-muted-foreground text-[10.5px]">[{activeSignal.barsHeld}d held]</span>
-            ) : null}
-            {selectedSignal ? (
-              <button
-                type="button"
-                onClick={() => setSelectedSignal(null)}
-                className="ml-1 text-[9.5px] uppercase font-bold underline opacity-80 hover:opacity-100 cursor-pointer"
-              >
-                Clear
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+              )}
+            >
+              <span className="font-bold">{badgeTitle}</span>
+              <span className="font-semibold text-foreground">· {activeSignal.label}</span>
+              {activeSignal.price ? <span>@ ₹{fmtPrice(activeSignal.price)}</span> : null}
+              {activeSignal.stop ? <span className="text-muted-foreground">(Stop: ₹{fmtPrice(activeSignal.stop)})</span> : null}
+              {activeSignal.target1 ? <span className="text-gain font-semibold">(T1: ₹{fmtPrice(activeSignal.target1)})</span> : null}
+              {activeSignal.target2 ? <span className="text-gain font-semibold">(T2: ₹{fmtPrice(activeSignal.target2)})</span> : null}
+              {activeSignal.realizedR != null ? (
+                <span className={clsx("font-bold px-1.5 py-0.2 rounded text-[10px]", activeSignal.realizedR >= 0 ? "bg-gain/20 text-gain" : "bg-loss/20 text-loss")}>
+                  {activeSignal.realizedR >= 0 ? "+" : ""}{activeSignal.realizedR.toFixed(2)}R
+                </span>
+              ) : null}
+              {activeSignal.pnlPct != null ? (
+                <span className={clsx("font-bold", activeSignal.pnlPct >= 0 ? "text-gain" : "text-loss")}>
+                  ({activeSignal.pnlPct >= 0 ? "+" : ""}{activeSignal.pnlPct.toFixed(2)}%)
+                </span>
+              ) : null}
+              {activeSignal.barsHeld != null ? (
+                <span className="text-muted-foreground text-[10.5px]">[{activeSignal.barsHeld}d held]</span>
+              ) : null}
+              {selectedSignal ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedSignal(null)}
+                  className="ml-1 text-[9.5px] uppercase font-bold underline opacity-80 hover:opacity-100 cursor-pointer"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+          );
+        })() : null}
       </div>
 
       {/* Interactive Chart Canvas */}
@@ -852,7 +922,41 @@ export function PriceChart({
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
             {recentSignals.map((sig, idx) => {
               const isSelected = selectedSignal?.ts === sig.ts && selectedSignal?.label === sig.label;
-              const isWinExit = sig.kind === "exit" && ((sig.realizedR ?? 0) > 0 || (sig.pnlPct ?? 0) > 0);
+              const isBuyEntry =
+                sig.action === "buy" ||
+                (!sig.action &&
+                  sig.kind === "buy" &&
+                  !sig.label.toLowerCase().includes("cover"));
+              const isSellEntry =
+                sig.action === "sell" ||
+                (!sig.action &&
+                  (sig.label.toLowerCase().includes("breakdown") ||
+                    sig.label.toLowerCase().includes("sell")) &&
+                  !sig.label.toLowerCase().includes("cover") &&
+                  !sig.resultType);
+              const isCover =
+                sig.action === "cover" ||
+                sig.label.toLowerCase().includes("cover");
+              const isWin =
+                (sig.realizedR ?? 0) > 0 ||
+                (sig.pnlPct ?? 0) > 0 ||
+                sig.resultType === "TARGET_2_HIT" ||
+                sig.resultType === "TARGET_1_HIT_TIME_EXIT";
+
+              const chipBadge = isBuyEntry
+                ? "▲ BUY"
+                : isSellEntry
+                  ? "▼ SELL"
+                  : isCover && isWin
+                    ? "★ COVER"
+                    : isCover
+                      ? "▲ COVER"
+                      : isWin
+                        ? "★ TARGET"
+                        : "▼ EXIT";
+
+              const isGainTone = isBuyEntry || isWin;
+
               return (
                 <button
                   key={`${sig.ts}-${sig.kind}-${sig.label}-${idx}`}
@@ -860,18 +964,14 @@ export function PriceChart({
                   onClick={() => setSelectedSignal(isSelected ? null : sig)}
                   className={clsx(
                     "num inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] transition-all cursor-pointer bg-card",
-                    sig.kind === "buy"
+                    isGainTone
                       ? "border-gain/40 text-gain hover:border-gain hover:bg-gain/10"
-                      : isWinExit
-                        ? "border-gain/40 text-gain hover:border-gain hover:bg-gain/10"
-                        : "border-loss/40 text-loss hover:border-loss hover:bg-loss/10",
+                      : "border-loss/40 text-loss hover:border-loss hover:bg-loss/10",
                     isSelected && "ring-1 ring-primary shadow-xs font-semibold",
                   )}
                   title={`${sig.label} on ${new Date(sig.ts).toLocaleDateString("en-IN")}`}
                 >
-                  <span className="font-bold">
-                    {sig.kind === "buy" ? "▲ BUY" : isWinExit ? "★ TARGET" : "▼ EXIT"}
-                  </span>
+                  <span className="font-bold">{chipBadge}</span>
                   <span className="rounded bg-muted/50 px-1 py-0.2 text-[9px] font-semibold text-foreground">
                     {sig.strategy === "kk_breakout"
                       ? "KK 20d"

@@ -49,7 +49,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     getCandles(db, symbol),
-    db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(40),
+    db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(200),
     db.from("watchlist_items").select("id").eq("symbol", symbol).limit(1),
     can(s, "portfolio") ? db.from("holdings").select("*").eq("symbol", symbol) : Promise.resolve({ data: [] as Holding[] }),
     db.from("rsi_events").select("ts, rsi, event_type").eq("symbol", symbol).neq("event_type", "daily").order("ts", { ascending: false }).limit(6),
@@ -65,10 +65,25 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const markers: ChartMarker[] = signals.map((sg) => ({
     ts: sg.generated_at,
     kind: sg.signal_type,
-    label: signalDisplayName(sg.strategy, sg.signal_type),
+    label: (sg.payload?.label as string) || signalDisplayName(sg.strategy, sg.signal_type),
     strategy: sg.strategy,
-    price: Number(sg.payload.close ?? sg.payload.trigger_price ?? 0) || null,
+    price: Number(sg.payload.close ?? sg.payload.trigger_price ?? sg.payload.entry ?? 0) || null,
     stop: Number(sg.payload.stop ?? 0) || null,
+    target1: Number(sg.payload.target1 ?? sg.payload.target ?? 0) || null,
+    target2: Number(sg.payload.target2 ?? 0) || null,
+    realizedR: sg.payload.realized_r != null ? Number(sg.payload.realized_r) : null,
+    pnlPct: sg.payload.pnl_pct != null ? Number(sg.payload.pnl_pct) : null,
+    resultType: (sg.payload.result as string) || null,
+    action:
+      (typeof sg.payload.action === "string"
+        ? (sg.payload.action as "buy" | "sell" | "exit" | "cover")
+        : undefined) ||
+      (sg.payload.direction === "sell" && sg.signal_type === "exit" ? "sell" : sg.signal_type),
+    direction:
+      (typeof sg.payload.direction === "string"
+        ? (sg.payload.direction as "buy" | "sell")
+        : undefined) || (sg.strategy === "kk_breakout" ? "buy" : undefined),
+    barsHeld: Number(sg.payload.bars_held ?? 0) || null,
   }));
 
   const latestBuySignal = signals.find((s) => s.signal_type === "buy");
