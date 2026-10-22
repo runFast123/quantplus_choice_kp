@@ -1,4 +1,5 @@
 import type { Candle } from "./types";
+import type { RawChartMarker } from "./trade-plan";
 
 export interface SipMonthEntry {
   date: string;
@@ -1106,5 +1107,94 @@ if (stopPct > 0 or targetPct > 0)
 if (exitCond)
     strategy.close("Long", comment="Death Cross")
 `;
+}
+
+export const DEFAULT_KK_PARAMS: AdvancedStrategyParams = {
+  type: "kk_breakout",
+  kkPeriod: 20,
+  kkExtensionPct: 1.0,
+  kkConfirmationBars: 5,
+  kkTradeWindowBars: 5,
+  kkTarget1R: 0.75,
+  kkTarget2R: 2.0,
+  kkTarget1Fraction: 0.5,
+  kkDirection: "buy",
+  initialCapital: 100000,
+};
+
+/**
+ * Generates verified chart markers (entry, targets, stop-loss, and time exits)
+ * from the KK 20-bar extreme breakout strategy for direct candlestick chart overlay.
+ */
+export function generateKkChartMarkers(
+  candles: Candle[],
+  params?: Partial<AdvancedStrategyParams>,
+): RawChartMarker[] {
+  if (!candles || candles.length < 35) return [];
+
+  const res = simulateKkStrategy(candles, {
+    ...DEFAULT_KK_PARAMS,
+    ...params,
+  });
+
+  if (!res || !res.trades.length) return [];
+
+  const markers: RawChartMarker[] = [];
+  const dateToTsMap = new Map<string, string>();
+  for (const c of candles) {
+    const d = String(c.ts).slice(0, 10);
+    if (!dateToTsMap.has(d)) dateToTsMap.set(d, c.ts);
+  }
+
+  for (const t of res.trades) {
+    const entryTs = dateToTsMap.get(t.entryDate) ?? t.entryDate;
+    const exitTs = dateToTsMap.get(t.exitDate) ?? t.exitDate;
+
+    // 1. Buy Entry Marker
+    markers.push({
+      ts: entryTs,
+      kind: "buy",
+      label: "KK 20d Breakout Entry",
+      strategy: "kk_breakout",
+      price: t.entryPrice,
+      stop: t.stopLossPrice,
+      target1: t.target1Price,
+      target2: t.target2Price,
+      barsHeld: t.barsHeld,
+    });
+
+    // 2. Exit / Target Marker (skip if currently active in-progress bar)
+    if (t.exitReason !== "end_of_period") {
+      let exitLabel = "KK Exit";
+      if (t.resultType === "TARGET_2_HIT") {
+        exitLabel = "KK Target 2 (+2.0R)";
+      } else if (t.resultType === "TARGET_1_HIT_TIME_EXIT") {
+        exitLabel = "KK T1 (+0.75R) + Time Exit";
+      } else if (t.resultType === "SL_HIT_AFTER_TARGET_1") {
+        exitLabel = "KK T1 (+0.75R) + SL Hit";
+      } else if (t.resultType === "SL_HIT") {
+        exitLabel = "KK Stop Loss (-1.0R)";
+      } else {
+        exitLabel = "KK 5-Day Time Exit";
+      }
+
+      markers.push({
+        ts: exitTs,
+        kind: "exit",
+        label: exitLabel,
+        strategy: "kk_breakout",
+        price: t.exitPrice,
+        stop: t.stopLossPrice,
+        target1: t.target1Price,
+        target2: t.target2Price,
+        realizedR: t.realizedR,
+        pnlPct: t.pnlPct,
+        resultType: t.resultType,
+        barsHeld: t.barsHeld,
+      });
+    }
+  }
+
+  return markers;
 }
 

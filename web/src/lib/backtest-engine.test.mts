@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   generateBacktestPineScript,
+  generateKkChartMarkers,
   simulateCustomStrategy,
   simulateSip,
   simulateTechnicalStrategy,
@@ -175,6 +176,32 @@ describe("simulateCustomStrategy", () => {
     assert.ok(kkScript.includes('strategy("QuantsPulse KK Asymmetric Breakout: HDFCBANK"'));
     assert.ok(kkScript.includes("qty_percent=50"));
     assert.ok(kkScript.includes("5d Time Exit"));
+  });
+});
+
+describe("generateKkChartMarkers", () => {
+  test("returns empty array for insufficient candle length", () => {
+    const candles = createMockCandles(20);
+    const markers = generateKkChartMarkers(candles);
+    assert.deepEqual(markers, []);
+  });
+
+  test("generates isolated chart markers with entries, stops, and target milestones", () => {
+    const candles = createMockCandles(120, 200, 0.4);
+    const markers = generateKkChartMarkers(candles);
+    assert.ok(Array.isArray(markers));
+    if (markers.length > 0) {
+      for (const m of markers) {
+        assert.equal(m.strategy, "kk_breakout");
+        assert.ok(["buy", "exit"].includes(m.kind));
+        assert.ok(typeof m.ts === "string");
+        assert.ok(typeof m.label === "string");
+        assert.ok(typeof m.price === "number" && m.price > 0);
+        assert.ok(typeof m.stop === "number" && m.stop > 0);
+        assert.ok(typeof m.target1 === "number" && m.target1 > 0);
+        assert.ok(typeof m.target2 === "number" && m.target2 > 0);
+      }
+    }
   });
 });
 

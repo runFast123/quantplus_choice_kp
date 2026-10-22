@@ -34,14 +34,9 @@ export function MarketChartView({
   return (
     <Panel
       title="TradingView Chart"
-      meta={`${symbol} · ${exchange} Daily · Buy & Exit Signals with SMA Overlays`}
+      meta={`${symbol} · ${exchange} Daily · Strategy Signals (KK Breakout, SMA, RSI) & Overlays`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          {markers.length > 0 && viewMode === "signals" && (
-            <span className="num hidden sm:inline-flex items-center gap-1 rounded bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
-              <strong className="text-foreground">{markers.length}</strong> signal{markers.length === 1 ? "" : "s"} on chart
-            </span>
-          )}
           <div role="group" aria-label="Chart engine" className="inline-flex rounded-md border border-border bg-background/60 p-0.5 text-[11.5px]">
             <button
               type="button"

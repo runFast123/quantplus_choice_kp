@@ -395,6 +395,12 @@ export interface RawChartMarker {
   price?: number | null;
   strategy?: string;
   stop?: number | null;
+  target1?: number | null;
+  target2?: number | null;
+  realizedR?: number | null;
+  pnlPct?: number | null;
+  resultType?: string | null;
+  barsHeld?: number | null;
 }
 
 /**

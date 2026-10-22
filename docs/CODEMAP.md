@@ -105,7 +105,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `plans.ts` | `FEATURE_ROWS` (feature key → label, display order) |
 | `csv-parser.ts` | `parseHoldingsCsv(csvText)`, `cleanBrokerSymbol`, `parseNumeric`, types `ParsedHoldingRow`, `ParseHoldingsResult` (Zerodha, Groww, Angel One, Upstox, generic) |
 | `csv-parser.test.mts` | unit tests (`npm run test:unit`) |
-| `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, `simulateCustomStrategy(candles, params)`, `simulateKkStrategy(candles, params)`, `generateBacktestPineScript(params, symbol)`, `computeSma`, `computeRsi`, types `SipResult`, `StrategyResult`, `DetailedStrategyResult`, `DetailedStrategyTrade`, `EquityPoint`, `AdvancedStrategyParams`, `KkResultType` |
+| `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, `simulateCustomStrategy(candles, params)`, `simulateKkStrategy(candles, params)`, `generateKkChartMarkers(candles, params)`, `generateBacktestPineScript(params, symbol)`, `DEFAULT_KK_PARAMS`, `computeSma`, `computeRsi`, types `SipResult`, `StrategyResult`, `DetailedStrategyResult`, `DetailedStrategyTrade`, `EquityPoint`, `AdvancedStrategyParams`, `KkResultType` |
 | `backtest-engine.test.mts` | unit tests (`npm run test:unit`) |
 | `portfolio-health.ts` | `calculatePortfolioHealth(positions)`, types `PortfolioHealthReport`, `HealthPosition`, `PortfolioDiagnosticFocus`, `RiskFlag`, `HealthVerdict`, `SectorAllocation` |
 | `portfolio-health.test.mts` | unit tests (`npm run test:unit`) |
@@ -182,9 +182,9 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
-| `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + signal markers + collapsible daily OHLCV table view), type `ChartMarker` |
+| `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK 20d Breakout, SMA 20/50, RSI Reversal, All Plans, Clean Mode] + HUD + Signals Timeline ribbon + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
-| `charts/market-chart-view.tsx` | `MarketChartView` (unified switcher between QuantsPulse Signals Chart and TradingView Pro) |
+| `charts/market-chart-view.tsx` | `MarketChartView` (unified switcher between QuantsPulse Strategy Signals Chart and TradingView Pro) |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
 | `brand/logo.tsx` | `Logo`, `LogoMark` |
 

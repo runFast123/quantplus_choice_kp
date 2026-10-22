@@ -6,6 +6,19 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — Strategy-Isolated Signal Charts & Dynamic KK 20d Breakout Overlays (`web/`)
+- **Strategy Signal Isolation & Multi-Plan Conflict Resolution (`web/src/components/charts/price-chart.tsx`, `web/src/components/charts/market-chart-view.tsx`)**:
+  - Resolved trading UX conflict where signals from multiple disparate plans (e.g., SMA Golden Cross trend following, RSI mean-reversion, and Breakout swings) were interleaved on the same candlestick chart, causing confusion.
+  - Added an intuitive **Trading Plan / Strategy Isolator** to `PriceChart`:
+    - `KK 20d Breakout`: Isolates the chart to 20-bar extreme breakout entry arrows, target milestones, and disciplined exits.
+    - `SMA 20/50`: Isolates to Golden and Death cross trend signals.
+    - `RSI Reversal`: Isolates to Oversold bounce and Overbought exhaustion levels.
+    - `All Plans`: Displays signals across all plans with explicit strategy badges (`[KK 20d]`, `[SMA]`, `[RSI]`).
+    - `Clean (Off)`: Completely disables signal markers for pure price action and candlestick pattern inspection.
+  - Added dynamic client-side KK Breakout overlay calculation via `generateKkChartMarkers(candles)` in `web/src/lib/backtest-engine.ts`, rendering breakout BUY arrows, $+0.75R$ T1 partial scale-outs, $+2.0R$ T2 targets, stop losses, and 5-day time-stop exits directly on the candlestick chart for all symbols without requiring server round-trips.
+  - Enriched chart HUD and Signals Timeline ribbon: clicking any chip zooms and centers the chart to that exact trade setup, displaying entry price, initial stop, asymmetric targets, realized R-multiple, P&L %, and holding duration.
+  - Added comprehensive unit tests in `web/src/lib/backtest-engine.test.mts` validating `generateKkChartMarkers` output structure, timestamps, and parameters.
+
 ### Added — KK 20-Day Asymmetric Breakout Strategy & Simulator Integration (`web/`)
 - **KK 20-Bar Extreme Extension & Asymmetric Breakout Strategy Engine (`web/src/lib/backtest-engine.ts`, `web/src/lib/backtest-engine.test.mts`)**:
   - Implemented `simulateKkStrategy` and extended `simulateCustomStrategy` with the `"kk_breakout"` systematic quantitative model (derived from 20-year empirical backtest `kk_eod_results_fixed.json` spanning 44,856 trades across Nifty 500 equities).
