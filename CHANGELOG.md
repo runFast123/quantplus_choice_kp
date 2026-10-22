@@ -16,8 +16,9 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
     - `All Plans`: Displays signals across all plans with explicit strategy badges (`[KK 20d]`, `[SMA]`, `[RSI]`).
     - `Clean (Off)`: Completely disables signal markers for pure price action and candlestick pattern inspection.
   - Added dynamic client-side KK Breakout overlay calculation via `generateKkChartMarkers(candles)` in `web/src/lib/backtest-engine.ts`, rendering breakout BUY arrows, $+0.75R$ T1 partial scale-outs, $+2.0R$ T2 targets, stop losses, and 5-day time-stop exits directly on the candlestick chart for all symbols without requiring server round-trips.
-  - Enriched chart HUD and Signals Timeline ribbon: clicking any chip zooms and centers the chart to that exact trade setup, displaying entry price, initial stop, asymmetric targets, realized R-multiple, P&L %, and holding duration.
   - Added comprehensive unit tests in `web/src/lib/backtest-engine.test.mts` validating `generateKkChartMarkers` output structure, timestamps, and parameters.
+  - Added dedicated Playwright E2E suite (`web/e2e/strategy-plan.spec.ts`) validating strategy isolator radio controls, signal chip selection, Clean Mode signal suppression, BacktestLab 4-stage empirical architecture, and trade log milestone execution.
+  - Hardened strategy filter count pills for WCAG 2.1 AA color contrast compliance, ensuring axe accessibility passes cleanly in both light and dark modes.
 
 ### Added — KK 20-Day Asymmetric Breakout Strategy & Simulator Integration (`web/`)
 - **KK 20-Bar Extreme Extension & Asymmetric Breakout Strategy Engine (`web/src/lib/backtest-engine.ts`, `web/src/lib/backtest-engine.test.mts`)**:

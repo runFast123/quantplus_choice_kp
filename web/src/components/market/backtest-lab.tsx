@@ -856,7 +856,7 @@ export function BacktestLab({ candles, symbol }: BacktestLabProps) {
 
                 {displayedTrades.length > 0 ? (
                   <TableWrap>
-                    <table className="w-full min-w-[540px]">
+                    <table data-testid="backtest-trade-log" className="w-full min-w-[540px]">
                       <thead>
                         <tr>
                           <th className={th}>Entry Date</th>

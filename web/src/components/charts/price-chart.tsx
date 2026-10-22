@@ -564,7 +564,7 @@ export function PriceChart({
             >
               <span className="h-1.5 w-1.5 rounded-full bg-gain" />
               <span>KK 20d Breakout</span>
-              <span className="num text-[9.5px] opacity-85">({kkCount})</span>
+              <span className="num text-[9.5px]">({kkCount})</span>
             </button>
 
             <button
@@ -581,7 +581,7 @@ export function PriceChart({
               title="Show only SMA 20/50 Golden and Death Cross trend signals"
             >
               <span>SMA 20/50</span>
-              <span className="num text-[9.5px] opacity-85">({smaCount})</span>
+              <span className="num text-[9.5px]">({smaCount})</span>
             </button>
 
             <button
@@ -598,7 +598,7 @@ export function PriceChart({
               title="Show only RSI Oversold bounce and Overbought mean-reversion signals"
             >
               <span>RSI Reversal</span>
-              <span className="num text-[9.5px] opacity-85">({rsiCount})</span>
+              <span className="num text-[9.5px]">({rsiCount})</span>
             </button>
 
             <button
@@ -833,7 +833,7 @@ export function PriceChart({
 
       {/* Streamlined Compact Signals Ribbon with Strategy Isolation Badges */}
       {strategyFilter !== "none" && recentSignals.length > 0 && (
-        <div className="flex flex-col gap-1 rounded-md border border-border/50 bg-muted/10 px-2.5 py-1.5">
+        <div data-testid="signals-timeline" className="flex flex-col gap-1 rounded-md border border-border/50 bg-muted/10 px-2.5 py-1.5">
           <div className="flex items-center justify-between text-[10.5px]">
             <span className="font-medium text-foreground flex items-center gap-1.5">
               <span>Signals Timeline</span>
