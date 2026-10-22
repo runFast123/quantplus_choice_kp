@@ -141,7 +141,10 @@ export function PriceChart({
   // Strategy-isolated markers
   const rawStrategyMarkers = useMemo(() => {
     if (strategyFilter === "none") return [];
-    if (strategyFilter === "kk_breakout") return kkMarkers;
+    if (strategyFilter === "kk_breakout") {
+      const dbKk = markers.filter((m) => m.strategy === "kk_breakout");
+      return dbKk.length > 0 ? dbKk : kkMarkers;
+    }
     if (strategyFilter === "sma_cross") {
       return markers.filter(
         (m) =>
@@ -155,8 +158,9 @@ export function PriceChart({
         (m) => m.strategy?.includes("rsi") || m.label.toLowerCase().includes("rsi"),
       );
     }
-    // "all": show everything with distinct badges
-    return [...markers, ...kkMarkers];
+    // "all": show everything with distinct badges (avoiding duplicate KK markers)
+    const hasDbKk = markers.some((m) => m.strategy === "kk_breakout");
+    return hasDbKk ? markers : [...markers, ...kkMarkers];
   }, [strategyFilter, markers, kkMarkers]);
 
   // Filtered and deduplicated markers

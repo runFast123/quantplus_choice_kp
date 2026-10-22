@@ -6,6 +6,24 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Fixed & Aligned — KK Breakout Empirical Signal Parity, Database Ingestion & Multi-Strategy Precision Audit (`web/`, `scripts/`)
+- **Empirical Signal & Target Anchoring Parity (`web/src/lib/backtest-engine.ts`, `web/src/lib/backtest-engine.test.mts`)**:
+  - Investigated and resolved divergence between `kk_eod_results_fixed.json` (44,856 empirical trades over 2006–2026 across Nifty 500) and the backtest engine:
+    - **Target Anchoring**: Targets ($T1 = \text{trigger} + 0.75R$, $T2 = \text{trigger} + 2.00R$) are now strictly anchored to the planned entry trigger (signal bar extreme), rather than `entryFillPrice`. This eliminates target distortion on confirmation days with opening gaps.
+    - **Signal Confirmation Loop**: Removed the `i = maxConfBar + 1` skip when a signal went unconfirmed, advancing bar-by-bar (`i++`). This ensures valid breakout signals occurring during pending confirmation windows are never dropped.
+    - **Exact Realized R-Multiple & Slippage Math**: Aligned realized $R$ calculation to match `kk_eod_results_fixed.json` down to 7 decimal places: computes per-leg realized $R$ on actual fill price ($(\text{fill} - \text{exit}) / R_{\text{planned}}$ for SELL and $(\text{exit} - \text{fill}) / R_{\text{planned}}$ for BUY) across all result types (`TARGET_2_HIT`, `TARGET_1_HIT_TIME_EXIT`, `SL_HIT_AFTER_TARGET_1`, `SL_HIT`, and `TIME_EXIT`).
+    - **Trade Holding Duration**: Aligned holding window to 5 full sessions after the entry day (`entryBar + 5`).
+    - **Multi-Directional Support**: Added support for both BUY and SELL signals (`direction: "both"`) and dual-color chart markers (`KK 20d Breakout Buy` vs `KK 20d Breakdown Sell`).
+  - Added targeted unit test in `web/src/lib/backtest-engine.test.mts` validating target anchoring on gap fill and exact R calculation.
+- **Database Signal Ingestion & Signals Desk Integration (`scripts/ingest_kk_signals.py`, `web/src/app/app/signals/page.tsx`, `web/src/lib/format.ts`)**:
+  - Ingested 7,549 verified historical signals from `kk_eod_results_fixed.json` into Supabase `public.trading_signals` for covered NSE equities.
+  - Added `kk_breakout` to `STRATEGIES` on `/app/signals`, enabling filtering by KK 20d Breakout with live quote tracking, asymmetric trade plan milestones, and sentiment exhaustion alerts.
+  - Registered `kk_breakout` in `strategyLabel` and `signalDisplayName` in `web/src/lib/format.ts`.
+- **Comprehensive Audit of Other Trading Strategies (`web/src/lib/backtest-engine.ts`, `supabase/migrations/`)**:
+  - **SMA 20/50 Cross**: Verified exact mathematical parity between TypeScript backtest engine (`f1 <= s1 && f0 > s0` Golden Cross / `f1 >= s1 && f0 < s0` Death Cross) and Supabase PostgreSQL migration (`s20[i] > s50[i] and s20[i-1] <= s50[i-1]`).
+  - **RSI Reversal**: Synchronized Wilder RSI 14 boundary comparison operators in `simulateCustomStrategy` (`r1 < rsiOversold && r0 >= rsiOversold` for Buy, `r1 > rsiOverbought && r0 <= rsiOverbought` for Exit) with PostgreSQL `refresh_market_analytics`. Refactored `simulateTechnicalStrategy` to compute true Wilder RSI crossings.
+  - **Breakout (Donchian Channel)**: Verified 20-day high breakout entry and 10-day low channel exit logic for lookahead bias and execution accuracy.
+
 ### Added — Strategy-Isolated Signal Charts & Dynamic KK 20d Breakout Overlays (`web/`)
 - **Strategy Signal Isolation & Multi-Plan Conflict Resolution (`web/src/components/charts/price-chart.tsx`, `web/src/components/charts/market-chart-view.tsx`)**:
   - Resolved trading UX conflict where signals from multiple disparate plans (e.g., SMA Golden Cross trend following, RSI mean-reversion, and Breakout swings) were interleaved on the same candlestick chart, causing confusion.

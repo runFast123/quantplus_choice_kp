@@ -86,6 +86,7 @@ export interface AdvancedStrategyParams {
   kkTarget1R?: number;
   kkTarget2R?: number;
   kkDirection?: "buy" | "both" | "sell";
+  kkAllowOverlapping?: boolean;
 }
 
 export interface DetailedStrategyResult {
@@ -237,13 +238,14 @@ export function simulateTechnicalStrategy(
   let entryDate = "";
   let entryBar = 0;
 
-  // Precompute SMA 20 and SMA 50
+  // Precompute SMA 20, SMA 50, and Wilder RSI 14
   const sma20: (number | null)[] = closes.map((_, i) =>
     i >= 19 ? closes.slice(i - 19, i + 1).reduce((a, b) => a + b, 0) / 20 : null,
   );
   const sma50: (number | null)[] = closes.map((_, i) =>
     i >= 49 ? closes.slice(i - 49, i + 1).reduce((a, b) => a + b, 0) / 50 : null,
   );
+  const rsi14 = strategy === "rsi_pullback" ? computeRsi(closes, 14) : [];
 
   for (let i = 50; i < candles.length; i++) {
     const price = closes[i];
@@ -265,11 +267,12 @@ export function simulateTechnicalStrategy(
         sellSignal = prev20 >= prev50 && s20 < s50;
       }
     } else {
-      // RSI pullback: buy when price touches below SMA 20 with subsequent recovery
-      const s20 = sma20[i];
-      if (s20 != null) {
-        buySignal = price > s20 && closes[i - 1] <= (sma20[i - 1] ?? s20);
-        sellSignal = price < s20 * 0.96; // 4% stop/trailing breach
+      // Wilder RSI 14 Mean Reversion: Buy on recovery above 30, Exit on fall below 70
+      const prevRsi = rsi14[i - 1];
+      const currRsi = rsi14[i];
+      if (prevRsi != null && currRsi != null) {
+        buySignal = prevRsi < 30 && currRsi >= 30;
+        sellSignal = prevRsi > 70 && currRsi <= 70;
       }
     }
 
@@ -352,6 +355,7 @@ export function simulateKkStrategy(
   const target1R = Math.max(0.2, Math.min(5.0, params.kkTarget1R ?? 0.75));
   const target2R = Math.max(0.5, Math.min(10.0, params.kkTarget2R ?? 2.00));
   const direction = params.kkDirection ?? "buy";
+  const allowOverlapping = Boolean(params.kkAllowOverlapping);
   const initialCapital = Math.max(1000, params.initialCapital ?? 100000);
 
   const minBars = period + confBars + tradeBars + 5;
@@ -408,17 +412,6 @@ export function simulateKkStrategy(
     const maxConfBar = Math.min(i + confBars, candles.length - 1);
 
     for (let k = i + 1; k <= maxConfBar; k++) {
-      const dd = peakEquity > 0 ? ((peakEquity - cash) / peakEquity) * 100 : 0;
-      if (dd > maxDrawdownPct) maxDrawdownPct = dd;
-      const bench =
-        benchmarkStartPrice > 0 ? initialCapital * (closes[k] / benchmarkStartPrice) : initialCapital;
-      equityCurve.push({
-        date: dates[k],
-        equity: Math.round(cash),
-        benchmark: Math.round(bench),
-        drawdownPct: Number(dd.toFixed(2)),
-      });
-
       if (sigType === "BUY") {
         if (highs[k] >= triggerPrice) {
           entryBar = k;
@@ -435,21 +428,22 @@ export function simulateKkStrategy(
     }
 
     if (entryBar === -1) {
-      i = maxConfBar + 1;
+      i++;
       continue;
     }
 
-    const risk = sigType === "BUY" ? entryFillPrice - initialStop : initialStop - entryFillPrice;
-    if (risk <= 0) {
-      i = entryBar + 1;
+    const plannedRisk = Math.abs(triggerPrice - initialStop);
+    if (plannedRisk <= 0) {
+      i++;
       continue;
     }
 
+    // Targets are anchored to the planned entry trigger (signal bar extreme), per empirical dataset
     const target1Price = Number(
-      (sigType === "BUY" ? entryFillPrice + target1R * risk : entryFillPrice - target1R * risk).toFixed(2),
+      (sigType === "BUY" ? triggerPrice + target1R * plannedRisk : triggerPrice - target1R * plannedRisk).toFixed(2),
     );
     const target2Price = Number(
-      (sigType === "BUY" ? entryFillPrice + target2R * risk : entryFillPrice - target2R * risk).toFixed(2),
+      (sigType === "BUY" ? triggerPrice + target2R * plannedRisk : triggerPrice - target2R * plannedRisk).toFixed(2),
     );
     const stopLossPrice = Number(initialStop.toFixed(2));
 
@@ -458,10 +452,9 @@ export function simulateKkStrategy(
     let exitPrice = 0;
     let resultType: KkResultType = "TIME_EXIT";
     let exitReason: DetailedStrategyTrade["exitReason"] = "strategy";
-    let realizedR = 0;
-    let tradePnlPct = 0;
 
-    const maxTradeBar = Math.min(entryBar + tradeBars - 1, candles.length - 1);
+    // Trade window is 5 sessions after entry day
+    const maxTradeBar = Math.min(entryBar + tradeBars, candles.length - 1);
 
     for (let m = entryBar; m <= maxTradeBar; m++) {
       if (m > entryBar) {
@@ -488,26 +481,19 @@ export function simulateKkStrategy(
         const t1HitThisBar = highs[m] >= target1Price;
         const t2HitThisBar = highs[m] >= target2Price;
 
+        // Same bar policy: "stop_first"
         if (t1Hit) {
-          if (t2HitThisBar) {
-            resultType = "TARGET_2_HIT";
-            exitReason = "take_profit";
-            exitPrice = target2Price;
-            realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
-            tradePnlPct =
-              target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
-              (1 - target1Fraction) * ((target2Price - entryFillPrice) / entryFillPrice) * 100;
-            exitBar = m;
-            break;
-          }
           if (slHitThisBar) {
             resultType = "SL_HIT_AFTER_TARGET_1";
             exitReason = "stop_loss";
             exitPrice = stopLossPrice;
-            realizedR = target1Fraction * target1R + (1 - target1Fraction) * -1.0;
-            tradePnlPct =
-              target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
-              (1 - target1Fraction) * ((stopLossPrice - entryFillPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          }
+          if (t2HitThisBar) {
+            resultType = "TARGET_2_HIT";
+            exitReason = "take_profit";
+            exitPrice = target2Price;
             exitBar = m;
             break;
           }
@@ -516,23 +502,16 @@ export function simulateKkStrategy(
             resultType = "SL_HIT";
             exitReason = "stop_loss";
             exitPrice = stopLossPrice;
-            realizedR = -1.0;
-            tradePnlPct = ((stopLossPrice - entryFillPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          } else if (t2HitThisBar && t1HitThisBar) {
+            resultType = "TARGET_2_HIT";
+            exitReason = "take_profit";
+            exitPrice = target2Price;
             exitBar = m;
             break;
           } else if (t1HitThisBar) {
             t1Hit = true;
-            if (t2HitThisBar) {
-              resultType = "TARGET_2_HIT";
-              exitReason = "take_profit";
-              exitPrice = target2Price;
-              realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
-              tradePnlPct =
-                target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
-                (1 - target1Fraction) * ((target2Price - entryFillPrice) / entryFillPrice) * 100;
-              exitBar = m;
-              break;
-            }
           }
         }
       } else {
@@ -541,25 +520,17 @@ export function simulateKkStrategy(
         const t2HitThisBar = lows[m] <= target2Price;
 
         if (t1Hit) {
-          if (t2HitThisBar) {
-            resultType = "TARGET_2_HIT";
-            exitReason = "take_profit";
-            exitPrice = target2Price;
-            realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
-            tradePnlPct =
-              target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
-              (1 - target1Fraction) * ((entryFillPrice - target2Price) / entryFillPrice) * 100;
-            exitBar = m;
-            break;
-          }
           if (slHitThisBar) {
             resultType = "SL_HIT_AFTER_TARGET_1";
             exitReason = "stop_loss";
             exitPrice = stopLossPrice;
-            realizedR = target1Fraction * target1R + (1 - target1Fraction) * -1.0;
-            tradePnlPct =
-              target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
-              (1 - target1Fraction) * ((entryFillPrice - stopLossPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          }
+          if (t2HitThisBar) {
+            resultType = "TARGET_2_HIT";
+            exitReason = "take_profit";
+            exitPrice = target2Price;
             exitBar = m;
             break;
           }
@@ -568,23 +539,16 @@ export function simulateKkStrategy(
             resultType = "SL_HIT";
             exitReason = "stop_loss";
             exitPrice = stopLossPrice;
-            realizedR = -1.0;
-            tradePnlPct = ((entryFillPrice - stopLossPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          } else if (t2HitThisBar && t1HitThisBar) {
+            resultType = "TARGET_2_HIT";
+            exitReason = "take_profit";
+            exitPrice = target2Price;
             exitBar = m;
             break;
           } else if (t1HitThisBar) {
             t1Hit = true;
-            if (t2HitThisBar) {
-              resultType = "TARGET_2_HIT";
-              exitReason = "take_profit";
-              exitPrice = target2Price;
-              realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
-              tradePnlPct =
-                target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
-                (1 - target1Fraction) * ((entryFillPrice - target2Price) / entryFillPrice) * 100;
-              exitBar = m;
-              break;
-            }
           }
         }
       }
@@ -592,37 +556,40 @@ export function simulateKkStrategy(
       if (m === maxTradeBar) {
         exitBar = m;
         exitPrice = closes[m];
-        if (m === candles.length - 1 && m < entryBar + tradeBars - 1) {
-          resultType = t1Hit ? "TARGET_1_HIT_TIME_EXIT" : "TIME_EXIT";
-          exitReason = "end_of_period";
-        } else {
-          resultType = t1Hit ? "TARGET_1_HIT_TIME_EXIT" : "TIME_EXIT";
-          exitReason = "strategy";
-        }
-
-        const closeR =
-          sigType === "BUY"
-            ? (exitPrice - entryFillPrice) / risk
-            : (entryFillPrice - exitPrice) / risk;
-
-        if (t1Hit) {
-          realizedR = target1Fraction * target1R + (1 - target1Fraction) * closeR;
-          tradePnlPct =
-            sigType === "BUY"
-              ? target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
-                (1 - target1Fraction) * ((exitPrice - entryFillPrice) / entryFillPrice) * 100
-              : target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
-                (1 - target1Fraction) * ((entryFillPrice - exitPrice) / entryFillPrice) * 100;
-        } else {
-          realizedR = closeR;
-          tradePnlPct =
-            sigType === "BUY"
-              ? ((exitPrice - entryFillPrice) / entryFillPrice) * 100
-              : ((entryFillPrice - exitPrice) / entryFillPrice) * 100;
-        }
+        resultType = t1Hit ? "TARGET_1_HIT_TIME_EXIT" : "TIME_EXIT";
+        exitReason = m === candles.length - 1 ? "end_of_period" : "strategy";
         break;
       }
     }
+
+    // Exact empirical realized R and PnL calculation matching kk_eod_results_fixed.json
+    const rT1 =
+      sigType === "BUY"
+        ? (target1Price - entryFillPrice) / plannedRisk
+        : (entryFillPrice - target1Price) / plannedRisk;
+    const rExit =
+      sigType === "BUY"
+        ? (exitPrice - entryFillPrice) / plannedRisk
+        : (entryFillPrice - exitPrice) / plannedRisk;
+
+    const realizedR =
+      t1Hit && resultType !== "SL_HIT"
+        ? target1Fraction * rT1 + (1 - target1Fraction) * rExit
+        : rExit;
+
+    const pnlT1 =
+      sigType === "BUY"
+        ? ((target1Price - entryFillPrice) / entryFillPrice) * 100
+        : ((entryFillPrice - target1Price) / entryFillPrice) * 100;
+    const pnlExit =
+      sigType === "BUY"
+        ? ((exitPrice - entryFillPrice) / entryFillPrice) * 100
+        : ((entryFillPrice - exitPrice) / entryFillPrice) * 100;
+
+    const tradePnlPct =
+      t1Hit && resultType !== "SL_HIT"
+        ? target1Fraction * pnlT1 + (1 - target1Fraction) * pnlExit
+        : pnlExit;
 
     const tradeReturnOnCapital = cash * (tradePnlPct / 100);
     cash = Math.max(0, cash + tradeReturnOnCapital);
@@ -646,7 +613,7 @@ export function simulateKkStrategy(
       stopLossPrice,
     });
 
-    i = exitBar + 1;
+    i = allowOverlapping ? i + 1 : exitBar + 1;
   }
 
   const finalCapital = cash;
@@ -774,7 +741,7 @@ export function simulateCustomStrategy(
         const r0 = rsiSeries[i];
         const r1 = rsiSeries[i - 1];
         if (r0 != null && r1 != null) {
-          buyTrigger = r1 <= rsiOversold && r0 > rsiOversold;
+          buyTrigger = r1 < rsiOversold && r0 >= rsiOversold;
         }
       } else if (type === "breakout") {
         const highestPast = Math.max(...highs.slice(i - breakoutPeriod, i));
@@ -828,7 +795,7 @@ export function simulateCustomStrategy(
           const r0 = rsiSeries[i];
           const r1 = rsiSeries[i - 1];
           if (r0 != null && r1 != null) {
-            exitTrigger = r1 >= rsiOverbought && r0 < rsiOverbought;
+            exitTrigger = r1 > rsiOverbought && r0 <= rsiOverbought;
           }
         } else if (type === "breakout") {
           const exitChannel = Math.max(5, Math.floor(breakoutPeriod / 2));
@@ -1119,6 +1086,7 @@ export const DEFAULT_KK_PARAMS: AdvancedStrategyParams = {
   kkTarget2R: 2.0,
   kkTarget1Fraction: 0.5,
   kkDirection: "buy",
+  kkAllowOverlapping: false,
   initialCapital: 100000,
 };
 
@@ -1134,6 +1102,8 @@ export function generateKkChartMarkers(
 
   const res = simulateKkStrategy(candles, {
     ...DEFAULT_KK_PARAMS,
+    kkDirection: "both",
+    kkAllowOverlapping: true,
     ...params,
   });
 
@@ -1149,12 +1119,13 @@ export function generateKkChartMarkers(
   for (const t of res.trades) {
     const entryTs = dateToTsMap.get(t.entryDate) ?? t.entryDate;
     const exitTs = dateToTsMap.get(t.exitDate) ?? t.exitDate;
+    const isBuy = t.signalType !== "SELL";
 
-    // 1. Buy Entry Marker
+    // 1. Entry Marker
     markers.push({
       ts: entryTs,
-      kind: "buy",
-      label: "KK 20d Breakout Entry",
+      kind: isBuy ? "buy" : "exit",
+      label: isBuy ? "KK 20d Breakout Buy" : "KK 20d Breakdown Sell",
       strategy: "kk_breakout",
       price: t.entryPrice,
       stop: t.stopLossPrice,
@@ -1165,22 +1136,22 @@ export function generateKkChartMarkers(
 
     // 2. Exit / Target Marker (skip if currently active in-progress bar)
     if (t.exitReason !== "end_of_period") {
-      let exitLabel = "KK Exit";
+      let exitLabel = isBuy ? "KK Exit" : "KK Cover";
       if (t.resultType === "TARGET_2_HIT") {
-        exitLabel = "KK Target 2 (+2.0R)";
+        exitLabel = isBuy ? "KK Target 2 (+2.0R)" : "KK Target 2 Cover (+2.0R)";
       } else if (t.resultType === "TARGET_1_HIT_TIME_EXIT") {
-        exitLabel = "KK T1 (+0.75R) + Time Exit";
+        exitLabel = isBuy ? "KK T1 (+0.75R) + Time Exit" : "KK T1 Cover + Time Exit";
       } else if (t.resultType === "SL_HIT_AFTER_TARGET_1") {
-        exitLabel = "KK T1 (+0.75R) + SL Hit";
+        exitLabel = isBuy ? "KK T1 (+0.75R) + SL Hit" : "KK T1 Cover + SL Hit";
       } else if (t.resultType === "SL_HIT") {
-        exitLabel = "KK Stop Loss (-1.0R)";
+        exitLabel = isBuy ? "KK Stop Loss (-1.0R)" : "KK Stop Loss Cover";
       } else {
-        exitLabel = "KK 5-Day Time Exit";
+        exitLabel = isBuy ? "KK 5-Day Time Exit" : "KK 5-Day Time Cover";
       }
 
       markers.push({
         ts: exitTs,
-        kind: "exit",
+        kind: isBuy ? "exit" : "buy",
         label: exitLabel,
         strategy: "kk_breakout",
         price: t.exitPrice,

@@ -34,6 +34,12 @@ const STRATEGIES = [
     rule: "BUY when 14-day RSI climbs back above 30; EXIT when it falls back below 70.",
     reads: "Mean-reversion. Early by design — it bets stretched moves relax.",
   },
+  {
+    key: "kk_breakout",
+    title: "KK 20d Breakout",
+    rule: "BUY on 20-day extreme low extension (≥1.0%) with 5-day confirmation; targets T1 (+0.75R) & T2 (+2.0R).",
+    reads: "Volatility expansion breakout. Asymmetric milestone targets with disciplined 5-day holding window.",
+  },
 ];
 
 export default async function SignalsPage({

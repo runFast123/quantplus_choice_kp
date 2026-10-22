@@ -198,6 +198,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Path | What |
 |---|---|
 | `scripts/secret-scan.mjs` | `--staged` (pre-commit) / `--history` (CI) secret scanner |
+| `scripts/ingest_kk_signals.py` | Ingests verified empirical KK breakout trades from `kk_eod_results_fixed.json` into Supabase `public.trading_signals` |
 | `.githooks/pre-commit` | runs the staged scan; enable with `git config core.hooksPath .githooks` |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |

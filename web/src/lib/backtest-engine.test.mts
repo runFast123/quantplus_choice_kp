@@ -203,6 +203,67 @@ describe("generateKkChartMarkers", () => {
       }
     }
   });
+
+  test("anchors targets to planned trigger extreme even when confirmation bar gaps up", () => {
+    // 30 base candles to exceed 35 minBars requirement
+    const baseCandles: Candle[] = [];
+    for (let i = 0; i < 30; i++) {
+      baseCandles.push({
+        ts: `2026-01-${String(i + 1).padStart(2, "0")}T10:00:00+00:00`,
+        open: 100,
+        high: 105,
+        low: 95,
+        close: 100,
+        volume: 1000,
+      });
+    }
+
+    // Bar 30: Signal bar (low drops below prior low of 95 by > 1.0% -> low = 92, high = 102)
+    // Planned trigger = 102, stop = 92, planned risk = 10
+    // Target 1 = 102 + 0.75 * 10 = 109.5
+    // Target 2 = 102 + 2.00 * 10 = 122.0
+    baseCandles.push({
+      ts: "2026-01-26T10:00:00+00:00",
+      open: 98,
+      high: 102,
+      low: 92,
+      close: 97,
+      volume: 1500,
+    });
+
+    // Bar 26: Confirmation bar gaps up with open = 106 (> 102 trigger)
+    baseCandles.push({
+      ts: "2026-01-27T10:00:00+00:00",
+      open: 106,
+      high: 110,
+      low: 105,
+      close: 108,
+      volume: 2000,
+    });
+
+    // 5 forward bars for holding window
+    for (let k = 1; k <= 5; k++) {
+      baseCandles.push({
+        ts: `2026-01-${27 + k}T10:00:00+00:00`,
+        open: 108,
+        high: 111,
+        low: 106,
+        close: 109,
+        volume: 1200,
+      });
+    }
+
+    const markers = generateKkChartMarkers(baseCandles, { kkDirection: "buy" });
+    const buyMarker = markers.find((m) => m.kind === "buy");
+    assert.ok(buyMarker);
+    // Entry price filled at gap open = 106
+    assert.equal(buyMarker.price, 106);
+    // Stop loss at signal bar low = 92
+    assert.equal(buyMarker.stop, 92);
+    // Targets MUST be anchored to trigger 102, NOT 106!
+    assert.equal(buyMarker.target1, 109.5);
+    assert.equal(buyMarker.target2, 122);
+  });
 });
 
 
