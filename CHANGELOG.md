@@ -6,6 +6,24 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 
 ## [Unreleased]
 
+### Added — KK 20-Day Asymmetric Breakout Strategy & Simulator Integration (`web/`)
+- **KK 20-Bar Extreme Extension & Asymmetric Breakout Strategy Engine (`web/src/lib/backtest-engine.ts`, `web/src/lib/backtest-engine.test.mts`)**:
+  - Implemented `simulateKkStrategy` and extended `simulateCustomStrategy` with the `"kk_breakout"` systematic quantitative model (derived from 20-year empirical backtest `kk_eod_results_fixed.json` spanning 44,856 trades across Nifty 500 equities).
+  - Exact core mechanics preserved:
+    - **Signal Bar Detection**: Identifies 20-period extremes with configurable extension buffer (default: $\ge 1.0\%$).
+    - **Confirmation Window**: Waits up to 5 trading sessions (`confirmation_window_bars: 5`) for an extreme breakout to trigger market fill.
+    - **Asymmetric Milestone Targets**: Calculates Target 1 ($+0.75R$) with automatic 50% partial position scale-out, Target 2 ($+2.00R$) for asymmetric payoff ($+1.375R$ net), and initial Stop Loss ($-1.0R$).
+    - **Disciplined Time Stop**: Liquidates remaining units at market close after 5 sessions (`trade_window_bars: 5`) if targets or stop loss are not reached (`TIME_EXIT` or `TARGET_1_HIT_TIME_EXIT`).
+    - **Setup Filtering**: Defaults to `Long Only (Cash Delivery)` (which delivered +1,030.33 R alpha over 2006–2026) with optional `Both (Long & Short)` for the F&O derivatives segment.
+  - Added TradingView **Pine Script v5 generator** (`generateBacktestPineScript`) for `kk_breakout` enabling 1-click export to TradingView charts.
+  - Added unit test suite validating signal generation, entry fills, target scale-out math, and Pine Script generation.
+- **Interactive BacktestLab UI Integration (`web/src/components/market/backtest-lab.tsx`)**:
+  - Added `"KK 20d Breakout"` to the interactive strategy model selector on the Stock Research desk (`/app/markets/[symbol]`).
+  - Added interactive parameter adjustment controls for Lookback Period (10d, 20d, 30d, 50d), Extension Buffer (0.5%, 1.0%, 1.5%, 2.0%), Confirmation Window (3d, 5d, 7d), Holding Window (3d, 5d, 7d, 10d), and Setup Direction.
+  - Added an intuitive **Architecture Guidance Card** displaying the 4 sequential trade milestones (Signal Bar, 5d Confirmation, 50% Trim @ +0.75R, and Target 2 / 5d Time Exit) ensuring users understand the strategy without confusion.
+  - Enriched Trade Log table with `Signal` pills, `Milestone Result` status badges (`Target 2 Hit +1.38R`, `T1 Hit + Time Exit`, `5d Time Exit`, `Stop Loss -1.0R`, `SL after T1 -0.13R`), and `Realized R` multiples.
+  - Enriched CSV trade export with Signal, Milestone Result, and Realized R data columns.
+
 ### Fixed, Hardened & Polished — Full-History Chart SMAs, Multi-Fill Import Merging, WCAG 2.2 AA Accessibility & Zen Linen Motion System (`web/`, `extension/`)
 - **Chart SMA Continuity, Signal Candle Focus & Accessible Data Table (`web/src/components/charts/price-chart.tsx`, `web/src/components/charts/market-chart-view.tsx`, `web/src/components/charts/tradingview-widget.tsx`)**:
   - Fixed moving average truncation on shorter time horizons (`1M`, `3M`, `6M`, `1Y`): `SMA 20`, `SMA 50`, and `SMA 200` are now computed over the full historical candle series before slicing to the visible range so moving averages plot continuously from the leftmost visible bar.

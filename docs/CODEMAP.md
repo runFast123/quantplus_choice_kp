@@ -105,7 +105,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `plans.ts` | `FEATURE_ROWS` (feature key → label, display order) |
 | `csv-parser.ts` | `parseHoldingsCsv(csvText)`, `cleanBrokerSymbol`, `parseNumeric`, types `ParsedHoldingRow`, `ParseHoldingsResult` (Zerodha, Groww, Angel One, Upstox, generic) |
 | `csv-parser.test.mts` | unit tests (`npm run test:unit`) |
-| `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, `simulateCustomStrategy(candles, params)`, `generateBacktestPineScript(params, symbol)`, `computeSma`, `computeRsi`, types `SipResult`, `StrategyResult`, `DetailedStrategyResult`, `DetailedStrategyTrade`, `EquityPoint`, `AdvancedStrategyParams` |
+| `backtest-engine.ts` | `simulateSip(candles, monthlyAmount)`, `simulateTechnicalStrategy(candles, strategy)`, `simulateCustomStrategy(candles, params)`, `simulateKkStrategy(candles, params)`, `generateBacktestPineScript(params, symbol)`, `computeSma`, `computeRsi`, types `SipResult`, `StrategyResult`, `DetailedStrategyResult`, `DetailedStrategyTrade`, `EquityPoint`, `AdvancedStrategyParams`, `KkResultType` |
 | `backtest-engine.test.mts` | unit tests (`npm run test:unit`) |
 | `portfolio-health.ts` | `calculatePortfolioHealth(positions)`, types `PortfolioHealthReport`, `HealthPosition`, `PortfolioDiagnosticFocus`, `RiskFlag`, `HealthVerdict`, `SectorAllocation` |
 | `portfolio-health.test.mts` | unit tests (`npm run test:unit`) |

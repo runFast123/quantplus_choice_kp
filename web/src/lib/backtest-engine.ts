@@ -30,9 +30,23 @@ export interface StrategyTrade {
   isWin: boolean;
 }
 
+export type KkResultType =
+  | "TARGET_1_HIT_TIME_EXIT"
+  | "TARGET_2_HIT"
+  | "SL_HIT"
+  | "SL_HIT_AFTER_TARGET_1"
+  | "TIME_EXIT"
+  | "OPEN_DATA_END";
+
 export interface DetailedStrategyTrade extends StrategyTrade {
   exitReason: "strategy" | "stop_loss" | "take_profit" | "end_of_period";
   returnOnCapital: number;
+  resultType?: KkResultType;
+  realizedR?: number;
+  signalType?: "BUY" | "SELL";
+  target1Price?: number;
+  target2Price?: number;
+  stopLossPrice?: number;
 }
 
 export interface StrategyResult {
@@ -52,7 +66,7 @@ export interface EquityPoint {
 }
 
 export interface AdvancedStrategyParams {
-  type: "sma_cross" | "rsi_reversal" | "breakout";
+  type: "sma_cross" | "rsi_reversal" | "breakout" | "kk_breakout";
   fastMa?: number;
   slowMa?: number;
   rsiPeriod?: number;
@@ -62,6 +76,15 @@ export interface AdvancedStrategyParams {
   stopLossPct?: number;
   takeProfitPct?: number;
   initialCapital?: number;
+  // KK 20-bar extreme breakout parameters
+  kkPeriod?: number;
+  kkExtensionPct?: number;
+  kkConfirmationBars?: number;
+  kkTradeWindowBars?: number;
+  kkTarget1Fraction?: number;
+  kkTarget1R?: number;
+  kkTarget2R?: number;
+  kkDirection?: "buy" | "both" | "sell";
 }
 
 export interface DetailedStrategyResult {
@@ -312,12 +335,381 @@ export function simulateTechnicalStrategy(
   };
 }
 
+/**
+ * Simulates the 20-bar Extreme Breakout & Confirmation strategy (from kk_eod_results)
+ * with asymmetric R targets (T1: +0.75R with 50% scale-out, T2: +2.00R, 5-bar time exit).
+ */
+export function simulateKkStrategy(
+  candles: Candle[],
+  params: AdvancedStrategyParams,
+): DetailedStrategyResult | null {
+  const period = Math.max(5, Math.min(100, params.kkPeriod ?? 20));
+  const extensionPct = Math.max(0.1, Math.min(10.0, params.kkExtensionPct ?? 1.0));
+  const confBars = Math.max(1, Math.min(15, params.kkConfirmationBars ?? 5));
+  const tradeBars = Math.max(1, Math.min(20, params.kkTradeWindowBars ?? 5));
+  const target1Fraction = Math.max(0.1, Math.min(0.9, params.kkTarget1Fraction ?? 0.5));
+  const target1R = Math.max(0.2, Math.min(5.0, params.kkTarget1R ?? 0.75));
+  const target2R = Math.max(0.5, Math.min(10.0, params.kkTarget2R ?? 2.00));
+  const direction = params.kkDirection ?? "buy";
+  const initialCapital = Math.max(1000, params.initialCapital ?? 100000);
+
+  const minBars = period + confBars + tradeBars + 5;
+  if (!candles || candles.length < minBars) return null;
+
+  const closes = candles.map((c) => c.close);
+  const highs = candles.map((c) => c.high);
+  const lows = candles.map((c) => c.low);
+  const opens = candles.map((c) => c.open ?? c.close);
+  const dates = candles.map((c) => String(c.ts).slice(0, 10));
+
+  const trades: DetailedStrategyTrade[] = [];
+  const equityCurve: EquityPoint[] = [];
+
+  let cash = initialCapital;
+  let peakEquity = initialCapital;
+  let maxDrawdownPct = 0;
+
+  const benchmarkStartPrice = closes[period];
+
+  let i = period;
+  while (i < candles.length) {
+    const currentDrawdown = peakEquity > 0 ? ((peakEquity - cash) / peakEquity) * 100 : 0;
+    if (currentDrawdown > maxDrawdownPct) maxDrawdownPct = currentDrawdown;
+    const benchmarkVal =
+      benchmarkStartPrice > 0 ? initialCapital * (closes[i] / benchmarkStartPrice) : initialCapital;
+
+    equityCurve.push({
+      date: dates[i],
+      equity: Math.round(cash),
+      benchmark: Math.round(benchmarkVal),
+      drawdownPct: Number(currentDrawdown.toFixed(2)),
+    });
+
+    // Check if bar i is a Signal Bar
+    const priorHigh = Math.max(...highs.slice(i - period, i));
+    const priorLow = Math.min(...lows.slice(i - period, i));
+
+    const isBuySignal = direction !== "sell" && lows[i] <= priorLow * (1 - extensionPct / 100);
+    const isSellSignal = direction !== "buy" && highs[i] >= priorHigh * (1 + extensionPct / 100);
+
+    if (!isBuySignal && !isSellSignal) {
+      i++;
+      continue;
+    }
+
+    const sigType: "BUY" | "SELL" = isBuySignal ? "BUY" : "SELL";
+    const triggerPrice = sigType === "BUY" ? highs[i] : lows[i];
+    const initialStop = sigType === "BUY" ? lows[i] : highs[i];
+
+    // Look for confirmation within confBars forward
+    let entryBar = -1;
+    let entryFillPrice = 0;
+    const maxConfBar = Math.min(i + confBars, candles.length - 1);
+
+    for (let k = i + 1; k <= maxConfBar; k++) {
+      const dd = peakEquity > 0 ? ((peakEquity - cash) / peakEquity) * 100 : 0;
+      if (dd > maxDrawdownPct) maxDrawdownPct = dd;
+      const bench =
+        benchmarkStartPrice > 0 ? initialCapital * (closes[k] / benchmarkStartPrice) : initialCapital;
+      equityCurve.push({
+        date: dates[k],
+        equity: Math.round(cash),
+        benchmark: Math.round(bench),
+        drawdownPct: Number(dd.toFixed(2)),
+      });
+
+      if (sigType === "BUY") {
+        if (highs[k] >= triggerPrice) {
+          entryBar = k;
+          entryFillPrice = opens[k] > triggerPrice ? opens[k] : triggerPrice;
+          break;
+        }
+      } else {
+        if (lows[k] <= triggerPrice) {
+          entryBar = k;
+          entryFillPrice = opens[k] < triggerPrice ? opens[k] : triggerPrice;
+          break;
+        }
+      }
+    }
+
+    if (entryBar === -1) {
+      i = maxConfBar + 1;
+      continue;
+    }
+
+    const risk = sigType === "BUY" ? entryFillPrice - initialStop : initialStop - entryFillPrice;
+    if (risk <= 0) {
+      i = entryBar + 1;
+      continue;
+    }
+
+    const target1Price = Number(
+      (sigType === "BUY" ? entryFillPrice + target1R * risk : entryFillPrice - target1R * risk).toFixed(2),
+    );
+    const target2Price = Number(
+      (sigType === "BUY" ? entryFillPrice + target2R * risk : entryFillPrice - target2R * risk).toFixed(2),
+    );
+    const stopLossPrice = Number(initialStop.toFixed(2));
+
+    let t1Hit = false;
+    let exitBar = -1;
+    let exitPrice = 0;
+    let resultType: KkResultType = "TIME_EXIT";
+    let exitReason: DetailedStrategyTrade["exitReason"] = "strategy";
+    let realizedR = 0;
+    let tradePnlPct = 0;
+
+    const maxTradeBar = Math.min(entryBar + tradeBars - 1, candles.length - 1);
+
+    for (let m = entryBar; m <= maxTradeBar; m++) {
+      if (m > entryBar) {
+        const currentPnl =
+          sigType === "BUY"
+            ? ((closes[m] - entryFillPrice) / entryFillPrice) * 100
+            : ((entryFillPrice - closes[m]) / entryFillPrice) * 100;
+        const currentVal = cash * (1 + currentPnl / 100);
+        if (currentVal > peakEquity) peakEquity = currentVal;
+        const dd = peakEquity > 0 ? ((peakEquity - currentVal) / peakEquity) * 100 : 0;
+        if (dd > maxDrawdownPct) maxDrawdownPct = dd;
+        const bench =
+          benchmarkStartPrice > 0 ? initialCapital * (closes[m] / benchmarkStartPrice) : initialCapital;
+        equityCurve.push({
+          date: dates[m],
+          equity: Math.round(currentVal),
+          benchmark: Math.round(bench),
+          drawdownPct: Number(dd.toFixed(2)),
+        });
+      }
+
+      if (sigType === "BUY") {
+        const slHitThisBar = lows[m] <= stopLossPrice;
+        const t1HitThisBar = highs[m] >= target1Price;
+        const t2HitThisBar = highs[m] >= target2Price;
+
+        if (t1Hit) {
+          if (t2HitThisBar) {
+            resultType = "TARGET_2_HIT";
+            exitReason = "take_profit";
+            exitPrice = target2Price;
+            realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
+            tradePnlPct =
+              target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
+              (1 - target1Fraction) * ((target2Price - entryFillPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          }
+          if (slHitThisBar) {
+            resultType = "SL_HIT_AFTER_TARGET_1";
+            exitReason = "stop_loss";
+            exitPrice = stopLossPrice;
+            realizedR = target1Fraction * target1R + (1 - target1Fraction) * -1.0;
+            tradePnlPct =
+              target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
+              (1 - target1Fraction) * ((stopLossPrice - entryFillPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          }
+        } else {
+          if (slHitThisBar) {
+            resultType = "SL_HIT";
+            exitReason = "stop_loss";
+            exitPrice = stopLossPrice;
+            realizedR = -1.0;
+            tradePnlPct = ((stopLossPrice - entryFillPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          } else if (t1HitThisBar) {
+            t1Hit = true;
+            if (t2HitThisBar) {
+              resultType = "TARGET_2_HIT";
+              exitReason = "take_profit";
+              exitPrice = target2Price;
+              realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
+              tradePnlPct =
+                target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
+                (1 - target1Fraction) * ((target2Price - entryFillPrice) / entryFillPrice) * 100;
+              exitBar = m;
+              break;
+            }
+          }
+        }
+      } else {
+        const slHitThisBar = highs[m] >= stopLossPrice;
+        const t1HitThisBar = lows[m] <= target1Price;
+        const t2HitThisBar = lows[m] <= target2Price;
+
+        if (t1Hit) {
+          if (t2HitThisBar) {
+            resultType = "TARGET_2_HIT";
+            exitReason = "take_profit";
+            exitPrice = target2Price;
+            realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
+            tradePnlPct =
+              target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
+              (1 - target1Fraction) * ((entryFillPrice - target2Price) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          }
+          if (slHitThisBar) {
+            resultType = "SL_HIT_AFTER_TARGET_1";
+            exitReason = "stop_loss";
+            exitPrice = stopLossPrice;
+            realizedR = target1Fraction * target1R + (1 - target1Fraction) * -1.0;
+            tradePnlPct =
+              target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
+              (1 - target1Fraction) * ((entryFillPrice - stopLossPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          }
+        } else {
+          if (slHitThisBar) {
+            resultType = "SL_HIT";
+            exitReason = "stop_loss";
+            exitPrice = stopLossPrice;
+            realizedR = -1.0;
+            tradePnlPct = ((entryFillPrice - stopLossPrice) / entryFillPrice) * 100;
+            exitBar = m;
+            break;
+          } else if (t1HitThisBar) {
+            t1Hit = true;
+            if (t2HitThisBar) {
+              resultType = "TARGET_2_HIT";
+              exitReason = "take_profit";
+              exitPrice = target2Price;
+              realizedR = target1Fraction * target1R + (1 - target1Fraction) * target2R;
+              tradePnlPct =
+                target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
+                (1 - target1Fraction) * ((entryFillPrice - target2Price) / entryFillPrice) * 100;
+              exitBar = m;
+              break;
+            }
+          }
+        }
+      }
+
+      if (m === maxTradeBar) {
+        exitBar = m;
+        exitPrice = closes[m];
+        if (m === candles.length - 1 && m < entryBar + tradeBars - 1) {
+          resultType = t1Hit ? "TARGET_1_HIT_TIME_EXIT" : "TIME_EXIT";
+          exitReason = "end_of_period";
+        } else {
+          resultType = t1Hit ? "TARGET_1_HIT_TIME_EXIT" : "TIME_EXIT";
+          exitReason = "strategy";
+        }
+
+        const closeR =
+          sigType === "BUY"
+            ? (exitPrice - entryFillPrice) / risk
+            : (entryFillPrice - exitPrice) / risk;
+
+        if (t1Hit) {
+          realizedR = target1Fraction * target1R + (1 - target1Fraction) * closeR;
+          tradePnlPct =
+            sigType === "BUY"
+              ? target1Fraction * ((target1Price - entryFillPrice) / entryFillPrice) * 100 +
+                (1 - target1Fraction) * ((exitPrice - entryFillPrice) / entryFillPrice) * 100
+              : target1Fraction * ((entryFillPrice - target1Price) / entryFillPrice) * 100 +
+                (1 - target1Fraction) * ((entryFillPrice - exitPrice) / entryFillPrice) * 100;
+        } else {
+          realizedR = closeR;
+          tradePnlPct =
+            sigType === "BUY"
+              ? ((exitPrice - entryFillPrice) / entryFillPrice) * 100
+              : ((entryFillPrice - exitPrice) / entryFillPrice) * 100;
+        }
+        break;
+      }
+    }
+
+    const tradeReturnOnCapital = cash * (tradePnlPct / 100);
+    cash = Math.max(0, cash + tradeReturnOnCapital);
+    if (cash > peakEquity) peakEquity = cash;
+
+    trades.push({
+      entryDate: dates[entryBar],
+      entryPrice: Number(entryFillPrice.toFixed(2)),
+      exitDate: dates[exitBar],
+      exitPrice: Number(exitPrice.toFixed(2)),
+      pnlPct: Number(tradePnlPct.toFixed(2)),
+      barsHeld: Math.max(1, exitBar - entryBar + 1),
+      isWin: tradePnlPct > 0,
+      exitReason,
+      returnOnCapital: Number(tradeReturnOnCapital.toFixed(2)),
+      resultType,
+      realizedR: Number(realizedR.toFixed(3)),
+      signalType: sigType,
+      target1Price,
+      target2Price,
+      stopLossPrice,
+    });
+
+    i = exitBar + 1;
+  }
+
+  const finalCapital = cash;
+  const totalReturnPct = ((finalCapital - initialCapital) / initialCapital) * 100;
+  const benchmarkReturnPct =
+    benchmarkStartPrice > 0
+      ? ((closes[closes.length - 1] - benchmarkStartPrice) / benchmarkStartPrice) * 100
+      : 0;
+
+  const wins = trades.filter((t) => t.isWin);
+  const losses = trades.filter((t) => !t.isWin);
+  const winningTrades = wins.length;
+  const losingTrades = losses.length;
+  const winRatePct = trades.length > 0 ? (winningTrades / trades.length) * 100 : 0;
+
+  const grossGains = wins.reduce((acc, t) => acc + t.pnlPct, 0);
+  const grossLosses = Math.abs(losses.reduce((acc, t) => acc + t.pnlPct, 0));
+  const profitFactor = grossLosses > 0 ? grossGains / grossLosses : grossGains > 0 ? 99 : 1;
+
+  const avgWinPct = winningTrades > 0 ? grossGains / winningTrades : 0;
+  const avgLossPct = losingTrades > 0 ? grossLosses / losingTrades : 0;
+  const payoffRatio = avgLossPct > 0 ? avgWinPct / avgLossPct : avgWinPct > 0 ? 99 : 1;
+
+  const expectancyPct =
+    trades.length > 0
+      ? (winRatePct / 100) * avgWinPct - ((100 - winRatePct) / 100) * avgLossPct
+      : 0;
+
+  const avgBarsHeld =
+    trades.length > 0
+      ? Math.round(trades.reduce((acc, t) => acc + t.barsHeld, 0) / trades.length)
+      : 0;
+
+  return {
+    trades,
+    totalTrades: trades.length,
+    winningTrades,
+    losingTrades,
+    winRatePct: Number(winRatePct.toFixed(1)),
+    totalReturnPct: Number(totalReturnPct.toFixed(2)),
+    benchmarkReturnPct: Number(benchmarkReturnPct.toFixed(2)),
+    alphaPct: Number((totalReturnPct - benchmarkReturnPct).toFixed(2)),
+    maxDrawdownPct: Number(maxDrawdownPct.toFixed(2)),
+    profitFactor: Number(profitFactor.toFixed(2)),
+    avgWinPct: Number(avgWinPct.toFixed(2)),
+    avgLossPct: Number(avgLossPct.toFixed(2)),
+    payoffRatio: Number(payoffRatio.toFixed(2)),
+    expectancyPct: Number(expectancyPct.toFixed(2)),
+    avgBarsHeld,
+    equityCurve,
+    finalCapital: Math.round(finalCapital),
+  };
+}
+
 /** Detailed quantitative simulation with customizable indicators, risk rules, and equity curve */
 export function simulateCustomStrategy(
   candles: Candle[],
   params: AdvancedStrategyParams,
 ): DetailedStrategyResult | null {
   const type = params.type || "sma_cross";
+  if (type === "kk_breakout") {
+    return simulateKkStrategy(candles, params);
+  }
+
   const fastMa = Math.max(2, Math.min(100, params.fastMa ?? 20));
   const slowMa = Math.max(fastMa + 1, Math.min(250, params.slowMa ?? 50));
   const rsiPeriod = Math.max(2, Math.min(50, params.rsiPeriod ?? 14));
@@ -559,6 +951,76 @@ export function generateBacktestPineScript(
   const boLen = params.breakoutPeriod ?? 20;
   const stopLoss = params.stopLossPct ?? 0;
   const takeProfit = params.takeProfitPct ?? 0;
+
+  if (type === "kk_breakout") {
+    const period = params.kkPeriod ?? 20;
+    const extPct = params.kkExtensionPct ?? 1.0;
+    const confBars = params.kkConfirmationBars ?? 5;
+    const tradeBars = params.kkTradeWindowBars ?? 5;
+    const t1R = params.kkTarget1R ?? 0.75;
+    const t2R = params.kkTarget2R ?? 2.0;
+
+    return `//@version=5
+strategy("QuantsPulse KK Asymmetric Breakout: ${symbol}", overlay=true, margin_long=100, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+lookbackPeriod = input.int(${period}, "Lookback Period", minval=5)
+extensionPct = input.float(${extPct}, "Extension Threshold %", minval=0.1, step=0.1)
+confWindow = input.int(${confBars}, "Confirmation Window Bars", minval=1, maxval=15)
+maxHoldBars = input.int(${tradeBars}, "Max Trade Holding Bars", minval=1, maxval=20)
+t1_R = input.float(${t1R}, "Target 1 (R Multiple)", step=0.25)
+t2_R = input.float(${t2R}, "Target 2 (R Multiple)", step=0.25)
+
+highestHigh = ta.highest(high[1], lookbackPeriod)
+lowestLow = ta.lowest(low[1], lookbackPeriod)
+
+// 20-bar exhaustion signals
+buySignal = low <= lowestLow * (1.0 - extensionPct / 100.0)
+
+var float buyTrigger = na
+var float buyStop = na
+var int signalAge = 0
+
+if (buySignal and strategy.position_size == 0)
+    buyTrigger := high
+    buyStop := low
+    signalAge := 0
+else if (not na(buyTrigger))
+    signalAge := signalAge + 1
+    if (signalAge > confWindow or strategy.position_size > 0)
+        buyTrigger := na
+        buyStop := na
+
+// Breakout confirmation entry
+buyConfirm = not na(buyTrigger) and (high >= buyTrigger) and strategy.position_size == 0
+
+if (buyConfirm)
+    strategy.entry("Long", strategy.long)
+
+var float entryP = na
+var float slP = na
+var float t1P = na
+var float t2P = na
+var int barsInTrade = 0
+
+if (ta.change(strategy.position_size) > 0)
+    entryP := strategy.position_avg_price
+    slP := buyStop
+    risk = entryP - slP
+    t1P := entryP + t1_R * risk
+    t2P := entryP + t2_R * risk
+    barsInTrade := 0
+
+if (strategy.position_size > 0)
+    barsInTrade := barsInTrade + 1
+    // Scale out 50% at Target 1 (+0.75R)
+    strategy.exit("T1", "Long", qty_percent=50, limit=t1P)
+    // Exit remaining at Target 2 (+2.0R) or Stop Loss (-1.0R)
+    strategy.exit("T2/SL", "Long", limit=t2P, stop=slP)
+    // Enforce 5-bar time exit
+    if (barsInTrade >= maxHoldBars)
+        strategy.close("Long", comment="5d Time Exit")
+`;
+  }
 
   if (type === "rsi_reversal") {
     return `//@version=5

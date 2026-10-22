@@ -107,7 +107,46 @@ describe("simulateCustomStrategy", () => {
     assert.ok(res.equityCurve.length > 0);
   });
 
-  test("generates valid Pine Script v5 strategy for each mode", () => {
+  test("simulates KK 20-bar asymmetric breakout strategy with milestones and time exits", () => {
+    // Generate 250 candles with periodic swing cycles
+    const candles = createMockCandles(250, 100, 0.1);
+    const res = simulateCustomStrategy(candles, {
+      type: "kk_breakout",
+      kkPeriod: 20,
+      kkExtensionPct: 1.0,
+      kkConfirmationBars: 5,
+      kkTradeWindowBars: 5,
+      kkTarget1Fraction: 0.5,
+      kkTarget1R: 0.75,
+      kkTarget2R: 2.0,
+      kkDirection: "buy",
+      initialCapital: 100000,
+    });
+
+    assert.ok(res);
+    assert.equal(typeof res.totalTrades, "number");
+    assert.equal(typeof res.winRatePct, "number");
+    assert.ok(res.equityCurve.length > 0);
+    assert.ok(res.finalCapital > 0);
+
+    for (const t of res.trades) {
+      assert.ok(["BUY", "SELL"].includes(t.signalType ?? "BUY"));
+      assert.ok(
+        [
+          "TARGET_1_HIT_TIME_EXIT",
+          "TARGET_2_HIT",
+          "SL_HIT",
+          "SL_HIT_AFTER_TARGET_1",
+          "TIME_EXIT",
+          "OPEN_DATA_END",
+        ].includes(t.resultType ?? "TIME_EXIT"),
+      );
+      assert.equal(typeof t.realizedR, "number");
+      assert.ok(t.barsHeld >= 1 && t.barsHeld <= 6);
+    }
+  });
+
+  test("generates valid Pine Script v5 strategy for each mode including KK breakout", () => {
     const smaScript = generateBacktestPineScript({ type: "sma_cross", fastMa: 9, slowMa: 21 }, "TCS");
     assert.ok(smaScript.includes("//@version=5"));
     assert.ok(smaScript.includes('strategy("QuantsPulse MA Cross: TCS"'));
@@ -119,6 +158,24 @@ describe("simulateCustomStrategy", () => {
     const boScript = generateBacktestPineScript({ type: "breakout", breakoutPeriod: 20 }, "RELIANCE");
     assert.ok(boScript.includes("ta.highest"));
     assert.ok(boScript.includes('strategy("QuantsPulse Donchian Breakout: RELIANCE"'));
+
+    const kkScript = generateBacktestPineScript(
+      {
+        type: "kk_breakout",
+        kkPeriod: 20,
+        kkExtensionPct: 1.0,
+        kkConfirmationBars: 5,
+        kkTradeWindowBars: 5,
+        kkTarget1R: 0.75,
+        kkTarget2R: 2.0,
+      },
+      "HDFCBANK",
+    );
+    assert.ok(kkScript.includes("//@version=5"));
+    assert.ok(kkScript.includes('strategy("QuantsPulse KK Asymmetric Breakout: HDFCBANK"'));
+    assert.ok(kkScript.includes("qty_percent=50"));
+    assert.ok(kkScript.includes("5d Time Exit"));
   });
 });
+
 
