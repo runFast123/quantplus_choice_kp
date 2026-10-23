@@ -5,7 +5,12 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
-### Fixed & Enhanced — Multi-Directional Chart Signals & 500 Nifty Equities Full Database Ingestion (`web/`, `scripts/`)
+### Fixed & Enhanced — Multi-Directional Chart Signals & Strategy Count Parity (`web/`, `scripts/`)
+- **Strategy Count Badge Mathematical Parity (`web/src/components/charts/price-chart.tsx`)**:
+  - Fixed count divergence where `All Plans` displayed a sum that didn't match individual strategy badges (e.g. showing `(96)` when plans showed `(7)`, `(9)`, `(17)`):
+    - Removed double-counting where client-side simulated markers were added to already-ingested database signals.
+    - Synchronized individual strategy counts so `kkCount + smaCount + rsiCount === totalCount` with 100% mathematical consistency.
+    - Added transparent directional counts to `▲ Buy (N)` and `▼ Exit (N)` filter buttons, ensuring every count on screen matches the exact number of markers rendered on the chart.
 - **Multi-Directional Chart Signal Rendering Parity (`web/src/components/charts/price-chart.tsx`, `web/src/lib/backtest-engine.ts`, `web/src/lib/trade-plan.ts`)**:
   - Investigated and resolved chart signal display discrepancies where SELL (short breakdown) trades and milestone exits were misrendered or inverted:
     - **Entry vs Exit Directional Distinction**: Explicitly distinguished `action: "buy"` (long entry, arrow up below bar, gain), `action: "sell"` (short breakdown entry, arrow down above bar, loss), `action: "exit"` (long target/stop exit, arrow down above bar), and `action: "cover"` (short target/stop cover, arrow up below bar).

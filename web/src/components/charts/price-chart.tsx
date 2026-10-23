@@ -93,30 +93,46 @@ export function PriceChart({
   // Dynamic KK Strategy Signal Generation (Computed client-side from real historical candles)
   const kkMarkers = useMemo(() => generateKkChartMarkers(candles), [candles]);
 
-  // Strategy Counts for UI Badges
-  const kkCount = useMemo(() => kkMarkers.filter((m) => m.kind === "buy").length, [kkMarkers]);
-  const smaCount = useMemo(
+  // 1. Isolate each strategy's markers cleanly without duplication or mismatches
+  const effectiveKkMarkers = useMemo(() => {
+    const dbKk = markers.filter((m) => m.strategy === "kk_breakout");
+    return dbKk.length > 0 ? dbKk : kkMarkers;
+  }, [markers, kkMarkers]);
+
+  const smaMarkers = useMemo(
     () =>
       markers.filter(
         (m) =>
           m.strategy?.includes("sma") ||
           m.label.toLowerCase().includes("sma") ||
           m.label.toLowerCase().includes("ma"),
-      ).length,
+      ),
     [markers],
   );
-  const rsiCount = useMemo(
+
+  const rsiMarkers = useMemo(
     () =>
       markers.filter(
         (m) => m.strategy?.includes("rsi") || m.label.toLowerCase().includes("rsi"),
-      ).length,
+      ),
     [markers],
   );
-  const totalCount = kkMarkers.length + markers.length;
+
+  // All plans combined without duplicating KK markers
+  const allPlanMarkers = useMemo(() => {
+    const hasDbKk = markers.some((m) => m.strategy === "kk_breakout");
+    return hasDbKk ? markers : [...markers, ...kkMarkers];
+  }, [markers, kkMarkers]);
+
+  // Strategy Counts for UI Badges (sum of individual plans = All Plans count)
+  const kkCount = effectiveKkMarkers.length;
+  const smaCount = smaMarkers.length;
+  const rsiCount = rsiMarkers.length;
+  const totalCount = allPlanMarkers.length;
 
   // Strategy Mode Filter (Isolates strategies to eliminate multi-plan signal confusion)
   const [strategyFilter, setStrategyFilter] = useState<ChartStrategyFilter>(() =>
-    kkMarkers.length > 0 ? "kk_breakout" : markers.length > 0 ? "all" : "kk_breakout",
+    effectiveKkMarkers.length > 0 ? "kk_breakout" : markers.length > 0 ? "all" : "kk_breakout",
   );
 
   // Signals Controls
@@ -138,30 +154,31 @@ export function PriceChart({
   const fullSma50 = useMemo(() => computeSma(candles, 50), [candles]);
   const fullSma200 = useMemo(() => computeSma(candles, 200), [candles]);
 
-  // Strategy-isolated markers
+  // Strategy-isolated markers (always matches the count of the selected plan)
   const rawStrategyMarkers = useMemo(() => {
-    if (strategyFilter === "none") return [];
-    if (strategyFilter === "kk_breakout") {
-      const dbKk = markers.filter((m) => m.strategy === "kk_breakout");
-      return dbKk.length > 0 ? dbKk : kkMarkers;
+    switch (strategyFilter) {
+      case "none":
+        return [];
+      case "kk_breakout":
+        return effectiveKkMarkers;
+      case "sma_cross":
+        return smaMarkers;
+      case "rsi_reversal":
+        return rsiMarkers;
+      case "all":
+      default:
+        return allPlanMarkers;
     }
-    if (strategyFilter === "sma_cross") {
-      return markers.filter(
-        (m) =>
-          m.strategy?.includes("sma") ||
-          m.label.toLowerCase().includes("sma") ||
-          m.label.toLowerCase().includes("ma"),
-      );
-    }
-    if (strategyFilter === "rsi_reversal") {
-      return markers.filter(
-        (m) => m.strategy?.includes("rsi") || m.label.toLowerCase().includes("rsi"),
-      );
-    }
-    // "all": show everything with distinct badges (avoiding duplicate KK markers)
-    const hasDbKk = markers.some((m) => m.strategy === "kk_breakout");
-    return hasDbKk ? markers : [...markers, ...kkMarkers];
-  }, [strategyFilter, markers, kkMarkers]);
+  }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, allPlanMarkers]);
+
+  const rawBuyCount = useMemo(
+    () => rawStrategyMarkers.filter((m) => m.kind === "buy").length,
+    [rawStrategyMarkers],
+  );
+  const rawExitCount = useMemo(
+    () => rawStrategyMarkers.filter((m) => m.kind === "exit").length,
+    [rawStrategyMarkers],
+  );
 
   // Filtered and deduplicated markers
   const activeMarkers = useMemo(() => {
@@ -703,7 +720,7 @@ export function PriceChart({
                   signalFilter === "buy" ? "bg-gain text-primary-foreground" : "text-gain hover:text-foreground",
                 )}
               >
-                ▲ Buy
+                ▲ Buy ({rawBuyCount})
               </button>
               <button
                 type="button"
@@ -713,7 +730,7 @@ export function PriceChart({
                   signalFilter === "exit" ? "bg-loss text-primary-foreground" : "text-loss hover:text-foreground",
                 )}
               >
-                ▼ Exit
+                ▼ Exit ({rawExitCount})
               </button>
             </div>
 
