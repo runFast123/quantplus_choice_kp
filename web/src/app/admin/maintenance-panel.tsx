@@ -136,10 +136,9 @@ export function MaintenanceOperations() {
                 type="checkbox"
                 name="includeToday"
                 value="true"
-                defaultChecked
                 className="rounded border-border accent-foreground"
               />
-              <span>Include Today&apos;s Active Trading Bar</span>
+              <span>Include today&apos;s unsettled bar (before 15:45 IST)</span>
             </label>
           </div>
           <div className="w-full sm:w-auto">

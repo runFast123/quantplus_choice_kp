@@ -40,6 +40,16 @@ class Merge(unittest.TestCase):
         self.assertEqual(by["NEWCO"]["history_days"], 400)
         self.assertEqual(gone, [])
 
+    def test_rank_kept_when_yahoo_omits_market_cap(self):
+        # Yahoo's screener drops marketCap on ~1,000 quotes per call, not always the same ones;
+        # a gap must not blank RELIANCE's rank and sink it to the end of "Largest first".
+        existing = [{"symbol": "RELIANCE", "name": "Reliance Industries", "sector": "Energy", "segment": "equity",
+                     "history_days": 760, "is_active": True, "status_note": None, "mcap_rank": 1}]
+        rows, _ = merge([self.row("RELIANCE", mcap_rank=None)], existing)
+        self.assertEqual(rows[0]["mcap_rank"], 1)
+        rows, _ = merge([self.row("RELIANCE", mcap_rank=3)], existing)
+        self.assertEqual(rows[0]["mcap_rank"], 3)                     # a fresh rank still wins
+
     def test_retired_on_purpose_stays_retired(self):
         existing = [{"symbol": "TATAMOTORS", "name": "x", "sector": None, "segment": "equity", "history_days": 760,
                      "is_active": False, "status_note": "demerged"}]

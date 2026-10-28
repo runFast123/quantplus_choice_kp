@@ -5,32 +5,19 @@ import { syncEodPrices } from "@/server/privileged/eod-sync";
 /**
  * Scheduled EOD market price ingestion from Yahoo Finance.
  * Runs daily after market close (17:00 IST / 11:30 UTC & 20:00 IST / 14:30 UTC retry).
- * Authorized with `Authorization: Bearer $CRON_SECRET` or `?token=$CRON_SECRET`.
+ * Authorized with `Authorization: Bearer $CRON_SECRET` only — never a query param, which would
+ * put the secret in access logs.
  */
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 function authorised(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-
-  // 1. Authorization: Bearer <secret>
   const header = req.headers.get("authorization") ?? "";
-  if (header.startsWith("Bearer ")) {
-    const a = Buffer.from(header.slice(7));
-    const b = Buffer.from(secret);
-    if (a.length === b.length && timingSafeEqual(a, b)) return true;
-  }
-
-  // 2. Query param ?token=<secret>
-  const token = req.nextUrl.searchParams.get("token") ?? "";
-  if (token) {
-    const a = Buffer.from(token);
-    const b = Buffer.from(secret);
-    if (a.length === b.length && timingSafeEqual(a, b)) return true;
-  }
-
-  return false;
+  if (!secret || !header.startsWith("Bearer ")) return false;
+  const a = Buffer.from(header.slice(7));
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 async function run(req: NextRequest) {

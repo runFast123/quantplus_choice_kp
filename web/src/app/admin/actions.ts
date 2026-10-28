@@ -113,8 +113,9 @@ export async function syncEodMarketPricesAction(_: ActionState, form: FormData):
   const rawScope = form.get("scope")?.toString() || "active";
   const customSymbolsRaw = form.get("customSymbols")?.toString() || "";
   const daysRaw = Number(form.get("days")?.toString() || 10);
+  // An unchecked checkbox is absent from the form, so absence means "off".
   const rawIncludeToday = form.get("includeToday")?.toString();
-  const includeToday = rawIncludeToday === undefined || rawIncludeToday === "true" || rawIncludeToday === "on";
+  const includeToday = rawIncludeToday === "true" || rawIncludeToday === "on";
 
   const scope = rawScope === "top" || rawScope === "all" || rawScope === "custom" ? rawScope : "active";
   const days = Number.isFinite(daysRaw) && daysRaw > 0 ? daysRaw : 10;

@@ -123,6 +123,8 @@ def merge(fresh: list[dict], existing: list[dict]) -> tuple[list[dict], list[str
             row["name"] = old["name"]
             row["history_days"] = old["history_days"]
             row["sector"] = r["sector"] or old.get("sector")
+            # The screener omits marketCap on a varying ~1/3 of quotes; keep the last known rank.
+            row["mcap_rank"] = r["mcap_rank"] or old.get("mcap_rank")
             if old.get("status_note"):                 # retired on purpose (e.g. demerger): leave it retired
                 continue
         out.append(row)

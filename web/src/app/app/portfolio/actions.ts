@@ -20,6 +20,20 @@ const holdingSchema = z.object({
   avg_price: z.coerce.number().positive("Enter the price you paid."),
 });
 
+// Trades reach applyParsedTrades from the client after review, so they're re-validated here.
+const tradesSchema = z
+  .array(
+    z.object({
+      symbol: z.string().trim().toUpperCase().regex(/^[A-Z0-9&\-.]{1,20}$/),
+      exchange: z.enum(["NSE", "BSE"]),
+      action: z.enum(["BUY", "SELL"]),
+      quantity: z.number().finite().positive(),
+      price: z.number().finite().positive(),
+    }),
+  )
+  .min(1, "No trades provided to apply.")
+  .max(250, "Too many trades in one note (250 max).");
+
 async function ensurePortfolio(): Promise<{ id?: string; error?: string }> {
   const s = await requireSession();
   const { data } = await s.supabase.from("portfolios").select("id").order("created_at").limit(1);
@@ -297,9 +311,9 @@ export async function applyParsedTrades(
     pid = ensured.id;
   }
 
-  if (!trades.length) {
-    return { error: "No trades provided to apply." };
-  }
+  const checked = tradesSchema.safeParse(trades);
+  if (!checked.success) return { error: checked.error.issues[0].message };
+  trades = checked.data;
 
   const symbols = [...new Set(trades.map((t) => t.symbol))];
 
@@ -369,7 +383,8 @@ export async function applyParsedTrades(
           .insert({
             portfolio_id: pid,
             symbol: t.symbol,
-            exchange: t.exchange,
+            // Coverage, quotes and the lookups above are NSE-only; a BSE row would never price.
+            exchange: "NSE",
             quantity: t.quantity,
             avg_price: t.price,
             sector: meta.sector,
@@ -390,16 +405,26 @@ export async function applyParsedTrades(
         const q0 = Number(existing.quantity);
         if (t.quantity >= q0) {
           // Entire position sold
-          await s.supabase.from("holdings").delete().eq("id", existing.id);
-          existingMap.delete(t.symbol);
-          updated++;
-          details.push(`${t.symbol}: position closed`);
+          const { error } = await s.supabase.from("holdings").delete().eq("id", existing.id);
+          if (error) {
+            skipped++;
+            details.push(`${t.symbol}: ${friendlyDbError(error.message)}`);
+          } else {
+            existingMap.delete(t.symbol);
+            updated++;
+            details.push(`${t.symbol}: position closed`);
+          }
         } else {
           // Partial sale: reduce quantity, keep avg_price
           const qty = q0 - t.quantity;
-          await s.supabase.from("holdings").update({ quantity: qty }).eq("id", existing.id);
-          existing.quantity = qty;
-          updated++;
+          const { error } = await s.supabase.from("holdings").update({ quantity: qty }).eq("id", existing.id);
+          if (error) {
+            skipped++;
+            details.push(`${t.symbol}: ${friendlyDbError(error.message)}`);
+          } else {
+            existing.quantity = qty;
+            updated++;
+          }
         }
       } else {
         skipped++;

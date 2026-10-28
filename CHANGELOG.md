@@ -5,6 +5,28 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — EOD sync data integrity, screener ranking, contract-note validation, cron auth (`web/`, `pipelines/eod/`)
+- **Native EOD sync wrote unsettled and BSE bars (`web/src/server/privileged/eod-sync.ts`)**: `includeToday` now defaults to
+  `false` (settled sessions only, like `last_settled_day` in `eod.py`), so a run before 15:45 IST can't store a partial bar
+  that fires alerts and issues signals that are never rewritten. Removed the `.BO` fallback that merged BSE prices into the
+  NSE series (and could pick up a different company's ticker; ADR-027 is NSE-only). OHLC validation now matches
+  `to_candles()`: a stale open is clamped into the day's range instead of widening high/low (which faked alert crossings),
+  inconsistent bars are dropped, and Yahoo's flat zero-volume holiday bars are skipped.
+- **Admin "Include today" checkbox couldn't be turned off (`web/src/app/admin/actions.ts`, `maintenance-panel.tsx`)**: an
+  unchecked box is absent from the form and was read as "on". Absence now means off, and the box defaults to unchecked.
+- **RELIANCE and TCS sank to the end of "Largest first" (`pipelines/eod/universe.py`, `eod.py`, `test_universe.py`)**: Yahoo's
+  screener omits `marketCap` on a varying ~1,000 of ~3,600 quotes per call, and `merge()` overwrote good ranks with null
+  (166 active equities were unranked, incl. the two largest). `merge()` now keeps the last known rank when Yahoo omits it.
+  Ranks already blanked were restored by a universe sync on 2026-10-28 (RELIANCE #1, TCS #5; the 149 still unranked are
+  names Yahoo gives no market cap for). Caught by `e2e/writes.spec.ts` (TCS not on page 1).
+- **`eod.py` crashed on a Windows console (`pipelines/eod/eod.py`)**: the `→`/`—` progress lines raised `UnicodeEncodeError`
+  under cp1252 after the universe writes, aborting the price load. `main()` now sets `errors="replace"` on stdout.
+- **Contract-note trades applied unvalidated (`web/src/app/app/portfolio/actions.ts`)**: `applyParsedTrades` receives the
+  reviewed trades from the client, so they're now re-validated with zod (positive finite quantity/price, symbol format,
+  ≤ 250 rows). Holdings are always stored as NSE (a BSE row never priced), and SELL delete/update errors are reported.
+- **Cron secret accepted in the URL (`web/src/app/api/cron/market-eod/route.ts`)**: removed `?token=$CRON_SECRET` (it lands in
+  access logs); only `Authorization: Bearer` is accepted, which Vercel Cron and `market-eod.yml` already send.
+
 ### Fixed & Enhanced — Multi-Directional Chart Signals & Strategy Count Parity (`web/`, `scripts/`)
 - **Strategy Count Badge Mathematical Parity (`web/src/components/charts/price-chart.tsx`)**:
   - Fixed count divergence where `All Plans` displayed a sum that didn't match individual strategy badges (e.g. showing `(96)` when plans showed `(7)`, `(9)`, `(17)`):

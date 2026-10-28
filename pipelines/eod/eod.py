@@ -344,7 +344,7 @@ def sync_universe(db: Rest) -> None:
     import universe
 
     fresh = universe.fetch_universe()
-    existing = db.get_all("market_symbols?select=symbol,name,sector,segment,history_days,is_active,status_note"
+    existing = db.get_all("market_symbols?select=symbol,name,sector,segment,history_days,is_active,status_note,mcap_rank"
                           "&exchange=eq.NSE&order=symbol")
     rows, gone = universe.merge(fresh, existing)
     db.upsert("market_symbols", rows, "symbol,exchange", batch=500)
@@ -365,6 +365,9 @@ def sync_universe(db: Rest) -> None:
 
 # ---------------------------------------------------------------- main
 def main(argv: list[str] | None = None) -> int:
+    # Progress lines use "→" / "—"; a Windows console (cp1252) would raise mid-run, after writes.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--days", type=int, default=10, help="calendar days to (re)fetch for symbols that have data (default 10)")
     ap.add_argument("--dry-run", action="store_true", help="fetch and validate only")

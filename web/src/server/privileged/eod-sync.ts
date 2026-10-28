@@ -46,9 +46,10 @@ const DEFAULT_BENCHMARKS = [
 
 /**
  * Get the maximum acceptable date for IST trading bars.
- * By default includes today so that live / latest available trading bars are captured.
+ * By default only settled sessions (today counts after 15:45 IST), like `last_settled_day` in
+ * pipelines/eod: a partial bar would fire alerts and issue signals that are never rewritten.
  */
-function getSessionMaxDate(allowToday = true): string {
+function getSessionMaxDate(allowToday = false): string {
   const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
   const istTime = new Date(Date.now() + istOffsetMs);
   const todayStr = istTime.toISOString().slice(0, 10);
@@ -122,17 +123,23 @@ async function fetchSingleYahooTicker(
     if (typeof o !== "number" || typeof h !== "number" || typeof l !== "number" || typeof c !== "number") continue;
     if (o <= 0 || h <= 0 || l <= 0 || c <= 0) continue;
 
-    const high = Math.max(h, o, c);
-    const low = Math.min(l, o, c);
+    // Same rules as to_candles() in pipelines/eod: a stale open outside an otherwise consistent
+    // range is pulled into it (widening high/low instead would fake alert crossings); anything
+    // else inconsistent is dropped.
+    if (l <= c && c <= h && !(l <= o && o <= h)) o = Math.min(Math.max(o, l), h);
+    if (h < Math.max(o, c, l) || l > Math.min(o, c, h)) continue;
+
     const volume = Math.max(0, Math.floor(v));
+    // Yahoo emits flat, zero-volume bars for exchange holidays (see on_trading_days in eod.py).
+    if (volume === 0 && o === h && h === l && l === c) continue;
     const isoTs = `${dateStr}T10:00:00.000Z`;
 
     bars.push({
       symbol,
       ts: isoTs,
       open: Math.round(o * 100) / 100,
-      high: Math.round(high * 100) / 100,
-      low: Math.round(low * 100) / 100,
+      high: Math.round(h * 100) / 100,
+      low: Math.round(l * 100) / 100,
       close: Math.round(c * 100) / 100,
       volume,
     });
@@ -142,7 +149,8 @@ async function fetchSingleYahooTicker(
 }
 
 /**
- * Fetch daily candles for a symbol, with dual-exchange (NSE -> BSE) resilience.
+ * Fetch daily NSE candles for a symbol. NSE only (ADR-027): BSE prices must never be mixed into
+ * the NSE series, and a `.BO` ticker isn't guaranteed to be the same company.
  */
 async function fetchYahooBars(
   symbol: string,
@@ -151,28 +159,8 @@ async function fetchYahooBars(
   maxDateStr: string,
 ): Promise<RawYahooBar[]> {
   const isIndex = symbol.startsWith("^") || vendorTicker?.startsWith("^");
-  const primaryTicker = vendorTicker || (isIndex ? symbol : `${symbol}.NS`);
-
-  const bars = await fetchSingleYahooTicker(symbol, primaryTicker, rangeDays, maxDateStr);
-
-  // If latest bar is missing or older than maxDateStr, attempt BSE (.BO) fallback for equities
-  if (!isIndex && !vendorTicker && (bars.length === 0 || bars[bars.length - 1].ts.slice(0, 10) < maxDateStr)) {
-    try {
-      const bseBars = await fetchSingleYahooTicker(symbol, `${symbol}.BO`, rangeDays, maxDateStr);
-      if (bseBars.length > 0) {
-        for (const bb of bseBars) {
-          if (!bars.some((b) => b.ts === bb.ts)) {
-            bars.push(bb);
-          }
-        }
-        bars.sort((a, b) => a.ts.localeCompare(b.ts));
-      }
-    } catch {
-      // BSE fallback non-fatal
-    }
-  }
-
-  return bars;
+  const ticker = vendorTicker || (isIndex ? symbol : `${symbol}.NS`);
+  return fetchSingleYahooTicker(symbol, ticker, rangeDays, maxDateStr);
 }
 
 /**
@@ -181,7 +169,7 @@ async function fetchYahooBars(
 export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncEodReport> {
   const t0 = performance.now();
   const db = serviceRole();
-  const { actorId, scope = "active", days = 15, triggerDownstream = true, includeToday = true } = options;
+  const { actorId, scope = "active", days = 15, triggerDownstream = true, includeToday = false } = options;
 
   if (actorId && !(await isPlatformAdmin(actorId))) {
     throw new PrivilegedError("NOT_AUTHORIZED");
