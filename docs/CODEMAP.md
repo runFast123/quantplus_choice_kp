@@ -115,6 +115,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `news/news.test.mts` | unit tests (`npm run test:unit`) |
 | `trade-plan.ts` | `calculateTradePlan`, `calculatePositionSize`, `evaluateSentiment`, `evaluateSignalProgress`, `auditStockSentiment`, `deduplicateChartSignals`, `getAlphaLevel`, `computeExitNodeHistory`, types `TradePlanResult`, `PositionSizeResult`, `SentimentResult`, `SignalProgressResult`, `TargetStatus`, `QuantumAuditItem`, `RawChartMarker`, `ExitLogEntry` |
 | `trade-plan.test.mts` | unit tests (`npm run test:unit`) |
+| `signal-trade.ts` | `signalAction(marker)` (buy/sell/exit/cover — the chart's one classifier), `isWinningExit`, `ruleSentence(strategy, action, result)`, `explainMarker`, `tradeFor(selected, markers)` → `TradeView` (entry/exit pair, stop, 1R, R-labelled targets), `KK_RESULTS` |
+| `signal-trade.test.mts` | unit tests (`npm run test:unit`) |
 | `pine-script.ts` | `generateCleanPineScript(symbol, mode)`, type `PineStrategyMode` ("core" \| "swing") |
 | `pine-script.test.mts` | unit tests (`npm run test:unit`) |
 | `extension-signals.ts` | `toExtensionSignal(row)`, `describeSignal(row)` (one-sentence rule per strategy × action, KK result), types `ExtensionSignal` (kind `buy`/`sell`/`exit`/`cover` from `payload.action`), `SignalRow` |
@@ -185,7 +187,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
-| `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK 20d Breakout, SMA 20/50, RSI Reversal, All Plans, Clean Mode] + HUD + Signals Timeline ribbon + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
+| `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK 20d Breakout, SMA 20/50, RSI Reversal, All Plans, Clean Mode] + HUD with plain-English signal explainer + Signals Timeline ribbon ("New" since last visit, `qp:chart-seen:<SYMBOL>` in localStorage) + trade view on selection [entry/stop/target price lines, risk/reward zones, 1R label, ~260 ms pan; reduced motion → instant] + one-time ring on new signals + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
 | `charts/market-chart-view.tsx` | `MarketChartView` (unified switcher between QuantsPulse Strategy Signals Chart and TradingView Pro) |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
@@ -193,7 +195,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 
 ## 7. CSS utilities (globals.css)
 `.panel`, `.panel-interactive`, `.num` (mono tabular), `.display` (serif), `.eyebrow` (small caps label), `.linen` (page grain),
-`.hairline`, `.rule-dotted`, `.animate-marquee`, `.animate-fade-in` / `.animate-fadeIn`, `.animate-scale-in`, `.animate-slide-up`, `.bar-fill`, shadow `shadow-pop`; color tokens incl. `gain`/`loss` (ink), `coral` / `coral-foreground`
+`.hairline`, `.rule-dotted`, `.animate-marquee`, `.animate-fade-in` / `.animate-fadeIn`, `.animate-scale-in`, `.animate-slide-up`, `.animate-fade-quick` (150 ms opacity), `.signal-ring` (one-shot ring, invisible at rest), `.bar-fill`, shadow `shadow-pop`; color tokens incl. `gain`/`loss` (ink), `coral` / `coral-foreground`
 (decoration), `coral-ink` (text), `*-soft`, `sma-20`/`sma-50`/`sma-200`. Chart code reads CSS vars `--gain`/`--loss` (mark colours) and `--sma-20`/`--sma-50`/`--sma-200`.
 
 ## 8. Scripts & tests
@@ -205,7 +207,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `.githooks/pre-commit` | runs the staged scan; enable with `git config core.hooksPath .githooks` |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `extension-api`, `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `extension-api`, `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |

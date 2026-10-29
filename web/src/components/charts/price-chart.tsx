@@ -8,17 +8,23 @@ import {
   CrosshairMode,
   HistogramSeries,
   LineSeries,
+  LineStyle,
   createChart,
   createSeriesMarkers,
   type IChartApi,
+  type IPriceLine,
+  type ISeriesApi,
+  type LogicalRange,
   type MouseEventParams,
+  type SeriesType,
   type Time,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateKkChartMarkers } from "@/lib/backtest-engine";
 import { price as fmtPrice, volume as fmtVolume } from "@/lib/format";
 import { toTradingViewSymbol } from "@/lib/market";
+import { explainMarker, isWinningExit, signalAction, tradeFor, type TradeView } from "@/lib/signal-trade";
 import { deduplicateChartSignals, type RawChartMarker } from "@/lib/trade-plan";
 import type { Candle } from "@/lib/types";
 
@@ -59,6 +65,62 @@ function computeSma(candles: Candle[], period: number) {
   return result;
 }
 
+const markerKey = (m: ChartMarker) => `${m.ts}|${m.label}`;
+
+/** The visible bar a marker sits on: the last candle at or before it. */
+function barFor(visible: Candle[], ts: string): Candle | null {
+  const t = toTime(ts);
+  for (let i = visible.length - 1; i >= 0; i--) if (toTime(visible[i].ts) <= t) return visible[i];
+  return null;
+}
+
+/** Logical range that frames a signal, or its whole round trip when there is one. */
+function focusRange(visible: Candle[], signal: ChartMarker | null, trade: TradeView | null): LogicalRange | null {
+  if (!signal || !visible.length) return null;
+  const index = (ts: string) => {
+    const day = ts.slice(0, 10);
+    const exact = visible.findIndex((c) => c.ts.slice(0, 10) === day);
+    return exact !== -1 ? exact : visible.findIndex((c) => toTime(c.ts) >= toTime(ts));
+  };
+  const at = index(signal.ts);
+  if (at === -1) return null;
+  const a = trade ? Math.max(0, index(trade.entry.ts)) : at;
+  const b = trade?.exit ? Math.max(a, index(trade.exit.ts)) : at;
+  const pad = Math.max(12, Math.round((b - a) * 0.6));
+  return { from: Math.max(0, Math.min(a, at) - pad), to: Math.min(visible.length - 1, Math.max(b, at) + pad) } as LogicalRange;
+}
+
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Pans/zooms to a logical range over ~260 ms (ease-out), or at once under reduced motion. */
+function animateRange(chart: IChartApi, target: LogicalRange): () => void {
+  const ts = chart.timeScale();
+  const start = ts.getVisibleLogicalRange();
+  if (!start || reducedMotion()) {
+    ts.setVisibleLogicalRange(target);
+    return () => {};
+  }
+  const t0 = performance.now();
+  let raf = 0;
+  const step = (now: number) => {
+    const k = Math.min(1, (now - t0) / 260);
+    const e = 1 - Math.pow(1 - k, 3);
+    ts.setVisibleLogicalRange({
+      from: start.from + (target.from - start.from) * e,
+      to: start.to + (target.to - start.to) * e,
+    } as LogicalRange);
+    if (k < 1) raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(raf);
+}
+
+type Overlay = {
+  zones: { kind: "reward" | "risk"; left: number; top: number; width: number; height: number }[];
+  label: { left: number; top: number } | null;
+  rings: { key: string; left: number; top: number; up: boolean }[];
+};
+
 /**
  * Compact Institutional TradingView Chart:
  * Displays verified Indian equity candles, strategy-isolated Buy/Exit signals
@@ -78,6 +140,25 @@ export function PriceChart({
 }) {
   const el = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const linesRef = useRef<{ series: ISeriesApi<SeriesType> | null; trade: TradeView | null; lines: IPriceLine[] }>({
+    series: null,
+    trade: null,
+    lines: [],
+  });
+  const focusRef = useRef<LogicalRange | null>(null);
+
+  // Overlays (trade zones, new-signal rings) follow pans, zooms and resizes; one update per frame.
+  const [layoutTick, setLayoutTick] = useState(0);
+  const bumpRaf = useRef(0);
+  const bump = useCallback(() => {
+    if (bumpRaf.current) return;
+    bumpRaf.current = requestAnimationFrame(() => {
+      bumpRaf.current = 0;
+      setLayoutTick((t) => t + 1);
+    });
+  }, []);
+  const [overlay, setOverlay] = useState<Overlay | null>(null);
 
   const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("1Y");
   const [theme, setTheme] = useState(0);
@@ -187,6 +268,44 @@ export function PriceChart({
     if (signalFilter === "exit") list = rawStrategyMarkers.filter((m) => m.kind === "exit");
     return deduplicateChartSignals(list, signalDensity);
   }, [rawStrategyMarkers, signalFilter, signalDensity]);
+
+  // Trade view: the round trip the selected signal belongs to (paired within its own strategy).
+  const trade = useMemo(
+    () => (selectedSignal ? tradeFor(selectedSignal, allPlanMarkers) : null),
+    [selectedSignal, allPlanMarkers],
+  );
+
+  // Signals newer than the last time this symbol's chart was opened in this browser.
+  const [newKeys, setNewKeys] = useState<Set<string>>(() => new Set());
+  const [ringsDone, setRingsDone] = useState(false);
+  const seen = useRef<{ symbol: string; previous: string | null } | null>(null);
+  useEffect(() => {
+    if (!allPlanMarkers.length) return;
+    // Read the previous visit once per symbol (effects may run twice in development).
+    if (seen.current?.symbol !== symbol) {
+      const storageKey = `qp:chart-seen:${symbol}`;
+      const newest = allPlanMarkers.reduce((max, m) => (m.ts > max ? m.ts : max), "");
+      let previous: string | null = null;
+      try {
+        previous = localStorage.getItem(storageKey);
+        localStorage.setItem(storageKey, newest);
+      } catch {
+        // Storage blocked: nothing is "new", and that's fine.
+      }
+      seen.current = { symbol, previous };
+    }
+    const previous = seen.current.previous;
+    const fresh = previous ? allPlanMarkers.filter((m) => m.ts > previous).map(markerKey) : [];
+    const id = requestAnimationFrame(() => {
+      setNewKeys(new Set(fresh));
+      setRingsDone(false);
+    });
+    const done = setTimeout(() => setRingsDone(true), 1400);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(done);
+    };
+  }, [symbol, allPlanMarkers]);
 
   // Re-render when theme flips
   useEffect(() => {
@@ -313,25 +432,12 @@ export function PriceChart({
       activeMarkers
         .filter((m) => new Date(m.ts).getTime() >= first)
         .map((m) => {
-          const t = toTime(m.ts);
-          const bar = [...visible].reverse().find((c) => toTime(c.ts) <= t) ?? visible[0];
-          const isBuyEntry =
-            m.action === "buy" ||
-            (!m.action && m.kind === "buy" && !m.label.toLowerCase().includes("cover"));
-          const isSellEntry =
-            m.action === "sell" ||
-            (!m.action &&
-              (m.label.toLowerCase().includes("breakdown") || m.label.toLowerCase().includes("sell")) &&
-              !m.label.toLowerCase().includes("cover") &&
-              !m.resultType);
-          const isCover =
-            m.action === "cover" ||
-            m.label.toLowerCase().includes("cover");
-          const isWinExit =
-            (m.realizedR ?? 0) > 0 ||
-            (m.pnlPct ?? 0) > 0 ||
-            m.resultType === "TARGET_2_HIT" ||
-            m.resultType === "TARGET_1_HIT_TIME_EXIT";
+          const bar = barFor(visible, m.ts) ?? visible[0];
+          const action = signalAction(m);
+          const isBuyEntry = action === "buy";
+          const isSellEntry = action === "sell";
+          const isCover = action === "cover";
+          const isWinExit = isWinningExit(m);
 
           let textLabel: string | undefined = undefined;
           if (showLabels) {
@@ -389,7 +495,14 @@ export function PriceChart({
         .sort((a, b) => (a.time as number) - (b.time as number)),
     );
 
-    chart.timeScale().fitContent();
+    seriesRef.current = mainSeries;
+    chart.timeScale().subscribeVisibleLogicalRangeChange(bump);
+    const resize = new ResizeObserver(bump);
+    resize.observe(el.current);
+
+    // A rebuild (range, style, overlays) keeps the selected trade in frame.
+    if (focusRef.current) chart.timeScale().setVisibleLogicalRange(focusRef.current);
+    else chart.timeScale().fitContent();
 
     const byTime = new Map(visible.map((c) => [toTime(c.ts) as Time, c]));
     const onMove = (p: MouseEventParams) => setHover(p.time ? (byTime.get(p.time) ?? null) : null);
@@ -397,8 +510,11 @@ export function PriceChart({
 
     return () => {
       chart.unsubscribeCrosshairMove(onMove);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(bump);
+      resize.disconnect();
       chart.remove();
       chartRef.current = null;
+      seriesRef.current = null;
     };
   }, [
     visible,
@@ -413,31 +529,85 @@ export function PriceChart({
     fullSma20,
     fullSma50,
     fullSma200,
+    bump,
   ]);
 
-  // Smoothly focus visible time range around a selected signal
+  // Smoothly pan to the selected signal's round trip (or back to the whole range when cleared).
   useEffect(() => {
     const chart = chartRef.current;
+    const range = focusRange(visible, selectedSignal, trade);
+    focusRef.current = range;
     if (!chart || !visible.length) return;
-    if (!selectedSignal) {
-      chart.timeScale().fitContent();
-      return;
+    return animateRange(chart, range ?? ({ from: 0, to: visible.length - 1 + 4 } as LogicalRange));
+  }, [selectedSignal, trade, visible]);
+
+  // Trade view lines on the price axis: entry, stop (−1R) and targets. Rebuilt with the series.
+  useEffect(() => {
+    const series = seriesRef.current;
+    const current = linesRef.current;
+    if (!series || (current.series === series && current.trade === trade)) return;
+    if (current.series === series) for (const line of current.lines) series.removePriceLine(line);
+    const lines: IPriceLine[] = [];
+    if (trade) {
+      const add = (price: number, color: string, title: string, lineStyle: LineStyle) =>
+        lines.push(series.createPriceLine({ price, color, title, lineStyle, lineWidth: 1, axisLabelVisible: true }));
+      add(trade.entryPrice, cssVar("--foreground"), "Entry", LineStyle.Solid);
+      if (trade.stop != null) add(trade.stop, cssVar("--loss"), "Stop −1R", LineStyle.Dashed);
+      for (const t of trade.targets) add(t.price, cssVar("--gain"), t.label, LineStyle.Dashed);
     }
-    const sigDay = selectedSignal.ts.slice(0, 10);
-    let idx = visible.findIndex((c) => c.ts.slice(0, 10) === sigDay);
-    if (idx === -1) {
-      const sigTime = toTime(selectedSignal.ts);
-      idx = visible.findIndex((c) => toTime(c.ts) >= sigTime);
-    }
-    if (idx !== -1) {
-      const fromIdx = Math.max(0, idx - 22);
-      const toIdx = Math.min(visible.length - 1, idx + 22);
-      chart.timeScale().setVisibleRange({
-        from: toTime(visible[fromIdx].ts),
-        to: toTime(visible[toIdx].ts),
-      });
-    }
-  }, [selectedSignal, visible]);
+    linesRef.current = { series, trade, lines };
+  }, [trade, layoutTick]);
+
+  // Where the trade zones and new-signal rings sit, measured from the chart after it lays out.
+  const rings = useMemo(
+    () => (ringsDone ? [] : activeMarkers.filter((m) => newKeys.has(markerKey(m)))),
+    [ringsDone, activeMarkers, newKeys],
+  );
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const chart = chartRef.current;
+      const series = seriesRef.current;
+      if (!chart || !series || !visible.length) return setOverlay(null);
+      const ts = chart.timeScale();
+      const paneWidth = ts.width();
+      const x = (c: Candle | null, fallback: number) => {
+        const v = c ? ts.timeToCoordinate(toTime(c.ts)) : null;
+        return v == null ? fallback : Math.min(paneWidth, Math.max(0, v));
+      };
+      const y = (p: number) => series.priceToCoordinate(p);
+
+      const zones: Overlay["zones"] = [];
+      let label: Overlay["label"] = null;
+      if (trade) {
+        const startsBefore = toTime(trade.entry.ts) < toTime(visible[0].ts);
+        const left = x(startsBefore ? null : barFor(visible, trade.entry.ts), 0);
+        const right = x(trade.exit ? barFor(visible, trade.exit.ts) : visible[visible.length - 1], paneWidth);
+        const width = Math.max(2, right - left);
+        const yEntry = y(trade.entryPrice);
+        const band = (kind: "reward" | "risk", p: number | undefined | null) => {
+          const yp = p != null ? y(p) : null;
+          if (yEntry == null || yp == null) return;
+          zones.push({ kind, left, width, top: Math.min(yEntry, yp), height: Math.abs(yEntry - yp) });
+        };
+        band("risk", trade.stop);
+        band("reward", trade.targets[trade.targets.length - 1]?.price);
+        if (yEntry != null) label = { left: left + 4, top: Math.max(0, Math.min(...zones.map((z) => z.top), yEntry) - 22) };
+      }
+
+      const placed: Overlay["rings"] = [];
+      for (const m of rings) {
+        const bar = barFor(visible, m.ts);
+        if (!bar) continue;
+        const up = ["buy", "cover"].includes(signalAction(m));
+        const yBar = y(up ? bar.low : bar.high);
+        const xBar = ts.timeToCoordinate(toTime(bar.ts));
+        if (yBar == null || xBar == null) continue;
+        placed.push({ key: markerKey(m), left: xBar, top: yBar + (up ? 16 : -16), up });
+      }
+      setOverlay({ zones, label, rings: placed });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [trade, rings, visible, layoutTick]);
 
   const selectedCandle = useMemo(() => {
     if (!selectedSignal) return null;
@@ -796,26 +966,11 @@ export function PriceChart({
         </dl>
 
         {activeSignal ? (() => {
-          const isBuyEntry =
-            activeSignal.action === "buy" ||
-            (!activeSignal.action &&
-              activeSignal.kind === "buy" &&
-              !activeSignal.label.toLowerCase().includes("cover"));
-          const isSellEntry =
-            activeSignal.action === "sell" ||
-            (!activeSignal.action &&
-              (activeSignal.label.toLowerCase().includes("breakdown") ||
-                activeSignal.label.toLowerCase().includes("sell")) &&
-              !activeSignal.label.toLowerCase().includes("cover") &&
-              !activeSignal.resultType);
-          const isCover =
-            activeSignal.action === "cover" ||
-            activeSignal.label.toLowerCase().includes("cover");
-          const isWin =
-            (activeSignal.realizedR ?? 0) > 0 ||
-            (activeSignal.pnlPct ?? 0) > 0 ||
-            activeSignal.resultType === "TARGET_2_HIT" ||
-            activeSignal.resultType === "TARGET_1_HIT_TIME_EXIT";
+          const action = signalAction(activeSignal);
+          const isBuyEntry = action === "buy";
+          const isSellEntry = action === "sell";
+          const isCover = action === "cover";
+          const isWin = isWinningExit(activeSignal);
 
           const badgeTitle = isBuyEntry
             ? "▲ BUY"
@@ -873,8 +1028,62 @@ export function PriceChart({
         })() : null}
       </div>
 
-      {/* Interactive Chart Canvas */}
-      <div ref={el} className="h-[420px] w-full md:h-[480px] lg:h-[520px] rounded border border-border/40 bg-background/50" role="img" aria-label={`${symbol} daily price chart, ${range}`} />
+      {/* What the hovered or selected signal means, in plain words */}
+      {activeSignal && explainMarker(activeSignal) ? (
+        <p data-testid="signal-explainer" className="-mt-1 text-[12px] text-muted-foreground">
+          {explainMarker(activeSignal)}
+          {!selectedSignal ? <span className="ml-1">Click it in the timeline below to see the trade on the chart.</span> : null}
+        </p>
+      ) : null}
+
+      {/* Interactive Chart Canvas, with the trade view and new-signal rings drawn over it */}
+      <div className="relative">
+        <div ref={el} className="h-[420px] w-full md:h-[480px] lg:h-[520px] rounded border border-border/40 bg-background/50" role="img" aria-label={`${symbol} daily price chart, ${range}`} />
+        {overlay ? (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            {trade
+              ? overlay.zones.map((z) => (
+                  <div
+                    key={`${markerKey(trade.entry)}-${z.kind}`}
+                    data-testid={`trade-zone-${z.kind}`}
+                    className={clsx(
+                      "animate-fade-quick absolute border-y",
+                      z.kind === "reward" ? "bg-gain-soft border-gain/40" : "bg-loss-soft border-loss/40",
+                    )}
+                    style={{ left: z.left, top: z.top, width: z.width, height: z.height }}
+                  />
+                ))
+              : null}
+            {trade && overlay.label && trade.risk ? (
+              <span
+                key={`${markerKey(trade.entry)}-label`}
+                className="animate-fade-quick num absolute rounded bg-card/95 px-1.5 py-0.5 text-[11px] font-medium text-foreground shadow-xs ring-1 ring-border"
+                style={{ left: overlay.label.left, top: overlay.label.top }}
+              >
+                {trade.direction === "long" ? "▲ Long" : "▼ Short"} · 1R = ₹{fmtPrice(trade.risk)} (
+                {((trade.risk / trade.entryPrice) * 100).toFixed(1)}%)
+                {trade.exit ? null : " · open"}
+              </span>
+            ) : null}
+            {overlay.rings.map((r) => (
+              <span
+                key={r.key}
+                data-testid="new-signal-ring"
+                className={clsx("signal-ring", r.up ? "text-gain" : "text-loss")}
+                style={{ left: r.left, top: r.top }}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {trade ? (
+        <p className="sr-only" aria-live="polite">
+          Trade view: {trade.direction} entry ₹{fmtPrice(trade.entryPrice)}
+          {trade.stop != null ? `, stop ₹${fmtPrice(trade.stop)}` : ""}
+          {trade.targets.map((t) => `, ${t.label} ₹${fmtPrice(t.price)}`).join("")}
+          {trade.exit ? `, closed ${new Date(trade.exit.ts).toLocaleDateString("en-IN")}` : ", still open"}.
+        </p>
+      ) : null}
 
       {/* Accessible Daily OHLCV Table View (MASTER.md §Charts & WCAG 2.1 AA) */}
       {showDataTable && visible.length > 0 && (
@@ -939,26 +1148,12 @@ export function PriceChart({
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
             {recentSignals.map((sig, idx) => {
               const isSelected = selectedSignal?.ts === sig.ts && selectedSignal?.label === sig.label;
-              const isBuyEntry =
-                sig.action === "buy" ||
-                (!sig.action &&
-                  sig.kind === "buy" &&
-                  !sig.label.toLowerCase().includes("cover"));
-              const isSellEntry =
-                sig.action === "sell" ||
-                (!sig.action &&
-                  (sig.label.toLowerCase().includes("breakdown") ||
-                    sig.label.toLowerCase().includes("sell")) &&
-                  !sig.label.toLowerCase().includes("cover") &&
-                  !sig.resultType);
-              const isCover =
-                sig.action === "cover" ||
-                sig.label.toLowerCase().includes("cover");
-              const isWin =
-                (sig.realizedR ?? 0) > 0 ||
-                (sig.pnlPct ?? 0) > 0 ||
-                sig.resultType === "TARGET_2_HIT" ||
-                sig.resultType === "TARGET_1_HIT_TIME_EXIT";
+              const action = signalAction(sig);
+              const isBuyEntry = action === "buy";
+              const isSellEntry = action === "sell";
+              const isCover = action === "cover";
+              const isWin = isWinningExit(sig);
+              const isNew = newKeys.has(markerKey(sig));
 
               const chipBadge = isBuyEntry
                 ? "▲ BUY"
@@ -986,8 +1181,12 @@ export function PriceChart({
                       : "border-loss/40 text-loss hover:border-loss hover:bg-loss/10",
                     isSelected && "ring-1 ring-primary shadow-xs font-semibold",
                   )}
-                  title={`${sig.label} on ${new Date(sig.ts).toLocaleDateString("en-IN")}`}
+                  aria-pressed={isSelected}
+                  title={`${sig.label} on ${new Date(sig.ts).toLocaleDateString("en-IN")}. ${explainMarker(sig)}`}
                 >
+                  {isNew ? (
+                    <span className="rounded bg-foreground px-1 text-[9px] font-bold uppercase tracking-wide text-background">New</span>
+                  ) : null}
                   <span className="font-bold">{chipBadge}</span>
                   <span className="rounded bg-muted/50 px-1 py-0.2 text-[9px] font-semibold text-foreground">
                     {sig.strategy === "kk_breakout"

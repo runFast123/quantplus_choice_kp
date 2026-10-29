@@ -5,6 +5,25 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — Price chart phase 2: trade view, signal explanations, smooth pan, new-signal marking (`web/`)
+- **Trade view (`web/src/components/charts/price-chart.tsx`)**: selecting a signal in the timeline shows its whole round trip —
+  entry, stop (−1R) and target lines labelled on the price axis, a risk zone (entry→stop) and reward zone (entry→furthest target)
+  shaded from entry to the exit (or today if still open), and a "▲ Long · 1R = ₹75.20 (3.7%)" label. Exits and covers find the
+  entry before them; shorts draw risk above and reward below. Screen readers get the same as one sentence.
+- **Signals explain themselves**: the hover readout and every timeline chip (tooltip) say what the rule saw and how a closed trade
+  ended ("…dipped at least 1% below its 20-day low, then traded back above that day's high within 5 sessions", "The stop was hit.
+  Result −1.00R."). Same sentences as the Chrome extension.
+- **Smooth pan**: focusing a signal eases the chart to its trade over ~260 ms (instant under reduced motion), and a chart rebuild
+  (range, style, overlays) keeps the trade in frame instead of resetting.
+- **New since last visit**: signals newer than the last time this symbol's chart was opened in this browser get a "New" tag in the
+  timeline and a single ring on the chart (plays once, never loops; hidden under reduced motion).
+- **One classifier (`web/src/lib/signal-trade.ts`)**: `signalAction` / `isWinningExit` replace three copies of the buy/sell/exit/
+  cover logic in the chart (same order of checks, so no marker changes). `describeSignal` in `extension-signals.ts` now uses the
+  shared `ruleSentence`.
+- **CSS (`globals.css`)**: `.animate-fade-quick` (150 ms opacity) for overlays that sit on exact prices; `.signal-ring` (one-shot).
+- Tests: `lib/signal-trade.test.mts` (pairing, short side, wrong-side stops, explanations); `e2e/chart-trade-view.spec.ts` (zones on
+  the right sides, explainer, clearing, "New" once per visit).
+
 ### Changed — Chrome extension 1.2.0: side panel redesign, phase 1 (`extension/`, `web/`)
 - **Layout (`extension/sidepanel/*`)**: one long scroll became a sticky quote header plus three tabs — **Signal**, **Plan**,
   **Levels** — remembered between sessions, with arrow-key navigation and a sliding indicator (180 ms; off under reduced motion).
