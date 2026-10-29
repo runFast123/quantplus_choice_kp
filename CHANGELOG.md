@@ -5,6 +5,11 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — Off-site redirect test hung on "network idle" (`web/e2e/auth.spec.ts`)
+- After signing in, the test waited for `networkidle`, which on some runs never fires for the signed-in shell (it hung on
+  `/app` until the 135 s limit, though the redirect itself was correct). It now waits for the URL to leave `/login` — any
+  destination, so an off-site redirect still fails the hostname check. 3/3 green against production, ~20 s each.
+
 ### Added — Phase 3: browser push alerts, setup checklist, freshness note, page-shaped loading; new logo (`web/`, `extension/`, `supabase/`)
 - **New mark (`components/brand/logo.tsx`, `app/icon.svg`, `scripts/brand-icons.mts`)**: a Q whose tail ends in the coral signal
   dot replaces the five-step pulse, which blurred at favicon size. The tail cuts into the bowl so it reads as a Q, not a magnifier.

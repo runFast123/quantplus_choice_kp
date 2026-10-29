@@ -85,7 +85,9 @@ test.describe("authentication", () => {
       await page.getByLabel("Email").fill(u.email);
       await page.getByLabel("Password").fill(u.password);
       await page.getByRole("button", { name: "Sign in" }).click();
-      await page.waitForLoadState("networkidle");
+      // Wait for the redirect itself (wherever it goes), not "network idle": that never fires on some
+      // runs of the signed-in shell, and the redirect is all this test is about.
+      await page.waitForURL((url) => url.pathname !== "/login", { waitUntil: "commit" });
       const landed = new URL(page.url());
       expect(landed.hostname, evil).toBe(new URL(process.env.E2E_BASE_URL ?? "http://localhost").hostname);
       expect(landed.pathname, evil).toBe("/app"); // every hostile `next` falls back to the app
