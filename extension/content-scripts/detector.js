@@ -1440,8 +1440,9 @@
               <div class="brand-section">
                 <div class="logo-mark">
                   <svg viewBox="0 0 32 32" width="12" height="12">
-                    <path d="M6 18.5h6.2l2.1-7.5 3.4 11 2.3-6.2 1.3 2.7H26" fill="none" stroke="#E6E4D7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="26" cy="18.5" r="2.5" fill="#F26A4B"/>
+                    <circle cx="14.5" cy="14.5" r="7.2" fill="none" stroke="#E6E4D7" stroke-width="2.6"/>
+                    <path d="M16.6 16.6L22.2 22.2" stroke="#E6E4D7" stroke-width="2.6" stroke-linecap="round"/>
+                    <circle cx="24.5" cy="24.5" r="2.7" fill="#F26A4B"/>
                   </svg>
                 </div>
                 <span class="brand-title">QuantsPulse</span>

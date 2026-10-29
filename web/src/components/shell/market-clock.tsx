@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useSyncExternalStore } from "react";
-import { nseSession } from "@/lib/market";
+import { nextEodUpdate, nseSession } from "@/lib/market";
 
 // A minute-resolution clock shared by every subscriber. The snapshot only
 // changes when the minute does, so React re-renders at most once a minute.
@@ -36,7 +36,8 @@ function subscribe(listener: () => void) {
 const getSnapshot = () => snapshot || Math.floor(Date.now() / 60_000);
 const getServerSnapshot = () => 0;
 
-export function MarketClock() {
+/** `asOf`: the latest close on screen. Prices are end-of-day (ADR-026), so say which day and when the next one lands. */
+export function MarketClock({ asOf }: { asOf?: string | null }) {
   const minute = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   // Server render has no clock: reserve the space to avoid a layout shift.
   if (!minute) return <span className="hidden h-5 w-[190px] lg:inline-block" />;
@@ -62,6 +63,22 @@ export function MarketClock() {
       <span className="text-foreground font-medium">NSE</span>
       <span>{s.label}</span>
       <span className="num">{time} IST</span>
+      {asOf ? <Freshness asOf={asOf} now={now} /> : null}
+    </span>
+  );
+}
+
+function Freshness({ asOf, now }: { asOf: string; now: Date }) {
+  const day = (d: Date | string) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+  const next = nextEodUpdate(now);
+  const nextDay = new Date(`${next.isoDate}T12:00:00+05:30`);
+  const when = next.isToday ? "today" : nextDay.toLocaleDateString("en-IN", { weekday: "short", timeZone: "Asia/Kolkata" });
+  return (
+    <span
+      className="num ml-1 rounded border border-border px-1.5 py-0.5 text-[11px]"
+      title={`Prices are end-of-day closes from ${day(asOf)}, not live. The next update lands around 17:00 IST ${next.isToday ? "today" : `on ${day(nextDay)}`}.`}
+    >
+      EOD {day(asOf)} · next {when} 17:00
     </span>
   );
 }

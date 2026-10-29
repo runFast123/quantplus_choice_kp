@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { syncEodPrices } from "@/server/privileged/eod-sync";
+import { deliverPendingPush } from "@/server/privileged/push";
 
 /**
  * Scheduled EOD market price ingestion from Yahoo Finance.
@@ -34,7 +35,9 @@ async function run(req: NextRequest) {
       days: Number.isFinite(daysParam) && daysParam > 0 ? daysParam : 10,
       triggerDownstream: true,
     });
-    return NextResponse.json(report, { headers: { "cache-control": "no-store" } });
+    // The notifier just ran: push its alerts now rather than waiting for /api/cron/push.
+    const push = await deliverPendingPush().catch((e: unknown) => ({ error: e instanceof Error ? e.message : "push failed" }));
+    return NextResponse.json({ ...report, push }, { headers: { "cache-control": "no-store" } });
   } catch (err) {
     console.error("Cron market-eod error:", err);
     return NextResponse.json(

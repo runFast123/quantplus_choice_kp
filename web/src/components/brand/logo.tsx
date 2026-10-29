@@ -2,21 +2,16 @@ import clsx from "clsx";
 import Link from "next/link";
 
 /**
- * Mark: a ledger rule broken by one pulse — research that waits for a signal.
+ * Mark: a Q whose tail ends in the signal — the one moment a published rule fires.
+ * Same geometry as app/icon.svg and the extension icons (scripts/brand-icons.mts).
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={clsx("size-7", className)} aria-hidden>
       <rect x="1" y="1" width="30" height="30" rx="7" className="fill-primary" />
-      <path
-        d="M6 18.5h6.2l2.1-7.5 3.4 11 2.3-6.2 1.3 2.7H26"
-        fill="none"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stroke-primary-foreground"
-      />
-      <circle cx="26" cy="18.5" r="2.2" className="fill-coral" />
+      <circle cx="14.5" cy="14.5" r="7.2" fill="none" strokeWidth="2.6" className="stroke-primary-foreground" />
+      <path d="M16.6 16.6L22.2 22.2" strokeWidth="2.6" strokeLinecap="round" className="stroke-primary-foreground" />
+      <circle cx="24.5" cy="24.5" r="2.7" className="fill-coral" />
     </svg>
   );
 }

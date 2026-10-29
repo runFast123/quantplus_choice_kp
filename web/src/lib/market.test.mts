@@ -1,7 +1,7 @@
 // Unit tests for NSE session clock and holiday calendar: npm run test:unit
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { nseSession, NSE_HOLIDAYS, toTradingViewSymbol, toTradingViewWidgetSymbol } from "./market";
+import { nextEodUpdate, nseSession, NSE_HOLIDAYS, toTradingViewSymbol, toTradingViewWidgetSymbol } from "./market";
 
 describe("NSE Holiday Calendar & Session Clock", () => {
   test("identifies official NSE trading holidays", () => {
@@ -77,6 +77,21 @@ describe("NSE Holiday Calendar & Session Clock", () => {
       assert.match(dateStr, /^\d{4}-\d{2}-\d{2}$/);
       assert.ok(name.length > 2);
     }
+  });
+});
+
+describe("nextEodUpdate", () => {
+  test("today before 17:00 IST on a trading day", () => {
+    // Thu 29 Oct 2026, 11:00 IST
+    assert.deepEqual(nextEodUpdate(new Date("2026-10-29T05:30:00Z")), { isoDate: "2026-10-29", isToday: true });
+  });
+  test("after 17:00 it is the next trading day, skipping the weekend", () => {
+    // Fri 30 Oct 2026, 18:00 IST → Mon 2 Nov
+    assert.deepEqual(nextEodUpdate(new Date("2026-10-30T12:30:00Z")), { isoDate: "2026-11-02", isToday: false });
+  });
+  test("holidays are skipped", () => {
+    // Sun 25 Jan 2026 → Mon 26 Jan is Republic Day → Tue 27 Jan
+    assert.deepEqual(nextEodUpdate(new Date("2026-01-25T05:30:00Z")), { isoDate: "2026-01-27", isToday: false });
   });
 });
 

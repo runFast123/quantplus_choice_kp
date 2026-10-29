@@ -126,6 +126,20 @@ export function nseSession(now = new Date()): NseSessionInfo {
   };
 }
 
+/**
+ * When the next end-of-day load lands: 17:00 IST on the next NSE trading day (market-eod.yml).
+ * Weekends and listed holidays are skipped; after 17:00 today it is the next trading day.
+ */
+export function nextEodUpdate(now = new Date()): { isoDate: string; isToday: boolean } {
+  for (let i = 0; i < 14; i++) {
+    const { isoDate, weekday, minutes } = istParts(new Date(now.getTime() + i * 86_400_000));
+    if (weekday === "Sat" || weekday === "Sun" || NSE_HOLIDAYS[isoDate]) continue;
+    if (i === 0 && minutes >= 17 * 60) continue;
+    return { isoDate, isToday: i === 0 };
+  }
+  return { isoDate: istParts(now).isoDate, isToday: true };
+}
+
 /** Where displayed prices come from (ADR-026). "synthetic" only in dev/staging seeds. */
 export const PRICE_SOURCE = process.env.NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic" ? "sample data" : "Yahoo Finance";
 

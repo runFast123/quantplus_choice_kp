@@ -179,3 +179,14 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
 - **Limits:** tokens go only to the production site or localhost (allowlist in the extension). Content scripts can still
   read the stored token; moving it to `chrome.storage.session` is a follow-up. A dedicated, revocable extension token
   (pairing flow) would replace this if the extension ships on the Chrome Web Store.
+
+### ADR-030 · Alerts leave the app as browser push (Web Push), not email — for now
+**Date** 2026-10-29 · **Status** accepted
+- **Context:** alerts, exit signals and stance changes only showed in the in-app bell. Email needs a provider account and a
+  verified sending domain, and the app has no custom domain yet (BRD open decision 7).
+- **Decision:** standard Web Push with VAPID keys (env, server-only private key) via the `web-push` library — no third-party
+  account. The database keeps writing `notifications` as before; `svc_claim_push_batch` hands each one out once
+  (`FOR UPDATE SKIP LOCKED`), and `privileged/push.ts` sends it to the owner's browsers after the EOD and news jobs and on a
+  Vercel cron after the pg_cron notifier. Payloads are encrypted per browser by the protocol.
+- **Limits:** push arrives after the close (prices are EOD). iPhone needs the app added to the Home Screen first
+  (`app/manifest.ts`). Email can be added later as a second channel on the same claim function.

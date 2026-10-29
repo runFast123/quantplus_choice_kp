@@ -9,12 +9,14 @@ import { CONSENT_COPY } from "@/lib/consents";
 import { date, dateTime, relative } from "@/lib/format";
 import { requireSession } from "@/server/session";
 import { ConsentSwitch, DeleteAccountForm, PasswordForm, ProfileForm } from "./forms";
+import { PushControls } from "./push-controls";
 
 export const metadata: Metadata = { title: "Settings" };
 
 const TABS = [
   { key: "profile", label: "Profile" },
   { key: "security", label: "Security" },
+  { key: "notifications", label: "Notifications" },
   { key: "privacy", label: "Privacy" },
   { key: "data", label: "Your data" },
 ] as const;
@@ -50,6 +52,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/app/set
       ) : null}
 
       {tab === "security" ? <SecurityTab /> : null}
+      {tab === "notifications" ? <NotificationsTab /> : null}
       {tab === "privacy" ? <PrivacyTab /> : null}
       {tab === "data" ? <DataTab /> : null}
     </div>
@@ -110,6 +113,42 @@ async function PrivacyTab() {
         })}
       </div>
     </Panel>
+  );
+}
+
+async function NotificationsTab() {
+  const s = await requireSession();
+  const { data } = await s.supabase.from("push_subscriptions").select("id, user_agent, created_at, last_success_at").order("created_at");
+  const browsers = data ?? [];
+  const name = (ua: string | null) => {
+    const v = ua ?? "";
+    const browser = /Edg\//.test(v) ? "Edge" : /Chrome\//.test(v) ? "Chrome" : /Firefox\//.test(v) ? "Firefox" : /Safari\//.test(v) ? "Safari" : "Browser";
+    const os = /Android/.test(v) ? "Android" : /iPhone|iPad/.test(v) ? "iOS" : /Mac OS X/.test(v) ? "macOS" : /Windows/.test(v) ? "Windows" : /Linux/.test(v) ? "Linux" : "";
+    return os ? `${browser} on ${os}` : browser;
+  };
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Panel title="Browser notifications">
+        <PushControls />
+      </Panel>
+      <Panel title="Turned on in" meta={`${browsers.length} browser${browsers.length === 1 ? "" : "s"}`}>
+        {browsers.length ? (
+          <ul className="divide-y divide-border/60 text-[13px]">
+            {browsers.map((b) => (
+              <li key={b.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span>{name(b.user_agent)}</span>
+                <span className="text-[12px] text-muted-foreground">
+                  since {date(b.created_at)}
+                  {b.last_success_at ? ` · last delivered ${relative(b.last_success_at)}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-muted-foreground">No browsers yet. Turn notifications on here, in each browser where you want them.</p>
+        )}
+      </Panel>
+    </div>
   );
 }
 

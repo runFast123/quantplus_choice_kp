@@ -31,7 +31,7 @@ function localSecretValues() {
     if (!existsSync(f)) continue;
     for (const line of readFileSync(f, "utf8").split(/\r?\n/)) {
       const m = line.match(/^([A-Z0-9_]+)=(.+)$/)?.map((x, i) => (i === 2 ? x.trim().replace(/^(["'])(.*)\1$/, "$2") : x));
-      if (!m || m[1] === "NEXT_PUBLIC_SUPABASE_URL" || m[1] === "NEXT_PUBLIC_SITE_URL" || m[1] === "NEXT_PUBLIC_MARKET_DATA_MODE") continue;
+      if (!m || m[1] === "NEXT_PUBLIC_SUPABASE_URL" || m[1] === "NEXT_PUBLIC_SITE_URL" || m[1] === "NEXT_PUBLIC_MARKET_DATA_MODE" || m[1] === "VAPID_SUBJECT") continue;
       take(`${f}:${m[1]}`, m[2]);
       const pw = m[2].match(/:\/\/[^:]+:([^@]+)@/)?.[1];
       if (pw) { take(`${f}:${m[1]} password`, pw); try { take(`${f}:${m[1]} password`, decodeURIComponent(pw)); } catch {} }

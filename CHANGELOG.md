@@ -5,6 +5,28 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — Phase 3: browser push alerts, setup checklist, freshness note, page-shaped loading; new logo (`web/`, `extension/`, `supabase/`)
+- **New mark (`components/brand/logo.tsx`, `app/icon.svg`, `scripts/brand-icons.mts`)**: a Q whose tail ends in the coral signal
+  dot replaces the five-step pulse, which blurred at favicon size. The tail cuts into the bowl so it reads as a Q, not a magnifier.
+  One script renders the Apple touch icon, install icons (incl. maskable), a white notification badge and the extension icons.
+  Extension 1.2.1 uses it in the toolbar, side panel and chart overlay.
+- **Browser push (ADR-030)**: migration 30 adds `push_subscriptions` (own rows only), `notifications.pushed_at` and
+  `svc_claim_push_batch` (each notification handed out once; existing ones marked handled so nobody gets a backlog).
+  `server/privileged/push.ts` sends after the EOD and news jobs and on `/api/cron/push` (18:15 IST weekdays); dead browsers are
+  dropped. Settings → Notifications turns it on/off per browser, lists your browsers and sends a test. `public/sw.js` shows the
+  notification and opens the stock (or billing) on click. `export_my_data()` lists push browsers (never their keys).
+- **Installable (`app/manifest.ts`)**: name, theme, icons — also what iPhone needs before it allows web push.
+- **Setup checklist (`components/onboarding/first-run.tsx`)**: on the overview — add 3 stocks, set an alert (if on the plan), turn
+  on notifications, add the Chrome extension (detected in the browser). Hides when done or dismissed.
+- **Freshness note (`components/shell/market-clock.tsx`, `lib/market.ts`)**: the header shows "EOD 28 Oct · next today 17:00";
+  `nextEodUpdate` skips weekends and NSE holidays.
+- **Loading (`components/ui/skeleton.tsx`)**: static, page-shaped placeholders for the stock page, portfolio, research and news; the
+  default `/app` skeleton no longer pulses in a loop.
+- **Secret scanners**: `VAPID_SUBJECT` (the public site URL) is excluded like `NEXT_PUBLIC_SITE_URL`.
+- Tests: `supabase/tests/07_push.sql` (isolation, claim once, export), `lib/push-payload.test.mts`, `nextEodUpdate` cases,
+  `e2e/onboarding.spec.ts`.
+- **Found, not changed**: `npm audit` flags Next.js 16.3.8 (critical, fixed after 16.4.0) and zod 4.6.5 (high, fixed in 4.6.6).
+
 ### Added — Price chart phase 2: trade view, signal explanations, smooth pan, new-signal marking (`web/`)
 - **Trade view (`web/src/components/charts/price-chart.tsx`)**: selecting a signal in the timeline shows its whole round trip —
   entry, stop (−1R) and target lines labelled on the price axis, a risk zone (entry→stop) and reward zone (entry→furthest target)

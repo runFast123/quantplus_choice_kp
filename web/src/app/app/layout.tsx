@@ -57,7 +57,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
               <SymbolSearch />
             </div>
             <div className="ml-auto flex items-center gap-1">
-              <MarketClock />
+              <MarketClock asOf={tape.reduce<string | null>((max, q) => (q.as_of && (!max || q.as_of > max) ? q.as_of : max), null)} />
               <span className="mx-2 hidden h-5 w-px bg-border lg:block" />
               <Notifications userId={s.userId} initial={(notesRes.data ?? []) as NotificationRow[]} />
               <ThemeToggle initial={theme} />

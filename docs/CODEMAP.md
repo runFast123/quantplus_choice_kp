@@ -37,6 +37,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 27 | `research_latest_columns` | `research_latest` + `segment`, `mcap_rank`, `score_change` |
 | 28 | `exact_sma` | moving averages in exact decimal arithmetic (numeric running sums instead of float8) |
 | 29 | `news_feeds_live_syndication` | restores active feeds for Moneycontrol, Business Standard, and Corporate Announcements via Google News RSS syndication |
+| 30 | `push_notifications` | `push_subscriptions` (own rows: select/insert/delete; https endpoint, keys), `notifications.pushed_at` + pending index, `svc_claim_push_batch(p_limit)` (SKIP LOCKED, last 2 days, service_role), `export_my_data()` + push browsers (no keys) |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,
@@ -64,7 +65,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 `market_snapshot` (latest quote), `symbol_news_stats`, `research_latest` — all `security_invoker`, authenticated only.
 
 ### Notification types
-`price_alert`, `exit_signal`, `plan_expiry`, `research_stance`.
+`price_alert`, `exit_signal`, `plan_expiry`, `research_stance`. All are also pushed to the owner's browsers (`privileged/push.ts`) when they turned notifications on.
 
 ### Error codes raised by the DB (mapped by `friendlyDbError`)
 `PLAN_LIMIT_REACHED`, `NO_ACTIVE_PLAN`, `NOT_AUTHORIZED`, `USER_NOT_IN_TENANT`, `INVALID_INPUT`, `INVALID_EVENT_TYPE`, RLS `row-level security`.
@@ -88,6 +89,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `privileged/admin.ts` | `isPlatformAdmin`, `searchUsers`, `activatePlan`, `platformStats`, `getDatabaseInventory`, `getRecentPayments`, `getRecentAuditLogs`, `triggerMarketAnalytics`, `triggerResearchRefresh`, `triggerEodNotifier`, `triggerEodSync`, types `AdminUserRow`, `DatabaseInventory`, `PaymentRow`, `AuditLogRow` | Platform console |
 | `privileged/eod-sync.ts` | `syncEodPrices`, types `SyncEodOptions`, `SyncEodReport` | Native Yahoo Finance EOD candle fetcher, validation & multi-step pipeline sync engine |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
+| `privileged/push.ts` | `deliverPendingPush(limit)` → `PushReport`, `sendTestPush(userId, tenantId)` | Web Push (VAPID env); claims via `svc_claim_push_batch`, one send per browser, drops 404/410 and 5× failures |
 | `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
 | `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?, focus?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, `parseContractNoteWithMyKey(userId, tenantId, noteText)`, type `AiRead`, type `ParsedTrade`, type `PortfolioDiagnosticFocus` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
 | `news-data.ts` | `getNews(db, {symbols?, tone?, kind?, limit?, before?})`, `getResearch(db, symbols?)`, `normalizeNote`, types `NewsItem`, `ResearchNote`, `ResearchFactor` | RLS client reads |
@@ -97,8 +99,10 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Module | Exports |
 |---|---|
 | `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel`, `signalDisplayName` |
-| `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `toTradingViewSymbol(symbol, exchange)`, `toTradingViewWidgetSymbol(symbol)`; `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
+| `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `toTradingViewSymbol(symbol, exchange)`, `toTradingViewWidgetSymbol(symbol)`; `nextEodUpdate(now)` (17:00 IST on the next trading day); `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
 | `market.test.mts` | unit tests (`npm run test:unit`) |
+| `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
+| `push-payload.test.mts` | unit tests (`npm run test:unit`) |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
 | `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
 | `consents.ts` | `CONSENT_VERSION`, `CONSENT_COPY` |
@@ -140,7 +144,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `app/app/alerts/actions.ts` | `createAlert`, `setAlertStatus`, `deleteAlert` |
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
 | `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey`, `fetchProviderModelsAction` |
-| `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount` |
+| `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount`, `savePushSubscription`, `removePushSubscription`, `sendTestPushAction` |
 | `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow`, `refreshMarketAnalyticsAction`, `refreshResearchNotesAction`, `runEodNotifierAction`, `syncEodMarketPricesAction` |
 | `app/app/research/actions.ts` | `askMyAi` (BYOK research read; nothing stored) |
 | `app/invite/[token]/page.tsx` | inline `accept` action |
@@ -159,12 +163,14 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener; symbol page with chart, levels, signals, backtest |
 | `/app/watchlist` `/app/portfolio` `/app/alerts` `/app/signals` | product pages |
-| `/app/workspace` `/app/integrations` `/app/billing` `/app/settings` | account pages (`settings?tab=profile|security|privacy|data`) |
+| `/app/workspace` `/app/integrations` `/app/billing` `/app/settings` | account pages (`settings?tab=profile|security|notifications|privacy|data`) |
 | `/app/settings/export` | GET → JSON download of `export_my_data()` |
 | `/app/research` | Research desk (`?scope=mine&stance=&sort=score|low|change|news`) |
 | `/app/news` | News feed (`?scope=all&tone=&kind=news|filing&before=`) |
-| `/api/cron/news` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `ingestNews` |
-| `/api/cron/market-eod` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `syncEodPrices` (daily 17:00 & 20:00 IST) |
+| `/api/cron/news` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `ingestNews`, then `deliverPendingPush` |
+| `/api/cron/push` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `deliverPendingPush` (Vercel cron 18:15 IST weekdays, after the pg_cron notifier) |
+| `/manifest.webmanifest` | install metadata (`app/manifest.ts`); `public/sw.js` shows pushes and opens their page; `public/icons/*` |
+| `/api/cron/market-eod` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `syncEodPrices` (daily 17:00 & 20:00 IST), then `deliverPendingPush` |
 | `/api/extension/session` | GET: Bearer JWT or cookie session → `{ authenticated, user }`; to a `chrome-extension://` origin only, also `{ token, expiresAt }` from the cookie session (how the extension signs in) |
 | `/api/extension/download` | GET direct download endpoint serving `quantspulse-terminal.zip` package |
 | `/api/extension/quote?symbol=` | Quote, stored signals (`latestSignal` + `rule`, `sessionsSince`, `moveSincePct`), `history` (≤63 daily closes, oldest first) and trade plan for the Chrome Extension (Bearer; `*` CORS without credentials, credentials only for the extension); 401 when signed out |
@@ -185,13 +191,15 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `research/ai-read.tsx` | `AiRead` (client; calls `askMyAi`) |
 | `ui/pager.tsx` | `Pager` (prev/next, keeps params), `pageParam(raw)` — every server-paginated table |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
-| `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock`, `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
+| `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock` (+ "EOD <date> · next <day> 17:00" freshness chip from `asOf`), `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK 20d Breakout, SMA 20/50, RSI Reversal, All Plans, Clean Mode] + HUD with plain-English signal explainer + Signals Timeline ribbon ("New" since last visit, `qp:chart-seen:<SYMBOL>` in localStorage) + trade view on selection [entry/stop/target price lines, risk/reward zones, 1R label, ~260 ms pan; reduced motion → instant] + one-time ring on new signals + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
 | `charts/market-chart-view.tsx` | `MarketChartView` (unified switcher between QuantsPulse Strategy Signals Chart and TradingView Pro) |
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
-| `brand/logo.tsx` | `Logo`, `LogoMark` |
+| `brand/logo.tsx` | `Logo`, `LogoMark` (Q whose tail ends in the coral signal dot; same geometry as `app/icon.svg`) |
+| `onboarding/first-run.tsx` | `FirstRun` (overview checklist: radar, alert, notifications, extension; hides when done or dismissed), type `FirstRunStep` |
+| `ui/skeleton.tsx` | `Bone`, `SkeletonPage`, `SkeletonHeader`, `SkeletonRows`, `SkeletonTiles`, `SkeletonCards` — static loading shapes for `loading.tsx` |
 
 ## 7. CSS utilities (globals.css)
 `.panel`, `.panel-interactive`, `.num` (mono tabular), `.display` (serif), `.eyebrow` (small caps label), `.linen` (page grain),
@@ -205,6 +213,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `scripts/secret-scan.mjs` | `--staged` (pre-commit) / `--history` (CI) secret scanner |
 | `scripts/ingest_kk_signals.py` | Ingests verified empirical KK breakout trades from `kk_eod_results_fixed.json` into Supabase `public.trading_signals` |
 | `.githooks/pre-commit` | runs the staged scan; enable with `git config core.hooksPath .githooks` |
+| `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
 | `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `extension-api`, `writes` (hook-gated) |

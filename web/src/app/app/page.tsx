@@ -13,6 +13,7 @@ import { getBreadth, getQuotes, getSparks, positions, summarize } from "@/server
 import { getNews, getResearch } from "@/server/news-data";
 import { can, displayName, requireSession } from "@/server/session";
 import { MarketBreadthCard } from "@/components/market/market-breadth-card";
+import { FirstRun, type FirstRunStep } from "@/components/onboarding/first-run";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -29,10 +30,12 @@ export default async function OverviewPage() {
   if (!consents?.length) redirect("/app/welcome");
 
   const since = isoDaysAgo(14);
-  const [itemsRes, holdingsRes, breadth] = await Promise.all([
+  const [itemsRes, holdingsRes, breadth, alertsRes, pushRes] = await Promise.all([
     db.from("watchlist_items").select("id, watchlist_id, symbol, exchange, added_at").order("added_at"),
     can(s, "portfolio") ? db.from("holdings").select("*") : Promise.resolve({ data: [] as Holding[] }),
     getBreadth(db),
+    db.from("price_alerts").select("id", { count: "exact", head: true }),
+    db.from("push_subscriptions").select("id", { count: "exact", head: true }),
   ]);
 
   const items = (itemsRes.data ?? []) as WatchlistItem[];
@@ -63,6 +66,27 @@ export default async function OverviewPage() {
   const advancers = breadth.up;
   const decliners = breadth.down;
   const asOf = breadth.asOf;
+
+  // First-run checklist: what makes the app useful, in the order it pays off.
+  const firstRun: FirstRunStep[] = [
+    {
+      key: "radar",
+      label: "Add 3 stocks to Market Radar",
+      detail: radarSymbols.length ? `${radarSymbols.length} so far. Signals and research follow what you add.` : "Signals, research and news follow what you add.",
+      href: "/app/markets",
+      done: radarSymbols.length >= 3,
+    },
+    ...(can(s, "alerts")
+      ? [{ key: "alert", label: "Set a price alert", detail: "Checked against each day's high and low after the close.", href: "/app/alerts", done: (alertsRes.count ?? 0) > 0 }]
+      : []),
+    {
+      key: "push",
+      label: "Turn on browser notifications",
+      detail: "Alerts and signal changes reach you without opening the app.",
+      href: "/app/settings?tab=notifications",
+      done: (pushRes.count ?? 0) > 0,
+    },
+  ];
 
   const ent = s.entitlements;
   const expiringIn = ent ? daysUntil(ent.current_period_end) : null;
@@ -107,6 +131,8 @@ export default async function OverviewPage() {
           </div>
         ) : null}
       </header>
+
+      <FirstRun userId={s.userId} steps={firstRun} />
 
       <section aria-label="Summary" className="panel grid grid-cols-2 divide-border md:grid-cols-4 md:divide-x">
         {can(s, "portfolio") ? (

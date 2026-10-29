@@ -9,7 +9,8 @@ const collect = (file) => {
   if (!existsSync(file)) return;
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     const m = line.match(/^([A-Z0-9_]+)=(.+)$/)?.map((x, i) => (i === 2 ? x.trim().replace(/^(["'])(.*)\1$/, "$2") : x));
-    if (!m || m[1].startsWith("NEXT_PUBLIC_")) continue;
+    // VAPID_SUBJECT is the site URL (a contact for push services), public by design.
+    if (!m || m[1].startsWith("NEXT_PUBLIC_") || m[1] === "VAPID_SUBJECT") continue;
     const v = m[2].trim();
     if (v.length >= 12 && !v.startsWith("<")) secrets.push([m[1], v]);
     const pw = v.match(/:\/\/[^:]+:([^@]+)@/)?.[1];
