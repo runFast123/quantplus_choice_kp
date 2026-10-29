@@ -203,3 +203,15 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   (the screener's segment filter does that job); fewer than 30 sessions → no tags. The skill's intraday
   opening-range scan is not used: QuantsPulse has end-of-day data only (ADR-026).
 - **Copy:** a setup is "matched a rule", never a recommendation (AGENTS rule 13).
+
+### ADR-032 · Odds before the trade: a daily-bar Time Machine in the browser
+**Date** 2026-10-29 · **Status** accepted
+- **What:** with a signal's trade view open, `TradeOdds` replays the next 5/10/20 sessions 10,000 times (seed 19, so
+  repeatable) and re-runs the same rule on every earlier entry of it on that stock, then states one verdict.
+- **Method:** adapted from the MIT-licensed Time Machine in https://github.com/Jakeschincariol/day-trader-skill
+  (`trader-timemachine`), on daily bars instead of 5-minute ones (ADR-026: EOD only). Each simulated day is a real day
+  drawn from the stock's own 250 sessions before the entry (no look-ahead), applied relative to the previous close; a
+  day touching both sides counts as the stop; the verdict compares the target's share of decided paths with
+  break-even at its R (1 / (1 + R)), with the original's 5 and 15 point thresholds. Our own TypeScript, not their code.
+- **Why in the browser:** the chart already holds the candles and signals; 200k draws take milliseconds; nothing to store.
+- **Copy:** a simulation, not a prediction; fewer than 10 past trades is flagged as too few; never advice.

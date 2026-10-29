@@ -5,6 +5,15 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — Odds before the trade (`web/`; ADR-032)
+- **`components/charts/trade-odds.tsx` + `lib/trade-odds.ts`**: with a signal's trade view open, the chart shows one verdict
+  ("Close to a coin flip", "Leans toward the stop"…), 10,000 replays of the next 5/10/20 sessions drawn from the stock's
+  own 250 sessions before the entry (seed 19), and the same rule's history on that stock with its own stops and a target
+  at the same R. Pick the target (T1/T2, or 1R/2R) and the horizon. Days touching both sides count as the stop; fewer than
+  10 past trades is flagged; "a simulation, not a prediction". Method adapted from the MIT-licensed Time Machine skill.
+- Tests: `lib/trade-odds.test.mts` (seeded RNG, one-way markets, both-sides rule, no look-ahead, history, verdicts incl.
+  the reel's TSLA coin flip), `e2e/chart-trade-view.spec.ts` (panel, verdict, horizon re-run). axe clean light + dark.
+
 ### Added — Daily setup scanner (`supabase/`, `web/`; ADR-031)
 - **Nightly tags (migration 31)**: every active stock's last close is checked against five rules — 20-day closing high,
   bull flag, reclaimed 20-day average, oversold (RSI < 30), oversold bounce — and tagged in `market_quotes.setups`.

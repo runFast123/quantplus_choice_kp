@@ -38,6 +38,29 @@ test.describe("price chart trade view @chart", () => {
     await expect(proPage.getByTestId("trade-zone-risk")).toHaveCount(0);
   });
 
+  test("the trade view shows the odds: a verdict, the replays and the rule's history", async ({ proPage }) => {
+    await proPage.goto("/app/markets/TCS");
+    await proPage.waitForLoadState("networkidle");
+    await proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" }).getByRole("radio", { name: /KK 20d Breakout/i }).click();
+    await proPage.getByTestId("signals-timeline").getByRole("button", { name: /▲ BUY|▼ SELL/ }).first().click();
+
+    const odds = proPage.getByTestId("trade-odds");
+    await expect(odds).toBeVisible();
+    const verdict = odds.getByTestId("odds-verdict");
+    await expect(verdict).toHaveText(/coin flip|break-even|toward the (target|stop)|Undecided/);
+    await expect(odds.getByText(/10,000 replays/)).toBeVisible();
+    await expect(odds.getByRole("img", { name: /^Simulation: target first/ })).toBeVisible();
+    await expect(odds.getByTestId("odds-history")).toContainText(/This rule on TCS before|No earlier entries/);
+    await expect(odds).toContainText("A simulation, not a prediction");
+
+    // A longer horizon re-runs the replays.
+    const before = await odds.getByRole("img", { name: /^Simulation:/ }).getAttribute("aria-label");
+    await odds.getByRole("radio", { name: "20 sessions" }).click();
+    await expect(odds.getByRole("radio", { name: "20 sessions" })).toHaveAttribute("aria-checked", "true");
+    await expect(odds.getByText(/of the next 20 sessions/)).toBeVisible();
+    expect(await odds.getByRole("img", { name: /^Simulation:/ }).getAttribute("aria-label")).not.toBe(before);
+  });
+
   test("signals since the last visit are marked new", async ({ proPage }) => {
     await proPage.goto("/app/markets/TCS");
     await proPage.waitForLoadState("networkidle");

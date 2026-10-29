@@ -27,6 +27,7 @@ import { toTradingViewSymbol } from "@/lib/market";
 import { explainMarker, isWinningExit, signalAction, tradeFor, type TradeView } from "@/lib/signal-trade";
 import { deduplicateChartSignals, type RawChartMarker } from "@/lib/trade-plan";
 import type { Candle } from "@/lib/types";
+import { TradeOdds } from "./trade-odds";
 
 export type ChartMarker = RawChartMarker;
 export type ChartStrategyFilter = "kk_breakout" | "sma_cross" | "rsi_reversal" | "all" | "none";
@@ -1084,6 +1085,7 @@ export function PriceChart({
           {trade.exit ? `, closed ${new Date(trade.exit.ts).toLocaleDateString("en-IN")}` : ", still open"}.
         </p>
       ) : null}
+      {trade ? <TradeOdds key={markerKey(trade.entry)} symbol={symbol} candles={candles} trade={trade} markers={allPlanMarkers} /> : null}
 
       {/* Accessible Daily OHLCV Table View (MASTER.md §Charts & WCAG 2.1 AA) */}
       {showDataTable && visible.length > 0 && (
