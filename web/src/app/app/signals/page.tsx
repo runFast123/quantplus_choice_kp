@@ -427,7 +427,7 @@ export default async function SignalsPage({
                                   ? "bg-gain-soft text-gain"
                                   : sentiment.tone === "loss"
                                     ? "bg-loss-soft text-loss"
-                                    : "bg-muted text-muted-foreground",
+                                    : "bg-muted text-foreground",
                               )}
                               title={sentiment.sub}
                             >

@@ -384,7 +384,7 @@ export function TradePlan({
                     ? "bg-gain-soft text-gain"
                     : sentiment.tone === "loss"
                       ? "bg-loss-soft text-loss"
-                      : "bg-muted text-muted-foreground",
+                      : "bg-muted text-foreground",
                 )}
               >
                 {sentiment.label}

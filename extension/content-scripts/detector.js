@@ -1,5 +1,5 @@
 // QuantsPulse Ticker Detector & Customizable On-Chart Signal HUD Content Script
-// Automatically detects active stock tickers and renders real-time Quantitative Signals,
+// Automatically detects active stock tickers and renders end-of-day rule-based signals,
 // Asymmetric Trade Plans & Sentiment Audits directly on TradingView, Zerodha Kite, Groww, etc.
 
 (function () {
@@ -751,7 +751,7 @@
         renderHud(res.activeQuoteData);
       } else if (!res.qpAuthenticated && !res.qpAuthToken) {
         // Unauthenticated lock display
-        const base = (res.backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
+        const base = res.backendUrl === "http://localhost:3000" ? res.backendUrl : "https://quantplus-ten.vercel.app";
         renderHudLocked(symbol, `${base}/login`, `${base}/signup`);
       } else {
         renderHudLoading(symbol);
@@ -766,42 +766,15 @@
             return;
           }
           if (!resp || !resp.ok || !resp.data) {
-            // Direct fetch fallback if background worker is asleep
-            directFetchFallback(symbol, res.backendUrl);
+            // Unknown symbol or server unreachable. All fetches go through the background worker
+            // (it holds the token); a page-origin fetch from here would expose it to the broker site.
+            if (hudRoot && (!currentQuoteData || currentQuoteData.symbol !== symbol)) hudRoot.style.display = "none";
             return;
           }
           currentQuoteData = resp.data;
           renderHud(resp.data);
         }
       );
-    });
-  }
-
-  function directFetchFallback(symbol, backendUrl) {
-    const base = (backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
-    safeStorageGet(["qpAuthToken"], (authRes) => {
-      const headers = {};
-      if (authRes?.qpAuthToken) {
-        headers["Authorization"] = `Bearer ${authRes.qpAuthToken}`;
-      }
-      fetch(`${base}/api/extension/quote?symbol=${encodeURIComponent(symbol)}&exchange=NSE`, { headers })
-        .then(async (r) => {
-          if (r.status === 401) {
-            safeStorageSet({ qpAuthenticated: false });
-            renderHudLocked(symbol, `${base}/login`, `${base}/signup`);
-            throw new Error("account_required");
-          }
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then((data) => {
-          if (data && data.symbol) {
-            currentQuoteData = data;
-            safeStorageSet({ activeQuoteData: data, activeSymbol: data.symbol });
-            renderHud(data);
-          }
-        })
-        .catch(() => {});
     });
   }
 
@@ -853,6 +826,20 @@
     return "₹" + Number(num).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  }
+
+  // Same mapping as the side panel; older servers send only buy/exit.
+  function signalMeta(kind) {
+    switch (kind) {
+      case "buy": return { up: true, badge: "BUY SIGNAL", word: "BUY" };
+      case "sell": return { up: false, badge: "SELL (SHORT) SIGNAL", word: "SELL" };
+      case "cover": return { up: true, badge: "COVER SIGNAL", word: "COVER" };
+      default: return { up: false, badge: "EXIT SIGNAL", word: "EXIT" };
+    }
+  }
+
   function formatSignalDate(d) {
     if (!d) return "";
     try {
@@ -898,13 +885,16 @@
       }
     } catch {}
 
-    const isBuy = data.latestSignal?.kind === "buy";
+    // "up" = buy or cover; KK breakdowns open a short ("sell") that a "cover" closes.
+    const sigMeta = signalMeta(data.latestSignal?.kind);
+    const isBuy = sigMeta.up;
     const hasSignal = !!data.latestSignal;
     const p = data.tradePlan;
     const chg = data.change_pct;
     const isGain = chg != null && chg >= 0;
 
-    const deltaText = chg != null ? `${isGain ? "▲ +" : "▼ "}${chg.toFixed(2)}% (${formatRupees(data.change)})` : "";
+    const deltaSign = isGain ? "+" : "−";
+    const deltaText = chg != null ? `${isGain ? "▲" : "▼"} ${deltaSign}${Math.abs(chg).toFixed(2)}% (${deltaSign}${formatRupees(Math.abs(data.change))})` : "";
     const deltaColor = isGain ? "#34D399" : "#F87171";
 
     const t1Gain = p && p.entry ? (((p.t1 - p.entry) / p.entry) * 100).toFixed(1) : "0.0";
@@ -1389,7 +1379,7 @@
                     <svg class="arrow-svg-icon" viewBox="0 0 14 14" width="11" height="11">
                       ${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}
                     </svg>
-                    <span>${isBuy ? "BUY" : "EXIT"}</span>
+                    <span>${sigMeta.word}</span>
                     <span class="num" style="font-weight:600; opacity:0.95;">@ ${formatRupees(data.latestSignal.price)}</span>
                   </div>
                 ` : `<span style="font-size:10px; color:#888;">CONSOLIDATION</span>`}
@@ -1432,8 +1422,8 @@
                     <svg class="arrow-svg-icon" viewBox="0 0 14 14" width="13" height="13">
                       ${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}
                     </svg>
-                    <span>${isBuy ? "BUY SIGNAL" : "EXIT SIGNAL"}</span>
-                    <span style="font-weight:500; opacity:0.95;">· ${data.latestSignal.label}</span>
+                    <span>${sigMeta.badge}</span>
+                    <span style="font-weight:500; opacity:0.95;">· ${escapeHtml(data.latestSignal.label)}</span>
                     <span class="num" style="font-weight:700;">(Trigger: ${formatRupees(data.latestSignal.price)})</span>
                   </div>
                 ` : `<span style="font-size:10.5px; color:#888;">Consolidation</span>`}
@@ -1461,7 +1451,7 @@
                     <svg class="arrow-svg-icon" viewBox="0 0 14 14" width="10" height="10">
                       ${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}
                     </svg>
-                    <span>${isBuy ? "BUY" : "EXIT"}</span>
+                    <span>${sigMeta.word}</span>
                   </div>
                 ` : ""}
               </div>
@@ -1525,7 +1515,7 @@
                             : '<path d="M8 14L1 3H15L8 14Z" fill="currentColor"/>'
                           }
                         </svg>
-                        <span>${isBuy ? "BUY SIGNAL" : "EXIT SIGNAL"}</span>
+                        <span>${sigMeta.badge}</span>
                       ` : `
                         <span>CONSOLIDATION</span>
                       `}
@@ -1538,7 +1528,7 @@
                     </div>
                   </div>
                   <div class="signal-name">
-                    ${hasSignal ? data.latestSignal.label : "Mean-reversion Equilibrium / Range"}
+                    ${hasSignal ? escapeHtml(data.latestSignal.label) : "No recent rule signal"}
                   </div>
                   <div class="signal-grid">
                     <div class="signal-metric">
@@ -1559,9 +1549,9 @@
                       <div class="signal-history-label">Recent Chart Arrow Signals:</div>
                       <div class="signal-history-track">
                         ${data.recentSignals.slice(0, 4).map(sig => `
-                          <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label || ""}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
-                            <span class="mini-arrow">${sig.kind === "buy" ? "▲" : "▼"}</span>
-                            <span class="mini-kind">${(sig.kind || "").toUpperCase()}</span>
+                          <div class="mini-signal-chip ${signalMeta(sig.kind).up ? "is-buy" : "is-exit"}" title="${escapeHtml(sig.label || "")}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
+                            <span class="mini-arrow">${signalMeta(sig.kind).up ? "▲" : "▼"}</span>
+                            <span class="mini-kind">${signalMeta(sig.kind).word}</span>
                             <span class="num mini-price">${formatRupees(sig.price)}</span>
                           </div>
                         `).join("")}

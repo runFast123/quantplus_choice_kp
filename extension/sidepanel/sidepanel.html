@@ -130,7 +130,7 @@
       <h3 id="signal-strategy" class="signal-strategy">SMA 20/50 Golden Cross</h3>
       <div class="signal-levels">
         <div class="signal-level-item">
-          <span class="eyebrow">Entry Trigger</span>
+          <span id="signal-entry-label" class="eyebrow">Entry Trigger</span>
           <span id="signal-entry" class="num level-val">₹0.00</span>
         </div>
         <div class="signal-level-item">
@@ -150,7 +150,8 @@
         <h2 class="card-title">Trade plan &amp; targets</h2>
         <span class="card-meta">Asymmetric 0.75R / 2.0R / 3.0R</span>
       </div>
-      <div class="targets-grid">
+      <p id="plan-empty" class="plan-empty hidden">No open long entry. A plan appears when the latest signal is a BUY, built from that signal's entry and stop.</p>
+      <div id="plan-grid" class="targets-grid">
         <div class="target-card target-stop">
           <div class="target-head">
             <span class="target-tag">STOP 1.0R</span>

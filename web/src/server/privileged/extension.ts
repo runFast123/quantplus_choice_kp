@@ -1,7 +1,7 @@
 import "server-only";
 
 import { calculateTradePlan, evaluateSentiment, getAlphaLevel } from "@/lib/trade-plan";
-import { signalDisplayName } from "@/lib/format";
+import { toExtensionSignal, type ExtensionSignal } from "@/lib/extension-signals";
 import type { Quote } from "@/lib/types";
 import { normalizeQuote } from "../market-data";
 import { serviceRole } from "./service-role";
@@ -24,22 +24,8 @@ export interface ExtensionQuotePayload {
   sma20: number | null;
   sma50: number | null;
   sma200: number | null;
-  latestSignal: {
-    kind: "buy" | "exit";
-    strategy: string;
-    label: string;
-    date: string;
-    price: number | null;
-    stop: number | null;
-  } | null;
-  recentSignals?: Array<{
-    kind: "buy" | "exit";
-    strategy: string;
-    label: string;
-    date: string;
-    price: number | null;
-    stop: number | null;
-  }>;
+  latestSignal: ExtensionSignal | null;
+  recentSignals?: ExtensionSignal[];
   tradePlan: {
     entry: number;
     stop: number;
@@ -148,56 +134,14 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
   const sma200 = calcSma(200);
 
   // Latest signals
-  const latestSig = signals[0];
-  let latestSignal = latestSig
-    ? {
-        kind: latestSig.signal_type as "buy" | "exit",
-        strategy: latestSig.strategy,
-        label: signalDisplayName(latestSig.strategy, latestSig.signal_type),
-        date: latestSig.generated_at,
-        price: Number(latestSig.payload?.close ?? latestSig.payload?.trigger_price ?? 0) || null,
-        stop: Number(latestSig.payload?.stop ?? 0) || null,
-      }
-    : null;
+  // Only stored signals from the published strategies — never a stand-in when a stock has none.
+  const recentSignals = signals.slice(0, 6).map(toExtensionSignal);
+  const latestSignal = recentSignals[0] ?? null;
 
-  // Fallback: if no historical signal exists in trading_signals, compute live directional baseline
-  if (!latestSignal && q.last_price) {
-    if (sma20 && q.last_price >= sma20 && (q.rsi == null || q.rsi >= 45)) {
-      latestSignal = {
-        kind: "buy",
-        strategy: "trend_following",
-        label: sma50 && q.last_price >= sma50 ? "SMA 20/50 Golden Trend" : "Above SMA 20 Dynamic Baseline",
-        date: q.as_of || new Date().toISOString(),
-        price: q.last_price,
-        stop: sma20 ? Number((sma20 * 0.97).toFixed(2)) : Number((q.last_price * 0.95).toFixed(2)),
-      };
-    } else if (sma20 && q.last_price < sma20 && (q.rsi == null || q.rsi < 45)) {
-      latestSignal = {
-        kind: "exit",
-        strategy: "trend_breakdown",
-        label: "Trend Breakdown (Below SMA 20)",
-        date: q.as_of || new Date().toISOString(),
-        price: q.last_price,
-        stop: Number((q.last_price * 1.03).toFixed(2)),
-      };
-    }
-  }
-
-  const recentSignals = signals.slice(0, 6).map((s) => ({
-    kind: s.signal_type as "buy" | "exit",
-    strategy: s.strategy,
-    label: signalDisplayName(s.strategy, s.signal_type),
-    date: s.generated_at,
-    price: Number(s.payload?.close ?? s.payload?.trigger_price ?? 0) || null,
-    stop: Number(s.payload?.stop ?? 0) || null,
-  }));
-
-  // Asymmetric Trade Plan
-  const latestBuy = signals.find((s) => s.signal_type === "buy");
-  const entry = Number(latestBuy?.payload?.close) || q.last_price || 0;
-  const stop =
-    Number(latestBuy?.payload?.stop) ||
-    (sma20 && sma20 < entry ? sma20 : sma50 && sma50 < entry ? sma50 : Number((entry * 0.95).toFixed(2)));
+  // The plan follows the latest signal only while it is an open long entry, from that signal's own
+  // entry and stop. After an exit, a short entry or a cover there is no long plan to show.
+  const entry = latestSignal?.kind === "buy" ? latestSignal.price ?? 0 : 0;
+  const stop = latestSignal?.kind === "buy" ? latestSignal.stop ?? 0 : 0;
 
   let tradePlan: ExtensionQuotePayload["tradePlan"] = null;
   if (entry > 0 && stop > 0 && stop < entry) {

@@ -5,6 +5,40 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — Chrome extension 1.1.0: sign-in, honest signals and plans, token safety (`extension/`, `web/`)
+- **Sign-in sync never worked (`extension/background.js`, `content-scripts/auth-sync.js`, `web/src/app/api/extension/session/route.ts`)**:
+  `auth-sync.js` looked for the Supabase session in `localStorage`, but the site keeps it in cookies (`@supabase/ssr`), and a
+  stored token was never renewed (locked after ~1 h). The background worker now asks `/api/extension/session` with the site's
+  cookies and stores the access token, renewing it 2 min before expiry and once after a 401. The endpoint returns the token
+  only to a `chrome-extension://` origin. `auth-sync.js` now just triggers that check (no storage or cookie reads).
+- **Invented signals (`web/src/server/privileged/extension.ts`)**: when a stock had no stored signal the server made one up
+  ("SMA 20/50 Golden Trend", "Trend Breakdown") with an invented stop. Removed: only stored rule signals are shown (AGENTS #13).
+  The HUD's "Mean-reversion Equilibrium / Range" stand-in label is now "No recent rule signal".
+- **Short entries shown as EXIT (`web/src/lib/extension-signals.ts`, side panel, HUD)**: 4,321 KK breakdown entries and their
+  covers are stored as `signal_type = exit`. Signals now carry the trade action (`buy` / `sell` / `exit` / `cover` from
+  `payload.action`) and render as "SELL (SHORT)" / "COVER". Exits and covers carry no stop.
+- **Trade plan contradicted the signal**: the plan used the last BUY even after a later exit, or the last price with an
+  SMA-based stop for stocks with no signal. A plan is now shown only while the latest signal is a long entry, built from that
+  signal's own entry and stop; otherwise the panel says why there is none.
+- **Token could leave QuantsPulse**: the settings field accepted any server and the HUD fetched from the broker page's origin
+  with the token. Only `https://quantplus-ten.vercel.app` and `http://localhost:3000` are accepted (background, panel, HUD),
+  and every quote goes through the background worker.
+- **CORS (`web/src/lib/extension-cors.ts`)**: `/api/extension/*` reflected any origin with credentials. Now only extension
+  origins get credentials; `/quote` allows other origins without credentials (Bearer only); `/session` gives them nothing.
+- **Smaller fixes**: unstyled "Go" button; "▼ -1.50% (₹-38.10)" → "▼ −1.50% (−₹38.10)"; signal labels escaped before HTML
+  insertion; manifest/README no longer claim "real-time" (EOD data); version 1.1.0.
+- **Download zip (`web/public/downloads/quantspulse-terminal.zip`)**: repackaged with `/` paths and LF endings — the old zip had
+  `content-scripts\detector.js`-style names that unpack as flat files on macOS/Linux, so the extension wouldn't load there.
+  `extension-syntax.test.mts` now fails if the zip is stale or uses backslashes.
+- Tests: `lib/extension-signals.test.mts` (mapping + CORS), `e2e/extension-api.spec.ts` (token only to the extension, no
+  stand-in signals, plan only for an open long).
+
+### Fixed — Neutral-state badges failed WCAG contrast (`web/src/components/market/`, `app/app/signals`, `app/admin`)
+- `text-muted-foreground` on `bg-muted` is 4.11:1 (needs 4.5:1). It only renders in neutral states, so axe passed until the
+  market turned neutral on 2026-10-29 ("Consolidating / Neutral" breadth on `/app`, "Equilibrium" on `/app/markets/INFY`;
+  production failed `e2e/a11y.spec.ts` the same way). The nine badges with that pairing now use `text-foreground`
+  (`market-breadth-card`, `quantum-audit`, `trade-plan`, signals page, admin console).
+
 ### Fixed — EOD sync data integrity, screener ranking, contract-note validation, cron auth (`web/`, `pipelines/eod/`)
 - **Native EOD sync wrote unsettled and BSE bars (`web/src/server/privileged/eod-sync.ts`)**: `includeToday` now defaults to
   `false` (settled sessions only, like `last_settled_day` in `eod.py`), so a run before 15:45 IST can't store a partial bar

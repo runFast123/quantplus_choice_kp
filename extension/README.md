@@ -1,6 +1,6 @@
 # QuantsPulse — Indian Equities Terminal (Chrome Extension)
 
-Real-time Quantitative Signals, Asymmetric Trade Plans & Sentiment Audits docked beside your charts on **TradingView**, **Zerodha Kite**, **Groww**, **Dhan**, and **Angel One**.
+End-of-day, rule-based signals, trade plans and key levels for NSE stocks, docked beside your charts on **TradingView**, **Zerodha Kite**, **Groww**, **Dhan**, and **Angel One**. Prices are daily closes, not live ticks. This is research, not investment advice.
 
 ---
 
@@ -20,7 +20,7 @@ Real-time Quantitative Signals, Asymmetric Trade Plans & Sentiment Audits docked
 
 The QuantsPulse Extension Terminal is exclusively available for active QuantsPulse account holders:
 
-1. **Automatic Session Sync**: Log into your QuantsPulse account at [quantplus-ten.vercel.app](https://quantplus-ten.vercel.app) in Chrome. The extension automatically detects your active session and authorizes full access to on-chart signals, 1.0R trailing stops, and sentiment scorecards across all supported brokers.
+1. **Automatic Session Sync**: Sign in at [quantplus-ten.vercel.app](https://quantplus-ten.vercel.app) in the same Chrome profile. The extension's background worker checks that session (`/api/extension/session`) and keeps a short-lived access token, renewing it before it expires. If the side panel still shows "Account Required", click **Check Login Status**. Signing out on the website signs the extension out the next time a QuantsPulse tab loads.
 2. **Locked State for Non-Members**: If you are not signed in or do not possess an account, the on-chart HUD and side panel will show a locked status badge (`🔒 Account Required`) with direct buttons to sign in or start a 3-month free trial. Proprietary trading signals and entry points remain locked on the server until authenticated.
 
 ---
@@ -57,4 +57,4 @@ The QuantsPulse Extension Terminal is exclusively available for active QuantsPul
   ```
   http://localhost:3000
   ```
-- Click **Save**.
+- Click **Save**. Only these two servers are accepted: the extension sends your sign-in token to this endpoint, so it refuses any other address.

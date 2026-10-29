@@ -167,3 +167,15 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
 - **Context:** Direct legacy XML endpoints for Moneycontrol were deprecated by the publisher in mid-2024, Business Standard returned Akamai 403 to non-browser UAs, and NSE's archive dropped non-browser TLS connections (ADR-014).
 - **Decision:** Use Google News public RSS syndication queries targeted to the publishers' domains and Indian market tags (`site:moneycontrol.com`, `site:business-standard.com`, and Indian exchange announcements). These endpoints cleanly identify `QuantsPulseBot`, return up-to-the-minute articles, and avoid browser spoofing or bot circumvention while delivering 100% live feeds for all sources.
 
+### ADR-029 · Chrome extension signs in through the website's cookie session
+**Date** 2026-10-29 · **Status** accepted
+- **Context:** the site keeps the Supabase session in cookies (`@supabase/ssr`), so the extension can't read it from
+  `localStorage`, and it must not run its own refresh-token flow (rotating the same refresh token from two places would
+  revoke the user's web session).
+- **Decision:** the extension's background worker calls `GET /api/extension/session` with the site's cookies. `proxy.ts`
+  refreshes the session as for any request, and the route returns the current access token — only when the `Origin` is
+  `chrome-extension://…` (a page can't forge it, and other origins get no CORS access). The worker keeps the token in
+  `chrome.storage.local`, renews it shortly before expiry or after a 401, and is the only place that fetches quotes.
+- **Limits:** tokens go only to the production site or localhost (allowlist in the extension). Content scripts can still
+  read the stored token; moving it to `chrome.storage.session` is a follow-up. A dedicated, revocable extension token
+  (pairing flow) would replace this if the extension ships on the Chrome Web Store.

@@ -1,100 +1,43 @@
 // QuantsPulse Chrome Extension — Web Auth Synchronization Bridge
-// Runs on quantplus-ten.vercel.app and localhost:3000 to automatically pair
-// and authorize the extension with the user's active QuantsPulse account.
+// Runs on quantplus-ten.vercel.app and localhost:3000. The website keeps the Supabase session in
+// cookies (@supabase/ssr), which this script can't and shouldn't read: it only asks the background
+// worker to re-check sign-in, and the worker gets a token from /api/extension/session.
 
 (function () {
   "use strict";
 
-  // Mark extension presence in the DOM so the web app knows the extension is installed
+  // Mark extension presence so the web app knows the extension is installed
   try {
-    window.__QUANTSPULSE_EXTENSION_INSTALLED__ = true;
-    window.postMessage({ type: "QP_EXTENSION_DISCOVERED", version: "1.0.0" }, "*");
+    window.postMessage({ type: "QP_EXTENSION_DISCOVERED", version: chrome.runtime.getManifest().version }, window.location.origin);
   } catch {}
 
-  function extractSupabaseSession() {
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.includes("auth-token")) {
-          const raw = localStorage.getItem(key);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            const token = parsed?.access_token || parsed?.currentSession?.access_token;
-            const user = parsed?.user || parsed?.currentSession?.user;
-            if (token && user) {
-              return { token, user };
-            }
-          }
-        }
-      }
-    } catch {}
-    return null;
-  }
-
   function syncAuth() {
-    const session = extractSupabaseSession();
-
-    if (session && session.token) {
-      const authData = {
-        qpAuthToken: session.token,
-        qpUser: {
-          id: session.user.id,
-          email: session.user.email,
-        },
-        qpAuthenticated: true,
-        lastSyncedAt: Date.now(),
-      };
-
-      if (chrome.storage?.local) {
-        chrome.storage.local.set(authData, () => {
-          try {
-            chrome.runtime.sendMessage({
-              type: "QP_AUTH_STATUS_CHANGED",
-              authenticated: true,
-              user: authData.qpUser,
-              token: authData.qpAuthToken,
-            });
-          } catch {}
-        });
-      }
-    } else {
-      // User is not logged in on the web platform
-      if (chrome.storage?.local) {
-        chrome.storage.local.get(["qpAuthenticated"], (res) => {
-          if (res?.qpAuthenticated) {
-            chrome.storage.local.remove(["qpAuthToken", "qpUser"]);
-            chrome.storage.local.set({ qpAuthenticated: false }, () => {
-              try {
-                chrome.runtime.sendMessage({
-                  type: "QP_AUTH_STATUS_CHANGED",
-                  authenticated: false,
-                });
-              } catch {}
-            });
-          }
-        });
-      }
+    try {
+      chrome.runtime.sendMessage({ type: "QP_REFRESH_AUTH" }, () => void chrome.runtime.lastError);
+    } catch {
+      // Extension reloaded or removed: this page's script is orphaned until the next load.
     }
   }
 
-  // 1. Initial sync on page load
+  // 1. On page load (covers arriving here right after signing in or out)
   syncAuth();
 
-  // 2. Watch for localStorage changes (e.g. login or logout in another tab)
-  window.addEventListener("storage", (e) => {
-    if (e.key && e.key.includes("auth-token")) {
-      syncAuth();
-    }
+  // 2. When the tab comes back into view
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) syncAuth();
   });
 
-  // 3. Listen for direct messages from the QuantsPulse web desk
+  // 3. When the QuantsPulse web desk asks for it
   window.addEventListener("message", (e) => {
+    if (e.source !== window || e.origin !== window.location.origin) return;
     if (e.data?.type === "QP_REQUEST_AUTH_SYNC") {
       syncAuth();
-      window.postMessage({ type: "QP_EXTENSION_SYNC_ACK", success: true }, "*");
+      window.postMessage({ type: "QP_EXTENSION_SYNC_ACK", success: true }, window.location.origin);
     }
   });
 
-  // Periodic heartbeat sync every 15 seconds while browsing the app
-  setInterval(syncAuth, 15000);
+  // 4. Every 5 minutes while the app is open, to notice a sign-out in another tab
+  setInterval(() => {
+    if (!document.hidden) syncAuth();
+  }, 5 * 60 * 1000);
 })();

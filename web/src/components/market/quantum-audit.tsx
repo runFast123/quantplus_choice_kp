@@ -303,13 +303,13 @@ export function QuantumAudit({
                             ? "bg-loss-soft text-loss border border-loss/20 animate-pulse"
                             : sentiment.tone === "gain"
                               ? "bg-gain-soft text-gain"
-                              : "bg-muted text-muted-foreground",
+                              : "bg-muted text-foreground",
                         )}
                       >
                         {sentiment.label} (Node {sentiment.node})
                       </span>
                     ) : (
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10.5px] text-foreground">
                         Monitoring
                       </span>
                     )}
@@ -432,7 +432,7 @@ export function QuantumAudit({
                                   <span className="text-[10px] text-muted-foreground">
                                     {log.date}
                                   </span>
-                                  <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                                  <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium text-foreground">
                                     {log.alphaLabel}
                                   </span>
                                 </div>

@@ -29,7 +29,6 @@
   const btnAuthLogin = document.getElementById("btn-auth-login");
   const btnAuthSignup = document.getElementById("btn-auth-signup");
 
-  let qpAuthToken = null;
   let qpUser = null;
   let qpAuthenticated = false;
 
@@ -56,6 +55,13 @@
     }
   }
 
+  const DEFAULT_BACKEND = "https://quantplus-ten.vercel.app";
+  const ALLOWED_BACKENDS = [DEFAULT_BACKEND, "http://localhost:3000"];
+  function allowedBackend(stored) {
+    const url = String(stored || "").trim().replace(/\/$/, "");
+    return ALLOWED_BACKENDS.includes(url) ? url : DEFAULT_BACKEND;
+  }
+
   // Formatters
   function formatRupees(num) {
     if (num == null || isNaN(num)) return "—";
@@ -71,6 +77,20 @@
     return String(n);
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  }
+
+  // KK breakdowns open a short ("sell") and close it with a "cover"; older servers send only buy/exit.
+  function signalMeta(kind) {
+    switch (kind) {
+      case "buy": return { up: true, badge: "BUY SIGNAL", word: "BUY", priceLabel: "Entry Trigger" };
+      case "sell": return { up: false, badge: "SELL (SHORT) SIGNAL", word: "SELL", priceLabel: "Entry Trigger" };
+      case "cover": return { up: true, badge: "COVER SIGNAL", word: "COVER", priceLabel: "Exit Price" };
+      default: return { up: false, badge: "EXIT SIGNAL", word: "EXIT", priceLabel: "Exit Price" };
+    }
+  }
+
   function formatSignalDate(d) {
     if (!d) return "";
     try {
@@ -82,12 +102,9 @@
   }
 
   // Load preferences and then inspect active tab
-  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay", "qpHudPrefs", "qpAuthToken", "qpAuthenticated", "qpUser"], async (res) => {
-    if (res.backendUrl) {
-      backendUrl = res.backendUrl.replace(/\/$/, "");
-      inputBackend.value = backendUrl;
-    }
-    qpAuthToken = res.qpAuthToken || null;
+  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay", "qpHudPrefs", "qpAuthenticated", "qpUser"], async (res) => {
+    backendUrl = allowedBackend(res.backendUrl);
+    inputBackend.value = backendUrl;
     qpUser = res.qpUser || null;
     qpAuthenticated = Boolean(res.qpAuthenticated);
     updateAuthUI(qpAuthenticated, qpUser);
@@ -287,12 +304,17 @@ if barstate.islast
 
   btnSaveSettings.addEventListener("click", () => {
     const val = inputBackend.value.trim().replace(/\/$/, "");
-    if (val) {
-      backendUrl = val;
-      chrome.storage.local.set({ backendUrl });
-      elSettings.classList.add("hidden");
-      if (currentSymbol) loadSymbol(currentSymbol);
+    // Your sign-in token goes to this server, so only QuantsPulse itself or local development.
+    if (!ALLOWED_BACKENDS.includes(val)) {
+      inputBackend.setCustomValidity(`Use ${ALLOWED_BACKENDS.join(" or ")}.`);
+      inputBackend.reportValidity();
+      return;
     }
+    inputBackend.setCustomValidity("");
+    backendUrl = val;
+    chrome.storage.local.set({ backendUrl });
+    elSettings.classList.add("hidden");
+    if (currentSymbol) loadSymbol(currentSymbol);
   });
 
   // Manual search submit
@@ -333,6 +355,12 @@ if barstate.islast
       }
       if (changes.activeSymbol?.newValue && changes.activeSymbol.newValue !== currentSymbol) {
         loadSymbol(changes.activeSymbol.newValue);
+      }
+      // Sign-in changes come from the background worker (website session check).
+      if (changes.qpAuthenticated) {
+        const authed = Boolean(changes.qpAuthenticated.newValue);
+        chrome.storage.local.get(["qpUser"], (r) => updateAuthUI(authed, r?.qpUser || null));
+        if (authed && changes.qpAuthenticated.oldValue === false && currentSymbol) loadSymbol(currentSymbol);
       }
     }
   });
@@ -989,20 +1017,14 @@ if barstate.islast
     isLoading = true;
 
     try {
-      const stored = await new Promise((r) => chrome.storage.local.get(["qpAuthToken", "qpAuthenticated", "qpUser"], r));
-      qpAuthToken = stored?.qpAuthToken || null;
-      qpAuthenticated = Boolean(stored?.qpAuthenticated);
-      qpUser = stored?.qpUser || null;
-
-      const url = `${backendUrl}/api/extension/quote?symbol=${encodeURIComponent(sym)}&exchange=NSE`;
-      const headers = {};
-      if (qpAuthToken) {
-        headers["Authorization"] = `Bearer ${qpAuthToken}`;
-      }
-
-      const res = await fetch(url, { headers });
-      if (res.status === 401) {
-        chrome.storage.local.set({ qpAuthenticated: false });
+      // The background worker owns the token (renews it from the website session) and the cache.
+      const resp = await new Promise((r) =>
+        chrome.runtime.sendMessage({ type: "FETCH_QUOTE_DATA", symbol: sym, exchange: "NSE" }, (x) => {
+          void chrome.runtime.lastError;
+          r(x);
+        }),
+      );
+      if (resp?.isAuthError) {
         updateAuthUI(false, null);
         elEmpty.classList.add("hidden");
         elContent.classList.add("hidden");
@@ -1011,8 +1033,10 @@ if barstate.islast
         isLoading = false;
         return;
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      if (!resp?.ok) throw new Error(resp?.error || "Failed to fetch quote");
+      const data = resp.data;
+      const stored = await new Promise((r) => chrome.storage.local.get(["qpUser"], r));
+      qpUser = stored?.qpUser || null;
       updateAuthUI(true, qpUser);
       render(data);
       if (data && data.symbol) {
@@ -1061,7 +1085,8 @@ if barstate.islast
     const elDelta = document.getElementById("stock-delta");
     if (chg != null) {
       const isPositive = chg >= 0;
-      elDelta.textContent = `${isPositive ? "▲ +" : "▼ "}${chg.toFixed(2)}% (${formatRupees(data.change)})`;
+      const sign = isPositive ? "+" : "−";
+      elDelta.textContent = `${isPositive ? "▲" : "▼"} ${sign}${Math.abs(chg).toFixed(2)}% (${sign}${formatRupees(Math.abs(data.change))})`;
       elDelta.className = `num stock-delta ${isPositive ? "text-gain" : "text-loss"}`;
     } else {
       elDelta.textContent = "—";
@@ -1083,27 +1108,31 @@ if barstate.islast
 
     if (data.latestSignal) {
       elSignalCard.classList.remove("hidden");
-      const isBuy = data.latestSignal.kind === "buy";
-      elSignalCard.className = `card signal-card ${isBuy ? "" : "is-exit"}`;
-      elSignalBadge.className = `signal-badge ${isBuy ? "signal-buy" : "signal-exit"}`;
-      elSignalBadge.innerHTML = `<svg viewBox="0 0 14 14" width="12" height="12" style="margin-right:4px;vertical-align:-1px;">${isBuy ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}</svg><span>${isBuy ? "BUY SIGNAL" : "EXIT SIGNAL"}</span>`;
+      const meta = signalMeta(data.latestSignal.kind);
+      elSignalCard.className = `card signal-card ${meta.up ? "" : "is-exit"}`;
+      elSignalBadge.className = `signal-badge ${meta.up ? "signal-buy" : "signal-exit"}`;
+      elSignalBadge.innerHTML = `<svg viewBox="0 0 14 14" width="12" height="12" style="margin-right:4px;vertical-align:-1px;">${meta.up ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}</svg><span>${meta.badge}</span>`;
       elSignalStrategy.textContent = data.latestSignal.label;
       elSignalDate.textContent = formatSignalDate(data.latestSignal.date);
+      document.getElementById("signal-entry-label").textContent = meta.priceLabel;
       elSignalEntry.textContent = formatRupees(data.latestSignal.price);
-      elSignalStop.textContent = formatRupees(data.latestSignal.stop);
+      elSignalStop.textContent = data.latestSignal.stop ? formatRupees(data.latestSignal.stop) : "—";
 
       const elSignalHistoryRow = document.getElementById("signal-history-row");
       const elSignalHistoryTrack = document.getElementById("signal-history-track");
       if (elSignalHistoryRow && elSignalHistoryTrack) {
         if (data.recentSignals && data.recentSignals.length > 1) {
           elSignalHistoryRow.classList.remove("hidden");
-          elSignalHistoryTrack.innerHTML = data.recentSignals.slice(0, 4).map((sig) => `
-            <div class="mini-signal-chip ${sig.kind === "buy" ? "is-buy" : "is-exit"}" title="${sig.label || ""}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
-              <span class="mini-arrow">${sig.kind === "buy" ? "▲" : "▼"}</span>
-              <span class="mini-kind">${(sig.kind || "").toUpperCase()}</span>
+          elSignalHistoryTrack.innerHTML = data.recentSignals.slice(0, 4).map((sig) => {
+            const m = signalMeta(sig.kind);
+            return `
+            <div class="mini-signal-chip ${m.up ? "is-buy" : "is-exit"}" title="${escapeHtml(sig.label || "")}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
+              <span class="mini-arrow">${m.up ? "▲" : "▼"}</span>
+              <span class="mini-kind">${m.word}</span>
               <span class="num mini-price">${formatRupees(sig.price)}</span>
             </div>
-          `).join("");
+          `;
+          }).join("");
         } else {
           elSignalHistoryRow.classList.add("hidden");
         }
@@ -1112,8 +1141,10 @@ if barstate.islast
       elSignalCard.classList.add("hidden");
     }
 
-    // 3. Trade Plan Targets
+    // 3. Trade Plan Targets — only while the latest signal is an open long entry
     const p = data.tradePlan;
+    document.getElementById("plan-grid").classList.toggle("hidden", !p);
+    document.getElementById("plan-empty").classList.toggle("hidden", Boolean(p));
     if (p) {
       document.getElementById("plan-stop-price").textContent = formatRupees(p.stop);
       document.getElementById("plan-stop-pct").textContent = `-${p.riskPercent ? p.riskPercent.toFixed(1) : "0.0"}%`;
@@ -1129,15 +1160,6 @@ if barstate.islast
       const t3Gain = p.entry ? ((p.t3 - p.entry) / p.entry) * 100 : 0;
       document.getElementById("plan-t3-price").textContent = formatRupees(p.t3);
       document.getElementById("plan-t3-pct").textContent = `+${t3Gain.toFixed(1)}%`;
-    } else {
-      document.getElementById("plan-stop-price").textContent = "—";
-      document.getElementById("plan-stop-pct").textContent = "—";
-      document.getElementById("plan-t1-price").textContent = "—";
-      document.getElementById("plan-t1-pct").textContent = "—";
-      document.getElementById("plan-t2-price").textContent = "—";
-      document.getElementById("plan-t2-pct").textContent = "—";
-      document.getElementById("plan-t3-price").textContent = "—";
-      document.getElementById("plan-t3-pct").textContent = "—";
     }
 
     // 4. Key Levels
@@ -1211,18 +1233,17 @@ if barstate.islast
     btnAuthCheck.addEventListener("click", async () => {
       btnAuthCheck.textContent = "Checking...";
       try {
-        const checkUrl = `${backendUrl}/api/extension/session`;
-        const headers = {};
-        if (qpAuthToken) headers["Authorization"] = `Bearer ${qpAuthToken}`;
-        const sRes = await fetch(checkUrl, { headers });
-        const sData = await sRes.json();
-        if (sData.authenticated) {
-          chrome.storage.local.set({
-            qpAuthenticated: true,
-            qpUser: sData.user,
-            qpAuthToken: sData.token || qpAuthToken,
-          });
-          updateAuthUI(true, sData.user);
+        // The background worker asks the website with your QuantsPulse cookies and stores the token.
+        const resp = await new Promise((r) =>
+          chrome.runtime.sendMessage({ type: "QP_REFRESH_AUTH" }, (x) => {
+            void chrome.runtime.lastError;
+            r(x);
+          }),
+        );
+        if (!resp) throw new Error("no response");
+        const stored = await new Promise((r) => chrome.storage.local.get(["qpAuthenticated", "qpUser"], r));
+        if (resp.ok && stored.qpAuthenticated) {
+          updateAuthUI(true, stored.qpUser || null);
           btnAuthCheck.textContent = "✓ Connected!";
           if (currentSymbol) loadSymbol(currentSymbol);
         } else {

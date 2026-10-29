@@ -41,10 +41,12 @@ function initializeSidePanelBehavior() {
 chrome.runtime.onInstalled.addListener(() => {
   initializeSidePanelBehavior();
   injectIntoExistingTabs();
+  refreshAuth();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   initializeSidePanelBehavior();
+  refreshAuth();
 });
 
 function injectIntoExistingTabs() {
@@ -67,6 +69,59 @@ function injectIntoExistingTabs() {
 // In-Memory Intelligent Quote Cache (30s TTL for zero-latency chart switching)
 const quoteCache = new Map();
 const CACHE_TTL_MS = 30000;
+
+// The access token is only ever sent to these servers, whatever the settings field says.
+const DEFAULT_BACKEND = "https://quantplus-ten.vercel.app";
+const ALLOWED_BACKENDS = [DEFAULT_BACKEND, "http://localhost:3000"];
+
+function backendFrom(stored) {
+  const url = String(stored || "").trim().replace(/\/$/, "");
+  return ALLOWED_BACKENDS.includes(url) ? url : DEFAULT_BACKEND;
+}
+
+// Auth: the website keeps the Supabase session in cookies (@supabase/ssr). The background worker
+// asks /api/extension/session with those cookies and stores the current access token; it asks
+// again shortly before the token expires, after a 401, and when a QuantsPulse tab opens.
+let refreshing = null;
+
+function refreshAuth() {
+  if (refreshing) return refreshing;
+  refreshing = (async () => {
+    try {
+      const { backendUrl } = await chrome.storage.local.get(["backendUrl"]);
+      const r = await fetch(`${backendFrom(backendUrl)}/api/extension/session`, { credentials: "include", cache: "no-store" });
+      const s = await r.json();
+      if (s?.authenticated && s.token) {
+        await chrome.storage.local.set({
+          qpAuthToken: s.token,
+          qpTokenExpiresAt: s.expiresAt ?? null,
+          qpUser: s.user ?? null,
+          qpAuthenticated: true,
+        });
+        return true;
+      }
+      if (s && s.authenticated === false) {
+        await chrome.storage.local.remove(["qpAuthToken", "qpTokenExpiresAt", "qpUser"]);
+        await chrome.storage.local.set({ qpAuthenticated: false });
+      }
+      return false;
+    } catch {
+      return null; // offline or server down: keep the current state
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
+
+async function currentToken() {
+  let { qpAuthToken, qpTokenExpiresAt } = await chrome.storage.local.get(["qpAuthToken", "qpTokenExpiresAt"]);
+  if (!qpAuthToken || (qpTokenExpiresAt && qpTokenExpiresAt * 1000 - Date.now() < 120000)) {
+    await refreshAuth();
+    ({ qpAuthToken } = await chrome.storage.local.get(["qpAuthToken"]));
+  }
+  return qpAuthToken || null;
+}
 
 // 2. Manage Detected Symbols across Active Tabs
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -109,18 +164,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    chrome.storage.local.get(["backendUrl", "qpAuthToken", "qpAuthenticated"], (res) => {
-      const baseUrl = (res.backendUrl || "https://quantplus-ten.vercel.app").replace(/\/$/, "");
-      const url = `${baseUrl}/api/extension/quote?symbol=${symbol}&exchange=${exchange}`;
-      const headers = {};
-      if (res.qpAuthToken) {
-        headers["Authorization"] = `Bearer ${res.qpAuthToken}`;
-      }
+    chrome.storage.local.get(["backendUrl"], async (res) => {
+      const baseUrl = backendFrom(res.backendUrl);
+      const url = `${baseUrl}/api/extension/quote?symbol=${symbol}&exchange=${encodeURIComponent(exchange)}`;
+      const authHeaders = (token) => (token ? { Authorization: `Bearer ${token}` } : {});
+      let headers = authHeaders(await currentToken());
 
-      const fetchWithRetry = (retriesLeft = 1) => {
+      const fetchWithRetry = (retriesLeft = 1, reauthed = false) => {
         return fetch(url, { headers })
           .then(async (r) => {
             if (r.status === 401) {
+              // The token may have just expired: get a fresh one from the cookie session once.
+              if (!reauthed && (await refreshAuth())) {
+                const { qpAuthToken } = await chrome.storage.local.get(["qpAuthToken"]);
+                headers = authHeaders(qpAuthToken);
+                return fetchWithRetry(retriesLeft, true);
+              }
               chrome.storage.local.set({ qpAuthenticated: false });
               const errData = await r.json().catch(() => ({}));
               throw { isAuthError: true, ...errData };
@@ -128,7 +187,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (!r.ok) {
               if (retriesLeft > 0 && r.status >= 500) {
                 await new Promise((resolve) => setTimeout(resolve, 350));
-                return fetchWithRetry(retriesLeft - 1);
+                return fetchWithRetry(retriesLeft - 1, reauthed);
               }
               throw new Error(`HTTP ${r.status}`);
             }
@@ -156,22 +215,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 
-  // 4. Handle Auth Status Synchronization Events from Web Platform
-  if (message?.type === "QP_AUTH_STATUS_CHANGED") {
-    // Notify all active tabs running detector.js
-    chrome.tabs.query({}, (tabs) => {
-      if (chrome.runtime.lastError || !tabs) return;
-      for (const tab of tabs) {
-        if (tab.id && tab.url && isSupportedUrl(tab.url)) {
-          chrome.tabs.sendMessage(tab.id, {
-            type: "QP_AUTH_UPDATE",
-            authenticated: Boolean(message.authenticated),
-            user: message.user || null,
-          }).catch(() => {});
-        }
-      }
-    });
-    sendResponse({ ok: true });
+  // 4. Re-check sign-in (QuantsPulse tab opened or focused, side panel "Check login status").
+  // Content scripts and the side panel follow qpAuthenticated through chrome.storage.onChanged.
+  if (message?.type === "QP_REFRESH_AUTH") {
+    refreshAuth().then((ok) => sendResponse({ ok: Boolean(ok) }));
     return true;
   }
   return false;

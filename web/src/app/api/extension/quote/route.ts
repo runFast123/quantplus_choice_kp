@@ -1,21 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
+import { extensionCors } from "@/lib/extension-cors";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getExtensionQuote } from "@/server/privileged/extension";
 
 export const dynamic = "force-dynamic";
 
+// Content scripts call this from the broker page's origin with a Bearer token, so any origin may
+// read it — but only the extension's own pages get cookie credentials.
 function getCorsHeaders(req: NextRequest) {
-  const origin = req.headers.get("origin");
-  return {
-    "Access-Control-Allow-Origin": origin || "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-    "Cache-Control": "private, no-cache, no-store, must-revalidate",
-    Vary: "Origin",
-  };
+  return extensionCors(req.headers.get("origin"), { anyOrigin: true });
 }
 
 export async function OPTIONS(req: NextRequest) {

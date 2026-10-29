@@ -117,6 +117,9 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `trade-plan.test.mts` | unit tests (`npm run test:unit`) |
 | `pine-script.ts` | `generateCleanPineScript(symbol, mode)`, type `PineStrategyMode` ("core" \| "swing") |
 | `pine-script.test.mts` | unit tests (`npm run test:unit`) |
+| `extension-signals.ts` | `toExtensionSignal(row)`, types `ExtensionSignal` (kind `buy`/`sell`/`exit`/`cover` from `payload.action`), `SignalRow` |
+| `extension-cors.ts` | `isExtensionOrigin(origin)`, `extensionCors(origin, {anyOrigin})` — credentials only for `chrome-extension://` origins |
+| `extension-signals.test.mts`, `extension-syntax.test.mts` | unit tests: signal mapping + CORS; extension syntax + download zip matches source with `/` paths |
 | `types.ts` | row types: `Plan`, `Entitlements`, `Membership`, `Profile`, `Quote`, `Candle`, `Holding`, `Portfolio`, `Watchlist`, `WatchlistItem`, `PriceAlert`, `Signal`, `NotificationRow` + enums |
 | `env.ts` | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SITE_URL` |
 | `supabase/server.ts` | `supabaseServer()` — RLS client for server components/actions |
@@ -160,9 +163,9 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/app/news` | News feed (`?scope=all&tone=&kind=news|filing&before=`) |
 | `/api/cron/news` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `ingestNews` |
 | `/api/cron/market-eod` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `syncEodPrices` (daily 17:00 & 20:00 IST) |
-| `/api/extension/session` | GET checks active session via Bearer JWT or cookie claims → `{ authenticated, user }` for Chrome Extension |
+| `/api/extension/session` | GET: Bearer JWT or cookie session → `{ authenticated, user }`; to a `chrome-extension://` origin only, also `{ token, expiresAt }` from the cookie session (how the extension signs in) |
 | `/api/extension/download` | GET direct download endpoint serving `quantspulse-terminal.zip` package |
-| `/api/extension/quote?symbol=` | CORS-enabled quantitative intelligence payload for the Chrome Extension side panel; gated by 401 authentication guard |
+| `/api/extension/quote?symbol=` | Quote, stored signals and trade plan for the Chrome Extension (Bearer; `*` CORS without credentials, credentials only for the extension); 401 when signed out |
 | `/admin` | platform console (404 unless platform admin) |
 
 ## 6. Components (web/src/components)
@@ -202,7 +205,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `.githooks/pre-commit` | runs the staged scan; enable with `git config core.hooksPath .githooks` |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `extension-api`, `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |
@@ -218,9 +221,10 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Path | What |
 |---|---|
 | `extension/manifest.json` | Manifest V3: `sidePanel`, permissions, broker matches, `all_frames: true` |
-| `extension/background.js` | Service worker: toolbar badge, active symbol storage, `FETCH_QUOTE_DATA` relay with 30s in-memory quote cache & retry backoff, `onStartup` sidePanel initializer |
-| `extension/content-scripts/detector.js` | Ticker detection ladder (`KNOWN_INDICES`), Shadow DOM On-Chart HUD, drag/layout customization |
+| `extension/background.js` | Service worker: owns auth (`refreshAuth()` → `/api/extension/session` with cookies, `currentToken()` renews before expiry, retry once on 401), `ALLOWED_BACKENDS` (prod + localhost only), `FETCH_QUOTE_DATA` (only quote path: side panel + HUD) with 30s cache, `QP_REFRESH_AUTH` message, toolbar badge |
+| `extension/content-scripts/auth-sync.js` | On the QuantsPulse site: asks the background worker to re-check sign-in (load, tab visible, every 5 min, `QP_REQUEST_AUTH_SYNC`); reads no storage or cookies |
+| `extension/content-scripts/detector.js` | Ticker detection ladder (`KNOWN_INDICES`), Shadow DOM On-Chart HUD (`signalMeta(kind)`), drag/layout customization; fetches only via the background worker |
 | `extension/sidepanel/sidepanel.html` | Side Panel UI: quote card, signal banner, trade plan roadmap, key levels, sentiment bar |
 | `extension/sidepanel/sidepanel.js` | Side Panel controller: multi-broker detection (`detectActiveTab`), direct tab polling, Pine Script generator, `/` & `Ctrl+K` shortcuts, 1-click level copy to clipboard |
-| `web/src/server/privileged/extension.ts` | Privileged API (`/api/extension/quote`): index aliases, trade plan calculation, sentiment audit |
+| `web/src/server/privileged/extension.ts` | Privileged API (`/api/extension/quote`): index aliases, stored signals only (no stand-ins), trade plan only while the latest signal is a long entry (from its entry/stop), sentiment audit |
 

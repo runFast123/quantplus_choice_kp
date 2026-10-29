@@ -122,7 +122,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                 <Icon size={14} aria-hidden />
                 <span>{tabItem.label}</span>
                 {tabItem.count != null && (
-                  <span className={`num text-[11px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-foreground/10 text-foreground" : "bg-muted text-muted-foreground"}`}>
+                  <span className={`num text-[11px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-foreground/10 text-foreground" : "bg-muted text-foreground"}`}>
                     {tabItem.count}
                   </span>
                 )}
@@ -256,7 +256,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                           <code className="num font-mono text-[12.5px] bg-muted/60 px-1.5 py-0.5 rounded">{t.name}</code>
                         </td>
                         <td className={td}>
-                          <span className="uppercase text-[10px] tracking-wider px-2 py-0.5 rounded font-bold bg-muted text-muted-foreground">
+                          <span className="uppercase text-[10px] tracking-wider px-2 py-0.5 rounded font-bold bg-muted text-foreground">
                             {t.category}
                           </span>
                         </td>

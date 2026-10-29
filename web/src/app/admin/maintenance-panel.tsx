@@ -37,7 +37,7 @@ export function MaintenanceOperations() {
             <div className="flex items-center gap-2 text-foreground font-semibold text-[14px]">
               <DatabaseIcon size={18} className="text-foreground shrink-0" aria-hidden />
               <span>EOD Market Price Ingestion Engine</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-foreground uppercase tracking-wider">
                 Yahoo Finance
               </span>
             </div>
