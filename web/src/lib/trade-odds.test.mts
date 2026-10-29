@@ -1,7 +1,7 @@
 // Unit tests for the trade odds engine: npm run test:unit
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { barIndex, historicalOdds, oddsVerdict, rng, simulateOdds, type SimOdds } from "./trade-odds";
+import { barIndex, historicalOdds, oddsVerdict, plainOdds, rng, simulateOdds, wholeCounts, type SimOdds } from "./trade-odds";
 import type { Candle } from "./types";
 
 // Daily candles from a list of [high, low, close] multipliers applied to the close before.
@@ -111,5 +111,28 @@ describe("oddsVerdict", () => {
     assert.ok(v.notes.some((n) => /hit neither/.test(n)));
     assert.ok(v.notes.some((n) => /Average result is −0.10R/.test(n)));
     assert.equal(oddsVerdict(sim(0, 0)).headline, "Undecided");
+  });
+});
+
+describe("plainOdds", () => {
+  const sim = (pTarget: number, pStop: number, rAtTarget = 1): SimOdds => ({
+    paths: 10000, horizon: 5, poolDays: 250, seed: 19, pTarget, pStop, pNeither: 1 - pTarget - pStop, avgR: 0, rAtTarget,
+  });
+  test("counts out of 100 always add up to 100", () => {
+    assert.deepEqual(wholeCounts([0.294, 0.451, 0.255]), [29, 45, 26]);
+    assert.deepEqual(wholeCounts([1 / 3, 1 / 3, 1 / 3]).reduce((a, b) => a + b, 0), 100);
+  });
+  test("plain words, same thresholds as the verdict", () => {
+    assert.equal(plainOdds(sim(0.294, 0.255)).headline, "About even");
+    assert.equal(plainOdds(sim(0.6, 0.4)).headline, "Leans toward the target");
+    assert.equal(plainOdds(sim(0.2, 0.7)).headline, "Clearly toward the stop");
+    assert.equal(plainOdds(sim(0, 0)).headline, "Too early to tell");
+  });
+  test("the pass mark moves with the target's distance", () => {
+    const p = plainOdds(sim(0.3, 0.6, 2));
+    assert.equal(p.needed, 33);
+    assert.equal(p.won, 33);
+    assert.equal(p.tone, "even");
+    assert.equal(plainOdds(sim(0.5, 0.5)).needed, 50);
   });
 });

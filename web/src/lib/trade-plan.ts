@@ -162,7 +162,7 @@ export function calculatePositionSize(input: PositionSizeInput): PositionSizeRes
 }
 
 /**
- * Classifies RSI (14) into actionable quantitative exhaustion and momentum zones.
+ * Puts RSI (14) into a plain-words zone: how hard the price has been pushed lately. Research, not a signal.
  */
 export function evaluateSentiment(rsi: number | null | undefined): SentimentResult | null {
   if (rsi == null || Number.isNaN(rsi)) return null;
@@ -170,8 +170,8 @@ export function evaluateSentiment(rsi: number | null | undefined): SentimentResu
   if (rsi >= 80) {
     return {
       zone: "sentiment_peak",
-      label: "Sentiment Peak",
-      sub: "Extreme overbought exhaustion (Node 3). Probability of pullback elevated.",
+      label: "Very stretched",
+      sub: "RSI 80 or more: the price rose very fast. After runs like this, a pause or pullback is common.",
       node: 3,
       tone: "loss",
     };
@@ -179,8 +179,8 @@ export function evaluateSentiment(rsi: number | null | undefined): SentimentResu
   if (rsi >= 70) {
     return {
       zone: "overbought",
-      label: "Overbought Zone",
-      sub: "RSI above 70 threshold (Node 2). Momentum mature, watch for reversal signals.",
+      label: "Stretched up",
+      sub: "RSI 70–79: the price has risen a lot recently.",
       node: 2,
       tone: "loss",
     };
@@ -188,8 +188,8 @@ export function evaluateSentiment(rsi: number | null | undefined): SentimentResu
   if (rsi >= 60) {
     return {
       zone: "momentum",
-      label: "Momentum Expansion",
-      sub: "Healthy upward trend continuation (Alpha Target Node 1).",
+      label: "Rising steadily",
+      sub: "RSI 60–69: buyers have had the upper hand lately.",
       node: 1,
       tone: "gain",
     };
@@ -197,16 +197,16 @@ export function evaluateSentiment(rsi: number | null | undefined): SentimentResu
   if (rsi <= 30) {
     return {
       zone: "oversold",
-      label: "Oversold Accumulation",
-      sub: "Deeply oversold (RSI ≤ 30). Mean-reversion setup potential.",
+      label: "Beaten down",
+      sub: "RSI 30 or less: the price fell hard recently. Sometimes it bounces, sometimes it keeps falling.",
       node: 0,
       tone: "gain",
     };
   }
   return {
     zone: "equilibrium",
-    label: "Equilibrium",
-    sub: "RSI in balanced range (30–60). Trend follows moving average alignment.",
+    label: "Calm",
+    sub: "RSI 30–60: no strong push up or down right now.",
     node: 0,
     tone: "neutral",
   };
@@ -356,22 +356,8 @@ export function auditStockSentiment(params: {
       ? Number((((params.lastPrice - entry) / entry) * 100).toFixed(2))
       : 0;
 
-  let actionGuidance =
-    "Stable position within equilibrium range (RSI 30–60). Trend follows moving averages.";
-
-  if (sentiment?.zone === "sentiment_peak") {
-    actionGuidance =
-      "Extreme overbought exhaustion (RSI ≥ 80). Elevated pullback probability; scale out partial gains and trail stop.";
-  } else if (sentiment?.zone === "overbought") {
-    actionGuidance =
-      "Momentum mature (RSI ≥ 70). Approaching exhaustion node; tighten stop protection.";
-  } else if (sentiment?.zone === "momentum") {
-    actionGuidance =
-      "Healthy upward trend expansion (RSI 60–69). Momentum continuation toward Targets 2 and 3.";
-  } else if (sentiment?.zone === "oversold") {
-    actionGuidance =
-      "Oversold accumulation (RSI ≤ 30). Potential mean-reversion setup; monitor for stabilization.";
-  }
+  // What the zone means, in plain words. Describes the past; never tells anyone what to do.
+  const actionGuidance = sentiment?.sub ?? "No RSI yet: it needs about three weeks of prices.";
 
   return {
     symbol: params.symbol,
@@ -479,16 +465,16 @@ export function deduplicateChartSignals(
 }
 
 /**
- * Classifies an RSI value into Alpha Level nomenclature
+ * Names how stretched the price was at an RSI reading, in plain words
  * conforming to user sentiment specifications (PDF §6 & QuantAnalysis protocol):
- * - RSI >= 80: "SENTIMENT PEAK"
- * - RSI >= 70: "NODE LEVEL 2"
- * - RSI < 70: "ALPHA TARGET"
+ * - RSI >= 80: "Very stretched"
+ * - RSI >= 70: "Stretched up"
+ * - RSI < 70: "Not stretched"
  */
 export function getAlphaLevel(rsi: number): string {
-  if (rsi >= 80) return "SENTIMENT PEAK";
-  if (rsi >= 70) return "NODE LEVEL 2";
-  return "ALPHA TARGET";
+  if (rsi >= 80) return "Very stretched";
+  if (rsi >= 70) return "Stretched up";
+  return "Not stretched";
 }
 
 export interface ExitLogEntry {

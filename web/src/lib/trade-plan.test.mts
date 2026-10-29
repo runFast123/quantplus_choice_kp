@@ -210,7 +210,7 @@ describe("evaluateSignalProgress", () => {
 });
 
 describe("auditStockSentiment", () => {
-  test("audits stock in Sentiment Peak (Node 3) with scale-out guidance", () => {
+  test("audits a very stretched stock (RSI 80+) in plain words, with no advice", () => {
     const res = auditStockSentiment({
       symbol: "TCS",
       entryBase: 3800,
@@ -222,11 +222,12 @@ describe("auditStockSentiment", () => {
     assert.equal(res.pnlPct, 10.53);
     assert.equal(res.sentiment?.zone, "sentiment_peak");
     assert.equal(res.sentiment?.node, 3);
-    assert.ok(res.actionGuidance.includes("Extreme overbought exhaustion"));
+    assert.ok(res.actionGuidance.includes("rose very fast"));
+    assert.ok(!/scale out|trail stop|tighten/i.test(res.actionGuidance));
     assert.equal(res.plan.isValid, true);
   });
 
-  test("audits stock in Momentum Expansion (Node 1)", () => {
+  test("audits a steadily rising stock (RSI 60–69)", () => {
     const res = auditStockSentiment({
       symbol: "INFY",
       entryBase: 1800,
@@ -236,10 +237,10 @@ describe("auditStockSentiment", () => {
 
     assert.equal(res.sentiment?.zone, "momentum");
     assert.equal(res.sentiment?.node, 1);
-    assert.ok(res.actionGuidance.includes("Healthy upward trend expansion"));
+    assert.ok(res.actionGuidance.includes("upper hand"));
   });
 
-  test("audits stock in Oversold Accumulation (Node 0)", () => {
+  test("audits a beaten-down stock (RSI 30 or less)", () => {
     const res = auditStockSentiment({
       symbol: "RELIANCE",
       entryBase: 1300,
@@ -249,7 +250,7 @@ describe("auditStockSentiment", () => {
 
     assert.equal(res.sentiment?.zone, "oversold");
     assert.equal(res.sentiment?.node, 0);
-    assert.ok(res.actionGuidance.includes("Oversold accumulation"));
+    assert.ok(res.actionGuidance.includes("fell hard"));
   });
 });
 
@@ -291,12 +292,12 @@ describe("deduplicateChartSignals", () => {
 
 describe("getAlphaLevel", () => {
   test("categorizes RSI thresholds into alpha levels correctly", () => {
-    assert.equal(getAlphaLevel(85), "SENTIMENT PEAK");
-    assert.equal(getAlphaLevel(80), "SENTIMENT PEAK");
-    assert.equal(getAlphaLevel(75), "NODE LEVEL 2");
-    assert.equal(getAlphaLevel(70), "NODE LEVEL 2");
-    assert.equal(getAlphaLevel(65), "ALPHA TARGET");
-    assert.equal(getAlphaLevel(50), "ALPHA TARGET");
+    assert.equal(getAlphaLevel(85), "Very stretched");
+    assert.equal(getAlphaLevel(80), "Very stretched");
+    assert.equal(getAlphaLevel(75), "Stretched up");
+    assert.equal(getAlphaLevel(70), "Stretched up");
+    assert.equal(getAlphaLevel(65), "Not stretched");
+    assert.equal(getAlphaLevel(50), "Not stretched");
   });
 });
 
@@ -320,7 +321,7 @@ describe("computeExitNodeHistory", () => {
     assert.equal(exits[0].date, "2026-01-05");
     assert.equal(exits[0].price, 104);
     assert.equal(exits[0].rsi, 65);
-    assert.equal(exits[0].alphaLabel, "ALPHA TARGET");
+    assert.equal(exits[0].alphaLabel, "Not stretched");
     assert.equal(exits[0].pnlPct, 4.0);
 
     // Exit 2
@@ -328,7 +329,7 @@ describe("computeExitNodeHistory", () => {
     assert.equal(exits[1].date, "2026-01-12");
     assert.equal(exits[1].price, 108);
     assert.equal(exits[1].rsi, 74);
-    assert.equal(exits[1].alphaLabel, "NODE LEVEL 2");
+    assert.equal(exits[1].alphaLabel, "Stretched up");
     assert.equal(exits[1].pnlPct, 8.0);
 
     // Exit 3
@@ -336,7 +337,7 @@ describe("computeExitNodeHistory", () => {
     assert.equal(exits[2].date, "2026-01-20");
     assert.equal(exits[2].price, 118);
     assert.equal(exits[2].rsi, 82);
-    assert.equal(exits[2].alphaLabel, "SENTIMENT PEAK");
+    assert.equal(exits[2].alphaLabel, "Very stretched");
     assert.equal(exits[2].pnlPct, 18.0);
   });
 

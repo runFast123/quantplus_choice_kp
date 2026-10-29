@@ -65,7 +65,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-border text-[11.5px]">
             {/* Database Pooler status */}
             <span className="inline-flex items-center gap-1.5 rounded-full bg-gain/10 border border-gain/20 px-2 py-0.5 text-gain font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-gain animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-gain" />
               DB Pooler Online
             </span>
             {/* NSE Clock */}

@@ -371,12 +371,12 @@ export function TradePlan({
         </div>
       </div>
 
-      {/* Sentiment Exhaustion Bar (Quantum Audit Node Logic) */}
+      {/* How stretched the price is (RSI zone, in plain words) */}
       {sentiment && (
         <div className="flex flex-col gap-1.5 rounded-md border border-border bg-card/60 p-3">
           <div className="flex items-center justify-between text-[12px]">
             <div className="flex items-center gap-2">
-              <span className="eyebrow">Sentiment Node</span>
+              <span className="eyebrow">Price mood</span>
               <span
                 className={clsx(
                   "rounded px-1.5 py-0.5 text-[11px] font-medium uppercase",

@@ -173,7 +173,7 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
 
   // Sentiment Evaluation & Alpha Tier
   const sentimentMeta = evaluateSentiment(q.rsi);
-  const alphaTier = q.rsi != null ? getAlphaLevel(q.rsi) : "ALPHA TARGET";
+  const alphaTier = q.rsi != null ? getAlphaLevel(q.rsi) : "No RSI yet";
   const sentiment = {
     rsi: q.rsi,
     zone: sentimentMeta?.label ?? "Equilibrium",

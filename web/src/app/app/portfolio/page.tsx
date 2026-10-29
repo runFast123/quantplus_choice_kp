@@ -237,8 +237,8 @@ export default async function PortfolioPage() {
 
       {quantumStocks.length > 0 ? (
         <Panel
-          title="Quantum Sentiment Audit"
-          meta="Exhaustion nodes, base deltas & systematic action guidance"
+          title="How stretched are your stocks?"
+          meta="RSI in plain words: which holdings ran up fast, which fell hard"
         >
           <QuantumAudit stocks={quantumStocks} defaultSource="holding" />
         </Panel>

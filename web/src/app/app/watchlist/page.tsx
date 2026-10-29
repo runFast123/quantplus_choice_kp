@@ -193,8 +193,8 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
 
       {radarQuantumStocks.length > 0 ? (
         <Panel
-          title="Radar Sentiment Audit"
-          meta="Systematic RSI exhaustion nodes & momentum analysis"
+          title="How stretched is your radar?"
+          meta="RSI in plain words: which stocks ran up fast, which fell hard"
         >
           <QuantumAudit stocks={radarQuantumStocks} defaultSource="radar" />
         </Panel>

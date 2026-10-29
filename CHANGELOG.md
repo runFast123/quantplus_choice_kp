@@ -5,6 +5,27 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — Plain words, modern visuals (`web/`)
+Why: the odds panel and the RSI "audit" were accurate but read like a quant report; a beginner should get each one in
+five seconds. Standing rule from now on: lead with one plain answer, put the method behind a fold.
+- **Odds panel (`components/charts/trade-odds.tsx`)**: now "What usually happens next?" — one headline ("About even",
+  "Leans toward the stop"…), 100 dots for 100 replays (target / neither / stop, with ▲▼• counts and the actual prices),
+  a pass-mark bar ("the target won 49 of 100, it needs 57 to break even"), past signals as a ▲▼• strip, and pill
+  controls for 5/10/20 days and the target price. R, seed, pool size and the both-sides rule moved under "How is this
+  worked out?". Dots fill in once (`.waffle-cell` in `globals.css`, off under reduced motion).
+- **`lib/trade-odds.ts`**: `plainOdds(sim)` (same thresholds as `oddsVerdict`, counts out of 100) and `wholeCounts`
+  (largest remainder, always sums to 100); unit tests added.
+- **RSI zones in plain words (`lib/trade-plan.ts`)**: "Sentiment Peak / Overbought Zone / Momentum Expansion / Oversold
+  Accumulation / Equilibrium" → "Very stretched / Stretched up / Rising steadily / Beaten down / Calm", with one-line
+  meanings. Shows on Portfolio, Market Radar, Alerts, the trade plan and the extension API.
+- **Fixed — advice in copy**: the audit's guidance said "scale out partial gains and trail stop" / "tighten stop
+  protection" (AGENTS rule 13). It now only describes what RSI says about the recent past; a test guards it.
+- **"How stretched are your stocks?" (`components/market/quantum-audit.tsx`)**, was "Quantum Sentiment Audit": no
+  "Node 0–3" jargon, filter chips with counts, an RSI gauge ("Fell hard … Ran up fast"), "Show stop and targets"
+  (`aria-expanded`), and a note when the price is already below the stop. Radar cards no longer show a "Delta vs Base"
+  that was always 0% (the base was today's price).
+- Removed looping `animate-pulse` from the warning badge and the admin status dot.
+
 ### Added — Odds before the trade (`web/`; ADR-032)
 - **`components/charts/trade-odds.tsx` + `lib/trade-odds.ts`**: with a signal's trade view open, the chart shows one verdict
   ("Close to a coin flip", "Leans toward the stop"…), 10,000 replays of the next 5/10/20 sessions drawn from the stock's

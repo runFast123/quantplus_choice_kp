@@ -38,7 +38,7 @@ test.describe("price chart trade view @chart", () => {
     await expect(proPage.getByTestId("trade-zone-risk")).toHaveCount(0);
   });
 
-  test("the trade view shows the odds: a verdict, the replays and the rule's history", async ({ proPage }) => {
+  test("the trade view shows the odds in plain words: a verdict, 100 dots and the signal's past", async ({ proPage }, info) => {
     await proPage.goto("/app/markets/TCS");
     await proPage.waitForLoadState("networkidle");
     await proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" }).getByRole("radio", { name: /KK 20d Breakout/i }).click();
@@ -46,19 +46,25 @@ test.describe("price chart trade view @chart", () => {
 
     const odds = proPage.getByTestId("trade-odds");
     await expect(odds).toBeVisible();
-    const verdict = odds.getByTestId("odds-verdict");
-    await expect(verdict).toHaveText(/coin flip|break-even|toward the (target|stop)|Undecided/);
-    await expect(odds.getByText(/10,000 replays/)).toBeVisible();
-    await expect(odds.getByRole("img", { name: /^Simulation: target first/ })).toBeVisible();
-    await expect(odds.getByTestId("odds-history")).toContainText(/This rule on TCS before|No earlier entries/);
+    await expect(odds.getByTestId("odds-verdict")).toHaveText(/About even|toward the (target|stop)|Too early to tell/);
+    const dots = odds.getByRole("img", { name: /^Out of 100 replays: \d+ reached the target/ });
+    await expect(dots).toBeVisible();
+    await expect(odds.getByText(/still open after 5 days/)).toBeVisible();
+    await expect(odds.getByTestId("odds-history")).toContainText(/Past signals on TCS|no track record yet/);
     await expect(odds).toContainText("A simulation, not a prediction");
 
-    // A longer horizon re-runs the replays.
-    const before = await odds.getByRole("img", { name: /^Simulation:/ }).getAttribute("aria-label");
-    await odds.getByRole("radio", { name: "20 sessions" }).click();
-    await expect(odds.getByRole("radio", { name: "20 sessions" })).toHaveAttribute("aria-checked", "true");
-    await expect(odds.getByText(/of the next 20 sessions/)).toBeVisible();
-    expect(await odds.getByRole("img", { name: /^Simulation:/ }).getAttribute("aria-label")).not.toBe(before);
+    // The method is there for whoever wants it, folded away by default.
+    await expect(odds.getByText(/replayed 10,000 times/)).toBeHidden();
+    await odds.getByText("How is this worked out?").click();
+    await expect(odds.getByText(/replayed 10,000 times/)).toBeVisible();
+    await odds.screenshot({ path: info.outputPath("odds.png") });
+
+    // Looking further ahead re-runs the replays.
+    const before = await dots.getAttribute("aria-label");
+    await odds.getByRole("radio", { name: "20 days" }).click();
+    await expect(odds.getByRole("radio", { name: "20 days" })).toHaveAttribute("aria-checked", "true");
+    await expect(odds.getByText(/still open after 20 days/)).toBeVisible();
+    expect(await odds.getByRole("img", { name: /^Out of 100 replays/ }).getAttribute("aria-label")).not.toBe(before);
   });
 
   test("signals since the last visit are marked new", async ({ proPage }) => {

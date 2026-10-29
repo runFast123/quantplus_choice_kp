@@ -188,6 +188,75 @@ export function historicalOdds(
   return out;
 }
 
+export type OddsTone = "target" | "stop" | "even" | "open";
+
+export interface PlainOdds {
+  tone: OddsTone;
+  headline: string;
+  sentence: string;
+  /** The replays as whole counts out of 100 (largest remainder, so they always add to 100). */
+  of100: { target: number; neither: number; stop: number };
+  /** Of every 100 replays that hit a side: how many the target won, and how many it needs to break even. */
+  won: number | null;
+  needed: number;
+}
+
+/** Whole counts out of `total` that add up exactly (largest remainder). */
+export function wholeCounts(shares: number[], total = 100): number[] {
+  const raw = shares.map((s) => s * total);
+  const out = raw.map(Math.floor);
+  let left = total - out.reduce((a, b) => a + b, 0);
+  const order = raw.map((r, i) => [r - Math.floor(r), i] as const).sort((a, b) => b[0] - a[0]);
+  for (const [, i] of order) {
+    if (left <= 0) break;
+    out[i]++;
+    left--;
+  }
+  return out;
+}
+
+/**
+ * The same verdict as oddsVerdict, in words for someone new to trading: a short headline, one
+ * sentence, and the numbers as counts out of 100 instead of percentages and R.
+ */
+export function plainOdds(sim: SimOdds): PlainOdds {
+  const [target, neither, stop] = wholeCounts([sim.pTarget, sim.pNeither, sim.pStop]);
+  const decided = sim.pTarget + sim.pStop;
+  const needed = Math.round(100 / (1 + sim.rAtTarget));
+  const base = { of100: { target, neither, stop }, needed };
+  if (decided <= 0) {
+    return {
+      ...base,
+      tone: "open",
+      headline: "Too early to tell",
+      sentence: `In ${sim.horizon} days the price almost never reached the target or the stop.`,
+      won: null,
+    };
+  }
+  const share = sim.pTarget / decided;
+  const gap = share - 1 / (1 + sim.rAtTarget);
+  const won = Math.round(share * 100);
+  if (Math.abs(gap) < 0.05) {
+    return { ...base, won, tone: "even", headline: "About even", sentence: "Over many trades like this, the wins and the losses would roughly cancel out." };
+  }
+  const strong = Math.abs(gap) >= 0.15;
+  return gap > 0
+    ? {
+        ...base,
+        won,
+        tone: "target",
+        headline: strong ? "Clearly toward the target" : "Leans toward the target",
+        sentence: `The target came first ${strong ? "well" : "a little"} more often than it needs to.`,
+      }
+    : {
+        ...base,
+        won,
+        tone: "stop",
+        headline: strong ? "Clearly toward the stop" : "Leans toward the stop",
+        sentence: `The stop came first ${strong ? "well" : "a little"} more often than the trade can afford.`,
+      };
+}
+
 /**
  * One line, on the Time Machine's rule: of the paths that hit a side, the target's share minus
  * the share that breaks even at its R (1 / (1 + R)). Under 5 points is a coin flip / break-even,
