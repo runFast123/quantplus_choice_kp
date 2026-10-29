@@ -76,6 +76,7 @@ test.describe("authentication", () => {
   });
 
   test("sign-in never redirects off-site, whatever `next` says", async ({ browser }) => {
+    test.slow(); // four full sign-ins: ~32 s against production, too close to the 45 s default
     const u = await oneOffUser("redirect", "basic");
     for (const evil of ["//evil.example", String.raw`/\evil.example`, "/\t/evil.example", "https://evil.example"]) {
       const ctx = await browser.newContext();

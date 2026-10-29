@@ -5,6 +5,10 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — Flaky off-site redirect e2e test (`web/e2e/auth.spec.ts`)
+- "sign-in never redirects off-site" does four full sign-ins (~32 s against production) and sometimes hit the 45 s default
+  timeout; it's now `test.slow()`. The redirect assertions are unchanged.
+
 ### Fixed — Chrome extension 1.1.0: sign-in, honest signals and plans, token safety (`extension/`, `web/`)
 - **Sign-in sync never worked (`extension/background.js`, `content-scripts/auth-sync.js`, `web/src/app/api/extension/session/route.ts`)**:
   `auth-sync.js` looked for the Supabase session in `localStorage`, but the site keeps it in cookies (`@supabase/ssr`), and a
