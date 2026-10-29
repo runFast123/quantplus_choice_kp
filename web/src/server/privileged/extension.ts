@@ -1,7 +1,7 @@
 import "server-only";
 
 import { calculateTradePlan, evaluateSentiment, getAlphaLevel } from "@/lib/trade-plan";
-import { toExtensionSignal, type ExtensionSignal } from "@/lib/extension-signals";
+import { describeSignal, toExtensionSignal, type ExtensionSignal } from "@/lib/extension-signals";
 import type { Quote } from "@/lib/types";
 import { normalizeQuote } from "../market-data";
 import { serviceRole } from "./service-role";
@@ -24,8 +24,11 @@ export interface ExtensionQuotePayload {
   sma20: number | null;
   sma50: number | null;
   sma200: number | null;
-  latestSignal: ExtensionSignal | null;
+  /** The latest stored signal, with what it means and how far price has moved since it fired. */
+  latestSignal: (ExtensionSignal & { rule: string; sessionsSince: number | null; moveSincePct: number | null }) | null;
   recentSignals?: ExtensionSignal[];
+  /** Daily closes for the last ~3 months (oldest first), for the side panel's price line. */
+  history: Array<{ date: string; close: number }>;
   tradePlan: {
     entry: number;
     stop: number;
@@ -104,7 +107,7 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(20),
     db
       .from("market_candles")
-      .select("close")
+      .select("ts, close")
       .eq("symbol", symbol)
       .eq("interval", "1d")
       .order("ts", { ascending: false })
@@ -121,7 +124,8 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
 
   const q = normalizeQuote(quoteData as Quote);
   const signals = signalsRes.data ?? [];
-  const closes = (candlesRes.data ?? []).map((c) => Number(c.close));
+  const candles = (candlesRes.data ?? []).map((c) => ({ date: String(c.ts).slice(0, 10), close: Number(c.close) }));
+  const closes = candles.map((c) => c.close);
 
   // Compute Moving Averages
   const calcSma = (period: number) => {
@@ -136,7 +140,22 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
   // Latest signals
   // Only stored signals from the published strategies — never a stand-in when a stock has none.
   const recentSignals = signals.slice(0, 6).map(toExtensionSignal);
-  const latestSignal = recentSignals[0] ?? null;
+  const latestRow = signals[0];
+  const latestSignal = recentSignals[0]
+    ? (() => {
+        const sig = recentSignals[0];
+        const day = sig.date.slice(0, 10);
+        // Sessions since it fired, counted on the candles we have (null if older than them).
+        const inRange = candles.length > 0 && candles[candles.length - 1].date <= day;
+        return {
+          ...sig,
+          rule: describeSignal(latestRow),
+          sessionsSince: inRange ? candles.filter((c) => c.date > day).length : null,
+          moveSincePct:
+            sig.price && q.last_price ? Number((((q.last_price - sig.price) / sig.price) * 100).toFixed(2)) : null,
+        };
+      })()
+    : null;
 
   // The plan follows the latest signal only while it is an open long entry, from that signal's own
   // entry and stop. After an exit, a short entry or a cover there is no long plan to show.
@@ -184,6 +203,7 @@ export async function getExtensionQuote(rawSymbol: string, exchange = "NSE"): Pr
     sma200,
     latestSignal,
     recentSignals,
+    history: candles.slice(0, 63).reverse(),
     tradePlan,
     sentiment,
     quantPulseUrl: `${appBase}/app/markets/${encodeURIComponent(q.symbol)}`,

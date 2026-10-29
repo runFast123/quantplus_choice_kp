@@ -51,7 +51,21 @@ test.describe("extension API", () => {
         expect(STRATEGIES, `${symbol} strategy`).toContain(sig.strategy);
         if (sig.kind === "exit" || sig.kind === "cover") expect(sig.stop, `${symbol} exit has no stop`).toBeNull();
       }
-      expect(q.latestSignal ?? null).toEqual(q.recentSignals?.[0] ?? null);
+      if (q.latestSignal) {
+        // The panel's story: the stored signal plus what the rule saw and how far price has moved since.
+        const { rule, sessionsSince, moveSincePct, ...stored } = q.latestSignal;
+        expect(stored).toEqual(q.recentSignals[0]);
+        expect(typeof rule, `${symbol} rule`).toBe("string");
+        expect(sessionsSince === null || sessionsSince >= 0).toBe(true);
+        expect(moveSincePct === null || typeof moveSincePct === "number").toBe(true);
+      } else {
+        expect(q.recentSignals ?? []).toEqual([]);
+      }
+      // ~3 months of closes, oldest first, for the price line.
+      expect(q.history.length, `${symbol} history`).toBeGreaterThan(20);
+      expect(q.history.length).toBeLessThanOrEqual(63);
+      const dates = q.history.map((h: { date: string }) => h.date);
+      expect([...dates].sort()).toEqual(dates);
       if (q.tradePlan) {
         expect(q.latestSignal?.kind, `${symbol} plan needs an open long`).toBe("buy");
         expect(q.tradePlan.entry).toBe(q.latestSignal.price);

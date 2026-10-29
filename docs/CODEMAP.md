@@ -117,7 +117,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `trade-plan.test.mts` | unit tests (`npm run test:unit`) |
 | `pine-script.ts` | `generateCleanPineScript(symbol, mode)`, type `PineStrategyMode` ("core" \| "swing") |
 | `pine-script.test.mts` | unit tests (`npm run test:unit`) |
-| `extension-signals.ts` | `toExtensionSignal(row)`, types `ExtensionSignal` (kind `buy`/`sell`/`exit`/`cover` from `payload.action`), `SignalRow` |
+| `extension-signals.ts` | `toExtensionSignal(row)`, `describeSignal(row)` (one-sentence rule per strategy × action, KK result), types `ExtensionSignal` (kind `buy`/`sell`/`exit`/`cover` from `payload.action`), `SignalRow` |
 | `extension-cors.ts` | `isExtensionOrigin(origin)`, `extensionCors(origin, {anyOrigin})` — credentials only for `chrome-extension://` origins |
 | `extension-signals.test.mts`, `extension-syntax.test.mts` | unit tests: signal mapping + CORS; extension syntax + download zip matches source with `/` paths |
 | `types.ts` | row types: `Plan`, `Entitlements`, `Membership`, `Profile`, `Quote`, `Candle`, `Holding`, `Portfolio`, `Watchlist`, `WatchlistItem`, `PriceAlert`, `Signal`, `NotificationRow` + enums |
@@ -165,7 +165,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/api/cron/market-eod` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `syncEodPrices` (daily 17:00 & 20:00 IST) |
 | `/api/extension/session` | GET: Bearer JWT or cookie session → `{ authenticated, user }`; to a `chrome-extension://` origin only, also `{ token, expiresAt }` from the cookie session (how the extension signs in) |
 | `/api/extension/download` | GET direct download endpoint serving `quantspulse-terminal.zip` package |
-| `/api/extension/quote?symbol=` | Quote, stored signals and trade plan for the Chrome Extension (Bearer; `*` CORS without credentials, credentials only for the extension); 401 when signed out |
+| `/api/extension/quote?symbol=` | Quote, stored signals (`latestSignal` + `rule`, `sessionsSince`, `moveSincePct`), `history` (≤63 daily closes, oldest first) and trade plan for the Chrome Extension (Bearer; `*` CORS without credentials, credentials only for the extension); 401 when signed out |
 | `/admin` | platform console (404 unless platform admin) |
 
 ## 6. Components (web/src/components)
@@ -224,7 +224,9 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `extension/background.js` | Service worker: owns auth (`refreshAuth()` → `/api/extension/session` with cookies, `currentToken()` renews before expiry, retry once on 401), `ALLOWED_BACKENDS` (prod + localhost only), `FETCH_QUOTE_DATA` (only quote path: side panel + HUD) with 30s cache, `QP_REFRESH_AUTH` message, toolbar badge |
 | `extension/content-scripts/auth-sync.js` | On the QuantsPulse site: asks the background worker to re-check sign-in (load, tab visible, every 5 min, `QP_REQUEST_AUTH_SYNC`); reads no storage or cookies |
 | `extension/content-scripts/detector.js` | Ticker detection ladder (`KNOWN_INDICES`), Shadow DOM On-Chart HUD (`signalMeta(kind)`), drag/layout customization; fetches only via the background worker |
-| `extension/sidepanel/sidepanel.html` | Side Panel UI: quote card, signal banner, trade plan roadmap, key levels, sentiment bar |
-| `extension/sidepanel/sidepanel.js` | Side Panel controller: multi-broker detection (`detectActiveTab`), direct tab polling, Pine Script generator, `/` & `Ctrl+K` shortcuts, 1-click level copy to clipboard |
+| `extension/sidepanel/sidepanel.html` | Side Panel UI: Phosphor icon sprite, sticky quote with 3-month price line, tabs Signal / Plan / Levels, view states (loading placeholders, empty, locked, error), toast |
+| `extension/sidepanel/sidepanel.css` | Zen Linen tokens from MASTER.md (ink + mark gain/loss, light/dark), type scale 11/12/13/16/22, motion 150–200 ms, reduced-motion off-switch |
+| `extension/options/options.{html,css,js}` | Options page (`options_ui`): overlay on/off + style, server (prod or localhost only; switching clears the token) |
+| `extension/sidepanel/sidepanel.js` | Side Panel controller: `showView`, `render` → `renderSpark` (hover/arrow-key reading), `renderSignal` (story + timeline), `renderPlan` (price ladder), `renderLevels` (distance bars); `selectTab` (remembered, arrow keys); click-to-copy via `data-copy` + `toast`; multi-broker detection (`detectActiveTab`), Pine Script generator, `/` & `Ctrl+K` |
 | `web/src/server/privileged/extension.ts` | Privileged API (`/api/extension/quote`): index aliases, stored signals only (no stand-ins), trade plan only while the latest signal is a long entry (from its entry/stop), sentiment audit |
 

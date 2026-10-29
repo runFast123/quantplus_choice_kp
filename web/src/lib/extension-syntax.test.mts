@@ -22,6 +22,7 @@ describe("Chrome Extension Syntax & Integrity", () => {
     "sidepanel/sidepanel.js",
     "content-scripts/detector.js",
     "content-scripts/auth-sync.js",
+    "options/options.js",
   ];
 
   for (const relPath of jsFiles) {
@@ -52,7 +53,7 @@ describe("Chrome Extension Syntax & Integrity", () => {
     }
     // Backslash names unpack as flat files on macOS/Linux, and the extension won't load.
     for (const name of entries.keys()) assert.ok(!name.includes("\\"), `zip entry uses a backslash: ${name}`);
-    for (const rel of ["manifest.json", ...jsFiles, "sidepanel/sidepanel.html", "sidepanel/sidepanel.css"]) {
+    for (const rel of ["manifest.json", ...jsFiles, "sidepanel/sidepanel.html", "sidepanel/sidepanel.css", "options/options.html", "options/options.css"]) {
       const packed = entries.get(rel);
       assert.ok(packed, `zip is missing ${rel}`);
       // Compare text with LF endings: git checks these files out as CRLF on Windows (core.autocrlf).

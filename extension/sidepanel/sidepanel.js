@@ -5,29 +5,39 @@
   let backendUrl = "https://quantplus-ten.vercel.app";
 
   // Elements
-  const elEmpty = document.getElementById("empty-state");
-  const elLoading = document.getElementById("loading-state");
-  const elContent = document.getElementById("content-panel");
-  const elSettings = document.getElementById("settings-panel");
-  const elPlatformBadge = document.getElementById("platform-badge");
+  const $ = (id) => document.getElementById(id);
+  const elPlatformBadge = $("platform-badge");
+  const inputSymbol = $("symbol-input");
+  const formSymbol = $("symbol-form");
+  const btnRefresh = $("btn-refresh");
+  const btnCopyPine = $("btn-copy-pine");
+  const elUserAuthBadge = $("user-auth-badge");
+  const elUserAuthEmail = $("user-auth-email");
+  const btnAuthCheck = $("btn-auth-check");
+  const btnAuthLogin = $("btn-auth-login");
+  const btnAuthSignup = $("btn-auth-signup");
 
-  const inputSymbol = document.getElementById("symbol-input");
-  const formSymbol = document.getElementById("symbol-form");
-  const inputBackend = document.getElementById("backend-url");
-  const btnSaveSettings = document.getElementById("btn-save-settings");
-  const btnSettingsToggle = document.getElementById("btn-settings-toggle");
-  const btnRefresh = document.getElementById("btn-refresh");
-  const toggleOverlay = document.getElementById("toggle-overlay");
-  const selectHudMode = document.getElementById("select-hud-mode");
-  const btnCopyPine = document.getElementById("btn-copy-pine");
+  // One view at a time: loading | empty | locked | error | content
+  const VIEWS = {
+    loading: $("state-loading"),
+    empty: $("state-empty"),
+    locked: $("state-locked"),
+    error: $("state-error"),
+    content: $("content"),
+  };
+  let view = "empty";
+  function showView(name) {
+    view = name;
+    for (const [key, el] of Object.entries(VIEWS)) el.classList.toggle("hidden", key !== name);
+  }
 
-  // Auth Gate Elements
-  const elAuthGate = document.getElementById("auth-gate");
-  const elUserAuthBadge = document.getElementById("user-auth-badge");
-  const elUserAuthEmail = document.getElementById("user-auth-email");
-  const btnAuthCheck = document.getElementById("btn-auth-check");
-  const btnAuthLogin = document.getElementById("btn-auth-login");
-  const btnAuthSignup = document.getElementById("btn-auth-signup");
+  const sendMessage = (msg) =>
+    new Promise((resolve) =>
+      chrome.runtime.sendMessage(msg, (resp) => {
+        void chrome.runtime.lastError;
+        resolve(resp);
+      }),
+    );
 
   let qpUser = null;
   let qpAuthenticated = false;
@@ -35,23 +45,16 @@
   function updateAuthUI(isAuthed, user) {
     qpAuthenticated = Boolean(isAuthed);
     qpUser = user || null;
+    btnAuthLogin.href = `${backendUrl}/login`;
+    btnAuthSignup.href = `${backendUrl}/signup`;
 
-    if (btnAuthLogin) btnAuthLogin.href = `${backendUrl}/login`;
-    if (btnAuthSignup) btnAuthSignup.href = `${backendUrl}/signup`;
-
-    if (isAuthed && user) {
-      if (elAuthGate) elAuthGate.classList.add("hidden");
-      if (elUserAuthBadge) {
-        elUserAuthBadge.classList.remove("hidden");
-        if (elUserAuthEmail) elUserAuthEmail.textContent = user.email ? user.email.split("@")[0] : "Active";
-      }
+    if (qpAuthenticated) {
+      elUserAuthBadge.classList.remove("hidden");
+      elUserAuthEmail.textContent = qpUser?.email ? qpUser.email.split("@")[0] : "Signed in";
+      if (view === "locked") showView("empty");
     } else {
-      if (elUserAuthBadge) elUserAuthBadge.classList.add("hidden");
-      if (!currentSymbol) {
-        if (elAuthGate) elAuthGate.classList.remove("hidden");
-        if (elEmpty) elEmpty.classList.add("hidden");
-        if (elContent) elContent.classList.add("hidden");
-      }
+      elUserAuthBadge.classList.add("hidden");
+      if (!currentSymbol) showView("locked");
     }
   }
 
@@ -101,62 +104,25 @@
     }
   }
 
-  // Load preferences and then inspect active tab
-  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "showChartOverlay", "qpHudPrefs", "qpAuthenticated", "qpUser"], async (res) => {
-    backendUrl = allowedBackend(res.backendUrl);
-    inputBackend.value = backendUrl;
-    qpUser = res.qpUser || null;
-    qpAuthenticated = Boolean(res.qpAuthenticated);
-    updateAuthUI(qpAuthenticated, qpUser);
 
-    if (res.platform) {
-      elPlatformBadge.textContent = res.platform;
-    }
-    if (toggleOverlay) {
-      toggleOverlay.checked = res.showChartOverlay !== false;
-    }
-    if (selectHudMode && res.qpHudPrefs?.displayMode) {
-      selectHudMode.value = res.qpHudPrefs.displayMode;
-    }
-    if (res.activeSymbol) {
-      loadSymbol(res.activeSymbol);
-    }
+  // Load preferences and then inspect active tab
+  chrome.storage.local.get(["backendUrl", "activeSymbol", "platform", "qpAuthenticated", "qpUser", "qpPanelTab"], (res) => {
+    backendUrl = allowedBackend(res.backendUrl);
+    selectTab(res.qpPanelTab || "signal");
+    updateAuthUI(Boolean(res.qpAuthenticated), res.qpUser || null);
+    if (res.platform) elPlatformBadge.textContent = res.platform;
+    if (res.activeSymbol) loadSymbol(res.activeSymbol);
     // Proactively detect the current active tab immediately upon opening
     detectActiveTab();
   });
 
-  if (toggleOverlay) {
-    toggleOverlay.addEventListener("change", (e) => {
-      chrome.storage.local.set({
-        showChartOverlay: e.target.checked,
-        qpHudPrefs: { isHidden: !e.target.checked }
-      });
-    });
-  }
-
-  if (selectHudMode) {
-    selectHudMode.addEventListener("change", (e) => {
-      const mode = e.target.value;
-      chrome.storage.local.get(["qpHudPrefs"], (res) => {
-        const p = Object.assign({}, res.qpHudPrefs || {}, { displayMode: mode, isHidden: false });
-        chrome.storage.local.set({ qpHudPrefs: p, showChartOverlay: true });
-      });
-    });
-  }
-
-  if (btnCopyPine) {
-    btnCopyPine.addEventListener("click", () => {
-      const code = generateCleanPineScript(currentSymbol || "NSE Equities");
-      navigator.clipboard.writeText(code).then(() => {
-        const span = btnCopyPine.querySelector("span");
-        const originalText = span ? span.textContent : "";
-        if (span) span.textContent = "✓ Clean Pine Script Copied to Clipboard!";
-        setTimeout(() => {
-          if (span) span.textContent = originalText;
-        }, 2500);
-      });
-    });
-  }
+  btnCopyPine.addEventListener("click", () => {
+    const code = generateCleanPineScript(currentSymbol || "NSE Equities");
+    navigator.clipboard.writeText(code).then(
+      () => toast("Pine Script copied"),
+      () => toast("Couldn't copy"),
+    );
+  });
 
   function generateCleanPineScript(symbol) {
     const sym = symbol || "NSE Equities";
@@ -297,25 +263,8 @@ if barstate.islast
 `;
   }
 
-  // Settings toggle & save
-  btnSettingsToggle.addEventListener("click", () => {
-    elSettings.classList.toggle("hidden");
-  });
-
-  btnSaveSettings.addEventListener("click", () => {
-    const val = inputBackend.value.trim().replace(/\/$/, "");
-    // Your sign-in token goes to this server, so only QuantsPulse itself or local development.
-    if (!ALLOWED_BACKENDS.includes(val)) {
-      inputBackend.setCustomValidity(`Use ${ALLOWED_BACKENDS.join(" or ")}.`);
-      inputBackend.reportValidity();
-      return;
-    }
-    inputBackend.setCustomValidity("");
-    backendUrl = val;
-    chrome.storage.local.set({ backendUrl });
-    elSettings.classList.add("hidden");
-    if (currentSymbol) loadSymbol(currentSymbol);
-  });
+  // Settings (server, on-chart overlay) live on the extension's options page
+  $("btn-settings").addEventListener("click", () => chrome.runtime.openOptionsPage());
 
   // Manual search submit
   formSymbol.addEventListener("submit", (e) => {
@@ -998,8 +947,9 @@ if barstate.islast
     return null;
   }
 
-  // Main fetch & render function with in-flight guard and smooth updating
+  // Main fetch & render function with in-flight guard
   let isLoading = false;
+  let latestRenderedData = null;
 
   async function loadSymbol(sym) {
     if (!sym) return;
@@ -1008,332 +958,572 @@ if barstate.islast
     const isNewSymbol = sym !== currentSymbol;
     currentSymbol = sym;
     inputSymbol.value = sym;
-
-    if (isNewSymbol) {
-      elEmpty.classList.add("hidden");
-      elContent.classList.add("hidden");
-      elLoading.classList.remove("hidden");
-    }
+    // A refresh of the symbol on screen keeps it visible instead of flashing the placeholder.
+    if (isNewSymbol || view !== "content") showView("loading");
     isLoading = true;
 
     try {
       // The background worker owns the token (renews it from the website session) and the cache.
-      const resp = await new Promise((r) =>
-        chrome.runtime.sendMessage({ type: "FETCH_QUOTE_DATA", symbol: sym, exchange: "NSE" }, (x) => {
-          void chrome.runtime.lastError;
-          r(x);
-        }),
-      );
+      const resp = await sendMessage({ type: "FETCH_QUOTE_DATA", symbol: sym, exchange: "NSE" });
       if (resp?.isAuthError) {
         updateAuthUI(false, null);
-        elEmpty.classList.add("hidden");
-        elContent.classList.add("hidden");
-        elLoading.classList.add("hidden");
-        if (elAuthGate) elAuthGate.classList.remove("hidden");
-        isLoading = false;
+        showView("locked");
         return;
       }
       if (!resp?.ok) throw new Error(resp?.error || "Failed to fetch quote");
       const data = resp.data;
       const stored = await new Promise((r) => chrome.storage.local.get(["qpUser"], r));
-      qpUser = stored?.qpUser || null;
-      updateAuthUI(true, qpUser);
+      updateAuthUI(true, stored?.qpUser || null);
       render(data);
-      if (data && data.symbol) {
-        currentSymbol = data.symbol;
-      }
+      currentSymbol = data.symbol || sym;
 
-      chrome.storage.local.get(["activeSymbol"], (stored) => {
-        if (stored?.activeSymbol !== data.symbol) {
-          chrome.storage.local.set({
-            activeQuoteData: data,
-            activeSymbol: data.symbol,
-          });
+      chrome.storage.local.get(["activeSymbol"], (s) => {
+        if (s?.activeSymbol !== data.symbol) {
+          chrome.storage.local.set({ activeQuoteData: data, activeSymbol: data.symbol });
         }
       });
-
       pushHudDirectToTabs(data);
     } catch (err) {
-      if (isNewSymbol) showError(err);
+      if (isNewSymbol || view !== "content") showError(sym, err);
     } finally {
       isLoading = false;
-      elLoading.classList.add("hidden");
     }
   }
 
-  let latestRenderedData = null;
+  const SEGMENT = { equity: "Equity", sme: "SME", etf: "ETF", index: "Index" };
+  const shortDay = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  // Gain/loss is never colour-only: sign + glyph + colour (MASTER.md).
+  const signedPct = (v) => `${v >= 0 ? "▲ +" : "▼ −"}${Math.abs(v).toFixed(2)}%`;
 
   function render(data) {
     latestRenderedData = data;
-    elEmpty.classList.add("hidden");
-    elContent.classList.remove("hidden");
-    const emptyH3 = elEmpty.querySelector("h3");
-    if (emptyH3) emptyH3.textContent = "No active chart detected";
-    const emptyMuted = elEmpty.querySelector(".muted-text");
-    if (emptyMuted) emptyMuted.innerHTML = "Navigate to <strong>TradingView</strong>, <strong>Choice FinX</strong>, <strong>Zerodha Kite</strong>, <strong>Groww</strong>, or any broker chart to auto-sync, or search a symbol above.";
+    showView("content");
 
-    // 1. Quote Header
-    document.getElementById("stock-symbol").textContent = data.symbol;
-    document.getElementById("stock-name").textContent = data.name || data.symbol;
-    document.getElementById("stock-exchange").textContent = `${data.exchange || "NSE"} · ${data.segment ? data.segment.toUpperCase() : "EQUITY"}`;
-    document.getElementById("stock-sector").textContent = data.sector || "General Market";
+    $("stock-symbol").textContent = data.symbol;
+    $("stock-name").textContent = data.name || data.symbol;
+    $("stock-name").title = data.name || "";
+    $("stock-exchange").textContent = `${data.exchange || "NSE"} · ${SEGMENT[data.segment] || "Equity"}`;
+    $("stock-sector").textContent = data.sector || "";
+    $("stock-sector").classList.toggle("hidden", !data.sector);
+    $("stock-asof").textContent = data.as_of ? `EOD · ${shortDay(data.as_of)} close` : "EOD";
 
-    const lastPrice = data.last_price;
-    document.getElementById("stock-price").textContent = formatRupees(lastPrice);
+    const price = $("stock-price");
+    price.textContent = formatRupees(data.last_price);
+    setCopy(price, data.last_price, "price");
 
-    const chg = data.change_pct;
-    const elDelta = document.getElementById("stock-delta");
-    if (chg != null) {
-      const isPositive = chg >= 0;
-      const sign = isPositive ? "+" : "−";
-      elDelta.textContent = `${isPositive ? "▲" : "▼"} ${sign}${Math.abs(chg).toFixed(2)}% (${sign}${formatRupees(Math.abs(data.change))})`;
-      elDelta.className = `num stock-delta ${isPositive ? "text-gain" : "text-loss"}`;
+    const elDelta = $("stock-delta");
+    if (data.change_pct != null) {
+      const up = data.change_pct >= 0;
+      const sign = up ? "+" : "−";
+      elDelta.textContent = `${up ? "▲" : "▼"} ${sign}${Math.abs(data.change_pct).toFixed(2)}% (${sign}${formatRupees(Math.abs(data.change))})`;
+      elDelta.className = `stock-delta num ${up ? "text-gain" : "text-loss"}`;
     } else {
       elDelta.textContent = "—";
-      elDelta.className = "num stock-delta";
+      elDelta.className = "stock-delta num";
     }
 
-    if (data.as_of) {
-      const d = new Date(data.as_of);
-      document.getElementById("stock-asof").textContent = `Close · ${d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}`;
-    }
+    renderSpark(data);
+    renderSignal(data);
+    renderPlan(data);
+    renderLevels(data);
 
-    // 2. Signal Card
-    const elSignalCard = document.getElementById("signal-card");
-    const elSignalBadge = document.getElementById("signal-badge");
-    const elSignalStrategy = document.getElementById("signal-strategy");
-    const elSignalDate = document.getElementById("signal-date");
-    const elSignalEntry = document.getElementById("signal-entry");
-    const elSignalStop = document.getElementById("signal-stop");
-
-    if (data.latestSignal) {
-      elSignalCard.classList.remove("hidden");
-      const meta = signalMeta(data.latestSignal.kind);
-      elSignalCard.className = `card signal-card ${meta.up ? "" : "is-exit"}`;
-      elSignalBadge.className = `signal-badge ${meta.up ? "signal-buy" : "signal-exit"}`;
-      elSignalBadge.innerHTML = `<svg viewBox="0 0 14 14" width="12" height="12" style="margin-right:4px;vertical-align:-1px;">${meta.up ? '<path d="M7 1.5L13 11.5H1L7 1.5Z" fill="currentColor"/>' : '<path d="M7 12.5L1 2.5H13L7 12.5Z" fill="currentColor"/>'}</svg><span>${meta.badge}</span>`;
-      elSignalStrategy.textContent = data.latestSignal.label;
-      elSignalDate.textContent = formatSignalDate(data.latestSignal.date);
-      document.getElementById("signal-entry-label").textContent = meta.priceLabel;
-      elSignalEntry.textContent = formatRupees(data.latestSignal.price);
-      elSignalStop.textContent = data.latestSignal.stop ? formatRupees(data.latestSignal.stop) : "—";
-
-      const elSignalHistoryRow = document.getElementById("signal-history-row");
-      const elSignalHistoryTrack = document.getElementById("signal-history-track");
-      if (elSignalHistoryRow && elSignalHistoryTrack) {
-        if (data.recentSignals && data.recentSignals.length > 1) {
-          elSignalHistoryRow.classList.remove("hidden");
-          elSignalHistoryTrack.innerHTML = data.recentSignals.slice(0, 4).map((sig) => {
-            const m = signalMeta(sig.kind);
-            return `
-            <div class="mini-signal-chip ${m.up ? "is-buy" : "is-exit"}" title="${escapeHtml(sig.label || "")}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
-              <span class="mini-arrow">${m.up ? "▲" : "▼"}</span>
-              <span class="mini-kind">${m.word}</span>
-              <span class="num mini-price">${formatRupees(sig.price)}</span>
-            </div>
-          `;
-          }).join("");
-        } else {
-          elSignalHistoryRow.classList.add("hidden");
-        }
-      }
-    } else {
-      elSignalCard.classList.add("hidden");
-    }
-
-    // 3. Trade Plan Targets — only while the latest signal is an open long entry
-    const p = data.tradePlan;
-    document.getElementById("plan-grid").classList.toggle("hidden", !p);
-    document.getElementById("plan-empty").classList.toggle("hidden", Boolean(p));
-    if (p) {
-      document.getElementById("plan-stop-price").textContent = formatRupees(p.stop);
-      document.getElementById("plan-stop-pct").textContent = `-${p.riskPercent ? p.riskPercent.toFixed(1) : "0.0"}%`;
-
-      const t1Gain = p.entry ? ((p.t1 - p.entry) / p.entry) * 100 : 0;
-      document.getElementById("plan-t1-price").textContent = formatRupees(p.t1);
-      document.getElementById("plan-t1-pct").textContent = `+${t1Gain.toFixed(1)}%`;
-
-      const t2Gain = p.entry ? ((p.t2 - p.entry) / p.entry) * 100 : 0;
-      document.getElementById("plan-t2-price").textContent = formatRupees(p.t2);
-      document.getElementById("plan-t2-pct").textContent = `+${t2Gain.toFixed(1)}%`;
-
-      const t3Gain = p.entry ? ((p.t3 - p.entry) / p.entry) * 100 : 0;
-      document.getElementById("plan-t3-price").textContent = formatRupees(p.t3);
-      document.getElementById("plan-t3-pct").textContent = `+${t3Gain.toFixed(1)}%`;
-    }
-
-    // 4. Key Levels
-    document.getElementById("level-prev").textContent = formatRupees(data.prev_close);
-    document.getElementById("level-vol").textContent = formatVolume(data.volume);
-
-    const fmtSma = (val) => (val ? formatRupees(val) + (lastPrice ? (lastPrice >= val ? " (above)" : " (below)") : "") : "—");
-    document.getElementById("level-sma20").textContent = fmtSma(data.sma20);
-    document.getElementById("level-sma50").textContent = fmtSma(data.sma50);
-    document.getElementById("level-sma200").textContent = fmtSma(data.sma200);
-
-    if (data.low_52w != null && data.high_52w != null) {
-      document.getElementById("level-52w").textContent = `${formatRupees(data.low_52w)} – ${formatRupees(data.high_52w)}`;
-    } else {
-      document.getElementById("level-52w").textContent = "—";
-    }
-
-    // 5. Sentiment Audit
-    const s = data.sentiment;
-    if (s) {
-      document.getElementById("sentiment-zone").textContent = s.zone || "Equilibrium";
-      document.getElementById("sentiment-alpha").textContent = s.alphaLevel || "ALPHA TARGET";
-      document.getElementById("sentiment-rsi").textContent = s.rsi != null ? `RSI ${s.rsi.toFixed(1)}` : "—";
-      document.getElementById("sentiment-desc").textContent = s.description;
-
-      const rsiVal = Math.min(Math.max(s.rsi || 50, 0), 100);
-      document.getElementById("rsi-bar").style.width = `${rsiVal}%`;
-    } else {
-      document.getElementById("sentiment-zone").textContent = "—";
-      document.getElementById("sentiment-alpha").textContent = "—";
-      document.getElementById("sentiment-rsi").textContent = "—";
-      document.getElementById("sentiment-desc").textContent = "No sentiment data available.";
-      document.getElementById("rsi-bar").style.width = `50%`;
-    }
-
-    // 6. Direct Launcher
-    const launchUrl = data.quantPulseUrl || `${backendUrl}/app/markets/${encodeURIComponent(data.symbol)}`;
-    document.getElementById("btn-open-app").setAttribute("href", launchUrl);
+    $("btn-open-app").href = data.quantPulseUrl || `${backendUrl}/app/markets/${encodeURIComponent(data.symbol)}`;
   }
 
-  function showError(err) {
-    elContent.classList.add("hidden");
-    elEmpty.classList.remove("hidden");
-    elEmpty.querySelector("h3").textContent = `Could not load ${currentSymbol}`;
-    const muted = elEmpty.querySelector(".muted-text");
-    if (muted) {
-      muted.innerHTML = `
-        Symbol <strong>${currentSymbol}</strong> was not recognized or is not listed on NSE/BSE.<br>
-        <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
-          <button type="button" class="quick-sym-btn" data-sym="NIFTY" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">NIFTY</button>
-          <button type="button" class="quick-sym-btn" data-sym="BANKNIFTY" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">BANKNIFTY</button>
-          <button type="button" class="quick-sym-btn" data-sym="RELIANCE" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">RELIANCE</button>
-          <button type="button" class="quick-sym-btn" data-sym="TCS" style="background: #262626; border: 1px solid #404040; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #E6E4D7;">TCS</button>
-        </div>
-      `;
-      const btns = muted.querySelectorAll(".quick-sym-btn");
-      btns.forEach((b) => {
-        b.addEventListener("click", () => {
-          const sym = b.getAttribute("data-sym");
-          if (sym) {
-            inputSymbol.value = sym;
-            loadSymbol(sym);
-          }
-        });
-      });
-    }
+  // ---------- 3-month price line: 1.5px ink line, end dot by direction, ≥8px signal dots ----------
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  let spark = null;
+
+  function svgEl(tag, attrs) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    return el;
   }
 
-  // Auth Check Button
-  if (btnAuthCheck) {
-    btnAuthCheck.addEventListener("click", async () => {
-      btnAuthCheck.textContent = "Checking...";
-      try {
-        // The background worker asks the website with your QuantsPulse cookies and stores the token.
-        const resp = await new Promise((r) =>
-          chrome.runtime.sendMessage({ type: "QP_REFRESH_AUTH" }, (x) => {
-            void chrome.runtime.lastError;
-            r(x);
-          }),
-        );
-        if (!resp) throw new Error("no response");
-        const stored = await new Promise((r) => chrome.storage.local.get(["qpAuthenticated", "qpUser"], r));
-        if (resp.ok && stored.qpAuthenticated) {
-          updateAuthUI(true, stored.qpUser || null);
-          btnAuthCheck.textContent = "✓ Connected!";
-          if (currentSymbol) loadSymbol(currentSymbol);
-        } else {
-          updateAuthUI(false, null);
-          btnAuthCheck.textContent = "Not logged in yet";
-          setTimeout(() => {
-            btnAuthCheck.textContent = "↻ Check Login Status";
-          }, 2000);
-        }
-      } catch (e) {
-        btnAuthCheck.textContent = "Could not reach server";
-        setTimeout(() => {
-          btnAuthCheck.textContent = "↻ Check Login Status";
-        }, 2000);
+  function renderSpark(data) {
+    const fig = $("spark");
+    const svg = $("spark-svg");
+    const hist = (data?.history || []).filter((p) => Number.isFinite(p.close));
+    svg.replaceChildren();
+    $("spark-tip").classList.add("hidden");
+    if (hist.length < 2) {
+      fig.classList.add("hidden");
+      spark = null;
+      return;
+    }
+    fig.classList.remove("hidden");
+
+    const w = Math.max(200, Math.round(svg.getBoundingClientRect().width || 300));
+    const h = 48;
+    const pad = 5;
+    const closes = hist.map((p) => p.close);
+    const min = Math.min(...closes);
+    const span = Math.max(...closes) - min || 1;
+    const x = (i) => pad + (i * (w - pad * 2)) / (hist.length - 1);
+    const y = (v) => pad + (1 - (v - min) / span) * (h - pad * 2);
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+
+    const d = hist.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.close).toFixed(1)}`).join("");
+    svg.append(svgEl("path", { class: "spark-line", d }));
+
+    const last = hist.length - 1;
+    const dir = closes[last] >= closes[0] ? "up" : "down";
+    const index = new Map(hist.map((p, i) => [p.date, i]));
+    const sigs = (data.recentSignals || [])
+      .map((s) => ({ s, i: index.get(String(s.date).slice(0, 10)) }))
+      .filter((o) => o.i !== undefined);
+    for (const { s, i } of sigs) {
+      svg.append(svgEl("circle", { class: `spark-dot ${signalMeta(s.kind).up ? "up" : "down"}`, cx: x(i), cy: y(hist[i].close), r: 4 }));
+    }
+    svg.append(svgEl("circle", { class: `spark-end ${dir}`, cx: x(last), cy: y(closes[last]), r: 3 }));
+
+    const hover = svgEl("g", { class: "hidden" });
+    const cross = svgEl("line", { class: "spark-cross", y1: 0, y2: h });
+    const knob = svgEl("circle", { class: "spark-hover", r: 3.5 });
+    hover.append(cross, knob);
+    svg.append(hover);
+
+    const chg = ((closes[last] - closes[0]) / closes[0]) * 100;
+    $("spark-caption").textContent =
+      `Closing price over the last ${hist.length} sessions: ${formatRupees(closes[0])} on ${shortDay(hist[0].date)} ` +
+      `to ${formatRupees(closes[last])} on ${shortDay(hist[last].date)} (${chg >= 0 ? "+" : "−"}${Math.abs(chg).toFixed(1)}%). ` +
+      `${sigs.length} signal${sigs.length === 1 ? "" : "s"} marked. Use the arrow keys to read each day.`;
+    spark = { hist, x, y, w, pad, hover, cross, knob, sigs, at: last };
+  }
+
+  function sparkShow(i) {
+    if (!spark) return;
+    const { hist, x, y, w, hover, cross, knob, sigs } = spark;
+    i = Math.max(0, Math.min(hist.length - 1, i));
+    spark.at = i;
+    hover.classList.remove("hidden");
+    cross.setAttribute("x1", x(i));
+    cross.setAttribute("x2", x(i));
+    knob.setAttribute("cx", x(i));
+    knob.setAttribute("cy", y(hist[i].close));
+
+    const tip = $("spark-tip");
+    const sig = sigs.find((o) => o.i === i);
+    tip.replaceChildren();
+    const line1 = document.createElement("div");
+    line1.append(`${shortDay(hist[i].date)} · `);
+    const px = document.createElement("span");
+    px.className = "num";
+    px.textContent = formatRupees(hist[i].close);
+    line1.append(px);
+    tip.append(line1);
+    if (sig) {
+      const m = signalMeta(sig.s.kind);
+      const line2 = document.createElement("div");
+      line2.textContent = `${m.up ? "▲" : "▼"} ${m.word} · ${sig.s.label}`;
+      tip.append(line2);
+    }
+    tip.style.left = `${Math.min(85, Math.max(15, (x(i) / w) * 100))}%`;
+    tip.classList.remove("hidden");
+  }
+
+  function sparkHide() {
+    if (!spark) return;
+    spark.hover.classList.add("hidden");
+    $("spark-tip").classList.add("hidden");
+  }
+
+  const fig = $("spark");
+  fig.addEventListener("pointermove", (e) => {
+    if (!spark) return;
+    const rect = $("spark-svg").getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * spark.w;
+    sparkShow(Math.round(((px - spark.pad) / (spark.w - spark.pad * 2)) * (spark.hist.length - 1)));
+  });
+  fig.addEventListener("pointerleave", sparkHide);
+  fig.addEventListener("focus", () => spark && sparkShow(spark.at));
+  fig.addEventListener("blur", sparkHide);
+  fig.addEventListener("keydown", (e) => {
+    if (!spark) return;
+    const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (step) sparkShow(spark.at + step);
+    else if (e.key === "Home") sparkShow(0);
+    else if (e.key === "End") sparkShow(spark.hist.length - 1);
+    else return;
+    e.preventDefault();
+  });
+
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => latestRenderedData && renderSpark(latestRenderedData), 120);
+  });
+
+  // ---------- Tabs ----------
+  const TABS = ["signal", "plan", "levels"];
+
+  function selectTab(name, focus = false) {
+    if (!TABS.includes(name)) name = "signal";
+    TABS.forEach((t, i) => {
+      const on = t === name;
+      const tab = $(`tab-${t}`);
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+      $(`panel-${t}`).classList.toggle("hidden", !on);
+      if (on) {
+        document.querySelector(".tab-indicator").style.transform = `translateX(${i * 100}%)`;
+        if (focus) tab.focus();
       }
     });
+    chrome.storage.local.set({ qpPanelTab: name });
   }
+
+  document.querySelector(".tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest("[data-tab]");
+    if (tab) selectTab(tab.dataset.tab);
+  });
+  document.querySelector(".tabs").addEventListener("keydown", (e) => {
+    const current = TABS.indexOf(document.activeElement?.dataset?.tab);
+    if (current < 0) return;
+    const next = { ArrowLeft: current - 1, ArrowRight: current + 1, Home: 0, End: TABS.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    selectTab(TABS[(next + TABS.length) % TABS.length], true);
+  });
+
+  // ---------- Signal story ----------
+  function renderSignal(data) {
+    const s = data.latestSignal;
+    $("signal-none").classList.toggle("hidden", Boolean(s));
+    $("signal-body").classList.toggle("hidden", !s);
+    if (!s) return;
+
+    const m = signalMeta(s.kind);
+    const badge = $("signal-badge");
+    badge.className = `badge ${m.up ? "badge-up" : "badge-down"}`;
+    badge.textContent = `${m.up ? "▲" : "▼"} ${m.badge.replace(/ SIGNAL$/, "")}`;
+
+    const n = s.sessionsSince;
+    const ago = n == null ? "" : n === 0 ? " · latest close" : ` · ${n} session${n === 1 ? "" : "s"} ago`;
+    $("signal-when").textContent = `${formatSignalDate(s.date)}${ago}`;
+    $("signal-label").textContent = s.label;
+    $("signal-rule").textContent = s.rule || "";
+    $("signal-rule").classList.toggle("hidden", !s.rule);
+
+    $("signal-price-label").textContent = m.priceLabel === "Exit Price" ? "Exit price" : "Signal price";
+    const sp = $("signal-price");
+    sp.textContent = formatRupees(s.price);
+    setCopy(sp, s.price, "signal price");
+    const st = $("signal-stop");
+    st.textContent = s.stop ? formatRupees(s.stop) : "—";
+    setCopy(st, s.stop, "stop");
+
+    const since = $("signal-since");
+    if (s.moveSincePct != null) {
+      since.textContent = signedPct(s.moveSincePct);
+      since.className = `num ${s.moveSincePct >= 0 ? "text-gain" : "text-loss"}`;
+    } else {
+      since.textContent = "—";
+      since.className = "num";
+    }
+
+    const list = $("signal-timeline");
+    list.replaceChildren();
+    for (const sig of (data.recentSignals || []).slice(0, 5)) {
+      const mm = signalMeta(sig.kind);
+      const dir = mm.up ? "up" : "down";
+      const li = document.createElement("li");
+      const dot = document.createElement("span");
+      dot.className = `tl-dot ${dir}`;
+      const main = document.createElement("span");
+      main.className = "tl-main";
+      const word = document.createElement("span");
+      word.className = `tl-word ${dir}`;
+      word.textContent = `${mm.up ? "▲" : "▼"} ${mm.word}`;
+      const label = document.createElement("span");
+      label.className = "tl-label";
+      label.textContent = sig.label;
+      main.append(word, label);
+      const side = document.createElement("span");
+      side.className = "tl-side";
+      const px = document.createElement("span");
+      px.className = "num";
+      px.textContent = formatRupees(sig.price);
+      const date = document.createElement("span");
+      date.className = "tl-date num";
+      date.textContent = formatSignalDate(sig.date);
+      side.append(px, date);
+      li.append(dot, main, side);
+      list.append(li);
+    }
+  }
+
+  // ---------- Plan: one price ladder, rungs at their real distances ----------
+  function renderPlan(data) {
+    const p = data.tradePlan;
+    $("plan-none").classList.toggle("hidden", Boolean(p));
+    $("plan-body").classList.toggle("hidden", !p);
+    if (!p) return;
+
+    $("plan-r").textContent = `${formatRupees(p.riskPerShare)} (${p.riskPercent.toFixed(1)}%)`;
+    const now = Number(data.last_price);
+    const rungs = [
+      { tag: "T3", r: "+3R", px: p.t3, cls: "target" },
+      { tag: "T2", r: "+2R", px: p.t2, cls: "target" },
+      { tag: "T1", r: "+0.75R", px: p.t1, cls: "target" },
+      { tag: "Entry", r: "", px: p.entry, cls: "entry" },
+      { tag: "Stop", r: "−1R", px: p.stop, cls: "stop" },
+    ];
+
+    const values = rungs.map((r) => r.px).concat(Number.isFinite(now) ? [now] : []);
+    const hi = Math.max(...values);
+    const lo = Math.min(...values);
+    const H = 232;
+    const inset = 14;
+    const yOf = (v) => inset + ((hi - v) / (hi - lo || 1)) * (H - inset * 2);
+
+    // Keep labels from colliding when rungs are close; the rail grows if it must.
+    const MIN_GAP = 32;
+    let prev = -Infinity;
+    const ys = rungs.map((r) => {
+      const yv = Math.max(yOf(r.px), prev + MIN_GAP);
+      prev = yv;
+      return yv;
+    });
+    const height = Math.max(H, prev + inset);
+    const ladder = $("ladder");
+    ladder.replaceChildren();
+    ladder.style.height = `${height}px`;
+
+    const entryY = ys[3];
+    const zone = (cls, top, bottom) => {
+      const z = document.createElement("span");
+      z.className = `ladder-zone ${cls}`;
+      z.style.top = `${top}px`;
+      z.style.height = `${Math.max(0, bottom - top)}px`;
+      z.setAttribute("aria-hidden", "true");
+      ladder.append(z);
+    };
+    zone("reward", ys[0], entryY);
+    zone("risk", entryY, ys[4]);
+
+    rungs.forEach((r, i) => {
+      const row = document.createElement("div");
+      row.className = `rung ${r.cls}`;
+      row.setAttribute("role", "listitem");
+      row.style.top = `${ys[i]}px`;
+      const tag = document.createElement("span");
+      tag.className = "rung-tag";
+      tag.textContent = r.tag;
+      if (r.r) {
+        const small = document.createElement("small");
+        small.textContent = r.r;
+        tag.append(small);
+      }
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "rung-px num copyable";
+      btn.textContent = formatRupees(r.px);
+      setCopy(btn, r.px, r.tag);
+      if (r.cls !== "entry") {
+        const pct = ((r.px - p.entry) / p.entry) * 100;
+        const small = document.createElement("small");
+        small.textContent = `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%`;
+        btn.append(small);
+      }
+      row.append(tag, btn);
+      ladder.append(row);
+    });
+
+    if (Number.isFinite(now)) {
+      const marker = document.createElement("span");
+      marker.className = "now";
+      marker.textContent = "Now";
+      marker.title = `Last close ${formatRupees(now)}`;
+      marker.style.top = `${Math.min(height - inset, Math.max(inset, yOf(now)))}px`;
+      marker.setAttribute("role", "listitem");
+      marker.setAttribute("aria-label", `Last close ${formatRupees(now)}`);
+      ladder.append(marker);
+    }
+  }
+
+  // ---------- Levels: each value with where the price sits against it ----------
+  function renderLevels(data) {
+    const list = $("levels");
+    list.replaceChildren();
+    const last = Number(data.last_price);
+
+    const row = (name, value, copyVal, sub) => {
+      const li = document.createElement("li");
+      li.className = "lv";
+      const n = document.createElement("span");
+      n.className = "lv-name";
+      n.textContent = name;
+      const v = document.createElement(copyVal != null ? "button" : "span");
+      v.className = `lv-val num${copyVal != null ? " copyable" : ""}`;
+      if (copyVal != null) {
+        v.type = "button";
+        setCopy(v, copyVal, name);
+      }
+      v.textContent = value;
+      li.append(n, v);
+      if (sub) li.append(sub);
+      list.append(li);
+    };
+    const subRow = (text, track) => {
+      const s = document.createElement("span");
+      s.className = "lv-sub";
+      if (track) s.append(track);
+      const t = document.createElement("span");
+      t.className = "num";
+      t.textContent = text;
+      s.append(t);
+      return s;
+    };
+    const trackEl = (parts) => {
+      const t = document.createElement("span");
+      t.className = "track";
+      t.setAttribute("aria-hidden", "true");
+      for (const [cls, style] of parts) {
+        const el = document.createElement("span");
+        el.className = cls;
+        Object.assign(el.style, style);
+        t.append(el);
+      }
+      return t;
+    };
+
+    row("Prev close", formatRupees(data.prev_close), data.prev_close);
+    row("Volume", formatVolume(data.volume), null);
+
+    for (const [name, val] of [["SMA 20", data.sma20], ["SMA 50", data.sma50], ["SMA 200", data.sma200]]) {
+      if (!val || !Number.isFinite(last)) {
+        row(name, formatRupees(val), val || null);
+        continue;
+      }
+      // Diverging bar: centre = the average; ±15% fills the half.
+      const pct = ((last - val) / val) * 100;
+      const half = (Math.min(Math.abs(pct), 15) / 15) * 50;
+      const fill = pct >= 0 ? { left: "50%", width: `${half}%` } : { left: `${50 - half}%`, width: `${half}%` };
+      const track = trackEl([[`track-fill ${pct >= 0 ? "up" : "down"}`, fill], ["track-mid", {}]]);
+      row(name, formatRupees(val), val, subRow(`${signedPct(pct)} ${pct >= 0 ? "above" : "below"}`, track));
+    }
+
+    if (data.low_52w != null && data.high_52w != null && Number.isFinite(last)) {
+      const range = data.high_52w - data.low_52w || 1;
+      const pos = Math.min(100, Math.max(0, ((last - data.low_52w) / range) * 100));
+      const track = trackEl([["track-pin", { left: `${pos}%` }]]);
+      row("52-week range", `${formatRupees(data.low_52w)} – ${formatRupees(data.high_52w)}`, null, subRow(`${pos.toFixed(0)}% of range`, track));
+    }
+
+    const s = data.sentiment;
+    if (s && s.rsi != null) {
+      const rsi = Math.min(100, Math.max(0, s.rsi));
+      const track = trackEl([["track-band", { left: "30%", width: "40%" }], ["track-pin", { left: `${rsi}%` }]]);
+      row("RSI (14)", s.rsi.toFixed(1), null, subRow(s.zone || "", track));
+      if (s.description) {
+        const li = list.lastElementChild;
+        const note = document.createElement("span");
+        note.className = "lv-sub";
+        note.textContent = s.description;
+        li.append(note);
+      }
+    }
+  }
+
+  // ---------- Errors ----------
+  function showError(sym, err) {
+    const notFound = /404|not found/i.test(String(err?.message || ""));
+    $("error-title").textContent = notFound ? `${sym} isn't covered` : `Couldn't load ${sym}`;
+    $("error-text").textContent = notFound
+      ? "QuantsPulse covers NSE stocks, ETFs and indices. Check the symbol, or try one of these."
+      : "QuantsPulse didn't answer. Check your connection and try again.";
+    $("btn-retry").classList.toggle("hidden", notFound);
+    showView("error");
+  }
+
+  $("btn-retry").addEventListener("click", () => {
+    const sym = currentSymbol;
+    currentSymbol = "";
+    loadSymbol(sym);
+  });
+  document.querySelectorAll("[data-sym]").forEach((b) =>
+    b.addEventListener("click", () => {
+      inputSymbol.value = b.dataset.sym;
+      loadSymbol(b.dataset.sym);
+    }),
+  );
+
+  // ---------- Sign-in check ----------
+  btnAuthCheck.addEventListener("click", async () => {
+    btnAuthCheck.textContent = "Checking…";
+    btnAuthCheck.disabled = true;
+    try {
+      // The background worker asks the website with your QuantsPulse cookies and stores the token.
+      const resp = await sendMessage({ type: "QP_REFRESH_AUTH" });
+      if (!resp) throw new Error("no response");
+      const stored = await new Promise((r) => chrome.storage.local.get(["qpAuthenticated", "qpUser"], r));
+      if (resp.ok && stored.qpAuthenticated) {
+        updateAuthUI(true, stored.qpUser || null);
+        toast("Signed in");
+        if (currentSymbol) {
+          const sym = currentSymbol;
+          currentSymbol = "";
+          loadSymbol(sym);
+        }
+      } else {
+        toast("Not signed in yet");
+      }
+    } catch {
+      toast("Couldn't reach QuantsPulse");
+    } finally {
+      btnAuthCheck.textContent = "Check login status";
+      btnAuthCheck.disabled = false;
+    }
+  });
 
   // Real-time auth event synchronization from background worker / auth-sync.js
   chrome.runtime.onMessage.addListener((message) => {
     if (message?.type === "QP_AUTH_UPDATE") {
       updateAuthUI(message.authenticated, message.user);
-      if (message.authenticated && currentSymbol) {
-        loadSymbol(currentSymbol);
-      }
+      if (message.authenticated && currentSymbol) loadSymbol(currentSymbol);
     }
   });
 
-  // 1-Click Interactive Level Copy Helper (Institutional UX standard)
-  function copyTextToClipboard(text, targetEl, label = "Copied!") {
-    if (!text || text === "—") return;
-    navigator.clipboard.writeText(String(text)).then(() => {
-      showCopyTooltip(targetEl, label);
-    }).catch(() => {});
+  // ---------- Click a price to copy it ----------
+  function setCopy(el, value, label) {
+    const ok = value != null && Number.isFinite(Number(value));
+    el.dataset.copy = ok ? Number(value).toFixed(2) : "";
+    el.dataset.copyLabel = label;
+    el.title = ok ? `Copy ${label}` : "";
+    el.disabled = !ok;
   }
 
-  function showCopyTooltip(targetEl, text) {
-    if (!targetEl) return;
-    const existing = targetEl.querySelector(".copy-tooltip");
-    if (existing) existing.remove();
-    const tip = document.createElement("span");
-    tip.className = "copy-tooltip";
-    tip.textContent = text;
-    targetEl.appendChild(tip);
-    setTimeout(() => tip.remove(), 1200);
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-copy]");
+    if (!el || !el.dataset.copy) return;
+    navigator.clipboard.writeText(el.dataset.copy).then(
+      () => toast(`Copied ${el.dataset.copyLabel} ₹${el.dataset.copy}`),
+      () => toast("Couldn't copy"),
+    );
+  });
+
+  let toastTimer;
+  function toast(text) {
+    const t = $("toast");
+    t.textContent = text;
+    t.classList.remove("hidden");
+    t.style.animation = "none";
+    void t.offsetWidth; // restart the entrance
+    t.style.animation = "";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.add("hidden"), 1600);
   }
 
-  function bindCopyableLevel(id, getVal) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.add("copyable-level");
-    el.title = "Click to copy level for order entry";
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const raw = getVal ? getVal() : el.textContent.replace(/[^\d.]/g, "");
-      copyTextToClipboard(raw, el);
-    });
-  }
-
-  // Bind key levels for rapid 1-click clipboard transfer
-  bindCopyableLevel("stock-price", () => latestRenderedData?.last_price);
-  bindCopyableLevel("signal-entry", () => latestRenderedData?.latestSignal?.price);
-  bindCopyableLevel("signal-stop", () => latestRenderedData?.latestSignal?.stop);
-  bindCopyableLevel("plan-stop-price", () => latestRenderedData?.tradePlan?.stop);
-  bindCopyableLevel("plan-t1-price", () => latestRenderedData?.tradePlan?.t1);
-  bindCopyableLevel("plan-t2-price", () => latestRenderedData?.tradePlan?.t2);
-  bindCopyableLevel("plan-t3-price", () => latestRenderedData?.tradePlan?.t3);
-  bindCopyableLevel("level-prev", () => latestRenderedData?.prev_close);
-  bindCopyableLevel("level-sma20", () => latestRenderedData?.sma20);
-  bindCopyableLevel("level-sma50", () => latestRenderedData?.sma50);
-  bindCopyableLevel("level-sma200", () => latestRenderedData?.sma200);
-
-  // Pro Keyboard Shortcuts ('/' or 'Ctrl+K' / 'Cmd+K' to search, 'Escape' to blur or close panels)
+  // Keyboard: '/' or Ctrl/Cmd+K to search, Escape to leave the field
   window.addEventListener("keydown", (e) => {
     const isTyping = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable;
-    if (e.key === "/" && !isTyping) {
+    if ((e.key === "/" && !isTyping) || ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K"))) {
       e.preventDefault();
-      inputSymbol?.focus();
-      inputSymbol?.select();
-    } else if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
-      e.preventDefault();
-      inputSymbol?.focus();
-      inputSymbol?.select();
-    } else if (e.key === "Escape") {
-      if (isTyping) {
-        e.target.blur();
-      }
-      if (elSettings && !elSettings.classList.contains("hidden")) {
-        elSettings.classList.add("hidden");
-      }
+      inputSymbol.focus();
+      inputSymbol.select();
+    } else if (e.key === "Escape" && isTyping) {
+      e.target.blur();
     }
   });
 })();

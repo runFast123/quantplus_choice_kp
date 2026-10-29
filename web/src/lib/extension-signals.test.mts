@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { extensionCors, isExtensionOrigin } from "./extension-cors";
-import { toExtensionSignal } from "./extension-signals";
+import { describeSignal, toExtensionSignal } from "./extension-signals";
 
 const at = "2026-08-24T10:00:00+00:00";
 
@@ -49,6 +49,25 @@ describe("toExtensionSignal", () => {
       payload: { action: "buy", entry: 637.2, fill: 637.2, close: 640, stop: 624 },
     });
     assert.equal(s.price, 637.2);
+  });
+});
+
+describe("describeSignal", () => {
+  test("says what the rule saw, per action", () => {
+    assert.match(describeSignal({ strategy: "sma_20_50_cross", signal_type: "buy", generated_at: at, payload: {} }), /closed above the 50-day/);
+    assert.match(describeSignal({ strategy: "rsi_reversal", signal_type: "exit", generated_at: at, payload: {} }), /below 70/);
+    assert.match(
+      describeSignal({ strategy: "kk_breakout", signal_type: "exit", generated_at: at, payload: { action: "sell" } }),
+      /20-day high.*\(short\)/,
+    );
+  });
+
+  test("a closed KK trade says how it ended", () => {
+    const text = describeSignal({
+      strategy: "kk_breakout", signal_type: "exit", generated_at: at,
+      payload: { action: "cover", result: "TARGET_1_HIT_TIME_EXIT" },
+    });
+    assert.equal(text, "The KK short trade closed. Target 1 (+0.75R) was reached, then the 5-session time limit closed the rest.");
   });
 });
 

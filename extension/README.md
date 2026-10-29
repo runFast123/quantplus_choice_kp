@@ -40,11 +40,11 @@ The QuantsPulse Extension Terminal is exclusively available for active QuantsPul
      - [Groww](https://groww.in)
      - [Dhan](https://tv.dhan.co)
      - [Angel One](https://trade.angelone.in)
-   - When you switch stocks on the chart, the Side Panel **automatically updates** to show:
-     - Active **Buy / Exit strategy signal** (`▲ BUY` / `▼ EXIT`)
-     - **Asymmetric Milestone Roadmap**: Stop Loss 1.0R, Target 1 0.75R, Target 2 2.0R, Target 3 3.0R
-     - **Key Technical Levels**: SMA 20, SMA 50, SMA 200, 52-Week Range
-     - **Sentiment Audit**: RSI 14 score, Alpha Level (`ALPHA TARGET`, `NODE LEVEL 2`, `SENTIMENT PEAK`)
+   - When you switch stocks on the chart, the side panel **automatically updates**. At the top: price, change and a 3-month price line with signal dots (hover it, or focus it and use the arrow keys, to read any day). Below, three tabs:
+     - **Signal**: the latest rule signal (`▲ BUY`, `▼ SELL (SHORT)`, `▼ EXIT`, `▲ COVER`), what the rule saw in one sentence, how long ago it fired and how far price has moved since, and the recent signals as a timeline
+     - **Plan**: only while the latest signal is a BUY, a price ladder with Stop (−1R), Entry, T1 (+0.75R), T2 (+2R) and T3 (+3R) at their real distances, and where the last close sits
+     - **Levels**: SMA 20 / 50 / 200 with how far above or below price is, the 52-week range and RSI (14)
+   - Click any price to copy it.
 4. **Manual Lookup**:
    - You can also type any NSE symbol (e.g. `RELIANCE`) into the search bar at the top of the side panel at any time.
 
@@ -53,8 +53,5 @@ The QuantsPulse Extension Terminal is exclusively available for active QuantsPul
 ## ⚙️ Development & Server Settings
 
 - By default, the extension connects to the production deployment at `https://quantplus-ten.vercel.app`.
-- If testing locally, click the ⚙ settings icon in the top right of the side panel and set the server endpoint to:
-  ```
-  http://localhost:3000
-  ```
-- Click **Save**. Only these two servers are accepted: the extension sends your sign-in token to this endpoint, so it refuses any other address.
+- To test locally, open the extension's **Settings** (gear icon in the side panel, or right-click the toolbar icon → Options) and choose **Local development** (`http://localhost:3000`).
+- Only these two servers can be chosen: the extension sends your sign-in token to this server. The on-chart overlay and its style are set on the same page.

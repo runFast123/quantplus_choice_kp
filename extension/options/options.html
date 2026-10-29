@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuantsPulse settings</title>
+  <link rel="stylesheet" href="../sidepanel/sidepanel.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="opts">
+    <h1 class="opts-title">QuantsPulse settings</h1>
+
+    <section class="opts-card">
+      <h2 class="eyebrow">On-chart overlay</h2>
+      <label class="opts-row">
+        <input type="checkbox" id="opt-overlay">
+        <span>Show the signal overlay on broker and TradingView charts</span>
+      </label>
+      <label class="opts-field" for="opt-hud-mode">
+        <span>Overlay style</span>
+        <select id="opt-hud-mode">
+          <option value="full">Full card</option>
+          <option value="compact">Compact bar</option>
+          <option value="targets_only">Plan levels only</option>
+          <option value="signal_only">Signal badge only</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="opts-card">
+      <h2 class="eyebrow">Server</h2>
+      <p class="opts-help">Your sign-in token is sent only to the server chosen here.</p>
+      <label class="opts-row">
+        <input type="radio" name="opt-server" value="https://quantplus-ten.vercel.app">
+        <span>QuantsPulse <span class="num opts-url">quantplus-ten.vercel.app</span></span>
+      </label>
+      <label class="opts-row">
+        <input type="radio" name="opt-server" value="http://localhost:3000">
+        <span>Local development <span class="num opts-url">localhost:3000</span></span>
+      </label>
+    </section>
+
+    <p id="opts-status" class="opts-help" role="status" aria-live="polite"></p>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

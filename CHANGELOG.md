@@ -5,6 +5,29 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — Chrome extension 1.2.0: side panel redesign, phase 1 (`extension/`, `web/`)
+- **Layout (`extension/sidepanel/*`)**: one long scroll became a sticky quote header plus three tabs — **Signal**, **Plan**,
+  **Levels** — remembered between sessions, with arrow-key navigation and a sliding indicator (180 ms; off under reduced motion).
+- **Quote**: price and change, a 3-month price line (1.5 px ink, end dot by direction, 8 px signal dots by buy/sell) with a
+  hover/arrow-key tooltip for any day and a text summary for screen readers, plus "EOD · 27 Oct close" so nobody reads it as live.
+- **Signal tab**: the latest signal as a short story — badge, what the rule saw in one sentence (`describeSignal`), sessions since
+  it fired, signal price, stop and move since — and the last five signals as a timeline.
+- **Plan tab**: a price ladder with Stop / Entry / T1 / T2 / T3 at their real distances, risk and reward rails, % from entry, and a
+  "Now" marker at the last close; labels never collide. Still shown only for an open long entry. Disclaimer kept.
+- **Levels tab**: SMA 20/50/200 with a diverging bar for distance above/below, the 52-week range with a position pin, RSI (14) on a
+  0–100 track with the 30–70 band. The "ALPHA TARGET / NODE LEVEL" tag is dropped (jargon).
+- **States**: placeholder blocks instead of "Fetching…" (static, no shimmer), and clear empty, signed-out and error views; errors
+  say whether the symbol isn't covered or the server didn't answer, with Retry.
+- **Design system**: Zen Linen tokens from MASTER.md (validated gain/loss ink and mark colours, light + dark), Phosphor icons
+  (inline sprite) instead of emoji/Unicode, type scale 11/12/13/16/22 (was 17 sizes from 8.5 px), click-to-copy on every price with
+  a toast. axe (WCAG 2.1 AA) clean on every tab and state, light and dark, at 320–360 px.
+- **Settings → options page (`extension/options/`)**: overlay on/off and style, and the server as a choice of two (production or
+  localhost); switching server clears the token and re-checks sign-in.
+- **Server (`web/src/server/privileged/extension.ts`, `web/src/lib/extension-signals.ts`)**: the quote adds `history` (≤63 daily
+  closes) and, on `latestSignal`, `rule`, `sessionsSince` and `moveSincePct`. KK wording follows `simulateKkStrategy` (a ≥1% push past
+  the 20-day extreme, confirmed by crossing that bar's other end).
+- Tests: `describeSignal` unit tests; `extension-api.spec.ts` checks the new fields; the zip test covers the options page.
+
 ### Fixed — Flaky off-site redirect e2e test (`web/e2e/auth.spec.ts`)
 - "sign-in never redirects off-site" does four full sign-ins (~32 s against production) and sometimes hit the 45 s default
   timeout; it's now `test.slow()`. The redirect assertions are unchanged.
