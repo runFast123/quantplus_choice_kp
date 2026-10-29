@@ -190,3 +190,16 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   Vercel cron after the pg_cron notifier. Payloads are encrypted per browser by the protocol.
 - **Limits:** push arrives after the close (prices are EOD). iPhone needs the app added to the Home Screen first
   (`app/manifest.ts`). Email can be added later as a second channel on the same claim function.
+
+### ADR-031 · Daily setup scanner: rule tags on the last close, computed in the database
+**Date** 2026-10-29 · **Status** accepted
+- **What:** each active symbol's latest daily close is tagged with the chart setups it matched — 20-day closing-high
+  breakout, bull flag, reclaimed 20-day average, oversold (RSI < 30), oversold bounce — stored in `market_quotes.setups`
+  and filterable in Markets. Rules adapted from the MIT-licensed scanner in
+  https://github.com/Jakeschincariol/day-trader-skill (`trader-scanner`, daily mode); our own SQL, not their code.
+- **Why in SQL:** it runs next to the RSI it needs, on candles already in the database, for all ~3,600 symbols per
+  batch, through the same wrapper the EOD pipelines and the pg_cron backstop already call. No new data or vendor.
+- **Choices:** RSI comes from the stored full-history series (more exact than a short window); no price/volume floor
+  (the screener's segment filter does that job); fewer than 30 sessions → no tags. The skill's intraday
+  opening-range scan is not used: QuantsPulse has end-of-day data only (ADR-026).
+- **Copy:** a setup is "matched a rule", never a recommendation (AGENTS rule 13).

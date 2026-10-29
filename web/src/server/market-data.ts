@@ -69,6 +69,7 @@ export function normalizeQuote(r: Quote): Quote {
     low_52w: n(r.low_52w),
     rsi: n(r.rsi),
     mcap_rank: n(r.mcap_rank),
+    setups: Array.isArray(r.setups) ? r.setups : [],
   };
 }
 

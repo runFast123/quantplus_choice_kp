@@ -20,6 +20,7 @@ import { date, price, qty, rupees, signalDisplayName, signedInt, strategyLabel, 
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
+import { setupsOf } from "@/lib/setups";
 import { getCandles, getRetired, normalizeQuote } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
 import { can, requireSession } from "@/server/session";
@@ -135,6 +136,21 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
               Close · {date(q.as_of)} · {PRICE_SOURCE}
             </span>
           </div>
+          {setupsOf(q.setups).length ? (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground" data-testid="symbol-setups">
+              <span>Matched on the last close:</span>
+              {setupsOf(q.setups).map((x) => (
+                <Link
+                  key={x.key}
+                  href={`/app/markets?setup=${x.key}`}
+                  title={`${x.rule} See every stock that matched today.`}
+                  className="rounded-[4px] bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-medium text-foreground/80 hover:bg-foreground/[0.1] hover:text-foreground"
+                >
+                  {x.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <CopyPineButton symbol={q.symbol} />

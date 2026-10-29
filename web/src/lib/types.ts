@@ -70,6 +70,8 @@ export interface Quote {
   last_signal_at: string | null;
   segment?: "equity" | "sme" | "etf" | "index";
   mcap_rank?: number | null;
+  /** Setups the latest close matched (lib/setups.ts), from the nightly scan. */
+  setups?: string[];
 }
 
 /** A symbol that no longer trades (demerger, delisting) and what replaced it. */

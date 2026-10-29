@@ -11,6 +11,7 @@ import type { Watchlist, WatchlistItem } from "@/lib/types";
 import { QuantumAudit } from "@/components/market/quantum-audit";
 import { RetiredNote } from "@/components/market/retired-note";
 import { getQuotes, getRetired, getSparks } from "@/server/market-data";
+import { SetupBadges } from "@/components/market/setup-badges";
 import { requireSession } from "@/server/session";
 import { deleteWatchlist, removeFromRadar } from "./actions";
 import { NewListForm } from "./new-list-form";
@@ -173,6 +174,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
                       <td className={tdNum}>{q?.rsi != null ? q.rsi.toFixed(1) : "—"}</td>
                       <td className={td}>
                         {q?.last_signal ? <Badge tone={q.last_signal === "buy" ? "gain" : "loss"}>{q.last_signal === "buy" ? "BUY" : "EXIT"}</Badge> : <span className="text-muted-foreground">—</span>}
+                        <SetupBadges tags={q?.setups} className="mt-1 flex flex-wrap gap-1" />
                       </td>
                       <td className={td + " num text-muted-foreground"}>{date(i.added_at)}</td>
                       <td className={td + " text-right"}>

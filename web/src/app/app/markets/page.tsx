@@ -3,10 +3,12 @@ import Link from "next/link";
 import { FilterBar } from "@/components/market/filter-bar";
 import { SectorPulse } from "@/components/market/sector-pulse";
 import { RadarToggle } from "@/components/market/radar-toggle";
+import { SetupBadges } from "@/components/market/setup-badges";
 import { Badge, Delta, RangeBar } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, volume } from "@/lib/format";
 import { PRICE_SOURCE, SECTORS } from "@/lib/market";
+import { isSetupKey, SETUPS } from "@/lib/setups";
 import { Pager, pageParam } from "@/components/ui/pager";
 import type { Quote } from "@/lib/types";
 import { normalizeQuote } from "@/server/market-data";
@@ -33,6 +35,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
   const sector = str("sector");
   const signal = str("signal");
   const rsi = str("rsi");
+  const setup = isSetupKey(str("setup")) ? str("setup") : "";
   const sort = SORTS[str("sort")] ? str("sort") : "size";
   const segment = (["sme", "etf", "index", "all"] as const).find((x) => x === str("segment")) ?? "equity";
   const page = pageParam(sp.page);
@@ -43,6 +46,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
   if (signal === "buy" || signal === "exit") q = q.eq("last_signal", signal);
   if (rsi === "oversold") q = q.lte("rsi", 30);
   if (rsi === "overbought") q = q.gte("rsi", 70);
+  if (setup) q = q.contains("setups", [setup]);
   q = q
     .order(SORTS[sort].col, { ascending: SORTS[sort].asc, nullsFirst: false })
     .order("symbol")
@@ -51,7 +55,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
   const [{ data, count }, radarRes] = await Promise.all([q, s.supabase.from("watchlist_items").select("symbol")]);
   const rows = ((data ?? []) as Quote[]).map(normalizeQuote);
   const total = count ?? rows.length;
-  const params = Object.fromEntries(["sector", "signal", "rsi", "sort", "segment"].filter((k) => str(k)).map((k) => [k, str(k)]));
+  const params = Object.fromEntries(["sector", "signal", "rsi", "setup", "sort", "segment"].filter((k) => str(k)).map((k) => [k, str(k)]));
   const onRadar = new Set((radarRes.data ?? []).map((r) => r.symbol));
   const asOf = rows.find((r) => r.as_of)?.as_of;
 
@@ -60,7 +64,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
       <PageHeader
         eyebrow={asOf ? `End of day · ${date(asOf)} · ${PRICE_SOURCE}` : `End of day · ${PRICE_SOURCE}`}
         title="Markets"
-        description="Every NSE-listed stock, SME issue, major ETF and NSE index, with the last session's move, where it sits in its 52-week range, momentum, and the most recent rule-based signal."
+        description="Every NSE-listed stock, SME issue, major ETF and NSE index, with the last session's move, where it sits in its 52-week range, momentum, the most recent rule-based signal, and the chart setups its last close matched."
       />
 
       <SectorPulse />
@@ -89,6 +93,11 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
             ],
           },
           {
+            name: "setup",
+            label: "Setup today",
+            options: [{ value: "", label: "Any" }, ...SETUPS.map((x) => ({ value: x.key, label: x.label }))],
+          },
+          {
             name: "rsi",
             label: "RSI 14",
             options: [
@@ -101,12 +110,19 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
         ]}
       />
 
+      {setup ? (
+        <p className="-mt-3 text-[12.5px] text-muted-foreground" data-testid="setup-rule">
+          <span className="font-medium text-foreground">{SETUPS.find((x) => x.key === setup)?.label}:</span>{" "}
+          {SETUPS.find((x) => x.key === setup)?.rule} Tagged on each stock&apos;s last close. A setup is a rule match on a chart, not a recommendation.
+        </p>
+      ) : null}
+
       <Panel title={`${total.toLocaleString("en-IN")} ${segment === "index" ? "indices" : segment === "etf" ? "ETFs" : "symbols"}`} meta={sector || undefined}>
         {rows.length === 0 ? (
           <Empty title="Nothing matches.">Loosen a filter — oversold stocks in a single sector can be rare on any given day.</Empty>
         ) : (
           <TableWrap>
-            <table className="w-full min-w-[920px]">
+            <table className="w-full min-w-[1040px]">
               <thead>
                 <tr>
                   <th className={th}>Symbol</th>
@@ -117,6 +133,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
                   <th className={th + " w-[150px]"}>52-week range</th>
                   <th className={thNum}>RSI</th>
                   <th className={th}>Signal</th>
+                  <th className={th}>Setups</th>
                   <th className={th + " w-10"}>
                     <span className="sr-only">Radar</span>
                   </th>
@@ -151,6 +168,9 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
+                    </td>
+                    <td className={td}>
+                      {r.setups?.length ? <SetupBadges tags={r.setups} /> : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className={td + " text-right"}>
                       <RadarToggle symbol={r.symbol} exchange={r.exchange} onRadar={onRadar.has(r.symbol)} />

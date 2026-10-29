@@ -38,6 +38,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 28 | `exact_sma` | moving averages in exact decimal arithmetic (numeric running sums instead of float8) |
 | 29 | `news_feeds_live_syndication` | restores active feeds for Moneycontrol, Business Standard, and Corporate Announcements via Google News RSS syndication |
 | 30 | `push_notifications` | `push_subscriptions` (own rows: select/insert/delete; https endpoint, keys), `notifications.pushed_at` + pending index, `svc_claim_push_batch(p_limit)` (SKIP LOCKED, last 2 days, service_role), `export_my_data()` + push browsers (no keys) |
+| 31 | `daily_setups` | `market_quotes.setups text[]` (GIN index), `private.refresh_setups(p_symbols)` (breakout_20d, bull_flag, reclaim_ma20, oversold, oversold_bounce on the last 30 daily closes + stored RSI), `svc_refresh_market_analytics` now also returns `setups`, cron `market-analytics` runs both, `market_snapshot` + `setups` |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,
@@ -101,6 +102,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel`, `signalDisplayName` |
 | `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `toTradingViewSymbol(symbol, exchange)`, `toTradingViewWidgetSymbol(symbol)`; `nextEodUpdate(now)` (17:00 IST on the next trading day); `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
 | `market.test.mts` | unit tests (`npm run test:unit`) |
+| `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
+| `setups.test.mts` | unit tests (`npm run test:unit`) |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
@@ -161,7 +164,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/legal/[doc]` | `terms`, `privacy` (drafts) |
 | `/device` | single-device takeover screen (target of `requireSession` for displaced devices) |
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
-| `/app/markets`, `/app/markets/[symbol]` | screener; symbol page with chart, levels, signals, backtest |
+| `/app/markets`, `/app/markets/[symbol]` | screener (`?setup=` filter + Setups column); symbol page with chart, levels, signals, backtest, "Matched on the last close" setups |
 | `/app/watchlist` `/app/portfolio` `/app/alerts` `/app/signals` | product pages |
 | `/app/workspace` `/app/integrations` `/app/billing` `/app/settings` | account pages (`settings?tab=profile|security|notifications|privacy|data`) |
 | `/app/settings/export` | GET → JSON download of `export_my_data()` |
@@ -192,6 +195,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/pager.tsx` | `Pager` (prev/next, keeps params), `pageParam(raw)` — every server-paginated table |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock` (+ "EOD <date> · next <day> 17:00" freshness chip from `asOf`), `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
+| `market/setup-badges.tsx` | `SetupBadges` (neutral badges, rule in the title) — screener and Market Radar |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` (sentiment audit & exhaustion alerts), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK 20d Breakout, SMA 20/50, RSI Reversal, All Plans, Clean Mode] + HUD with plain-English signal explainer + Signals Timeline ribbon ("New" since last visit, `qp:chart-seen:<SYMBOL>` in localStorage) + trade view on selection [entry/stop/target price lines, risk/reward zones, 1R label, ~260 ms pan; reduced motion → instant] + one-time ring on new signals + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
@@ -216,7 +220,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `extension-api`, `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |

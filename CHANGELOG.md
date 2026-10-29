@@ -5,6 +5,18 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — Daily setup scanner (`supabase/`, `web/`; ADR-031)
+- **Nightly tags (migration 31)**: every active stock's last close is checked against five rules — 20-day closing high,
+  bull flag, reclaimed 20-day average, oversold (RSI < 30), oversold bounce — and tagged in `market_quotes.setups`.
+  Runs inside `svc_refresh_market_analytics` (EOD pipelines) and the `market-analytics` cron. First live run: 658 stocks
+  tagged (266 oversold, 206 bounce, 172 reclaim, 95 breakout, 41 flag). Rules adapted from the MIT-licensed
+  `trader-scanner` skill (credited in ADR-031).
+- **Markets**: a "Setup today" filter, a Setups column, and the rule stated under the filters ("a rule match on a chart, not a
+  recommendation"). **Stock page**: "Matched on the last close" with links to every stock that matched the same rule.
+  **Market Radar**: setup badges under the signal.
+- Tests: `supabase/tests/08_setups.sql` (five fixture charts, clearing on refresh, grants, wrapper), `lib/setups.test.mts`,
+  `e2e/setups.spec.ts`.
+
 ### Fixed — Off-site redirect test hung on "network idle" (`web/e2e/auth.spec.ts`)
 - After signing in, the test waited for `networkidle`, which on some runs never fires for the signed-in shell (it hung on
   `/app` until the 135 s limit, though the redirect itself was correct). It now waits for the URL to leave `/login` — any
