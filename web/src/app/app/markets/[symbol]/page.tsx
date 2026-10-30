@@ -16,11 +16,12 @@ import { SymbolAiChat } from "@/components/research/symbol-ai-chat";
 import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
-import { date, price, qty, rupees, signalDisplayName, signedInt, strategyLabel, volume } from "@/lib/format";
+import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
 import { setupsOf } from "@/lib/setups";
+import { markerFromSignal } from "@/lib/signal-trade";
 import { getCandles, getRetired, normalizeQuote } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
 import { can, requireSession } from "@/server/session";
@@ -63,29 +64,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
 
   const q = normalizeQuote(quoteRes.data as Quote);
   const signals = (signalsRes.data ?? []) as Signal[];
-  const markers: ChartMarker[] = signals.map((sg) => ({
-    ts: sg.generated_at,
-    kind: sg.signal_type,
-    label: (sg.payload?.label as string) || signalDisplayName(sg.strategy, sg.signal_type),
-    strategy: sg.strategy,
-    price: Number(sg.payload.close ?? sg.payload.trigger_price ?? sg.payload.entry ?? 0) || null,
-    stop: Number(sg.payload.stop ?? 0) || null,
-    target1: Number(sg.payload.target1 ?? sg.payload.target ?? 0) || null,
-    target2: Number(sg.payload.target2 ?? 0) || null,
-    realizedR: sg.payload.realized_r != null ? Number(sg.payload.realized_r) : null,
-    pnlPct: sg.payload.pnl_pct != null ? Number(sg.payload.pnl_pct) : null,
-    resultType: (sg.payload.result as string) || null,
-    action:
-      (typeof sg.payload.action === "string"
-        ? (sg.payload.action as "buy" | "sell" | "exit" | "cover")
-        : undefined) ||
-      (sg.payload.direction === "sell" && sg.signal_type === "exit" ? "sell" : sg.signal_type),
-    direction:
-      (typeof sg.payload.direction === "string"
-        ? (sg.payload.direction as "buy" | "sell")
-        : undefined) || (sg.strategy === "kk_breakout" ? "buy" : undefined),
-    barsHeld: Number(sg.payload.bars_held ?? 0) || null,
-  }));
+  const markers: ChartMarker[] = signals.map(markerFromSignal);
 
   const latestBuySignal = signals.find((s) => s.signal_type === "buy");
   const signalEntry = latestBuySignal ? Number(latestBuySignal.payload.close) : null;

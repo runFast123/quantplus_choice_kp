@@ -1,3 +1,4 @@
+import type { TradeView } from "./signal-trade";
 import type { Candle } from "./types";
 
 /**
@@ -186,6 +187,21 @@ export function historicalOdds(
     out.trades.push({ ts: e.ts, outcome, r });
   }
   return out;
+}
+
+/** The panel's starting horizon: KK trades are five-session trades, the others get ten. */
+export const defaultHorizon = (strategy?: string | null) => (strategy === "kk_breakout" ? 5 : 10);
+
+/**
+ * The odds the chart's panel opens with for a signal's trade: its first target (or a target as far
+ * above as the stop is below), its default horizon, 10,000 replays with seed 19.
+ */
+export function oddsForTrade(candles: Candle[], trade: TradeView, horizon = defaultHorizon(trade.entry.strategy)): SimOdds | null {
+  if (trade.stop == null) return null;
+  const target = trade.targets[0]?.price ?? (trade.risk ? (trade.direction === "long" ? trade.entryPrice + trade.risk : trade.entryPrice - trade.risk) : null);
+  if (target == null) return null;
+  const plan = { direction: trade.direction, entry: trade.entryPrice, stop: trade.stop, target, horizon };
+  return simulateOdds(candles, barIndex(candles, trade.entry.ts), plan, { paths: 10_000, seed: 19 });
 }
 
 export type OddsTone = "target" | "stop" | "even" | "open";

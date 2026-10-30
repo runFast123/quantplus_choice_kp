@@ -102,8 +102,10 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel`, `signalDisplayName` |
 | `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `toTradingViewSymbol(symbol, exchange)`, `toTradingViewWidgetSymbol(symbol)`; `nextEodUpdate(now)` (17:00 IST on the next trading day); `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
 | `market.test.mts` | unit tests (`npm run test:unit`) |
-| `trade-odds.ts` | `simulateOdds(candles, entryIndex, plan, {paths, lookback, seed})` → `SimOdds`, `historicalOdds(candles, entries, direction, rTarget, horizon)` → `HistoryOdds`, `oddsVerdict(sim)`, `plainOdds(sim)` → `PlainOdds` (beginner headline + counts out of 100 + break-even pass mark), `wholeCounts`, `barIndex`, `rng` (mulberry32), `rAt` |
+| `trade-odds.ts` | `simulateOdds(candles, entryIndex, plan, {paths, lookback, seed})` → `SimOdds`, `historicalOdds(candles, entries, direction, rTarget, horizon)` → `HistoryOdds`, `oddsVerdict(sim)`, `defaultHorizon(strategy)`, `oddsForTrade(candles, trade)` (the chart panel's opening odds), `plainOdds(sim)` → `PlainOdds` (beginner headline + counts out of 100 + break-even pass mark), `wholeCounts`, `barIndex`, `rng` (mulberry32), `rAt` |
 | `trade-odds.test.mts` | unit tests (`npm run test:unit`) |
+| `dry-run.ts` | Dry Run math (ADR-033): `sizePlan(stocks, total, cashPct)` → `Plan` (even split, whole shares, loss at each stop), `replayPlan(plan, candles, benchmark)` → `Replay` (same amounts on the first common day, `limitedBy`), `badDays(points)` (worst day / 5 sessions / deepest fall + recovery), `guardrails(plan)` (7 general checks), `tradedValue(candles)` |
+| `dry-run.test.mts` | unit tests (`npm run test:unit`) |
 | `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
 | `setups.test.mts` | unit tests (`npm run test:unit`) |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
@@ -124,7 +126,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `news/news.test.mts` | unit tests (`npm run test:unit`) |
 | `trade-plan.ts` | `calculateTradePlan`, `calculatePositionSize`, `evaluateSentiment`, `evaluateSignalProgress`, `auditStockSentiment`, `deduplicateChartSignals`, `getAlphaLevel`, `computeExitNodeHistory`, types `TradePlanResult`, `PositionSizeResult`, `SentimentResult`, `SignalProgressResult`, `TargetStatus`, `QuantumAuditItem`, `RawChartMarker`, `ExitLogEntry` |
 | `trade-plan.test.mts` | unit tests (`npm run test:unit`) |
-| `signal-trade.ts` | `signalAction(marker)` (buy/sell/exit/cover — the chart's one classifier), `isWinningExit`, `ruleSentence(strategy, action, result)`, `explainMarker`, `tradeFor(selected, markers)` → `TradeView` (entry/exit pair, stop, 1R, R-labelled targets), `KK_RESULTS` |
+| `signal-trade.ts` | `signalAction(marker)` (buy/sell/exit/cover — the chart's one classifier), `isWinningExit`, `ruleSentence(strategy, action, result)`, `explainMarker`, `tradeFor(selected, markers)` → `TradeView`, `markerFromSignal(sg)` (stored signal → chart marker; symbol page + Dry Run) (entry/exit pair, stop, 1R, R-labelled targets), `KK_RESULTS` |
 | `signal-trade.test.mts` | unit tests (`npm run test:unit`) |
 | `pine-script.ts` | `generateCleanPineScript(symbol, mode)`, type `PineStrategyMode` ("core" \| "swing") |
 | `pine-script.test.mts` | unit tests (`npm run test:unit`) |
@@ -160,6 +162,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 |---|---|
 | `/` | landing (plans from DB, fallback constants) |
 | `/api/symbols?q=` | ranked symbol search (`search_symbols`) for the header and add forms; signed-in only |
+| `/api/dry-run/stock?symbol=` | one stock for Dry Run: name, sector, segment, last price, 2 years of candles, stored signals as markers; signed-in only |
 | `/login` `/signup` `/forgot` | auth (group `(auth)`) |
 | `/auth/confirm` | email link handler (token_hash or PKCE code) |
 | `/invite/[token]` | accept organisation invite |
@@ -168,6 +171,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener (`?setup=` filter + Setups column); symbol page with chart, levels, signals, backtest, "Matched on the last close" setups |
 | `/app/watchlist` `/app/portfolio` `/app/alerts` `/app/signals` | product pages |
+| `/app/dry-run` | Dry Run (ADR-033): disclosure gate, then amount → pick (fresh rule buys in the top 500, or any stock) → plan → replay vs NIFTY 50 → bad-day test → guardrail score |
 | `/app/workspace` `/app/integrations` `/app/billing` `/app/settings` | account pages (`settings?tab=profile|security|notifications|privacy|data`) |
 | `/app/settings/export` | GET → JSON download of `export_my_data()` |
 | `/app/research` | Research desk (`?scope=mine&stance=&sort=score|low|change|news`) |
@@ -199,6 +203,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, benchmark presets, desk quick links), `MarketClock` (+ "EOD <date> · next <day> 17:00" freshness chip from `asOf`), `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
 | `market/setup-badges.tsx` | `SetupBadges` (neutral badges, rule in the title) — screener and Market Radar |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (horizontal sector rotation selector across 11 Indian sectors), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` ("How stretched are your stocks?": RSI zone in plain words, RSI gauge, filter chips, folded stop / targets), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
+| `dry-run/dry-run-studio.tsx` | `DryRunStudio` (the whole flow, client), `DryRunDisclosure` (fixed non-advice wording, `data-testid="dry-run-disclosure"`), type `Candidate` |
+| `dry-run/replay-chart.tsx` | `ReplayChart` (lightweight-charts: plan line drawn in over 2.2 s, NIFTY 50 dashed, crosshair values, Replay button; instant under reduced motion) |
 | `charts/trade-odds.tsx` | `TradeOdds` ("What usually happens next?" under the chart when a trade is selected: plain headline, 100-dot waffle, break-even pass mark, past-signal ▲▼ strip, method folded away; 5/10/20 days, target price) |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK 20d Breakout, SMA 20/50, RSI Reversal, All Plans, Clean Mode] + HUD with plain-English signal explainer + Signals Timeline ribbon ("New" since last visit, `qp:chart-seen:<SYMBOL>` in localStorage) + trade view on selection [entry/stop/target price lines, risk/reward zones, 1R label, ~260 ms pan; reduced motion → instant] + one-time ring on new signals + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
@@ -223,7 +229,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |

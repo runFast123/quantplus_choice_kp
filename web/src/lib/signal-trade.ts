@@ -1,4 +1,6 @@
+import { signalDisplayName } from "./format";
 import type { RawChartMarker } from "./trade-plan";
+import type { Signal } from "./types";
 
 /**
  * What a chart signal is as a trade action, and which entry and exit belong together.
@@ -127,4 +129,31 @@ export function tradeFor(selected: RawChartMarker, markers: RawChartMarker[]): T
     .map((p, i, all) => ({ label: `${all.length > 1 ? `T${i + 1}` : "Target"}${rLabel(p)}`, price: p }));
 
   return { direction, entry, exit, entryPrice, stop, risk, targets };
+}
+
+/** A stored signal (trading_signals row) as a chart marker: price, stop, targets and result from its payload. */
+export function markerFromSignal(sg: Signal): RawChartMarker {
+  return {
+    ts: sg.generated_at,
+    kind: sg.signal_type,
+    label: (sg.payload?.label as string) || signalDisplayName(sg.strategy, sg.signal_type),
+    strategy: sg.strategy,
+    price: Number(sg.payload.close ?? sg.payload.trigger_price ?? sg.payload.entry ?? 0) || null,
+    stop: Number(sg.payload.stop ?? 0) || null,
+    target1: Number(sg.payload.target1 ?? sg.payload.target ?? 0) || null,
+    target2: Number(sg.payload.target2 ?? 0) || null,
+    realizedR: sg.payload.realized_r != null ? Number(sg.payload.realized_r) : null,
+    pnlPct: sg.payload.pnl_pct != null ? Number(sg.payload.pnl_pct) : null,
+    resultType: (sg.payload.result as string) || null,
+    action:
+      (typeof sg.payload.action === "string"
+        ? (sg.payload.action as "buy" | "sell" | "exit" | "cover")
+        : undefined) ||
+      (sg.payload.direction === "sell" && sg.signal_type === "exit" ? "sell" : sg.signal_type),
+    direction:
+      (typeof sg.payload.direction === "string"
+        ? (sg.payload.direction as "buy" | "sell")
+        : undefined) || (sg.strategy === "kk_breakout" ? "buy" : undefined),
+    barsHeld: Number(sg.payload.bars_held ?? 0) || null,
+  };
 }

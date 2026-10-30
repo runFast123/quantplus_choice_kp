@@ -5,6 +5,20 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — Dry Run, phase 1 (`web/`; ADR-033)
+Why: help beginners plan an amount (say ₹2.5 lakh) properly without the platform telling them what to buy.
+- **`/app/dry-run`** (sidebar, phone menu, command palette): a disclosure gate first ("a practice tool, not advice;
+  not SEBI-registered…", must be ticked once), then six steps: **your money** (amount, quick amounts, % kept as cash) →
+  **pick stocks** (fresh rule buys in the 500 largest companies, newest first, filter by rule, or add any stock; up to
+  10) → **your plan** (whole shares, editable stop-loss prefilled from the signal, loss at each stop, the chart's odds
+  chip) → **what if you'd done this before?** (same amounts replayed vs the same money in the NIFTY 50, animated line,
+  hindsight warning) → **bad-day test** (worst day, worst week, biggest fall and recovery) → **guardrail score** (7
+  general checks with a plain "why" each). Disclosure repeated at the end.
+- `lib/dry-run.ts` (+12 unit tests), `api/dry-run/stock` (one stock's 2-year candles and signals on demand),
+  `components/dry-run/*`; `markerFromSignal` moved to `lib/signal-trade.ts` (symbol page uses it too);
+  `defaultHorizon` / `oddsForTrade` in `lib/trade-odds.ts` so the odds chip matches the chart.
+- `e2e/dry-run.spec.ts` on desktop and phone: gate, picking, sizing, replay, bad days, score, axe and overflow.
+
 ### Fixed — Chrome extension, found by driving it in a real browser (`extension/` 1.2.2, `web/`)
 - **The extension could never sign in.** The worker asked `/api/extension/session` with a GET, and Chrome sends no `Origin`
   header on an extension's GET to a host it has permissions for, so the route (which hands the token only to a

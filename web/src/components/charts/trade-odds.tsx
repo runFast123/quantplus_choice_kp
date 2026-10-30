@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { useMemo, useState } from "react";
 import { price as fmtPrice } from "@/lib/format";
 import { signalAction, type TradeView } from "@/lib/signal-trade";
-import { barIndex, historicalOdds, plainOdds, simulateOdds, type OddsTone } from "@/lib/trade-odds";
+import { barIndex, defaultHorizon, historicalOdds, plainOdds, simulateOdds, type OddsTone } from "@/lib/trade-odds";
 import type { RawChartMarker } from "@/lib/trade-plan";
 import type { Candle } from "@/lib/types";
 
@@ -100,7 +100,7 @@ export function TradeOdds({
   trade: TradeView;
   markers: RawChartMarker[];
 }) {
-  const [days, setDays] = useState<number>(trade.entry.strategy === "kk_breakout" ? 5 : 10);
+  const [days, setDays] = useState<number>(defaultHorizon(trade.entry.strategy));
   // Targets to test: the signal's own, or 1:1 / 1:2 reward to risk when it carries none.
   const targets = useMemo(() => {
     if (trade.targets.length) return trade.targets.map((t) => ({ label: t.label.split(" ")[0], price: t.price }));

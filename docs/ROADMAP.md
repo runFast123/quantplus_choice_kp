@@ -23,6 +23,13 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Custom domain (then update `NEXT_PUBLIC_SITE_URL`, Supabase URL config, and redeploy).
 
 ## Next
+- [x] Dry Run phase 1 (ADR-033): pick, plan, replay vs NIFTY 50, bad-day test, guardrail score.
+- [ ] Dry Run phase 2: save a plan as a practice portfolio (new table + RLS + isolation test), update after each EOD
+      load, weekly push report card.
+- [ ] Dry Run phase 3: share card (guardrail score and weeks practised; no stock names, no returns).
+- [ ] Backfill daily candles to ~2 years for every symbol (`pipelines/eod/eod.py --days 760`): many stocks' history
+      starts 25 Sept 2025, which shortens Dry Run replays and the odds pool.
+- [ ] Legal review of Dry Run wording before launch (with the Terms/Privacy review).
 - [ ] Payment gateway (Razorpay/Cashfree) checkout + webhook → `admin_activate_plan`-style RPC (FR-9.4).
 - [ ] Live tick worker for intraday alerts and prices (FR-3.5, FR-7.6); keep `run_eod_notifier` as the EOD pass.
 - [x] News (RSS) ingestion, symbol matching, tone, research notes, BYOK AI research read (0.2.0).

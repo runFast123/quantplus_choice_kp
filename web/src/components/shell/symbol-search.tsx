@@ -5,6 +5,7 @@ import {
   BinocularsIcon,
   BriefcaseIcon,
   ChartLineUpIcon,
+  FlaskIcon,
   LightningIcon,
   MagnifyingGlassIcon,
   NotebookIcon,
@@ -36,6 +37,7 @@ const QUICK_BENCHMARKS = [
 const QUICK_NAV: QuickLink[] = [
   { href: "/app/watchlist", label: "Market Radar", sub: "Watchlists & alerts", icon: BinocularsIcon },
   { href: "/app/signals", label: "Signals Desk", sub: "Active rule triggers", icon: LightningIcon },
+  { href: "/app/dry-run", label: "Dry Run", sub: "Try a plan on past prices", icon: FlaskIcon },
   { href: "/app/portfolio", label: "Portfolio", sub: "Holdings & P&L", icon: BriefcaseIcon },
   { href: "/app/research", label: "Research Desk", sub: "Stances & factor scores", icon: NotebookIcon },
   { href: "/app/integrations", label: "Integrations & Terminal", sub: "Chrome extension & TV", icon: PlugsIcon },

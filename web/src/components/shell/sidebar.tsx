@@ -10,6 +10,7 @@ import {
   BriefcaseIcon,
   ChartLineUpIcon,
   CreditCardIcon,
+  FlaskIcon,
   GearSixIcon,
   ListIcon,
   LightningIcon,
@@ -42,6 +43,7 @@ export function Sidebar({
     { href: "/app/portfolio", label: "Portfolio", icon: BriefcaseIcon, locked: locked.portfolio },
     { href: "/app/alerts", label: "Alerts", icon: BellRingingIcon, locked: locked.alerts },
     { href: "/app/signals", label: "Signals", icon: LightningIcon },
+    { href: "/app/dry-run", label: "Dry Run", icon: FlaskIcon },
     { href: "/app/research", label: "Research", icon: NotebookIcon },
     { href: "/app/news", label: "News", icon: NewspaperIcon },
   ];
@@ -123,6 +125,7 @@ export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boole
   const more: Item[] = [
     { href: "/app/alerts", label: "Alerts", icon: BellRingingIcon },
     { href: "/app/signals", label: "Signals", icon: LightningIcon },
+    { href: "/app/dry-run", label: "Dry Run", icon: FlaskIcon },
     { href: "/app/research", label: "Research", icon: NotebookIcon },
     { href: "/app/news", label: "News", icon: NewspaperIcon },
     { href: "/app/workspace", label: "Workspace", icon: UsersThreeIcon },

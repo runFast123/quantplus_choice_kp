@@ -218,3 +218,22 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   break-even at its R (1 / (1 + R)), with the original's 5 and 15 point thresholds. Our own TypeScript, not their code.
 - **Why in the browser:** the chart already holds the candles and signals; 200k draws take milliseconds; nothing to store.
 - **Copy:** a simulation, not a prediction; fewer than 10 past trades is flagged as too few; never advice.
+
+### ADR-033 · Dry Run: the user's own plan on past prices, never a recommendation
+**Date** 2026-10-30 · **Status** accepted
+- **Context:** the owner wanted a "counselor" that tells a user with ₹2–3 lakh which stocks to buy and why. Telling people
+  what to buy is investment advice / research under SEBI's Investment Adviser and Research Analyst regulations, which
+  need registration; a disclaimer doesn't change what the feature does, and the BRD keeps personalised advice out of
+  scope (AGENTS rule 13).
+- **Decision:** build the practice version. The user chooses the amount and the stocks (the list is the day's fresh
+  rule buys among the 500 largest companies, or any stock by search), and the page only does arithmetic on those
+  choices: whole-share sizing after a cash share, the same amounts replayed from the first common day against the
+  NIFTY 50, the worst day / week / fall, and seven general guardrails (concentration, sectors, stops, loss at stops,
+  traded value, SME, cash). A disclosure gate must be accepted first (remembered in the browser), and the fixed
+  disclosure sits at the top and bottom. Default order is newest match first, never "best".
+- **Never:** "buy", "best stocks", a system-chosen split, return promises, or questions about income/goals.
+- **Limits:** the replay looks back with stocks picked today (said on screen). Many stocks' history in the database
+  starts 25 Sept 2025, which shortens the replay (also said on screen; backfill is on the roadmap). Legal review of
+  the wording is still owed before launch (BRD open decision 8). Phase 2 (saved practice plans, weekly report) needs a
+  user-data table with RLS and an isolation test.
+
