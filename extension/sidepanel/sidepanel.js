@@ -951,9 +951,14 @@ if barstate.islast
   let isLoading = false;
   let latestRenderedData = null;
 
+  // Each load gets a number; an answer for anything but the latest load is dropped, so a slow
+  // reply for the previous symbol can't replace the one just asked for.
+  let loadSeq = 0;
+
   async function loadSymbol(sym) {
     if (!sym) return;
     if (isLoading && sym === currentSymbol) return;
+    const seq = ++loadSeq;
 
     const isNewSymbol = sym !== currentSymbol;
     currentSymbol = sym;
@@ -965,6 +970,7 @@ if barstate.islast
     try {
       // The background worker owns the token (renews it from the website session) and the cache.
       const resp = await sendMessage({ type: "FETCH_QUOTE_DATA", symbol: sym, exchange: "NSE" });
+      if (seq !== loadSeq) return;
       if (resp?.isAuthError) {
         updateAuthUI(false, null);
         showView("locked");
@@ -973,6 +979,7 @@ if barstate.islast
       if (!resp?.ok) throw new Error(resp?.error || "Failed to fetch quote");
       const data = resp.data;
       const stored = await new Promise((r) => chrome.storage.local.get(["qpUser"], r));
+      if (seq !== loadSeq) return;
       updateAuthUI(true, stored?.qpUser || null);
       render(data);
       currentSymbol = data.symbol || sym;
@@ -984,9 +991,9 @@ if barstate.islast
       });
       pushHudDirectToTabs(data);
     } catch (err) {
-      if (isNewSymbol || view !== "content") showError(sym, err);
+      if (seq === loadSeq && (isNewSymbol || view !== "content")) showError(sym, err);
     } finally {
-      isLoading = false;
+      if (seq === loadSeq) isLoading = false;
     }
   }
 

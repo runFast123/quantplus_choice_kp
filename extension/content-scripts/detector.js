@@ -1,6 +1,6 @@
 // QuantsPulse Ticker Detector & Customizable On-Chart Signal HUD Content Script
 // Automatically detects active stock tickers and renders end-of-day rule-based signals,
-// Asymmetric Trade Plans & Sentiment Audits directly on TradingView, Zerodha Kite, Groww, etc.
+// Trade plans and RSI zones directly on TradingView, Zerodha Kite, Groww, etc.
 
 (function () {
   // Singleton Guard: Prevent duplicate injections into the same document/frame
@@ -725,7 +725,7 @@
       <div class="hud-locked">
         <span class="tag-sym">${symbol}</span>
         <div class="lock-badge">
-          <span>🔒</span>
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
           <span>Account Required</span>
         </div>
         <a href="${base}" target="_blank" class="btn-unlock">Sign In to Unlock Signals</a>
@@ -1363,7 +1363,7 @@
 
       ${prefs.isHidden ? `
         <button id="btn-restore-hud" class="bubble-restore" title="Restore QuantsPulse Chart Overlay">
-          <span>⚡ QuantsPulse (${data.symbol})</span>
+          <span>QuantsPulse (${data.symbol})</span>
         </button>
       ` : `
         <div id="qp-hud-box" class="hud-container ${prefs.displayMode === "compact" ? "is-compact" : prefs.displayMode === "targets_only" ? "is-targets-only" : prefs.displayMode === "signal_only" ? "is-signal-only" : ""}">
@@ -1387,9 +1387,9 @@
                   <span class="num" style="color:#F87171; font-size:10px;">Stop ${formatRupees(p.stop)}</span>
                   <span class="num" style="color:#34D399; font-size:10px;">T1 ${formatRupees(p.t1)}</span>
                 ` : ""}
-                <button id="btn-settings-hud" class="btn-tool ${prefs.settingsOpen ? "active" : ""}" title="Customizer">⚙</button>
+                <button id="btn-settings-hud" class="btn-tool ${prefs.settingsOpen ? "active" : ""}" title="Layout" aria-label="Layout"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="12" r="1.5"/></svg></button>
                 <button id="btn-set-mode-full" class="btn-tool" title="Expand Full Card">⤢</button>
-                <button id="btn-close-hud" class="btn-tool" title="Close">✕</button>
+                <button id="btn-close-hud" class="btn-tool" title="Close" aria-label="Close">✕</button>
               </div>
             </div>
           ` : ""}
@@ -1405,9 +1405,9 @@
                   <span class="num" style="font-size:10px; color:#34D399; background:#222; padding:2px 5px; border-radius:3px; border:1px solid rgba(52,211,153,0.3);">T2 ${formatRupees(p.t2)}</span>
                   <span class="num" style="font-size:10px; color:#34D399; background:#222; padding:2px 5px; border-radius:3px; border:1px solid rgba(52,211,153,0.3);">T3 ${formatRupees(p.t3)}</span>
                 ` : "<span>No Active Plan</span>"}
-                <button id="btn-settings-hud" class="btn-tool" title="Customizer">⚙</button>
+                <button id="btn-settings-hud" class="btn-tool" title="Layout" aria-label="Layout"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="12" r="1.5"/></svg></button>
                 <button id="btn-set-mode-full" class="btn-tool" title="Full View">⤢</button>
-                <button id="btn-close-hud" class="btn-tool" title="Close">✕</button>
+                <button id="btn-close-hud" class="btn-tool" title="Close" aria-label="Close">✕</button>
               </div>
             </div>
           ` : ""}
@@ -1427,9 +1427,9 @@
                     <span class="num" style="font-weight:700;">(Trigger: ${formatRupees(data.latestSignal.price)})</span>
                   </div>
                 ` : `<span style="font-size:10.5px; color:#888;">Consolidation</span>`}
-                <button id="btn-settings-hud" class="btn-tool" title="Customizer">⚙</button>
+                <button id="btn-settings-hud" class="btn-tool" title="Layout" aria-label="Layout"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="12" r="1.5"/></svg></button>
                 <button id="btn-set-mode-full" class="btn-tool" title="Full View">⤢</button>
-                <button id="btn-close-hud" class="btn-tool" title="Close">✕</button>
+                <button id="btn-close-hud" class="btn-tool" title="Close" aria-label="Close">✕</button>
               </div>
             </div>
           ` : ""}
@@ -1457,10 +1457,10 @@
                 ` : ""}
               </div>
               <div class="header-tools">
-                <button id="btn-settings-hud" class="btn-tool ${prefs.settingsOpen ? "active" : ""}" title="Customizer / Layout">⚙</button>
-                <button id="btn-copy-pine" class="btn-tool" title="Copy TradingView Pine Script Indicator">📋 Pine</button>
+                <button id="btn-settings-hud" class="btn-tool ${prefs.settingsOpen ? "active" : ""}" title="Layout" aria-label="Layout"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="12" r="1.5"/></svg></button>
+                <button id="btn-copy-pine" class="btn-tool" title="Copy the TradingView Pine Script indicator"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg> Pine</button>
                 <button id="btn-set-mode-compact" class="btn-tool" title="Minimize to compact bar">—</button>
-                <button id="btn-close-hud" class="btn-tool" title="Close">✕</button>
+                <button id="btn-close-hud" class="btn-tool" title="Close" aria-label="Close">✕</button>
               </div>
             </div>
           ` : ""}
@@ -1479,7 +1479,7 @@
               <label><input type="checkbox" id="chk-signal" ${prefs.showSignal ? "checked" : ""}> Signal Card</label>
               <label><input type="checkbox" id="chk-targets" ${prefs.showTargets ? "checked" : ""}> Targets (T1-T3)</label>
               <label><input type="checkbox" id="chk-levels" ${prefs.showLevels ? "checked" : ""}> Key Levels</label>
-              <label><input type="checkbox" id="chk-sentiment" ${prefs.showSentiment ? "checked" : ""}> RSI Sentiment</label>
+              <label><input type="checkbox" id="chk-sentiment" ${prefs.showSentiment ? "checked" : ""}> RSI</label>
             </div>
             <div class="dock-row">
               <span>Snap:</span>
@@ -1499,8 +1499,8 @@
                   <span class="num quote-price">${formatRupees(data.last_price)}</span>
                   <span class="num quote-delta">${deltaText}</span>
                 </div>
-                <div style="font-size:10px;color:#94938B;">
-                  ${data.sector || "NSE Equity"}
+                <div style="font-size:10px;color:#94938B;text-align:right;" title="QuantsPulse uses end-of-day prices, so this can differ from the live chart.">
+                  End of day${data.as_of ? ` · ${formatSignalDate(data.as_of)} close` : ""}
                 </div>
               </div>
 
@@ -1518,11 +1518,11 @@
                         </svg>
                         <span>${sigMeta.badge}</span>
                       ` : `
-                        <span>CONSOLIDATION</span>
+                        <span>NO SIGNAL</span>
                       `}
                     </div>
                     <div style="display:flex; align-items:center; gap:6px;">
-                      <span class="chart-marker-tag">CHART ARROW SIGNAL</span>
+                      <span class="chart-marker-tag">RULE SIGNAL</span>
                       ${data.latestSignal?.date ? `
                         <span class="num signal-date">${formatSignalDate(data.latestSignal.date)}</span>
                       ` : ""}
@@ -1533,13 +1533,13 @@
                   </div>
                   <div class="signal-grid">
                     <div class="signal-metric">
-                      <dt>Arrow Trigger Price</dt>
+                      <dt>Signal price</dt>
                       <dd class="num" style="display:inline-flex; align-items:center; gap:3px; color:${hasSignal ? (isBuy ? "#34D399" : "#F87171") : "inherit"}; font-weight:700;">
                         ${hasSignal ? (isBuy ? "▲" : "▼") : ""} ${hasSignal ? formatRupees(data.latestSignal.price) : formatRupees(data.last_price)}
                       </dd>
                     </div>
                     <div class="signal-metric">
-                      <dt>Protective Stop</dt>
+                      <dt>Stop-loss</dt>
                       <dd class="num" style="color:#F87171;">${p ? formatRupees(p.stop) : "—"}</dd>
                     </div>
                   </div>
@@ -1547,7 +1547,7 @@
                   <!-- Recent On-Chart Arrow Signals Sequence -->
                   ${data.recentSignals && data.recentSignals.length > 1 ? `
                     <div class="signal-history-row">
-                      <div class="signal-history-label">Recent Chart Arrow Signals:</div>
+                      <div class="signal-history-label">Earlier signals</div>
                       <div class="signal-history-track">
                         ${data.recentSignals.slice(0, 4).map(sig => `
                           <div class="mini-signal-chip ${signalMeta(sig.kind).up ? "is-buy" : "is-exit"}" title="${escapeHtml(sig.label || "")}${sig.date ? " on " + formatSignalDate(sig.date) : ""}">
@@ -1565,7 +1565,7 @@
               <!-- Asymmetric Trade Plan Multiples -->
               ${prefs.showTargets && p ? `
                 <div>
-                  <div class="plan-title">Asymmetric Targets (0.75R / 2.0R / 3.0R)</div>
+                  <div class="plan-title" title="Targets are ¾, 2 and 3 times the distance from the entry to the stop.">Stop-loss and targets</div>
                   <div class="targets-grid">
                     <div class="target-col is-stop">
                       <div class="target-label">STOP</div>
@@ -1573,17 +1573,17 @@
                       <div class="num target-val">${formatRupees(p.stop)}</div>
                     </div>
                     <div class="target-col">
-                      <div class="target-label">T1 0.75R</div>
+                      <div class="target-label">Target 1</div>
                       <div class="num target-pct gain">+${t1Gain}%</div>
                       <div class="num target-val">${formatRupees(p.t1)}</div>
                     </div>
                     <div class="target-col">
-                      <div class="target-label">T2 2.0R</div>
+                      <div class="target-label">Target 2</div>
                       <div class="num target-pct gain">+${t2Gain}%</div>
                       <div class="num target-val">${formatRupees(p.t2)}</div>
                     </div>
                     <div class="target-col is-t3">
-                      <div class="target-label">T3 3.0R</div>
+                      <div class="target-label">Target 3</div>
                       <div class="num target-pct gain">+${t3Gain}%</div>
                       <div class="num target-val">${formatRupees(p.t3)}</div>
                     </div>
@@ -1609,7 +1609,7 @@
                 <a href="${data.quantPulseUrl || `https://quantplus-ten.vercel.app/app/markets/${encodeURIComponent(data.symbol)}`}" target="_blank" class="footer-link">
                   Open QuantsPulse Terminal ↗
                 </a>
-                <span id="btn-copy-pine-foot" class="pine-link">📋 Copy Pine Script</span>
+                <span id="btn-copy-pine-foot" class="pine-link"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg> Copy Pine Script</span>
               </div>
             </div>
           ` : ""}

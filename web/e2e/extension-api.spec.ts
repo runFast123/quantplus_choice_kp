@@ -40,6 +40,15 @@ test.describe("extension API", () => {
     expect(quote.headers()["access-control-allow-credentials"]).toBeUndefined();
   });
 
+  test("the extension asks with POST (Chrome sends its Origin only then) and gets the token; a page does not", async ({ proPage }) => {
+    const ext = await (await proPage.request.post("/api/extension/session", { headers: { origin: EXT } })).json();
+    expect(ext.authenticated).toBe(true);
+    expect(typeof ext.token).toBe("string");
+    const page = await proPage.request.post("/api/extension/session", { headers: { origin: "https://evil.example" } });
+    expect((await page.json()).token).toBeUndefined();
+    expect(page.headers()["access-control-allow-origin"]).toBeUndefined();
+  });
+
   test("quotes show stored rule signals only, and a plan only for an open long entry", async ({ proPage }) => {
     const { token } = await (await proPage.request.get("/api/extension/session", { headers: { origin: EXT } })).json();
     for (const symbol of ["TCS", "INFY", "RELIANCE", "HDFCBANK", "SBIN", "NIFTY"]) {

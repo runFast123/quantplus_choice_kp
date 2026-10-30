@@ -9,11 +9,20 @@ import { supabaseServer } from "@/lib/supabase/server";
  * QuantsPulse cookies (proxy.ts has already refreshed them), and gets back a current access
  * token to use as a Bearer on /api/extension/quote. The token is only ever returned to a
  * chrome-extension:// origin — a web page can't forge that header, and gets no CORS access.
+ *
+ * The extension asks with POST: Chrome leaves the Origin header off an extension's GET to a site
+ * it has host permissions for, so a GET never carries the chrome-extension:// origin. GET stays
+ * for the sign-in check alone (and for older extension builds); it hands out a token only when
+ * an Origin header does say chrome-extension://.
  */
 export const dynamic = "force-dynamic";
 
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: extensionCors(req.headers.get("origin"), { anyOrigin: false }) });
+}
+
+export async function POST(req: NextRequest) {
+  return GET(req);
 }
 
 export async function GET(req: NextRequest) {

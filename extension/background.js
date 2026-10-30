@@ -89,7 +89,8 @@ function refreshAuth() {
   refreshing = (async () => {
     try {
       const { backendUrl } = await chrome.storage.local.get(["backendUrl"]);
-      const r = await fetch(`${backendFrom(backendUrl)}/api/extension/session`, { credentials: "include", cache: "no-store" });
+      // POST, not GET: Chrome sends the chrome-extension:// Origin the server checks only on a POST.
+      const r = await fetch(`${backendFrom(backendUrl)}/api/extension/session`, { method: "POST", credentials: "include", cache: "no-store" });
       const s = await r.json();
       if (s?.authenticated && s.token) {
         await chrome.storage.local.set({

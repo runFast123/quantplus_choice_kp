@@ -176,6 +176,9 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   refreshes the session as for any request, and the route returns the current access token — only when the `Origin` is
   `chrome-extension://…` (a page can't forge it, and other origins get no CORS access). The worker keeps the token in
   `chrome.storage.local`, renews it shortly before expiry or after a 401, and is the only place that fetches quotes.
+- **Amended 2026-10-30:** the worker asks with **POST**. Chrome leaves the `Origin` header off an extension's GET to a
+  host it has permissions for (measured: GET has none, POST carries `chrome-extension://…`), so with GET the route never
+  returned a token and the extension could not sign in. GET still answers the sign-in check.
 - **Limits:** tokens go only to the production site or localhost (allowlist in the extension). Content scripts can still
   read the stored token; moving it to `chrome.storage.session` is a follow-up. A dedicated, revocable extension token
   (pairing flow) would replace this if the extension ships on the Chrome Web Store.

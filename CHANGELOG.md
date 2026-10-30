@@ -5,6 +5,23 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — Chrome extension, found by driving it in a real browser (`extension/` 1.2.2, `web/`)
+- **The extension could never sign in.** The worker asked `/api/extension/session` with a GET, and Chrome sends no `Origin`
+  header on an extension's GET to a host it has permissions for, so the route (which hands the token only to a
+  `chrome-extension://` origin) answered "signed in" without a token. The worker now POSTs (Chrome includes the Origin
+  then); the route accepts POST; CORS allows it. ADR-029 amended. `e2e/extension-api.spec.ts` covers POST.
+- **Side panel showed the wrong stock** when an older lookup finished after a newer one (typing a symbol right after the
+  panel opened showed the previous one). Each load now has a sequence number and stale answers are dropped.
+- **On-chart box in plain words:** "End of day · 29 Oct close" next to the price (it differed from the live chart with no
+  explanation); "Signal price", "Stop-loss", "Earlier signals", "Target 1–3" instead of "Arrow Trigger Price",
+  "Protective Stop", "Asymmetric Targets (0.75R / 2.0R / 3.0R)"; "No signal" instead of a made-up "Consolidation";
+  emoji icons (🔒 ⚡ ⚙ 📋) replaced with small SVG icons.
+- **New `web/e2e/extension-live.spec.ts`:** loads the unpacked extension into Chromium and checks the worker, website
+  sign-in and sign-out sync, side panel (signed out, signed in, unknown symbol), options page and the TradingView
+  detector, failing on any console, page or worker error. Opt-in (`EXTENSION_E2E=1 E2E_PORT=3000`; branded Chrome no
+  longer side-loads extensions, so it uses Playwright's Chromium or `EXTENSION_CHROME`).
+- Download zip repackaged.
+
 ### Changed — Plain words, modern visuals (`web/`)
 Why: the odds panel and the RSI "audit" were accurate but read like a quant report; a beginner should get each one in
 five seconds. Standing rule from now on: lead with one plain answer, put the method behind a fold.

@@ -176,7 +176,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/api/cron/push` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `deliverPendingPush` (Vercel cron 18:15 IST weekdays, after the pg_cron notifier) |
 | `/manifest.webmanifest` | install metadata (`app/manifest.ts`); `public/sw.js` shows pushes and opens their page; `public/icons/*` |
 | `/api/cron/market-eod` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `syncEodPrices` (daily 17:00 & 20:00 IST), then `deliverPendingPush` |
-| `/api/extension/session` | GET: Bearer JWT or cookie session → `{ authenticated, user }`; to a `chrome-extension://` origin only, also `{ token, expiresAt }` from the cookie session (how the extension signs in) |
+| `/api/extension/session` | POST (what the extension uses) or GET: Bearer JWT or cookie session → `{ authenticated, user }`; to a `chrome-extension://` origin only, also `{ token, expiresAt }` from the cookie session (how the extension signs in) |
 | `/api/extension/download` | GET direct download endpoint serving `quantspulse-terminal.zip` package |
 | `/api/extension/quote?symbol=` | Quote, stored signals (`latestSignal` + `rule`, `sessionsSince`, `moveSincePct`), `history` (≤63 daily closes, oldest first) and trade plan for the Chrome Extension (Bearer; `*` CORS without credentials, credentials only for the extension); 401 when signed out |
 | `/admin` | platform console (404 unless platform admin) |
@@ -223,7 +223,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |
@@ -239,7 +239,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Path | What |
 |---|---|
 | `extension/manifest.json` | Manifest V3: `sidePanel`, permissions, broker matches, `all_frames: true` |
-| `extension/background.js` | Service worker: owns auth (`refreshAuth()` → `/api/extension/session` with cookies, `currentToken()` renews before expiry, retry once on 401), `ALLOWED_BACKENDS` (prod + localhost only), `FETCH_QUOTE_DATA` (only quote path: side panel + HUD) with 30s cache, `QP_REFRESH_AUTH` message, toolbar badge |
+| `extension/background.js` | Service worker: owns auth (`refreshAuth()` → POST `/api/extension/session` with cookies — POST because Chrome omits the Origin on an extension's GET, `currentToken()` renews before expiry, retry once on 401), `ALLOWED_BACKENDS` (prod + localhost only), `FETCH_QUOTE_DATA` (only quote path: side panel + HUD) with 30s cache, `QP_REFRESH_AUTH` message, toolbar badge |
 | `extension/content-scripts/auth-sync.js` | On the QuantsPulse site: asks the background worker to re-check sign-in (load, tab visible, every 5 min, `QP_REQUEST_AUTH_SYNC`); reads no storage or cookies |
 | `extension/content-scripts/detector.js` | Ticker detection ladder (`KNOWN_INDICES`), Shadow DOM On-Chart HUD (`signalMeta(kind)`), drag/layout customization; fetches only via the background worker |
 | `extension/sidepanel/sidepanel.html` | Side Panel UI: Phosphor icon sprite, sticky quote with 3-month price line, tabs Signal / Plan / Levels, view states (loading placeholders, empty, locked, error), toast |

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "QuantsPulse — Indian Equities Terminal",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "End-of-day rule-based signals, trade plans and key levels for NSE stocks, beside TradingView and Indian broker charts.",
   "permissions": [
     "sidePanel",
