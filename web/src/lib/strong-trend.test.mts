@@ -4,12 +4,17 @@ import { reviewDate, STRONG_TREND_TESTED, strongTrendStatus, weatherView } from 
 import { ruleSentence } from "./signal-trade";
 import { defaultHorizon } from "./trade-odds";
 
-test("weather: each state says whether Strong trend is on", () => {
-  assert.match(weatherView("sunny", 13.2).sentence, /signals are on/);
-  assert.match(weatherView("sunny", 13.2).sentence, /VIX 13\.2/);
-  assert.match(weatherView("mixed", null).sentence, /wait for a sunny market/);
-  assert.match(weatherView("stormy", 24).sentence, /pause/);
-  assert.equal(weatherView(null, null).label, "Unknown");
+test("weather: each state says whether Strong trend is on, and why", () => {
+  const sunny = weatherView({ state: "sunny", nifty: 110, sma50: 105, sma200: 100, vix: 13.2 });
+  assert.match(sunny.sentence, /signals are on/);
+  assert.match(sunny.sentence, /VIX 13\.2/);
+  assert.match(weatherView({ state: "mixed", vix: null }).sentence, /wait for a sunny market/);
+  const downtrend = weatherView({ state: "stormy", nifty: 95, sma50: 98, sma200: 100, vix: 15.3 });
+  assert.match(downtrend.sentence, /^The Nifty 50 and its 50-day average are below the 200-day average \(India VIX 15\.3 is calm\)\. .*pause/);
+  const nervous = weatherView({ state: "stormy", nifty: 110, sma50: 105, sma200: 100, vix: 24 });
+  assert.match(nervous.sentence, /^The market is nervous \(India VIX 24\.0, above 22\)\./);
+  assert.doesNotMatch(nervous.sentence, /below the 200-day/);
+  assert.equal(weatherView({ state: null }).label, "Unknown");
 });
 
 test("status: below the safety stop only when the last close reaches it", () => {

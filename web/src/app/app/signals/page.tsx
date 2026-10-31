@@ -89,13 +89,26 @@ export default async function SignalsPage({
   const [radarRes, holdRes, weatherRes, scoreRes] = await Promise.all([
     db.from("watchlist_items").select("symbol"),
     db.from("holdings").select("symbol"),
-    db.from("market_weather").select("day, state, vix").order("day", { ascending: false }).limit(1).maybeSingle(),
+    db
+      .from("market_weather")
+      .select("day, state, vix, nifty, nifty_sma50, nifty_sma200")
+      .order("day", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     db
       .from("strategy_scorecard")
       .select("strategy, side, graded_20, up_20_pct, beat_index_20_pct, vs_index_20_pts, stop_hit_20_pct, first_day")
       .eq("period", "all"),
   ]);
-  const weather = weatherView(weatherRes.data?.state, weatherRes.data?.vix != null ? Number(weatherRes.data.vix) : null);
+  const num = (x: unknown) => (x == null ? null : Number(x));
+  const wx = weatherRes.data;
+  const weather = weatherView({
+    state: wx?.state,
+    nifty: num(wx?.nifty),
+    sma50: num(wx?.nifty_sma50),
+    sma200: num(wx?.nifty_sma200),
+    vix: num(wx?.vix),
+  });
   const WeatherIcon = weather.state === "sunny" ? SunIcon : weather.state === "stormy" ? CloudLightningIcon : CloudSunIcon;
   const scores = ((scoreRes.data ?? []) as ScoreRow[]).sort(
     (a, b) =>

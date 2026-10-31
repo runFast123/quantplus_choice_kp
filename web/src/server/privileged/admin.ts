@@ -325,9 +325,29 @@ export async function getRecentAuditLogs(actorId: string, limit = 25): Promise<A
 export async function triggerMarketAnalytics(actorId: string, days = 10) {
   if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
   const db = serviceRole();
-  const { data, error } = await db.rpc("svc_refresh_market_analytics", { p_days: days });
-  if (error) throw new PrivilegedError(error.message);
-  return data as { rsi_events: number; signals: number; ledgers: number; quotes: number };
+  // ~3,600 symbols: one call would pass PostgREST's 8 s statement limit, so batch like the pipeline (50).
+  const symbols: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db
+      .from("market_symbols")
+      .select("symbol")
+      .eq("is_active", true)
+      .order("symbol")
+      .range(from, from + 999);
+    if (error) throw new PrivilegedError(error.message);
+    symbols.push(...(data ?? []).map((r) => r.symbol as string));
+    if ((data ?? []).length < 1000) break;
+  }
+  const totals: Record<string, number> = {};
+  for (let i = 0; i < symbols.length; i += 50) {
+    const { data, error } = await db.rpc("svc_refresh_market_analytics", {
+      p_days: days,
+      p_symbols: symbols.slice(i, i + 50),
+    });
+    if (error) throw new PrivilegedError(error.message);
+    for (const [k, v] of Object.entries((data ?? {}) as Record<string, number>)) totals[k] = (totals[k] ?? 0) + Number(v);
+  }
+  return totals as { rsi_events: number; signals: number; ledgers: number; quotes: number };
 }
 
 export async function triggerResearchRefresh(actorId: string) {

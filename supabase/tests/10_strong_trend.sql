@@ -57,7 +57,7 @@ from generate_series(1, 330) d,
      lateral (select case when d < 301 then 100 else 110 + (d - 301) end::numeric as c) x;
 update public.market_candles set volume = 1000000 where symbol = 'QPST4' and ts < qp_t10.day(330, 301);
 
-select private.refresh_market_weather();
+select private.refresh_market_weather(true);
 select qp_t10.check((select state from public.market_weather where day = (qp_t10.day(330, 301) at time zone 'Asia/Kolkata')::date) = 'sunny',
                     'weather: a rising Nifty with calm VIX is sunny');
 select qp_t10.check((select count(*) from public.market_weather where state is null) = 199,
@@ -84,6 +84,9 @@ select qp_t10.check(private.refresh_strong_trend(array['QPST1', 'QPST4']) = 0, '
 -- A stormy day: VIX above 22 on the breakout day stops the signal.
 update public.market_candles set close = 25 where symbol = 'INDIAVIX' and ts = qp_t10.day(330, 301);
 select private.refresh_market_weather();
+select qp_t10.check((select state from public.market_weather where day = (qp_t10.day(330, 301) at time zone 'Asia/Kolkata')::date) = 'sunny',
+                    'weather: a normal run only rewrites the last 10 sessions');
+select private.refresh_market_weather(true);
 select qp_t10.check((select state from public.market_weather where day = (qp_t10.day(330, 301) at time zone 'Asia/Kolkata')::date) = 'stormy',
                     'weather: VIX above 22 is stormy');
 delete from public.trading_signals where symbol = 'QPST1' and strategy = 'strong_trend';
@@ -91,7 +94,7 @@ select private.refresh_strong_trend(array['QPST1']);
 select qp_t10.check(not exists (select 1 from public.trading_signals where symbol = 'QPST1' and strategy = 'strong_trend'),
                     'no buy: the market was stormy that day');
 update public.market_candles set close = 14 where symbol = 'INDIAVIX' and ts = qp_t10.day(330, 301);
-select private.refresh_market_weather();
+select private.refresh_market_weather(true);
 select private.refresh_strong_trend(array['QPST1']);
 
 -- Grading: QPST4's buy (day 301) entered at day 302's open (111); 28 sessions since, so r5 and r20 exist.
@@ -132,5 +135,13 @@ select qp_t10.check(not has_function_privilege('authenticated', 'private.grade_s
                     'grants: users cannot run the jobs');
 select qp_t10.check((select public.svc_refresh_market_analytics(400, array['QPST1']) ?& array['setups', 'weather', 'strong_trend', 'graded']),
                     'svc: the pipeline wrapper runs weather, strong trend and grading');
+
+-- Retiring a symbol drops its SIP ledger (migration 34).
+insert into public.backtest_ledgers (symbol, exchange, ledger, roi_pct) values ('QPST3', 'NSE', '{}', 0)
+on conflict (symbol, exchange) do nothing;
+update public.market_symbols set is_active = false where symbol = 'QPST3';
+select qp_t10.check(not exists (select 1 from public.backtest_ledgers where symbol = 'QPST3'), 'retire: the SIP ledger goes with the symbol');
+select qp_t10.check(not exists (select 1 from public.backtest_ledgers b join public.market_symbols s using (symbol, exchange) where not s.is_active),
+                    'retire: no ledger left on any retired symbol');
 
 rollback;

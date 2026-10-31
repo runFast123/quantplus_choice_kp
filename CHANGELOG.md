@@ -5,6 +5,21 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — Daily job inside its time limits; CI and the admin refresh
+- **The daily price job's analytics batches timed out** after migration 33 added weather, Strong trend and grading to
+  each call (a batch of 100 took up to 6.4 s of PostgREST's 8 s, and went over under load). The pipeline now sends
+  50 symbols a call (`pipelines/eod/eod.py`, like the Vercel route) and the weather step rewrites only the last 10
+  sessions (`private.refresh_market_weather(p_full)`, migration 34): batches take 1–2 s. Measured on the live
+  database with `supabase/scripts/time-analytics.mjs` (rolled back, writes nothing).
+- **Admin → Refresh market analytics** sent all ~3,600 symbols in one call (always over the limit); it now batches
+  50 at a time and the page allows 300 s. The Vercel EOD route now logs a failed analytics batch instead of
+  dropping it silently.
+- **Retired symbols keep no SIP ledger**: a trigger deletes it when `is_active` turns false; the 8 left from earlier
+  retirements are gone (the live DB test `05_market_analytics` failed on them).
+- **CI**: `test_universe` still expected a new company to get 400 days although ADR-034 gives the top 500 two years;
+  the test now covers both (rank 900 → 400 days, rank 120 → 760).
+- Signals page: the weather sentence names the actual reason (a falling Nifty trend, a nervous VIX, or both).
+
 ### Added — Strong trend signal, market weather and a graded track record (ADR-035)
 - **Strong trend** (`supabase/migrations/20261001000033_strong_trend.sql`, `private.refresh_strong_trend`): a buy when one of
   the 500 largest companies closes at a new 52-week high on at least 2× its usual volume, above its 50-day average, in a

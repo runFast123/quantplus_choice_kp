@@ -33,6 +33,8 @@ import { MaintenanceOperations } from "./maintenance-panel";
 import { FetchNewsButton } from "./news-button";
 
 export const metadata: Metadata = { title: "Platform admin" };
+// The maintenance panel refreshes analytics for every symbol in batches (~2.5 min): allow the full 300 s.
+export const maxDuration = 300;
 
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const s = await requireSession();

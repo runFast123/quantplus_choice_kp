@@ -32,12 +32,13 @@ class Merge(unittest.TestCase):
     def test_existing_keep_name_and_history_new_get_400(self):
         existing = [{"symbol": "TCS", "name": "Tata Consultancy Services", "sector": "IT", "segment": "equity",
                      "history_days": 760, "is_active": True, "status_note": None}]
-        rows, gone = merge([self.row("TCS"), self.row("NEWCO")], existing)
+        rows, gone = merge([self.row("TCS"), self.row("NEWCO", mcap_rank=900), self.row("NEWBIG", mcap_rank=120)], existing)
         by = {r["symbol"]: r for r in rows}
         self.assertEqual(by["TCS"]["name"], "Tata Consultancy Services")
         self.assertEqual(by["TCS"]["history_days"], 760)
         self.assertEqual(by["TCS"]["sector"], "Technology")          # one sector vocabulary everywhere
         self.assertEqual(by["NEWCO"]["history_days"], 400)
+        self.assertEqual(by["NEWBIG"]["history_days"], 760)           # a new top-500 company gets two years (ADR-034)
         self.assertEqual(gone, [])
 
     def test_rank_kept_when_yahoo_omits_market_cap(self):

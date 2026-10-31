@@ -314,10 +314,11 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
     for (let m = 0; m < touchedSymbols.length; m += ANALYTICS_CHUNK) {
       const part = touchedSymbols.slice(m, m + ANALYTICS_CHUNK);
       try {
-        const { data: aData } = await db.rpc("svc_refresh_market_analytics", {
+        const { data: aData, error: aError } = await db.rpc("svc_refresh_market_analytics", {
           p_days: Math.max(15, days + 5),
           p_symbols: part,
         });
+        if (aError) console.warn("svc_refresh_market_analytics batch error:", aError.message);
         if (aData && typeof aData === "object") {
           for (const [k, v] of Object.entries(aData as Record<string, number>)) {
             analyticsTotals[k] = (analyticsTotals[k] || 0) + (typeof v === "number" ? v : 0);

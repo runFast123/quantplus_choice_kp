@@ -41,6 +41,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 31 | `daily_setups` | `market_quotes.setups text[]` (GIN index), `private.refresh_setups(p_symbols)` (breakout_20d, bull_flag, reclaim_ma20, oversold, oversold_bounce on the last 30 daily closes + stored RSI), `svc_refresh_market_analytics` now also returns `setups`, cron `market-analytics` runs both, `market_snapshot` + `setups` |
 | 32 | `history_top500` | `private.history_for_rank()` trigger on `market_symbols` (insert / update of `mcap_rank`, `history_days`): rank ≤ 500 → `history_days` raised to 760, never lowered (ADR-034); top 500 set to 760 |
 | 33 | `strong_trend` | `market_weather` (sunny/mixed/stormy per session from NIFTY + INDIAVIX) + `private.refresh_market_weather()`; `private.refresh_strong_trend(p_symbols)` (strategy `strong_trend`: buy + exit rows, top-500 equities); `signal_outcomes` (every entry signal graded at 5/20/60 sessions vs the Nifty 500) + `private.grade_signals(p_symbols, p_since)`; view `strategy_scorecard` (per strategy × side, `all` / `12m`); `svc_refresh_market_analytics` runs all of them (plpgsql now); cron `market-analytics` too |
+| 34 | `analytics_batch_speed` | `private.refresh_market_weather(p_full boolean default false)` (normal run: last 10 sessions only); trigger `market_symbols_drop_ledger_when_retired` → `private.drop_ledger_when_retired()` (a retired symbol's SIP ledger is deleted) |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,
@@ -109,7 +110,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `dry-run.ts` | Dry Run math (ADR-033): `sizePlan(stocks, total, cashPct)` → `Plan` (even split, whole shares, loss at each stop), `replayPlan(plan, candles, benchmark)` → `Replay` (same amounts on the first common day, `limitedBy`), `badDays(points)` (worst day / 5 sessions / deepest fall + recovery), `guardrails(plan)` (7 general checks), `tradedValue(candles)` |
 | `dry-run.test.mts` | unit tests (`npm run test:unit`) |
 | `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
-| `strong-trend.ts` | `weatherView(state, vix)` → `WeatherView`, `reviewDate(signalAt)` (≈60 sessions), `strongTrendStatus(stop, last)`, `REVIEW_SESSIONS`, `STRONG_TREND_TESTED` (tested record, from `research/strategies/record.py`), type `Weather` |
+| `strong-trend.ts` | `weatherView({state, nifty, sma50, sma200, vix})` → `WeatherView` (names the actual reason), `reviewDate(signalAt)` (≈60 sessions), `strongTrendStatus(stop, last)`, `REVIEW_SESSIONS`, `STRONG_TREND_TESTED` (tested record, from `research/strategies/record.py`), type `Weather` |
 | `setups.test.mts` | unit tests (`npm run test:unit`) |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |
@@ -237,6 +238,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |
+| `supabase/scripts/time-analytics.mjs` | `node time-analytics.mjs [batch] [offsets]` — times each step of the pipeline's analytics batch on the live DB inside a rolled-back transaction (keep each batch well under PostgREST's 8 s) |
 | `pipelines/eod/eod.py` | EOD candles from Yahoo (yfinance) → Supabase, then analytics/research/notifier RPCs; `--days N`, `--dry-run`, `--symbols A,B`. Pure helpers: `last_settled_day`, `to_candles`, `yahoo_ticker`, `split_symbols`; config `YAHOO_OVERRIDES`, `HISTORY_FROM`, `FULL_HISTORY_DAYS` |
 | `pipelines/eod/universe.py` | `fetch_universe()` (screener + sectors + curated `INDICES`/`ETFS`), `merge(fresh, existing)`, `retire_allowed`, `split_ticker`, `clean_name` |
 | `pipelines/eod/test_universe.py` | unit tests |

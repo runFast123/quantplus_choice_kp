@@ -21,8 +21,8 @@ test.describe("signals @mobile", () => {
 
   test("the Strong trend filter lists only its signals", async ({ proPage }) => {
     await proPage.goto("/app/signals?scope=all&strategy=strong_trend");
-    const rows = proPage.locator("table").last().locator("tbody tr");
-    await expect(rows.first().or(proPage.getByText("No signals."))).toBeVisible();
+    const rows = proPage.getByRole("table").filter({ hasText: "Price then" }).locator("tbody tr");
+    await expect(rows.first().or(proPage.getByText("No signals.", { exact: true }))).toBeVisible();
     const n = await rows.count();
     test.skip(n === 0, "No Strong trend signals stored yet.");
     for (let i = 0; i < Math.min(n, 10); i++) await expect(rows.nth(i)).toContainText("Strong trend");
