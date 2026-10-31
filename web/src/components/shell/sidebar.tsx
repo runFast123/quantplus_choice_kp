@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   BellRingingIcon,
@@ -26,6 +26,18 @@ import { Logo } from "@/components/brand/logo";
 
 type Item = { href: string; label: string; icon: Icon; locked?: boolean; exact?: boolean };
 
+/**
+ * Menu links prefetch on intent (pointer over, keyboard focus, touch), not on sight: prefetching every menu page on each
+ * page load set off a burst of server renders that the click the user actually made then waited behind.
+ */
+function useIntentPrefetch() {
+  const router = useRouter();
+  return (href: string) => {
+    const go = () => router.prefetch(href);
+    return { prefetch: false as const, onPointerEnter: go, onFocus: go, onTouchStart: go };
+  };
+}
+
 export function Sidebar({
   locked,
   isPlatformAdmin,
@@ -36,6 +48,7 @@ export function Sidebar({
   planLabel: string;
 }) {
   const pathname = usePathname();
+  const intent = useIntentPrefetch();
   const research: Item[] = [
     { href: "/app", label: "Overview", icon: SquaresFourIcon, exact: true },
     { href: "/app/markets", label: "Markets", icon: ChartLineUpIcon },
@@ -64,6 +77,7 @@ export function Sidebar({
       <li key={i.href}>
         <Link
           href={i.href}
+          {...intent(i.href)}
           aria-current={active ? "page" : undefined}
           className={clsx(
             "group relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13.5px] transition-all duration-200 ease-out active:scale-[0.985]",
@@ -114,6 +128,7 @@ export function Sidebar({
 
 export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boolean }) {
   const pathname = usePathname();
+  const intent = useIntentPrefetch();
   const [open, setOpen] = useState(false);
   const items: Item[] = [
     { href: "/app", label: "Overview", icon: SquaresFourIcon, exact: true },
@@ -163,6 +178,7 @@ export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boole
                 <li key={i.href}>
                   <Link
                     href={i.href}
+                    {...intent(i.href)}
                     onClick={() => setOpen(false)}
                     aria-current={active ? "page" : undefined}
                     className={clsx(
@@ -190,6 +206,7 @@ export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boole
             <Link
               key={i.href}
               href={i.href}
+              {...intent(i.href)}
               aria-current={active ? "page" : undefined}
               onClick={() => setOpen(false)}
               className={clsx(

@@ -15,6 +15,9 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
   queued the click the user made. The app layout starts the ticker and notifications alongside the session check; the
   overview and stock pages make one fewer database round trip; the Signals page runs its summaries alongside the signal
   list instead of before it.
+- **Menu links prefetch on intent** (pointer over, focus, touch) instead of on every page load (`shell/sidebar.tsx`): each
+  page load prefetched about a dozen menu pages at once, and on the live site the first click after a page load waited
+  2.5–3.5 s behind that burst (the same request replayed later took 0.4–0.5 s).
 - **Track record** lists the four rules in use; the old rules' signals stay in the signal list as history.
 - Audit recomputes the old SMA 20/50 and RSI rules only up to the day each was retired. Tests:
   `supabase/tests/12_sma_trend.sql` (11 checks), unit tests for the trend rules.
