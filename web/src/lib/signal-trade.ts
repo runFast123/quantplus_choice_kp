@@ -42,6 +42,12 @@ export const KK_RESULTS: Record<string, string> = {
   TIME_EXIT: "Neither target nor stop was hit within 5 sessions.",
 };
 
+// How a Strong trend trade ended, from payload.result (migration 33).
+export const STRONG_TREND_RESULTS: Record<string, string> = {
+  STOP_HIT: "The price fell to the safety stop.",
+  REVIEW_60: "60 trading sessions passed: time to review.",
+};
+
 /** One plain sentence on what the rule saw — the Signals page's strategy rules, per action. */
 export function ruleSentence(strategy: string, action: SignalAction, resultType?: string | null): string {
   switch (strategy) {
@@ -60,6 +66,10 @@ export function ruleSentence(strategy: string, action: SignalAction, resultType?
       const result = KK_RESULTS[resultType ?? ""];
       return `The KK ${action === "cover" ? "short" : "long"} trade closed. ${result ?? ""}`.trim();
     }
+    case "strong_trend":
+      return action === "buy"
+        ? "Closed at a new 52-week high on at least twice its usual volume, above its 50-day average, while the market was rising and calm."
+        : `The Strong trend trade closed. ${STRONG_TREND_RESULTS[resultType ?? ""] ?? ""}`.trim();
     default:
       return "";
   }

@@ -119,6 +119,7 @@ export const strategyLabel: Record<string, string> = {
   sma_20_50_cross: "SMA 20/50 cross",
   rsi_reversal: "RSI reversal",
   kk_breakout: "KK 20d Breakout",
+  strong_trend: "Strong trend",
 };
 
 /** Direction-aware strategy name: e.g. "SMA Golden Cross" (buy) vs "SMA Death Cross" (exit). */
@@ -131,6 +132,9 @@ export function signalDisplayName(strategy: string, kind: "buy" | "exit"): strin
   }
   if (strategy === "kk_breakout") {
     return kind === "buy" ? "KK 20d Breakout Buy" : "KK 20d Breakdown Sell";
+  }
+  if (strategy === "strong_trend") {
+    return kind === "buy" ? "Strong trend" : "Strong trend exit";
   }
   return strategyLabel[strategy] ?? strategy;
 }

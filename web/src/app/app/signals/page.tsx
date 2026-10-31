@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import clsx from "clsx";
+import { CloudLightningIcon, CloudSunIcon, SunIcon } from "@phosphor-icons/react/ssr";
 import { Badge, Delta, Stat } from "@/components/ui/data";
 import {
   Empty,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/layout";
 import { date, price, strategyLabel } from "@/lib/format";
 import { markerFromSignal, signalAction, tradeFor, type SignalAction } from "@/lib/signal-trade";
+import { reviewDate, STRONG_TREND_TESTED as TESTED, strongTrendStatus, weatherView } from "@/lib/strong-trend";
 import { evaluateSignalProgress, type RawChartMarker } from "@/lib/trade-plan";
 import type { Signal } from "@/lib/types";
 import { getQuotes } from "@/server/market-data";
@@ -22,7 +24,25 @@ import { requireSession } from "@/server/session";
 
 export const metadata: Metadata = { title: "Signals" };
 
-const STRATEGIES = [
+type ScoreRow = {
+  strategy: string;
+  side: "long" | "short";
+  graded_20: number;
+  up_20_pct: number | null;
+  beat_index_20_pct: number | null;
+  vs_index_20_pts: number | null;
+  stop_hit_20_pct: number | null;
+  first_day: string | null;
+};
+
+const STRATEGIES: { key: string; title: string; rule: string; reads: string; tested?: string }[] = [
+  {
+    key: "strong_trend",
+    title: "Strong trend",
+    rule: "Buy when a stock closes at a new 52-week high on at least twice its usual volume, above its 50-day average, while the market is sunny (rising and calm).",
+    reads: `Follows strong stocks. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions. No fixed target.`,
+    tested: `Tested on past prices (${TESTED.period}, ${TESTED.trades.toLocaleString("en-IN")} trades): ${TESTED.madeMoneyPct} in 100 made money after costs, the average trade ${TESTED.avgTradePct > 0 ? "+" : ""}${TESTED.avgTradePct}% (winners about +${TESTED.avgWinPct}%, losers about ${TESTED.avgLossPct}%). ${TESTED.recent.period}: ${TESTED.recent.madeMoneyPct} in 100, +${TESTED.recent.avgTradePct}%.`,
+  },
   {
     key: "sma_20_50_cross",
     title: "SMA 20/50 cross",
@@ -45,6 +65,10 @@ const STRATEGIES = [
 
 const ACTION_LABEL: Record<SignalAction, string> = { buy: "BUY", exit: "EXIT", sell: "SHORT", cover: "COVER" };
 
+type StrongPlan = { stop: number | null; review: Date; status: ReturnType<typeof strongTrendStatus> };
+
+const pct = (n: number | null) => (n == null ? "—" : `${Math.round(n)}%`);
+
 export default async function SignalsPage({
   searchParams,
 }: PageProps<"/app/signals">) {
@@ -62,10 +86,22 @@ export default async function SignalsPage({
 
   const db = s.supabase;
 
-  const [radarRes, holdRes] = await Promise.all([
+  const [radarRes, holdRes, weatherRes, scoreRes] = await Promise.all([
     db.from("watchlist_items").select("symbol"),
     db.from("holdings").select("symbol"),
+    db.from("market_weather").select("day, state, vix").order("day", { ascending: false }).limit(1).maybeSingle(),
+    db
+      .from("strategy_scorecard")
+      .select("strategy, side, graded_20, up_20_pct, beat_index_20_pct, vs_index_20_pts, stop_hit_20_pct, first_day")
+      .eq("period", "all"),
   ]);
+  const weather = weatherView(weatherRes.data?.state, weatherRes.data?.vix != null ? Number(weatherRes.data.vix) : null);
+  const WeatherIcon = weather.state === "sunny" ? SunIcon : weather.state === "stormy" ? CloudLightningIcon : CloudSunIcon;
+  const scores = ((scoreRes.data ?? []) as ScoreRow[]).sort(
+    (a, b) =>
+      STRATEGIES.findIndex((x) => x.key === a.strategy) - STRATEGIES.findIndex((x) => x.key === b.strategy) ||
+      a.side.localeCompare(b.side),
+  );
   const mine = [
     ...new Set([...(radarRes.data ?? []), ...(holdRes.data ?? [])].map((r) => r.symbol)),
   ];
@@ -104,7 +140,17 @@ export default async function SignalsPage({
         : null;
     const closed = action === "exit" || action === "cover" || Boolean(trade?.exit);
     const since = !closed && action === "buy" && last && at ? ((last - at) / at) * 100 : null;
-    const base = { sg, at, last, since, quote, action, closed, result };
+    const base = { sg, at, last, since, quote, action, closed, result, strong: null as StrongPlan | null };
+
+    // Strong trend's tested plan is a safety stop and a review date, not price targets.
+    if (sg.strategy === "strong_trend" && action === "buy" && !closed) {
+      const stop = Number(sg.payload.stop) || null;
+      return {
+        ...base,
+        evaluation: null,
+        strong: { stop, review: reviewDate(sg.generated_at), status: strongTrendStatus(stop, last) },
+      };
+    }
 
     if (action === "buy" && !closed) {
       const payloadStop = sg.payload.stop ? Number(sg.payload.stop) : null;
@@ -125,6 +171,7 @@ export default async function SignalsPage({
 
   // Open buys only: a buy its rule has already exited is history, not a trade to track.
   const buyItems = evaluatedSignals.filter((item) => item.evaluation?.plan.isValid);
+  const strongOpen = evaluatedSignals.filter((item) => item.strong);
   const t1PlusHits = buyItems.filter((item) =>
     ["t1_hit", "t2_hit", "t3_hit"].includes(item.evaluation?.targetStatus ?? ""),
   );
@@ -147,7 +194,7 @@ export default async function SignalsPage({
       );
     }
     if (statusFilter === "progress") {
-      return item.evaluation?.targetStatus === "in_progress";
+      return item.evaluation?.targetStatus === "in_progress" || Boolean(item.strong);
     }
     if (statusFilter === "exhaustion") {
       return ["sentiment_peak", "overbought"].includes(
@@ -173,28 +220,42 @@ export default async function SignalsPage({
       <PageHeader
         eyebrow="Rule-based"
         title="Signals"
-        description="Every signal comes from one of the three simple rules below, so you can always see why it fired. Signals are research prompts, not advice. Each open buy shows a stop (the price where the idea is wrong) and three price targets."
+        description="Every signal comes from one of the four simple rules below, so you can always see why it fired, and every one is graded afterwards. Signals are research prompts, not advice. Each open buy shows a stop (the price where the idea is wrong)."
       />
+
+      {/* Today's market weather: the condition Strong trend waits for */}
+      <section className="panel flex items-start gap-3 p-4" aria-label="Market weather">
+        <WeatherIcon size={22} weight="duotone" aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <p className="text-[13px]">
+            <span className="font-medium">Market weather: {weather.label}</span>
+            {weatherRes.data?.day ? (
+              <span className="text-muted-foreground"> · close of {date(weatherRes.data.day)}</span>
+            ) : null}
+          </p>
+          <p className="mt-0.5 text-[12.5px] leading-5 text-muted-foreground">{weather.sentence}</p>
+        </div>
+      </section>
 
       {/* Summary strip */}
       <section className="panel grid grid-cols-2 sm:grid-cols-4">
         <Stat
           className="p-4 border-b border-r border-border sm:border-b-0"
           label="Open buy signals"
-          value={buyItems.length}
+          value={buyItems.length + strongOpen.length}
           sub={`Out of ${evaluatedSignals.length} signals listed`}
         />
         <Stat
           className="p-4 border-b border-border sm:border-b-0 sm:border-r"
           label="Reached target 1"
           value={`${t1PlusHits.length} (${t1Rate.toFixed(0)}%)`}
-          sub="Open buys at or above their first target"
+          sub="Open buys with targets, at or above the first"
         />
         <Stat
           className="p-4 border-r border-border"
           label="Reached target 2"
           value={t2PlusHits.length}
-          sub="Open buys at or above their second target"
+          sub="Open buys with targets, at or above the second"
         />
         <Stat
           className="p-4"
@@ -205,7 +266,7 @@ export default async function SignalsPage({
       </section>
 
       {/* Strategy Selector Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {STRATEGIES.map((st) => (
           <Link
             key={st.key}
@@ -219,9 +280,63 @@ export default async function SignalsPage({
             <p className="display text-[20px]">{st.title}</p>
             <p className="mt-1.5 text-[13px] leading-5">{st.rule}</p>
             <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{st.reads}</p>
+            {st.tested ? (
+              <p className="mt-2 border-t border-border pt-2 text-[12px] leading-5 text-muted-foreground">{st.tested}</p>
+            ) : null}
           </Link>
         ))}
       </div>
+
+      {/* Every entry signal, graded afterwards from stored prices */}
+      <Panel title="Track record" meta="Every entry signal, graded 20 trading sessions later">
+        {scores.length === 0 ? (
+          <Empty title="No graded signals yet.">Signals are graded once 5, 20 and 60 sessions have passed.</Empty>
+        ) : (
+          <>
+            <TableWrap>
+              <table className="w-full min-w-[720px]">
+                <thead>
+                  <tr>
+                    <th className={th}>Rule</th>
+                    <th className={thNum}>Signals graded</th>
+                    <th className={thNum}>Went the right way</th>
+                    <th className={thNum}>Beat the Nifty 500</th>
+                    <th className={thNum}>Vs the Nifty 500 (points)</th>
+                    <th className={thNum}>Stop hit</th>
+                    <th className={thNum}>Since</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scores.map((r) => (
+                    <tr key={`${r.strategy}-${r.side}`} className={tr}>
+                      <td className={td}>
+                        {strategyLabel[r.strategy] ?? r.strategy}
+                        {r.strategy === "kk_breakout" ? (
+                          <span className="text-muted-foreground"> · {r.side === "long" ? "buys" : "shorts"}</span>
+                        ) : null}
+                      </td>
+                      <td className={tdNum}>{r.graded_20.toLocaleString("en-IN")}</td>
+                      <td className={tdNum}>{pct(r.up_20_pct)}</td>
+                      <td className={tdNum}>{pct(r.beat_index_20_pct)}</td>
+                      <td className={tdNum}>
+                        <Delta value={r.vs_index_20_pts} kind="abs" />
+                      </td>
+                      <td className={tdNum}>{pct(r.stop_hit_20_pct)}</td>
+                      <td className={tdNum + " text-muted-foreground"}>{r.first_day ? date(r.first_day) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+            <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+              Every buy (and KK short) is counted, winners and losers alike, as soon as 20 trading sessions have
+              passed: “right way” means higher (a short: lower) 20 sessions after the entry; “vs the Nifty 500” is
+              the average difference in points over the same sessions. Before costs. Strong trend is new: its
+              earlier signals were worked out afterwards with the same rule on stored prices.
+            </p>
+          </>
+        )}
+      </Panel>
 
       {/* Signals Table Panel */}
       <Panel
@@ -326,14 +441,14 @@ export default async function SignalsPage({
                   <th className={th}>Rule</th>
                   <th className={thNum}>Price then</th>
                   <th className={thNum}>Stop</th>
-                  <th className={thNum}>Next target</th>
+                  <th className={thNum}>Next target or review</th>
                   <th className={thNum}>Last close</th>
                   <th className={thNum}>Change since</th>
                   <th className={th}>Price mood</th>
                 </tr>
               </thead>
               <tbody>
-                {displayedSignals.map(({ sg, at, last, since, quote, evaluation, action, closed, result }) => {
+                {displayedSignals.map(({ sg, at, last, since, quote, evaluation, action, closed, result, strong }) => {
                   const plan = evaluation?.plan;
                   const sentiment = evaluation?.sentiment;
                   const targets = plan && plan.isValid ? [plan.t1, plan.t2, plan.t3] : [];
@@ -360,6 +475,8 @@ export default async function SignalsPage({
                       <td className={td}>
                         {evaluation ? (
                           <Badge tone={evaluation.statusTone}>{evaluation.statusLabel}</Badge>
+                        ) : strong ? (
+                          <Badge tone={strong.status.tone}>{strong.status.label}</Badge>
                         ) : closed ? (
                           <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                             Closed
@@ -383,12 +500,27 @@ export default async function SignalsPage({
                               −{plan.riskPercent.toFixed(1)}%
                             </span>
                           </div>
+                        ) : strong?.stop && at ? (
+                          <div className="flex flex-col items-end" title="Safety stop: 4× the stock's normal daily move below the signal close">
+                            <span className="num font-medium text-loss">₹{price(strong.stop)}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              −{(((at - strong.stop) / at) * 100).toFixed(1)}%
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                       <td className={tdNum}>
-                        {targets.length ? (
+                        {strong ? (
+                          <div
+                            className="flex flex-col items-end"
+                            title="Strong trend has no fixed target: review after 60 trading sessions (the exact day depends on holidays)"
+                          >
+                            <span className="font-sans text-[12px]">Review ~{date(strong.review.toISOString())}</span>
+                            <span className="font-sans text-[10px] text-muted-foreground">after 60 sessions</span>
+                          </div>
+                        ) : targets.length ? (
                           <div
                             className="flex flex-col items-end"
                             title={`Targets: ${targets.map((t, i) => `${i + 1}) ₹${price(t)}`).join("  ")}`}

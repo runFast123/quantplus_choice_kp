@@ -17,3 +17,6 @@ __pycache__/
 *.pyc
 scratch/
 *_results*.json
+
+# research downloads (prices, Yahoo terms: personal use)
+research/strategies/data/

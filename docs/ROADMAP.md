@@ -28,6 +28,15 @@ Requirement IDs refer to `docs/BRD.md`.
       load, weekly push report card.
 - [ ] Dry Run phase 3: share card (guardrail score and weeks practised; no stock names, no returns).
 - [x] Two years of daily candles for the 500 largest companies (ADR-034, migration 32; backfilled 2026-10-30).
+- [x] Strong trend signal, market weather, every signal graded + Track record on the Signals page (ADR-035, migration 33).
+- [ ] Improve RSI reversal and KK so fewer of their signals go the wrong way. Researched (`research/strategies/improve*.py`):
+      a dip in an uptrend stock (RSI(2) < 10; for KK, a push under the 20-day low), bought only on a 1 ATR dip the next
+      day, sold on the first close above the 5-day average (≤ 10 sessions), 5 ATR safety stop. 2024–26, after costs:
+      RSI 40 % wrong (was 62 %), +0.6 % a trade; KK 34 % wrong (was 62 %), +1.5 %. 90 % of KK v2 signals coincide with
+      RSI v2. No KK short variant made money. Awaiting the owner's decision before building.
+- [ ] KK signals are a one-off import that ends 24 Aug 2026; compute them daily like the other rules (or from the improved rule).
+- [ ] Signal checker (walk-forward model on graded signals): researched, gains too small to show; revisit once
+      `signal_outcomes` has a year of live grades.
 - [ ] Two years for the rest (~3,100 symbols) only after moving off the free tier (~+165 MB).
 - [ ] Legal review of Dry Run wording before launch (with the Terms/Privacy review).
 - [ ] Payment gateway (Razorpay/Cashfree) checkout + webhook → `admin_activate_plan`-style RPC (FR-9.4).

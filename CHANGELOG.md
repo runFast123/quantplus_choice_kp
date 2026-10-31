@@ -5,6 +5,20 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — Strong trend signal, market weather and a graded track record (ADR-035)
+- **Strong trend** (`supabase/migrations/20261001000033_strong_trend.sql`, `private.refresh_strong_trend`): a buy when one of
+  the 500 largest companies closes at a new 52-week high on at least 2× its usual volume, above its 50-day average, in a
+  sunny market; safety stop 4 × ATR14 below, exit at the stop or after 60 sessions (stored as an exit signal). The only
+  rule of ten tested on 2019–2026 prices that kept beating the average stock out of sample (`research/strategies/`).
+- **Market weather** (`public.market_weather`, from Nifty 50 + India VIX): sunny / mixed / stormy, on the Signals page.
+- **Every signal graded** (`public.signal_outcomes`, `private.grade_signals`, view `public.strategy_scorecard`): each
+  entry signal of every rule after 5, 20 and 60 sessions and against the Nifty 500, winners and losers alike. The
+  Signals page gets a **Track record** table and the Strong trend card shows its tested record.
+- The pipeline wrapper `svc_refresh_market_analytics` (and the pg_cron backstop) now also run the weather, Strong trend and
+  grading. Chart: a "Strong trend" filter and Stop / Review exit labels. Stock page: an open Strong trend signal shows its
+  safety stop and review date instead of price targets. Odds panel opens at 20 sessions for it.
+- Tests: `supabase/tests/10_strong_trend.sql` (19 checks), `web/src/lib/strong-trend.test.mts`.
+
 ### Changed — Easier to read and get around (`web/`)
 - **Signals page tells closed trades from open ones.** A buy that its rule has already exited (or a KK short that was
   covered) used to be judged against today's price as if still open — "Stop breached", "+0.5R" — and counted in "Active

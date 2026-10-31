@@ -40,6 +40,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 30 | `push_notifications` | `push_subscriptions` (own rows: select/insert/delete; https endpoint, keys), `notifications.pushed_at` + pending index, `svc_claim_push_batch(p_limit)` (SKIP LOCKED, last 2 days, service_role), `export_my_data()` + push browsers (no keys) |
 | 31 | `daily_setups` | `market_quotes.setups text[]` (GIN index), `private.refresh_setups(p_symbols)` (breakout_20d, bull_flag, reclaim_ma20, oversold, oversold_bounce on the last 30 daily closes + stored RSI), `svc_refresh_market_analytics` now also returns `setups`, cron `market-analytics` runs both, `market_snapshot` + `setups` |
 | 32 | `history_top500` | `private.history_for_rank()` trigger on `market_symbols` (insert / update of `mcap_rank`, `history_days`): rank ≤ 500 → `history_days` raised to 760, never lowered (ADR-034); top 500 set to 760 |
+| 33 | `strong_trend` | `market_weather` (sunny/mixed/stormy per session from NIFTY + INDIAVIX) + `private.refresh_market_weather()`; `private.refresh_strong_trend(p_symbols)` (strategy `strong_trend`: buy + exit rows, top-500 equities); `signal_outcomes` (every entry signal graded at 5/20/60 sessions vs the Nifty 500) + `private.grade_signals(p_symbols, p_since)`; view `strategy_scorecard` (per strategy × side, `all` / `12m`); `svc_refresh_market_analytics` runs all of them (plpgsql now); cron `market-analytics` too |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,
@@ -108,6 +109,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `dry-run.ts` | Dry Run math (ADR-033): `sizePlan(stocks, total, cashPct)` → `Plan` (even split, whole shares, loss at each stop), `replayPlan(plan, candles, benchmark)` → `Replay` (same amounts on the first common day, `limitedBy`), `badDays(points)` (worst day / 5 sessions / deepest fall + recovery), `guardrails(plan)` (7 general checks), `tradedValue(candles)` |
 | `dry-run.test.mts` | unit tests (`npm run test:unit`) |
 | `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
+| `strong-trend.ts` | `weatherView(state, vix)` → `WeatherView`, `reviewDate(signalAt)` (≈60 sessions), `strongTrendStatus(stop, last)`, `REVIEW_SESSIONS`, `STRONG_TREND_TESTED` (tested record, from `research/strategies/record.py`), type `Weather` |
 | `setups.test.mts` | unit tests (`npm run test:unit`) |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |
@@ -127,7 +129,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `news/news.test.mts` | unit tests (`npm run test:unit`) |
 | `trade-plan.ts` | `calculateTradePlan`, `calculatePositionSize`, `evaluateSentiment`, `evaluateSignalProgress`, `auditStockSentiment`, `deduplicateChartSignals`, `getAlphaLevel`, `computeExitNodeHistory`, types `TradePlanResult`, `PositionSizeResult`, `SentimentResult`, `SignalProgressResult`, `TargetStatus`, `QuantumAuditItem`, `RawChartMarker`, `ExitLogEntry` |
 | `trade-plan.test.mts` | unit tests (`npm run test:unit`) |
-| `signal-trade.ts` | `signalAction(marker)` (buy/sell/exit/cover — the chart's one classifier), `isWinningExit`, `ruleSentence(strategy, action, result)`, `explainMarker`, `tradeFor(selected, markers)` → `TradeView`, `markerFromSignal(sg)` (stored signal → chart marker; symbol page + Dry Run) (entry/exit pair, stop, 1R, R-labelled targets), `KK_RESULTS` |
+| `signal-trade.ts` | `signalAction(marker)` (buy/sell/exit/cover — the chart's one classifier), `isWinningExit`, `ruleSentence(strategy, action, result)`, `explainMarker`, `tradeFor(selected, markers)` → `TradeView`, `markerFromSignal(sg)` (stored signal → chart marker; symbol page + Dry Run) (entry/exit pair, stop, 1R, R-labelled targets), `KK_RESULTS`, `STRONG_TREND_RESULTS` |
 | `signal-trade.test.mts` | unit tests (`npm run test:unit`) |
 | `pine-script.ts` | `generateCleanPineScript(symbol, mode)`, type `PineStrategyMode` ("core" \| "swing") |
 | `pine-script.test.mts` | unit tests (`npm run test:unit`) |
@@ -225,12 +227,13 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Path | What |
 |---|---|
 | `scripts/secret-scan.mjs` | `--staged` (pre-commit) / `--history` (CI) secret scanner |
+| `research/strategies/` | Strategy research (Python, read-only on Supabase): 7-year download, backtests, fair checks, diagnosis, walk-forward signal checker, Strong trend record, live SQL cross-check — see its README |
 | `scripts/ingest_kk_signals.py` | Ingests verified empirical KK breakout trades from `kk_eod_results_fixed.json` into Supabase `public.trading_signals` |
 | `.githooks/pre-commit` | runs the staged scan; enable with `git config core.hooksPath .githooks` |
 | `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `signals` (@mobile too: four rules, market weather, track record), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |

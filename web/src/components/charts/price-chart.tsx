@@ -30,7 +30,7 @@ import type { Candle } from "@/lib/types";
 import { TradeOdds } from "./trade-odds";
 
 export type ChartMarker = RawChartMarker;
-export type ChartStrategyFilter = "kk_breakout" | "sma_cross" | "rsi_reversal" | "all" | "none";
+export type ChartStrategyFilter = "kk_breakout" | "sma_cross" | "rsi_reversal" | "strong_trend" | "all" | "none";
 
 const RANGES = [
   { key: "1M", days: 30 },
@@ -192,6 +192,8 @@ export function PriceChart({
     [markers],
   );
 
+  const strongMarkers = useMemo(() => markers.filter((m) => m.strategy === "strong_trend"), [markers]);
+
   const rsiMarkers = useMemo(
     () =>
       markers.filter(
@@ -210,6 +212,7 @@ export function PriceChart({
   const kkCount = effectiveKkMarkers.length;
   const smaCount = smaMarkers.length;
   const rsiCount = rsiMarkers.length;
+  const strongCount = strongMarkers.length;
   const totalCount = allPlanMarkers.length;
 
   // Strategy Mode Filter (Isolates strategies to eliminate multi-plan signal confusion)
@@ -247,11 +250,13 @@ export function PriceChart({
         return smaMarkers;
       case "rsi_reversal":
         return rsiMarkers;
+      case "strong_trend":
+        return strongMarkers;
       case "all":
       default:
         return allPlanMarkers;
     }
-  }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, allPlanMarkers]);
+  }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, strongMarkers, allPlanMarkers]);
 
   const rawBuyCount = useMemo(
     () => rawStrategyMarkers.filter((m) => m.kind === "buy").length,
@@ -463,6 +468,8 @@ export function PriceChart({
               )
                 textLabel = "T1 +0.75R";
               else if (m.resultType === "SL_HIT") textLabel = "SL -1R";
+              else if (m.resultType === "STOP_HIT") textLabel = "Stop";
+              else if (m.resultType === "REVIEW_60") textLabel = "Review";
               else textLabel = m.strategy === "kk_breakout" ? "KK EXIT" : "EXIT";
             }
           }
@@ -837,6 +844,23 @@ export function PriceChart({
             <button
               type="button"
               role="radio"
+              aria-checked={strategyFilter === "strong_trend"}
+              onClick={() => setStrategyFilter("strong_trend")}
+              className={clsx(
+                "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors flex items-center gap-1",
+                strategyFilter === "strong_trend"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Show only Strong trend signals: a new 52-week high on heavy volume in a sunny market, with a safety stop and a 60-session review"
+            >
+              <span>Strong trend</span>
+              <span className="num text-[9.5px]">({strongCount})</span>
+            </button>
+
+            <button
+              type="button"
+              role="radio"
               aria-checked={strategyFilter === "all"}
               onClick={() => setStrategyFilter("all")}
               className={clsx(
@@ -1140,7 +1164,7 @@ export function PriceChart({
             <span className="font-medium text-foreground flex items-center gap-1.5">
               <span>Signals Timeline</span>
               <span className="num text-muted-foreground font-normal">
-                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK Breakout" : strategyFilter === "sma_cross" ? "SMA" : "RSI"} in {range})
+                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK Breakout" : strategyFilter === "sma_cross" ? "SMA" : strategyFilter === "strong_trend" ? "Strong trend" : "RSI"} in {range})
               </span>
             </span>
             <span className="text-[10px] text-muted-foreground">Click chip to focus candle</span>
@@ -1197,7 +1221,9 @@ export function PriceChart({
                         ? "SMA"
                         : sig.strategy?.includes("rsi")
                           ? "RSI"
-                          : "SIG"}
+                          : sig.strategy === "strong_trend"
+                            ? "Trend"
+                            : "SIG"}
                   </span>
                   <span className="text-muted-foreground font-normal">
                     {new Date(sig.ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}

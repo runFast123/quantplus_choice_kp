@@ -247,3 +247,30 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   sync mirrors the rule; the top 500 were backfilled with `eod.py --days 760`. About +25 MB.
 - **Not done:** two years for all ~3,600 symbols (~+165 MB, ~420 MB total) — too close to the free-tier limit.
 
+
+### ADR-035 · Strong trend: the one tested rule with an edge, plus a grade for every signal
+**Date** 2026-10-31 · **Status** accepted
+- **Context:** the owner asked for signal rules that tell users which stocks to look at and when. Seven years of daily NSE
+  prices (Jul 2019 – Oct 2026; rules chosen on 2019–23, checked on 2024–26; each year's 300 most traded stocks, so no
+  hindsight about which companies later became big; 0.5 % round-trip cost; compared with random entries and with simply
+  holding the same stocks) showed that the three existing rules have no reliable edge: SMA 20/50 did about as well as
+  random picks, RSI reversal and KK (whose stored record also has a 20-year file) lost money after costs. Of ten
+  candidate patterns, only momentum (a new 52-week high on heavy volume) kept beating the average stock in both periods.
+  Market-condition filters, ATR stops and a walk-forward "signal checker" (gradient boosting retrained quarterly on
+  graded signals) lowered the wrong-signal rate by 2–10 points at most, and not at all for RSI.
+- **Decision:** add `strong_trend` (migration 33, SQL like the other rules): close above the previous 252 sessions' highest
+  close, volume ≥ 2× the previous 50 sessions' average, close above the 50-day average, market weather "sunny"; the 500
+  largest companies only (the tested universe was large, liquid stocks). Plan: next-open entry, safety stop 4 × ATR14
+  below the close, review after 60 sessions, no fixed target (stops of 2–5 ATR and none were compared on 2019–23:
+  wider stops won more often; 4 ATR kept a guard against collapses; taking profit at a target cut gains in half).
+  The exit is stored as a signal, so the existing pairing, chart and notifier work unchanged.
+- **Market weather** (`public.market_weather`): sunny = Nifty 50 above its 200-day average with the 50-day above it and
+  India VIX ≤ 22; stormy = Nifty below with the 50-day below, or VIX > 22; else mixed. Shown on the Signals page.
+- **Grading** (`public.signal_outcomes`, `public.strategy_scorecard`): every entry signal of every rule is graded from
+  stored candles after 5, 20 and 60 sessions and against the Nifty 500 over the same sessions; nothing filtered, before
+  costs. The Signals page shows the record next to the rules, with the tested record of Strong trend
+  (`lib/strong-trend.ts`, from `research/strategies/record.py`).
+- **Checked:** an independent Python implementation and the SQL produced the same 360 signals on a read-only copy of
+  the live candles (`research/strategies/expect_live.py`, `pglite_live.mjs`).
+- **Not done:** the signal checker (researched, not shown: its gains were too small to change what users see);
+  improving RSI reversal and KK (next); KK's stored signals stop on 24 Aug 2026 (a one-off import).

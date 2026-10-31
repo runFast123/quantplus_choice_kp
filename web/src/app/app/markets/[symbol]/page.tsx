@@ -18,6 +18,7 @@ import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
+import { reviewDate } from "@/lib/strong-trend";
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
@@ -67,7 +68,11 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const signals = (signalsRes.data ?? []) as Signal[];
   const markers: ChartMarker[] = signals.map(markerFromSignal);
 
-  const latestBuySignal = signals.find((s) => s.signal_type === "buy");
+  // The targets calculator follows the last buy of a rule with targets; Strong trend's tested plan is a
+  // safety stop and a 60-session review instead (lib/strong-trend.ts).
+  const latestBuySignal = signals.find((s) => s.signal_type === "buy" && s.strategy !== "strong_trend");
+  const lastStrong = signals.find((s) => s.strategy === "strong_trend");
+  const openStrong = lastStrong?.signal_type === "buy" ? lastStrong : null;
   const signalEntry = latestBuySignal ? Number(latestBuySignal.payload.close) : null;
   const signalStop = latestBuySignal?.payload.stop ? Number(latestBuySignal.payload.stop) : null;
 
@@ -220,6 +225,17 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           title="Trade plan & targets"
           meta={latestBuySignal ? `From the last ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} buy signal` : "A stop and three price targets"}
         >
+          {openStrong ? (
+            <div className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
+              <p className="font-medium">Open Strong trend signal from {date(openStrong.generated_at)}</p>
+              <p className="mt-1 text-muted-foreground">
+                Closed at ₹{price(Number(openStrong.payload.close))}, a new 52-week high on heavy volume. Safety stop{" "}
+                <span className="num text-loss">₹{price(Number(openStrong.payload.stop))}</span>; review around{" "}
+                {date(reviewDate(openStrong.generated_at).toISOString())} (60 trading sessions). No fixed target: in
+                testing, holding to the review did better than taking profit early.
+              </p>
+            </div>
+          ) : null}
           <TradePlan
             key={q.symbol}
             symbol={q.symbol}
