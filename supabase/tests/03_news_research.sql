@@ -42,8 +42,15 @@ from public.news_articles a where a.url like 'https://example.test/%';
 
 select private.refresh_research_notes();
 
-select qp_t3.check((select count(distinct symbol) from public.research_notes) = (select count(*) from public.market_symbols where is_active),
-                   'notes: one per symbol');
+-- A note needs 50 daily closes in the last 420 days (refresh_research_notes); newer listings have none yet.
+select qp_t3.check(not exists (
+                     select 1 from public.market_symbols s
+                     where s.is_active
+                       and (select count(*) from public.market_candles c
+                             where c.symbol = s.symbol and c.exchange = s.exchange and c.interval = '1d'
+                               and c.ts > now() - interval '420 days') >= 50
+                       and not exists (select 1 from public.research_notes n where n.symbol = s.symbol and n.exchange = s.exchange)),
+                   'notes: one per symbol with 50 sessions of history');
 select qp_t3.check((select (f ->> 'score')::numeric > 0 from public.research_notes rn, jsonb_array_elements(rn.factors) f
                     where rn.symbol = 'TCS' and f ->> 'key' = 'news' order by as_of desc limit 1), 'notes: positive tone lifts TCS');
 select qp_t3.check((select (f ->> 'score')::numeric < 0 from public.research_notes rn, jsonb_array_elements(rn.factors) f
