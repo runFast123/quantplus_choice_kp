@@ -124,4 +124,24 @@ select qp_t11.check(has_table_privilege('authenticated', 'public.signal_watch', 
                     'grants: dip-buy levels are read-only to members');
 select qp_t11.check((select public.svc_refresh_market_analytics(400, array['QPDIP1']) ? 'dips'), 'svc: the pipeline wrapper runs the dip rules');
 
+-- Trade results by each rule's own plan (migration 36): the dip exits carry their result; an SMA-style exit is paired
+-- with the buy just before it, and an exit with no buy before it is not a trade.
+select qp_t11.check((select trades = 2 and made_money_pct = 100 and avg_result_pct = 3.28
+                       from public.strategy_trade_results where strategy = 'rsi_dip' and side = 'long'),
+                    'trade results: the rule''s own exits (QPDIP1 +3.09 %, QPDIP3 +3.47 %), with their results');
+delete from public.trading_signals where symbol = 'QPDIP5' or strategy = 'sma_20_50_cross';
+insert into public.trading_signals (symbol, exchange, strategy, signal_type, payload, generated_at) values
+  ('QPDIP5', 'NSE', 'sma_20_50_cross', 'exit', '{"close": 90}',  qp_t11.day(10)),
+  ('QPDIP5', 'NSE', 'sma_20_50_cross', 'buy',  '{"close": 100}', qp_t11.day(20)),
+  ('QPDIP5', 'NSE', 'sma_20_50_cross', 'exit', '{"close": 95}',  qp_t11.day(30)),
+  ('QPDIP5', 'NSE', 'rsi_reversal',    'buy',  '{"close": 100}', qp_t11.day(20)),
+  ('QPDIP5', 'NSE', 'rsi_reversal',    'exit', '{"close": 130}', qp_t11.day(40));
+select qp_t11.check((select trades = 1 and avg_result_pct = -5 and made_money_pct = 0
+                       from public.strategy_trade_results where strategy = 'sma_20_50_cross'),
+                    'trade results: an SMA exit closes the buy before it; an exit without one is skipped');
+select qp_t11.check(not exists (select 1 from public.strategy_trade_results where strategy = 'rsi_reversal'),
+                    'trade results: none for RSI reversal (its exits only follow winners, so pairing would flatter it)');
+select qp_t11.check(has_table_privilege('authenticated', 'public.strategy_trade_results', 'select')
+                    and not has_table_privilege('anon', 'public.strategy_trade_results', 'select'), 'grants: trade results for members');
+
 rollback;

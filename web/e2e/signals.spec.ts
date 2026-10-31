@@ -5,7 +5,7 @@ import { expect, test } from "./helpers/fixtures";
  * track record that grades every signal. Copy stays research, never advice.
  */
 test.describe("signals @mobile", () => {
-  test("shows the four rules, the market weather and the track record", async ({ proPage }) => {
+  test("shows the four rules, the market weather and the track record", async ({ proPage }, info) => {
     await proPage.goto("/app/signals?scope=all");
     const card = proPage.getByRole("link", { name: /Strong trend/ }).first();
     await expect(card).toContainText("52-week high");
@@ -17,6 +17,8 @@ test.describe("signals @mobile", () => {
     await expect(proPage.getByRole("region", { name: "Market weather" })).toContainText(/Market weather: (Sunny|Mixed|Stormy|Unknown)/);
     await expect(proPage.getByRole("heading", { name: "Track record" })).toBeVisible();
     await expect(proPage.getByText("Signals are research prompts, not advice.", { exact: false })).toBeVisible();
+    await expect(proPage.getByRole("heading", { name: "Dip-buy levels for the next session" })).toBeVisible();
+    await proPage.screenshot({ path: info.outputPath("signals.png"), fullPage: true });
   });
 
   test("the Strong trend filter lists only its signals", async ({ proPage }) => {

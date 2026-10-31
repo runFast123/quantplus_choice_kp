@@ -36,6 +36,8 @@ type ScoreRow = {
   first_day: string | null;
 };
 
+type TradeRow = { strategy: string; side: "long" | "short"; trades: number; made_money_pct: number | null; avg_result_pct: number | null };
+
 const STRATEGIES: { key: string; title: string; rule: string; reads: string; tested?: string }[] = [
   {
     key: "strong_trend",
@@ -100,7 +102,7 @@ export default async function SignalsPage({
 
   const db = s.supabase;
 
-  const [radarRes, holdRes, weatherRes, scoreRes, watchRes] = await Promise.all([
+  const [radarRes, holdRes, weatherRes, scoreRes, watchRes, tradeRes] = await Promise.all([
     db.from("watchlist_items").select("symbol"),
     db.from("holdings").select("symbol"),
     db
@@ -114,7 +116,9 @@ export default async function SignalsPage({
       .select("strategy, side, graded_20, up_20_pct, beat_index_20_pct, vs_index_20_pts, stop_hit_20_pct, first_day")
       .eq("period", "all"),
     db.from("signal_watch").select("symbol, strategy, signal_day, limit_price, stop, payload").order("symbol"),
+    db.from("strategy_trade_results").select("strategy, side, trades, made_money_pct, avg_result_pct"),
   ]);
+  const tradesBy = new Map(((tradeRes.data ?? []) as TradeRow[]).map((t) => [`${t.strategy}-${t.side}`, t]));
   const num = (x: unknown) => (x == null ? null : Number(x));
   const wx = weatherRes.data;
   const weather = weatherView({
@@ -394,51 +398,71 @@ export default async function SignalsPage({
       </Panel>
 
       {/* Every entry signal, graded afterwards from stored prices */}
-      <Panel title="Track record" meta="Every entry signal, graded 20 trading sessions later">
+      <Panel title="Track record" meta="Every signal counted, winners and losers alike">
         {scores.length === 0 ? (
           <Empty title="No graded signals yet.">Signals are graded once 5, 20 and 60 sessions have passed.</Empty>
         ) : (
           <>
             <TableWrap>
-              <table className="w-full min-w-[720px]">
+              <table className="w-full min-w-[980px]">
                 <thead>
                   <tr>
+                    <th className={th} />
+                    <th className={thNum + " border-b-0"} colSpan={3}>
+                      By the rule&apos;s own plan
+                    </th>
+                    <th className={thNum + " border-b-0"} colSpan={4}>
+                      20 trading sessions after each signal
+                    </th>
+                    <th className={th} />
+                  </tr>
+                  <tr>
                     <th className={th}>Rule</th>
+                    <th className={thNum}>Trades closed</th>
+                    <th className={thNum}>Made money</th>
+                    <th className={thNum}>Average trade</th>
                     <th className={thNum}>Signals graded</th>
                     <th className={thNum}>Went the right way</th>
-                    <th className={thNum}>Beat the Nifty 500</th>
                     <th className={thNum}>Vs the Nifty 500 (points)</th>
                     <th className={thNum}>Stop hit</th>
                     <th className={thNum}>Since</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {scores.map((r) => (
-                    <tr key={`${r.strategy}-${r.side}`} className={tr}>
-                      <td className={td}>
-                        {strategyLabel[r.strategy] ?? r.strategy}
-                        {r.strategy === "kk_breakout" ? (
-                          <span className="text-muted-foreground"> · {r.side === "long" ? "buys" : "shorts"}</span>
-                        ) : null}
-                      </td>
-                      <td className={tdNum}>{r.graded_20.toLocaleString("en-IN")}</td>
-                      <td className={tdNum}>{pct(r.up_20_pct)}</td>
-                      <td className={tdNum}>{pct(r.beat_index_20_pct)}</td>
-                      <td className={tdNum}>
-                        <Delta value={r.vs_index_20_pts} kind="abs" />
-                      </td>
-                      <td className={tdNum}>{pct(r.stop_hit_20_pct)}</td>
-                      <td className={tdNum + " text-muted-foreground"}>{r.first_day ? date(r.first_day) : "—"}</td>
-                    </tr>
-                  ))}
+                  {scores.map((r) => {
+                    const t = tradesBy.get(`${r.strategy}-${r.side}`);
+                    return (
+                      <tr key={`${r.strategy}-${r.side}`} className={tr}>
+                        <td className={td}>
+                          {strategyLabel[r.strategy] ?? r.strategy}
+                          {r.strategy === "kk_breakout" ? (
+                            <span className="text-muted-foreground"> · {r.side === "long" ? "buys" : "shorts"}</span>
+                          ) : null}
+                        </td>
+                        <td className={tdNum}>{t ? Number(t.trades).toLocaleString("en-IN") : "—"}</td>
+                        <td className={tdNum}>{t ? pct(t.made_money_pct) : "—"}</td>
+                        <td className={tdNum}>{t ? <Delta value={t.avg_result_pct == null ? null : Number(t.avg_result_pct)} /> : "—"}</td>
+                        <td className={tdNum}>{r.graded_20.toLocaleString("en-IN")}</td>
+                        <td className={tdNum}>{pct(r.up_20_pct)}</td>
+                        <td className={tdNum}>
+                          <Delta value={r.vs_index_20_pts} kind="abs" />
+                        </td>
+                        <td className={tdNum}>{pct(r.stop_hit_20_pct)}</td>
+                        <td className={tdNum + " text-muted-foreground"}>{r.first_day ? date(r.first_day) : "—"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </TableWrap>
             <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-              Every buy (and KK short) is counted, winners and losers alike, as soon as 20 trading sessions have
-              passed: “right way” means higher (a short: lower) 20 sessions after the entry; “vs the Nifty 500” is
-              the average difference in points over the same sessions. Before costs. Strong trend is new: its
-              earlier signals were worked out afterwards with the same rule on stored prices.
+              “By the rule&apos;s own plan” counts every closed trade the way the rule closed it (its stop, review, bounce
+              or opposite signal). The dip rules sell within days, Strong trend after up to 60 sessions. RSI reversal has
+              none: its exits only followed rallies, so pairing them would hide its losers. “20 sessions after” grades
+              every buy (and KK short) the same way: higher (a short: lower) 20 sessions after the entry, and the
+              difference from the Nifty 500 over those sessions. All before costs (about 0.5 % a round trip). Strong
+              trend, RSI dip and KK dip are new: their earlier signals were worked out afterwards with the same rules on
+              stored prices.
             </p>
           </>
         )}

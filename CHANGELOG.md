@@ -16,8 +16,12 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
   KK rule in the browser: its KK and RSI chips show the stored signals of the old and new rules.
 - Accuracy audit (`pipelines/eod/audit.py`) recomputes only the rules it knows (SMA 20/50, RSI reversal up to its last
   day) instead of flagging every other rule's signals as unexpected. Dry Run's rule filter knows the new rules.
-- Tests: `supabase/tests/11_dip_rules.sql` (14 checks), `web/src/lib/dip-rules.test.mts`; e2e specs follow the new
-  chip names. KK shorts: researched, no version made money after costs — not replaced (ADR-036).
+- **Track record by each rule's own plan** (`public.strategy_trade_results`, migrations 36–37): closed trades, how many
+  made money and the average result, next to the 20-session grades (which understate rules that sell within days).
+  Results stored on the exit are used as is; SMA 20/50 exits are paired with the buy before them; RSI reversal gets
+  none (its exits only followed rallies, so pairing flattered it: 98.6 % "winners"). One window pass, ~0.3 s.
+- Tests: `supabase/tests/11_dip_rules.sql` (17 checks), `web/src/lib/dip-rules.test.mts`; e2e specs follow the new
+  chip names; `03_news_research` expects notes only for symbols with 50 sessions (the function's rule). KK shorts: researched, no version made money after costs — not replaced (ADR-036).
 
 ### Fixed — Daily job inside its time limits; CI and the admin refresh
 - **The daily price job's analytics batches timed out** after migration 33 added weather, Strong trend and grading to
