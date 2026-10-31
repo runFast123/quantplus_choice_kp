@@ -127,6 +127,8 @@ def merge(fresh: list[dict], existing: list[dict]) -> tuple[list[dict], list[str
             row["mcap_rank"] = r["mcap_rank"] or old.get("mcap_rank")
             if old.get("status_note"):                 # retired on purpose (e.g. demerger): leave it retired
                 continue
+        if row.get("mcap_rank") and row["mcap_rank"] <= 500:   # two years for the top 500 (ADR-034; a DB trigger enforces it)
+            row["history_days"] = max(row["history_days"], 760)
         out.append(row)
     seen = {r["symbol"] for r in fresh}
     gone = [r["symbol"] for r in existing

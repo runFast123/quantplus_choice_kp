@@ -5,11 +5,13 @@
     python pipelines/eod/audit.py --symbols TCS,INFY
 
 1. Stored candles vs a fresh Yahoo download (same rounding) — must match exactly.
-2. Sanity: OHLC consistency, duplicates, gaps, one-day moves > 18 %, stale symbols.
+2. Sanity: OHLC consistency, duplicates, gaps, one-day moves > 18 % without the volume of a
+   real move, stale symbols. The hard checks cover indices and the 100 largest companies.
 3. Every derived number recomputed independently in pandas and compared with
    what the app reads: market_snapshot (last, prev close, change, change %,
    52-week high/low, RSI), rsi_events (Wilder RSI 14), trading_signals
-   (SMA 20/50 crosses, RSI reversals), backtest_ledgers (monthly SIP).
+   (SMA 20/50 crosses, RSI reversals — KK Breakout signals are imported, not recomputed here),
+   backtest_ledgers (monthly SIP).
 Writes nothing. Exit code 1 if any check fails.
 """
 
@@ -24,10 +26,20 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from eod import CALENDAR_STOCKS, CALENDAR_SYMBOL, HISTORY_FROM, sessions, IST, Rest, chunks, fetch, last_settled_day, load_env, to_candles, yahoo_ticker
+from eod import CALENDAR_STOCKS, CALENDAR_SYMBOL, HISTORY_FROM, sessions, IST, Rest, chunks, fetch, last_settled_day, load_env, repair_series, to_candles, yahoo_ticker
 
 TOL_PRICE = 0.005    # numeric(14,4) vs 2-dp floats
 TOL_RSI = 0.011      # SQL rounds to 2 dp
+TOL_PCT = 0.011      # change % rounded to 2 dp in SQL (half away from zero) and pandas (half to even)
+TOL_SIP = 0.05       # SIP value: numeric units × close in SQL vs float in pandas
+# RSI and the signals built on it depend on every earlier close; retention trims the oldest bars
+# each night, so values from a stock's first sessions were computed with history no longer stored.
+# Wilder RSI forgets a start-up difference by (13/14)^n — under the tolerance after ~120 sessions.
+WARMUP = 120
+# Big one-day moves checked by hand and found real (the date's price is right; see the note).
+REVIEWED_MOVES = {
+    ("IDEA", "2025-04-01"): "+19 % on the government's dues-to-equity conversion; Yahoo's volume for the day is wrong",
+}
 
 
 class Report:
@@ -90,6 +102,8 @@ def main(argv=None) -> int:
     settled = last_settled_day(datetime.now(timezone.utc))
     meta = {m["symbol"]: m for m in db.symbols()}
     core = {s for s, m in meta.items() if m["history_days"] >= 760}
+    # Blue chips and indices get the hard staleness / gap / big-move checks; mid caps hit 20 % bands.
+    strict = {s for s, m in meta.items() if m["segment"] == "index" or (m.get("mcap_rank") or 10**9) <= 100}
     if args.symbols:
         symbols = [s for s in args.symbols.split(",") if s in meta]
     elif args.all:
@@ -111,6 +125,8 @@ def main(argv=None) -> int:
         fresh, _ = to_candles(s, frames.get(s), settled)
         if calendar:
             fresh = [c for c in fresh if c.day in calendar]
+        if meta[s].get("segment") != "index":           # the pipeline stores Yahoo's history after this repair
+            fresh, _ = repair_series(fresh)
         q = urllib.parse.quote(s)
         stored = get(db, "market_candles", f"select=ts,open,high,low,close,volume&symbol=eq.{q}&exchange=eq.NSE&interval=eq.1d"
                                            f"&ts=gte.{(settled - timedelta(days=args.days)).isoformat()}&order=ts")
@@ -131,7 +147,7 @@ def main(argv=None) -> int:
     # the core list must all be on the latest session.
     newest = max(d for d in latest_dates.values() if d)
     for s, d in latest_dates.items():
-        if s in core:
+        if s in strict:
             r.check(d == newest, f"{s}: latest candle {d}, others have {newest} (stale)")
 
     snap = pd.concat([
@@ -155,16 +171,24 @@ def main(argv=None) -> int:
         bad = c[(c.high < c[["open", "close", "low"]].max(axis=1)) | (c.low > c[["open", "close", "high"]].min(axis=1)) | (c.low <= 0)]
         r.check(bad.empty, f"{s}: {len(bad)} inconsistent OHLC rows")
         # Splits/bonuses Yahoo didn't adjust and demergers show up as huge one-day moves.
-        # Core names: anything over 18 %; small caps can genuinely move 20 % (price bands).
+        # Blue chips: over 18 % without real-move volume (1.5× the 20-day median) — a crash or a
+        # rally trades heavily, a data break doesn't; small caps can genuinely move 20 % (price bands).
         # Volatility indices and commodity ETFs move more than stocks; small caps are reported
         # for review (a demerger Yahoo didn't adjust needs a HISTORY_FROM cut-off).
         seg = meta[s].get("segment")
         mv = c.close.pct_change().abs()
         if s != "INDIAVIX":
-            limit = 0.18 if s in core and seg in ("equity", "index") else 0.35
-            msg = f"{s}: one-day moves > {limit:.0%} on {[str(t.date()) for t in mv[mv > limit].index]}"
-            (r.check if s in core and seg in ("equity", "index") else r.warn)((mv > limit).sum() == 0, msg)
-        if s in core:
+            hard = s in strict and seg in ("equity", "index")
+            limit = 0.18 if hard else 0.35
+            big = mv > limit
+            if hard and seg == "equity":
+                vol = c.volume.astype(float)
+                heavy = vol >= 1.5 * vol.rolling(20, min_periods=5).median().shift()
+                big &= ~heavy
+            days = [str(t.tz_convert(IST).date()) for t in mv[big].index]
+            days = [d for d in days if (s, d) not in REVIEWED_MOVES]
+            (r.check if hard else r.warn)(not days, f"{s}: one-day moves > {limit:.0%} on {days}")
+        if s in strict:
             gaps = c.index.to_series().diff().dt.days
             r.check((gaps > 6).sum() == 0, f"{s}: gaps over 6 days at {[str(t.date()) for t in gaps[gaps > 6].index]}")
         if s in HISTORY_FROM:
@@ -186,7 +210,10 @@ def main(argv=None) -> int:
             "high_52w": yr.high.max(), "low_52w": yr.low.min(), "rsi": rsi.iloc[-1],
         }
         for k, v in expect.items():
-            tol = TOL_RSI if k == "rsi" else TOL_PRICE
+            tol = TOL_RSI if k == "rsi" else TOL_PCT if k == "change_pct" else TOL_PRICE
+            if pd.isna(sn[k]) and pd.isna(v):          # too new for RSI (under 15 sessions): blank in both
+                r.check(True, "")
+                continue
             r.check(abs(float(sn[k]) - float(v)) <= tol, f"{s}: snapshot {k} {sn[k]} != expected {v:.4f}")
 
         # ---- 3b. RSI history
@@ -194,6 +221,7 @@ def main(argv=None) -> int:
         if len(ev):
             ev["ts"] = pd.to_datetime(ev["ts"], utc=True)
             ev = ev.set_index("ts").rsi.astype(float)
+            ev = ev[ev.index >= c.index[min(WARMUP, len(c) - 1)]]
             diff = (ev - rsi.reindex(ev.index)).abs()
             r.check((diff > TOL_RSI).sum() == 0, f"{s}: {int((diff > TOL_RSI).sum())} RSI values off (max {diff.max():.3f})")
 
@@ -208,7 +236,11 @@ def main(argv=None) -> int:
         for t in c.index[((prsi < 30) & (rsi >= 30)) | ((prsi > 70) & (rsi <= 70))]:
             exp.add(("rsi_reversal", "buy" if prsi[t] < 30 else "exit", t.date()))
         sg = get(db, "trading_signals", f"select=strategy,signal_type,generated_at&symbol=eq.{q}&exchange=eq.NSE")
+        sg = sg[sg.strategy != "kk_breakout"] if len(sg) else sg
         got = {(x["strategy"], x["signal_type"], pd.Timestamp(x["generated_at"]).tz_convert("UTC").date()) for x in sg.to_dict("records")} if len(sg) else set()
+        settled_from = c.index[min(WARMUP, len(c) - 1)].date()
+        exp = {x for x in exp if x[2] >= settled_from}
+        got = {x for x in got if x[2] >= settled_from}
         r.check(got == exp, f"{s}: signals differ — missing {sorted(exp - got)[:3]}, unexpected {sorted(got - exp)[:3]}")
 
         # ---- 3d. SIP backtest
@@ -221,7 +253,7 @@ def main(argv=None) -> int:
             final = round(units.sum() * c.close.iloc[-1], 2)
             roi = round((units.sum() * c.close.iloc[-1] - invested) / invested * 100, 4)
             L = led.iloc[0]
-            r.check(int(L.ledger["invested"]) == invested and abs(float(L.ledger["final_value"]) - final) <= 0.02
+            r.check(int(L.ledger["invested"]) == invested and abs(float(L.ledger["final_value"]) - final) <= TOL_SIP
                     and abs(float(L.roi_pct) - roi) <= 0.0002,
                     f"{s}: backtest invested/final/roi {L.ledger['invested']}/{L.ledger['final_value']}/{L.roi_pct} != {invested}/{final}/{roi}")
 

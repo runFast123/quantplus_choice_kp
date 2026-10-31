@@ -125,6 +125,19 @@ class Repair(unittest.TestCase):
         self.assertEqual(repair_series(s), (s, []))
         self.assertFalse(has_break(s[1:], 1800.0, date(2025, 12, 31)))
 
+    def test_unadjusted_bonus_rescales_history(self):
+        # TRENT, 1 Jan 2026: a 1:2 bonus left unadjusted — opened at exactly 2/3 of the prior close.
+        s = series([4207.7, 4279.0, 2864.93, 2939.73], opens=[4226.0, 4225.0, 2852.67, 2866.67])
+        fixed, notes = repair_series(s)
+        self.assertAlmostEqual(fixed[1].close, 2852.67, places=2)
+        self.assertEqual(fixed[2].close, 2864.93)
+        self.assertIn("×0.666667", notes[0])
+        self.assertTrue(has_break(s[2:], 4279.0, date(2026, 1, 2)))
+
+    def test_a_crash_that_opens_off_the_bonus_ratio_is_kept(self):
+        s = series([1258.0, 900.6, 905.0], opens=[1250.0, 1020.0, 901.0])      # −28 %, opened −19 %
+        self.assertEqual(repair_series(s), (s, []))
+
     def test_normal_moves_untouched(self):
         s = series([100.0, 120.0, 96.0, 110.0])                                   # ±20 % band moves
         self.assertEqual(repair_series(s), (s, []))

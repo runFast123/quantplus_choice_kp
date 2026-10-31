@@ -237,3 +237,13 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   the wording is still owed before launch (BRD open decision 8). Phase 2 (saved practice plans, weekly report) needs a
   user-data table with RLS and an isolation test.
 
+### ADR-034 · Two years of history for the 500 largest companies (amends ADR-027)
+**Date** 2026-10-30 · **Status** accepted
+- **Context:** ADR-027 kept 760 days for ~80 core symbols and 400 days for the rest, with a nightly retention job deleting
+  older candles. Dry Run replays (ADR-033) and the odds pool (ADR-032) were cut to ~13 months for most listed stocks.
+  The database was 254 MB of the 500 MB free tier (candles 135 MB).
+- **Decision:** 760 days for every symbol ranked in the top 500 by market cap: a trigger on `market_symbols` raises
+  `history_days` when `mcap_rank` ≤ 500 (insert, rank change or the universe upsert) and never lowers it; the universe
+  sync mirrors the rule; the top 500 were backfilled with `eod.py --days 760`. About +25 MB.
+- **Not done:** two years for all ~3,600 symbols (~+165 MB, ~420 MB total) — too close to the free-tier limit.
+

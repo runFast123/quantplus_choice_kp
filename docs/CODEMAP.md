@@ -39,6 +39,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 29 | `news_feeds_live_syndication` | restores active feeds for Moneycontrol, Business Standard, and Corporate Announcements via Google News RSS syndication |
 | 30 | `push_notifications` | `push_subscriptions` (own rows: select/insert/delete; https endpoint, keys), `notifications.pushed_at` + pending index, `svc_claim_push_batch(p_limit)` (SKIP LOCKED, last 2 days, service_role), `export_my_data()` + push browsers (no keys) |
 | 31 | `daily_setups` | `market_quotes.setups text[]` (GIN index), `private.refresh_setups(p_symbols)` (breakout_20d, bull_flag, reclaim_ma20, oversold, oversold_bounce on the last 30 daily closes + stored RSI), `svc_refresh_market_analytics` now also returns `setups`, cron `market-analytics` runs both, `market_snapshot` + `setups` |
+| 32 | `history_top500` | `private.history_for_rank()` trigger on `market_symbols` (insert / update of `mcap_rank`, `history_days`): rank ≤ 500 → `history_days` raised to 760, never lowered (ADR-034); top 500 set to 760 |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,

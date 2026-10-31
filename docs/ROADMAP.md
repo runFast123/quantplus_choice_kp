@@ -27,8 +27,8 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Dry Run phase 2: save a plan as a practice portfolio (new table + RLS + isolation test), update after each EOD
       load, weekly push report card.
 - [ ] Dry Run phase 3: share card (guardrail score and weeks practised; no stock names, no returns).
-- [ ] Backfill daily candles to ~2 years for every symbol (`pipelines/eod/eod.py --days 760`): many stocks' history
-      starts 25 Sept 2025, which shortens Dry Run replays and the odds pool.
+- [x] Two years of daily candles for the 500 largest companies (ADR-034, migration 32; backfilled 2026-10-30).
+- [ ] Two years for the rest (~3,100 symbols) only after moving off the free tier (~+165 MB).
 - [ ] Legal review of Dry Run wording before launch (with the Terms/Privacy review).
 - [ ] Payment gateway (Razorpay/Cashfree) checkout + webhook → `admin_activate_plan`-style RPC (FR-9.4).
 - [ ] Live tick worker for intraday alerts and prices (FR-3.5, FR-7.6); keep `run_eod_notifier` as the EOD pass.

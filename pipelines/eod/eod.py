@@ -202,12 +202,26 @@ def on_trading_days(rows: list[dict], calendar: set[date], trust_after: date) ->
 BREAK = 0.35                 # a one-day move this large is a data break, not trading …
 OPEN_GAP = 0.10              # … unless the session opened near the previous close (it traded there)
 SPLIT_FACTORS = (2, 3, 4, 5, 10, 20, 25, 50, 100)
+# 1:2 and 1:3 bonus issues move the price by a third or a quarter — inside the break threshold.
+# They're recognised by the open landing on the exact ratio (a real fall opens anywhere),
+# beyond the 20 % price band. TRENT, 1 Jan 2026: opened at 2/3 of the prior close to the paisa.
+BONUS_FACTORS = (1.5, 4 / 3)
+BONUS_OPEN_TOL = 0.005
+
+
+def bonus_gap(prev_close: float, cur: Candle) -> float | None:
+    """The bonus factor when this bar looks like an unadjusted 1:2 / 1:3 bonus, else None."""
+    if prev_close <= 0 or abs(cur.close / prev_close - 1) <= 0.20:
+        return None
+    return next((f for f in BONUS_FACTORS if abs(cur.open / prev_close * f - 1) <= BONUS_OPEN_TOL), None)
 
 
 def is_break(prev: Candle | float, cur: Candle) -> bool:
     """A data break gaps at the open; a real crash or rally (PB Fintech, 24 Sep 2026: opened
     -6 %, closed -33 % on 11x volume) happens during the session."""
     pc = prev.close if isinstance(prev, Candle) else prev
+    if bonus_gap(pc, cur) is not None:
+        return True
     if pc <= 0 or abs(cur.close / pc - 1) <= BREAK:
         return False
     return abs(cur.open / pc - 1) > OPEN_GAP
@@ -230,7 +244,8 @@ def repair_series(candles: list[Candle]) -> tuple[list[Candle], list[str]]:
             i += 1
             continue
         r = out[i].close / out[i - 1].close
-        factor = next((f for f in (*SPLIT_FACTORS, *(1 / k for k in SPLIT_FACTORS)) if abs(r / f - 1) <= 0.03), None)
+        bonus = bonus_gap(out[i - 1].close, out[i])
+        factor = 1 / bonus if bonus else next((f for f in (*SPLIT_FACTORS, *(1 / k for k in SPLIT_FACTORS)) if abs(r / f - 1) <= 0.03), None)
         if factor is not None:
             out[:i] = [Candle(c.symbol, c.day, round(c.open * factor, 2), round(c.high * factor, 2), round(c.low * factor, 2),
                               round(c.close * factor, 2), int(round(c.volume / factor))) for c in out[:i]]
@@ -310,7 +325,7 @@ class Rest:
             offset += 1000
 
     def symbols(self) -> list[dict]:
-        return self.get_all("market_symbols?select=symbol,vendor_ticker,history_days,segment"
+        return self.get_all("market_symbols?select=symbol,vendor_ticker,history_days,segment,mcap_rank"
                             "&exchange=eq.NSE&is_active=is.true&order=symbol")
 
     def quoted(self) -> dict[str, tuple[float, date]]:
@@ -319,10 +334,12 @@ class Rest:
                 for r in self.get_all("market_quotes?select=symbol,last_price,as_of&exchange=eq.NSE&order=symbol")}
 
     def replace_history(self, symbol: str) -> None:
-        """Delete a symbol's candles and everything derived from them (before a repaired reload)."""
+        """Delete a symbol's candles and everything derived from them (before a repaired reload).
+        KK Breakout signals are kept: they're imported (scripts/ingest_kk_signals.py), not rebuilt here."""
         sym = urllib.parse.quote(symbol)
         for table in ("market_candles", "rsi_events", "trading_signals"):
-            self.call("DELETE", f"{table}?symbol=eq.{sym}&exchange=eq.NSE", prefer="return=minimal")
+            only = "&strategy=in.(sma_20_50_cross,rsi_reversal)" if table == "trading_signals" else ""
+            self.call("DELETE", f"{table}?symbol=eq.{sym}&exchange=eq.NSE{only}", prefer="return=minimal")
 
     def upsert(self, table: str, rows: list[dict], on_conflict: str, ignore: bool = False, batch: int = BATCH) -> None:
         how = "ignore-duplicates" if ignore else "merge-duplicates"

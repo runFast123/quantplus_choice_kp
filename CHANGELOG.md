@@ -5,6 +5,39 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — Two years of prices for the 500 largest companies (`supabase/`, `pipelines/`; ADR-034)
+- Most stocks kept only 400 days (free-tier sizing, ADR-027), which cut Dry Run replays and the odds pool to ~13 months.
+  **Migration 32** adds a `market_symbols` trigger: a top-500 company (now or later) keeps 760 days, never lowered;
+  `universe.py` mirrors it. The top 500 were backfilled from Yahoo (`eod.py --days 760`). Test `09_history_top500.sql`.
+
+### Fixed — Market data cleanup after the backfill (`pipelines/eod`, live data)
+- **Unadjusted bonus issues are now repaired.** `repair_series` / `is_break` recognise a 1:2 or 1:3 bonus by the open landing
+  on exactly 2/3 or 3/4 of the prior close beyond the 20 % band (a real fall opens anywhere). TRENT's 1:2 bonus (record
+  date 4 Jun 2026) had left 2025 unadjusted against 2026 — a −33 % "drop" on 1 Jan 2026; repaired with `--repair`.
+  A scan of every stock found no other case. `replace_history` no longer deletes KK Breakout signals (imported, not
+  rebuilt by the pipeline). +2 tests.
+- **408 holiday bars removed** (zero volume on days the NIFTY didn't trade; 398 of them on 2 Oct 2026), with their RSI
+  rows and signals.
+- **Stale rule signals rebuilt** for the top 500 and every stock that had a holiday bar: SMA/RSI signals and RSI crosses
+  inside each stock's stored history were cleared and recomputed (the last 5 days and KK signals untouched, so no alert
+  can repeat); ~520 signals left over from the old 400-day history start are gone.
+- **`audit.py`**: KK signals skipped (not recomputed there); the hard staleness / gap / big-move checks cover indices and
+  the 100 largest companies; a big move fails only without real-move volume (1.5× the 20-day median), with reviewed
+  exceptions listed in `REVIEWED_MOVES`; blank RSI for brand-new listings and 2-dp rounding no longer fail. It compares
+  against Yahoo's history after the same split/bonus repair the pipeline applies, ignores signals older than the stored
+  prices, and skips RSI-based values in a stock's first 120 stored sessions (computed when older bars still existed).
+- **ICICIPRULI retired → ICICILIFE.** The same company had two active tickers with identical prices; Yahoo now serves its
+  history only as ICICILIFE. ICICIPRULI is inactive with a successor note (nobody watched, held or alerted on it), and
+  ICICILIFE's two-year history was reloaded.
+- 13 recent crossovers that moved by a day once the holiday bars were gone were replaced by their corrected twins
+  (no notification referred to them).
+- VEDL (Apr 2026 demerger) and SWANDEF (Jan 2025 scrip change) start at their breaks, as the repair policy intends;
+  the 21 NSE indices were backfilled to two years (sector indices had ~35 days) and their signals rebuilt; missing
+  30 Sep–12 Oct sessions for indices and INSURADD refilled.
+- **Why "Market EOD" showed red on GitHub since ~20 Oct:** the data load succeeded every run; the final `audit.py` step
+  failed on the issues above (KK signals it couldn't recompute, RSI warm-up, stale signals). The audit now passes on
+  the touched symbols; the next scheduled run should be green once this is pushed.
+
 ### Added — Dry Run, phase 1 (`web/`; ADR-033)
 Why: help beginners plan an amount (say ₹2.5 lakh) properly without the platform telling them what to buy.
 - **`/app/dry-run`** (sidebar, phone menu, command palette): a disclosure gate first ("a practice tool, not advice;
