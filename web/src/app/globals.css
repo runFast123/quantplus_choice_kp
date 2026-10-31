@@ -178,6 +178,8 @@
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
     scroll-padding-top: 6rem;
+    /* In-page jumps glide; the reduced-motion rule below turns this off. */
+    scroll-behavior: smooth;
   }
   body {
     background: var(--background);

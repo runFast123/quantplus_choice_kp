@@ -85,7 +85,7 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
             )}
           >
             <StanceBadge stance={k} />
-            <span className="num text-[18px] sm:text-[22px]">{counts[k]}</span>
+            <span className="num text-[18px] sm:text-[22px]">{counts[k].toLocaleString("en-IN")}</span>
           </Link>
         ))}
       </section>

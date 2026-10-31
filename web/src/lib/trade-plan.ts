@@ -234,7 +234,7 @@ export function evaluateSignalProgress(
       plan,
       progressR: null,
       targetStatus: "invalid",
-      statusLabel: "Invalid Stop",
+      statusLabel: "No valid stop",
       statusTone: "neutral",
       sentiment,
     };
@@ -245,7 +245,7 @@ export function evaluateSignalProgress(
       plan,
       progressR: null,
       targetStatus: "in_progress",
-      statusLabel: "Awaiting close",
+      statusLabel: "Waiting for a close",
       statusTone: "neutral",
       sentiment,
     };
@@ -260,7 +260,7 @@ export function evaluateSignalProgress(
       plan,
       progressR,
       targetStatus: "t3_hit",
-      statusLabel: "T3 (+3.0R)",
+      statusLabel: "Hit target 3",
       statusTone: "gain",
       sentiment,
     };
@@ -271,7 +271,7 @@ export function evaluateSignalProgress(
       plan,
       progressR,
       targetStatus: "t2_hit",
-      statusLabel: "T2 (+2.0R)",
+      statusLabel: "Hit target 2",
       statusTone: "gain",
       sentiment,
     };
@@ -282,7 +282,7 @@ export function evaluateSignalProgress(
       plan,
       progressR,
       targetStatus: "t1_hit",
-      statusLabel: "T1 (+0.75R)",
+      statusLabel: "Hit target 1",
       statusTone: "gain",
       sentiment,
     };
@@ -293,7 +293,7 @@ export function evaluateSignalProgress(
       plan,
       progressR,
       targetStatus: "stop_breached",
-      statusLabel: "Stop Breached",
+      statusLabel: "Below stop",
       statusTone: "loss",
       sentiment,
     };
@@ -303,9 +303,8 @@ export function evaluateSignalProgress(
     plan,
     progressR,
     targetStatus: "in_progress",
-    statusLabel:
-      progressR >= 0 ? `+${progressR.toFixed(1)}R` : `${progressR.toFixed(1)}R`,
-    statusTone: progressR >= 0 ? "neutral" : "loss",
+    statusLabel: "Open",
+    statusTone: "neutral",
     sentiment,
   };
 }

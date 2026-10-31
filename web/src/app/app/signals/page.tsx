@@ -14,7 +14,8 @@ import {
   tr,
 } from "@/components/ui/layout";
 import { date, price, strategyLabel } from "@/lib/format";
-import { evaluateSignalProgress } from "@/lib/trade-plan";
+import { markerFromSignal, signalAction, tradeFor, type SignalAction } from "@/lib/signal-trade";
+import { evaluateSignalProgress, type RawChartMarker } from "@/lib/trade-plan";
 import type { Signal } from "@/lib/types";
 import { getQuotes } from "@/server/market-data";
 import { requireSession } from "@/server/session";
@@ -25,22 +26,24 @@ const STRATEGIES = [
   {
     key: "sma_20_50_cross",
     title: "SMA 20/50 cross",
-    rule: "BUY when the 20-day average closes above the 50-day; EXIT when it closes back below.",
-    reads: "Trend-following. Late by design — it waits for a move to prove itself.",
+    rule: "Buy when the 20-day average price rises above the 50-day average; exit when it drops back below.",
+    reads: "Follows trends. Late on purpose: it waits for a move to prove itself.",
   },
   {
     key: "rsi_reversal",
     title: "RSI reversal",
-    rule: "BUY when 14-day RSI climbs back above 30; EXIT when it falls back below 70.",
-    reads: "Mean-reversion. Early by design — it bets stretched moves relax.",
+    rule: "Buy when RSI (a 0–100 gauge of recent moves) climbs back above 30 after a hard fall; exit when it drops back below 70 after a fast rise.",
+    reads: "Bets that sharp moves calm down. Early on purpose.",
   },
   {
     key: "kk_breakout",
     title: "KK 20d Breakout",
-    rule: "BUY on 20-day extreme low extension (≥1.0%) with 5-day confirmation; targets T1 (+0.75R) & T2 (+2.0R).",
-    reads: "Volatility expansion breakout. Asymmetric milestone targets with disciplined 5-day holding window.",
+    rule: "Buy when the price dips at least 1% under its 20-day low, then climbs back above that day's high within 5 sessions.",
+    reads: "Catches a quick rebound. Takes profit in two steps and closes after 5 sessions either way.",
   },
 ];
+
+const ACTION_LABEL: Record<SignalAction, string> = { buy: "BUY", exit: "EXIT", sell: "SHORT", cover: "COVER" };
 
 export default async function SignalsPage({
   searchParams,
@@ -79,14 +82,31 @@ export default async function SignalsPage({
   const signals = (data ?? []) as Signal[];
   const quotes = await getQuotes(db, [...new Set(signals.map((x) => x.symbol))]);
 
-  // Evaluate signals with asymmetric trade plan and sentiment exhaustion
+  // Each signal's round trip: a buy is closed by the next exit of the same rule (a short sell by
+  // its cover). Rows are newest first, so a closing signal is always on the same page as its entry.
+  const markers = new Map(signals.map((sg) => [sg.id, markerFromSignal(sg)]));
+  const bySymbol = new Map<string, RawChartMarker[]>();
+  for (const sg of signals) bySymbol.set(sg.symbol, [...(bySymbol.get(sg.symbol) ?? []), markers.get(sg.id)!]);
+
   const evaluatedSignals = signals.map((sg) => {
     const at = Number(sg.payload.close) || 0;
     const quote = quotes.get(sg.symbol);
     const last = quote?.last_price ?? null;
-    const since = last && at ? ((last - at) / at) * 100 : null;
+    const marker = markers.get(sg.id)!;
+    const action = signalAction(marker);
+    const trade = tradeFor(marker, bySymbol.get(sg.symbol) ?? []);
+    // The finished trade's result, on the entry that has closed and on the exit that closed it.
+    const exitPrice = trade?.exit?.price ?? null;
+    const result =
+      trade && exitPrice
+        ? (trade.exit?.pnlPct ??
+          ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100 * (trade.direction === "long" ? 1 : -1))
+        : null;
+    const closed = action === "exit" || action === "cover" || Boolean(trade?.exit);
+    const since = !closed && action === "buy" && last && at ? ((last - at) / at) * 100 : null;
+    const base = { sg, at, last, since, quote, action, closed, result };
 
-    if (sg.signal_type === "buy") {
+    if (action === "buy" && !closed) {
       const payloadStop = sg.payload.stop ? Number(sg.payload.stop) : null;
       const payloadSma20 = sg.payload.sma20 ? Number(sg.payload.sma20) : null;
       const defaultStop =
@@ -97,16 +117,14 @@ export default async function SignalsPage({
             : Number((at * 0.95).toFixed(2));
 
       const evaluation = evaluateSignalProgress(at, defaultStop, last, quote?.rsi);
-      return { sg, at, last, since, quote, evaluation, isBuy: true };
+      return { ...base, evaluation };
     }
 
-    return { sg, at, last, since, quote, evaluation: null, isBuy: false };
+    return { ...base, evaluation: null };
   });
 
-  // Calculate quantitative desk overview metrics
-  const buyItems = evaluatedSignals.filter(
-    (item) => item.isBuy && item.evaluation?.plan.isValid,
-  );
+  // Open buys only: a buy its rule has already exited is history, not a trade to track.
+  const buyItems = evaluatedSignals.filter((item) => item.evaluation?.plan.isValid);
   const t1PlusHits = buyItems.filter((item) =>
     ["t1_hit", "t2_hit", "t3_hit"].includes(item.evaluation?.targetStatus ?? ""),
   );
@@ -155,34 +173,34 @@ export default async function SignalsPage({
       <PageHeader
         eyebrow="Rule-based"
         title="Signals"
-        description="Every signal comes from a rule you can read below — no black box. Signals are research prompts, not recommendations; asymmetric trade plan targets (0.75R · 2.0R · 3.0R) track systematic execution."
+        description="Every signal comes from one of the three simple rules below, so you can always see why it fired. Signals are research prompts, not advice. Each open buy shows a stop (the price where the idea is wrong) and three price targets."
       />
 
-      {/* Quantitative Desk Overview Strip */}
-      <section className="panel grid grid-cols-2 divide-y divide-border sm:divide-y-0 sm:grid-cols-4 sm:divide-x">
+      {/* Summary strip */}
+      <section className="panel grid grid-cols-2 sm:grid-cols-4">
         <Stat
-          className="p-4"
-          label="Active BUY Signals"
+          className="p-4 border-b border-r border-border sm:border-b-0"
+          label="Open buy signals"
           value={buyItems.length}
-          sub={`${evaluatedSignals.length} total signals in scope`}
+          sub={`Out of ${evaluatedSignals.length} signals listed`}
         />
         <Stat
-          className="p-4"
-          label="T1+ De-risked"
+          className="p-4 border-b border-border sm:border-b-0 sm:border-r"
+          label="Reached target 1"
           value={`${t1PlusHits.length} (${t1Rate.toFixed(0)}%)`}
-          sub="Achieved ≥ +0.75R milestone"
+          sub="Open buys at or above their first target"
         />
         <Stat
-          className="p-4"
-          label="T2+ Core Hits"
+          className="p-4 border-r border-border"
+          label="Reached target 2"
           value={t2PlusHits.length}
-          sub="Achieved ≥ +2.0R systematic target"
+          sub="Open buys at or above their second target"
         />
         <Stat
           className="p-4"
-          label="Sentiment Warnings"
+          label="Running hot"
           value={exhaustionAlerts.length}
-          sub="Node 2 / 3 overbought exhaustion (RSI ≥ 70)"
+          sub="Open buys with RSI 70 or more: the price rose fast"
         />
       </section>
 
@@ -214,14 +232,14 @@ export default async function SignalsPage({
             {/* Status Filter */}
             <div
               role="tablist"
-              aria-label="Milestone filter"
+              aria-label="Show"
               className="flex max-w-full flex-wrap rounded-md border border-border p-0.5 text-[11px]"
             >
               {[
                 { key: "", label: "All" },
-                { key: "targets", label: "T1+ Targets" },
-                { key: "progress", label: "In Progress" },
-                { key: "exhaustion", label: "Exhaustion" },
+                { key: "targets", label: "Hit a target" },
+                { key: "progress", label: "Still open" },
+                { key: "exhaustion", label: "Running hot" },
               ].map((f) => (
                 <Link
                   key={f.key}
@@ -243,7 +261,7 @@ export default async function SignalsPage({
             {/* Scope Switcher */}
             <div
               role="tablist"
-              aria-label="Scope selector"
+              aria-label="Stocks"
               className="flex rounded-md border border-border p-0.5 text-[12px]"
             >
               {(["mine", "all"] as const).map((k) => (
@@ -281,7 +299,7 @@ export default async function SignalsPage({
                 href={link({ status: "" })}
                 className="text-foreground underline underline-offset-4"
               >
-                Reset milestone filter
+                Show all signals
               </Link>
             ) : scope === "mine" ? (
               <>
@@ -302,22 +320,24 @@ export default async function SignalsPage({
               <thead>
                 <tr>
                   <th className={th}>Date</th>
-                  <th className={th}>Symbol</th>
+                  <th className={th}>Stock</th>
                   <th className={th}>Signal</th>
-                  <th className={th}>Strategy</th>
-                  <th className={thNum}>Entry</th>
-                  <th className={thNum}>Stop (1R)</th>
-                  <th className={th}>Targets (0.75R · 2.0R · 3.0R)</th>
-                  <th className={thNum}>LTP</th>
-                  <th className={thNum}>Since</th>
                   <th className={th}>Status</th>
-                  <th className={th}>Sentiment node</th>
+                  <th className={th}>Rule</th>
+                  <th className={thNum}>Price then</th>
+                  <th className={thNum}>Stop</th>
+                  <th className={thNum}>Next target</th>
+                  <th className={thNum}>Last close</th>
+                  <th className={thNum}>Change since</th>
+                  <th className={th}>Price mood</th>
                 </tr>
               </thead>
               <tbody>
-                {displayedSignals.map(({ sg, at, last, since, quote, evaluation, isBuy }) => {
+                {displayedSignals.map(({ sg, at, last, since, quote, evaluation, action, closed, result }) => {
                   const plan = evaluation?.plan;
                   const sentiment = evaluation?.sentiment;
+                  const targets = plan && plan.isValid ? [plan.t1, plan.t2, plan.t3] : [];
+                  const next = targets.findIndex((t) => !last || last < t);
 
                   return (
                     <tr key={sg.id} className={tr}>
@@ -333,9 +353,21 @@ export default async function SignalsPage({
                         </Link>
                       </td>
                       <td className={td}>
-                        <Badge tone={isBuy ? "gain" : "loss"}>
-                          {isBuy ? "BUY" : "EXIT"}
+                        <Badge tone={action === "buy" || action === "cover" ? "gain" : "loss"}>
+                          {ACTION_LABEL[action]}
                         </Badge>
+                      </td>
+                      <td className={td}>
+                        {evaluation ? (
+                          <Badge tone={evaluation.statusTone}>{evaluation.statusLabel}</Badge>
+                        ) : closed ? (
+                          <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                            Closed
+                            {result != null ? <Delta value={result} /> : null}
+                          </span>
+                        ) : (
+                          <span className="text-[12px] text-muted-foreground">Open</span>
+                        )}
                       </td>
                       <td className={td + " text-muted-foreground"}>
                         {strategyLabel[sg.strategy] ?? sg.strategy}
@@ -355,67 +387,40 @@ export default async function SignalsPage({
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className={td}>
-                        {plan && plan.isValid ? (
-                          <div className="flex items-center gap-1.5 text-[11.5px] font-mono">
-                            <span
-                              className={clsx(
-                                "rounded px-1 py-0.5",
-                                last && last >= plan.t1
-                                  ? "bg-gain-soft text-gain font-semibold"
-                                  : "bg-muted/50 text-muted-foreground",
-                              )}
-                              title="Target 1: +0.75R de-risking node"
-                            >
-                              T1: ₹{price(plan.t1)}
-                            </span>
-                            <span className="text-muted-foreground/40">·</span>
-                            <span
-                              className={clsx(
-                                "rounded px-1 py-0.5",
-                                last && last >= plan.t2
-                                  ? "bg-gain-soft text-gain font-semibold"
-                                  : "bg-muted/50 text-muted-foreground",
-                              )}
-                              title="Target 2: +2.0R primary objective"
-                            >
-                              T2: ₹{price(plan.t2)}
-                            </span>
-                            <span className="text-muted-foreground/40">·</span>
-                            <span
-                              className={clsx(
-                                "rounded px-1 py-0.5",
-                                last && last >= plan.t3
-                                  ? "bg-gain-soft text-gain font-semibold"
-                                  : "bg-muted/50 text-muted-foreground",
-                              )}
-                              title="Target 3: +3.0R trend runner"
-                            >
-                              T3: ₹{price(plan.t3)}
-                            </span>
+                      <td className={tdNum}>
+                        {targets.length ? (
+                          <div
+                            className="flex flex-col items-end"
+                            title={`Targets: ${targets.map((t, i) => `${i + 1}) ₹${price(t)}`).join("  ")}`}
+                          >
+                            {next === -1 ? (
+                              <span className="font-sans text-[12px] font-medium text-gain">All 3 reached</span>
+                            ) : (
+                              <>
+                                <span className="num">₹{price(targets[next])}</span>
+                                <span className="font-sans text-[10px] text-muted-foreground">
+                                  target {next + 1} of 3
+                                </span>
+                              </>
+                            )}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-[12px] italic">
-                            {isBuy ? "Calculating" : "Position exited"}
+                          <span className="font-sans text-[12px] text-muted-foreground">
+                            {action === "exit"
+                              ? "Closed the buy"
+                              : action === "cover"
+                                ? "Closed the short"
+                                : closed
+                                  ? "Trade closed"
+                                  : action === "sell"
+                                    ? "Short trade"
+                                    : "—"}
                           </span>
                         )}
                       </td>
                       <td className={tdNum}>{last ? `₹${price(last)}` : "—"}</td>
                       <td className={tdNum}>
                         <Delta value={since} />
-                      </td>
-                      <td className={td}>
-                        {evaluation ? (
-                          <div className="flex items-center gap-1.5">
-                            <Badge tone={evaluation.statusTone}>
-                              {evaluation.statusLabel}
-                            </Badge>
-                          </div>
-                        ) : (
-                          <span className="text-[11.5px] text-muted-foreground">
-                            Exited
-                          </span>
-                        )}
                       </td>
                       <td className={td}>
                         {sentiment ? (

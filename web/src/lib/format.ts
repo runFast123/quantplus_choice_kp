@@ -52,6 +52,12 @@ export function signed(n: number | null | undefined): string {
   return `${n > 0 ? "+" : n < 0 ? "−" : ""}${inr2.format(Math.abs(n))}`;
 }
 
+/** Signed rupees: +₹1,240.50 / −₹80.00 */
+export function signedRupees(n: number | null | undefined): string {
+  if (n == null || Number.isNaN(n)) return "—";
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}₹${inr2.format(Math.abs(n))}`;
+}
+
 const IST = "Asia/Kolkata";
 const dateFmt = new Intl.DateTimeFormat("en-IN", { timeZone: IST, day: "2-digit", month: "short", year: "numeric" });
 const dateTimeFmt = new Intl.DateTimeFormat("en-IN", {

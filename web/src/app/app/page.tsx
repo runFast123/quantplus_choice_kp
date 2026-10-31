@@ -6,7 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { NewsList } from "@/components/news/news-list";
 import { Badge, Delta, Sparkline, Stat, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
-import { daysUntil, date, isoDaysAgo, longDate, pct, price, relative, rupeesCompact, strategyLabel } from "@/lib/format";
+import { daysUntil, date, isoDaysAgo, longDate, pct, price, qty, relative, rupeesCompact, strategyLabel } from "@/lib/format";
 import { nseSession } from "@/lib/market";
 import type { Holding, Signal, WatchlistItem } from "@/lib/types";
 import { getBreadth, getQuotes, getSparks, positions, summarize } from "@/server/market-data";
@@ -63,8 +63,8 @@ export default async function OverviewPage() {
     .filter((p) => (port.dayPnl >= 0 ? p.dayPnl > 0 : p.dayPnl < 0))
     .sort((a, b) => Math.abs(b.dayPnl) - Math.abs(a.dayPnl))[0];
 
-  const advancers = breadth.up;
-  const decliners = breadth.down;
+  const advancers = qty(breadth.up);
+  const decliners = qty(breadth.down);
   const asOf = breadth.asOf;
 
   // First-run checklist: what makes the app useful, in the order it pays off.
@@ -101,8 +101,8 @@ export default async function OverviewPage() {
       : radarSymbols.length
         ? `${radarSymbols.length} stock${radarSymbols.length > 1 ? "s" : ""} on your radar; ${
             signalCount ? `${signalCount} signal${signalCount > 1 ? "s" : ""} fired on them in the past fortnight.` : "none of them has signalled in the past fortnight."
-          } Breadth across the tape: ${advancers} up, ${decliners} down.`
-        : `Breadth on the last session: ${advancers} advancing, ${decliners} declining. Add a few stocks to your Market Radar and this page starts working for you.`;
+          } Across the market, ${advancers} stocks rose and ${decliners} fell on the last session.`
+        : `On the last session, ${advancers} stocks rose and ${decliners} fell. Add a few stocks to your Market Radar and this page starts working for you.`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -138,8 +138,8 @@ export default async function OverviewPage() {
         {can(s, "portfolio") ? (
           <>
             <Stat className="p-4" label="Portfolio value" value={rupeesCompact(port.value)} sub={`${holdings.length} holding${holdings.length === 1 ? "" : "s"}`} />
-            <Stat className="p-4" label="Day's P&L" value={<Delta value={port.dayPnl} kind="abs" />} sub={<Delta value={port.dayPct} />} />
-            <Stat className="p-4" label="Overall P&L" value={<Delta value={port.totalPnl} kind="abs" />} sub={<Delta value={port.totalPct} />} />
+            <Stat className="p-4" label="Day's P&L" value={<Delta value={port.dayPnl} kind="inr" />} sub={<Delta value={port.dayPct} />} />
+            <Stat className="p-4" label="Overall P&L" value={<Delta value={port.totalPnl} kind="inr" />} sub={<Delta value={port.totalPct} />} />
           </>
         ) : (
           <div className="col-span-2 flex flex-col justify-center gap-1 p-4 md:col-span-3">

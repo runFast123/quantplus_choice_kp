@@ -262,8 +262,8 @@ export function calculatePortfolioHealth(positions: HealthPosition[]): Portfolio
       id: "single-stock-risk",
       type: "warning",
       symbol: topHolding.symbol,
-      title: `High Single-Stock Exposure: ${topHolding.symbol} (${topHolding.weightPct}%)`,
-      description: `Single position exceeds the institutional 15% risk threshold. A sharp drawdown in ${topHolding.symbol} will disproportionately impact portfolio NAV.`,
+      title: `${topHolding.symbol} is ${topHolding.weightPct}% of your portfolio`,
+      description: `One stock holds more than a fifth of the money, so a sharp fall in ${topHolding.symbol} would move your whole portfolio a lot.`,
     });
   }
 
@@ -271,8 +271,8 @@ export function calculatePortfolioHealth(positions: HealthPosition[]): Portfolio
     riskFlags.push({
       id: "sector-concentration",
       type: "warning",
-      title: `Sector Concentration: ${topSector.sector} (${topSector.weightPct}%)`,
-      description: `Sector allocation exceeds 35%. Vulnerable to sector-specific macro headwinds, regulatory actions, or cyclical rotation.`,
+      title: `${topSector.sector} is ${topSector.weightPct}% of your portfolio`,
+      description: `More than a third of the money sits in one sector. Stocks in the same industry often rise and fall together.`,
     });
   }
 
@@ -280,8 +280,8 @@ export function calculatePortfolioHealth(positions: HealthPosition[]): Portfolio
     riskFlags.push({
       id: "rsi-exhaustion",
       type: "caution",
-      title: `RSI Overbought Exhaustion (${rsiExhaustionCount} stock${rsiExhaustionCount > 1 ? "s" : ""})`,
-      description: `${rsiExhaustionCount} holding(s) trading above RSI 70. Risk/reward is stretched; review for systematic trimming or profit locking.`,
+      title: `${rsiExhaustionCount} stock${rsiExhaustionCount > 1 ? "s" : ""} running hot (RSI 70+)`,
+      description: `The price rose fast lately. After runs like this, a pause or pullback is common.`,
     });
   }
 
@@ -289,8 +289,8 @@ export function calculatePortfolioHealth(positions: HealthPosition[]): Portfolio
     riskFlags.push({
       id: "underwater-gap",
       type: "caution",
-      title: `Discounted Holdings (${underwaterCount} stock${underwaterCount > 1 ? "s" : ""} >10% below cost)`,
-      description: `Positions trading well below entry. Audit technical signals to verify whether to accumulate, hold, or tax-loss harvest.`,
+      title: `${underwaterCount} stock${underwaterCount > 1 ? "s" : ""} more than 10% below what you paid`,
+      description: `Each stock's page shows its latest signals and research note, if you want to look into why.`,
     });
   }
 
@@ -298,8 +298,8 @@ export function calculatePortfolioHealth(positions: HealthPosition[]): Portfolio
     riskFlags.push({
       id: "optimal-breadth",
       type: "positive",
-      title: `Optimal Breadth (HHI: ${Math.round(hhi)})`,
-      description: `Portfolio maintains strong idiosyncratic risk dispersion across ${positions.length} active holdings (Effective N = ${effectiveN}).`,
+      title: `Well spread across ${positions.length} holdings`,
+      description: `No single stock dominates: the money is spread about as evenly as ${effectiveN} equal holdings would be.`,
     });
   }
 

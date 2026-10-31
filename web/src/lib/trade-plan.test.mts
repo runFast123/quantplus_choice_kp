@@ -160,7 +160,7 @@ describe("evaluateSignalProgress", () => {
   test("detects Target 3 (+3.0R) hit when price reaches T3", () => {
     const res = evaluateSignalProgress(1000, 950, 1155, 78);
     assert.equal(res.targetStatus, "t3_hit");
-    assert.equal(res.statusLabel, "T3 (+3.0R)");
+    assert.equal(res.statusLabel, "Hit target 3");
     assert.equal(res.statusTone, "gain");
     assert.equal(res.progressR, 3.1);
     assert.equal(res.sentiment?.node, 2);
@@ -169,7 +169,7 @@ describe("evaluateSignalProgress", () => {
   test("detects Target 2 (+2.0R) hit when price is between T2 and T3", () => {
     const res = evaluateSignalProgress(1000, 950, 1105, 68);
     assert.equal(res.targetStatus, "t2_hit");
-    assert.equal(res.statusLabel, "T2 (+2.0R)");
+    assert.equal(res.statusLabel, "Hit target 2");
     assert.equal(res.statusTone, "gain");
     assert.equal(res.progressR, 2.1);
     assert.equal(res.sentiment?.zone, "momentum");
@@ -178,7 +178,7 @@ describe("evaluateSignalProgress", () => {
   test("detects Target 1 (+0.75R) de-risking milestone hit", () => {
     const res = evaluateSignalProgress(1000, 950, 1040, 55);
     assert.equal(res.targetStatus, "t1_hit");
-    assert.equal(res.statusLabel, "T1 (+0.75R)");
+    assert.equal(res.statusLabel, "Hit target 1");
     assert.equal(res.statusTone, "gain");
     assert.equal(res.progressR, 0.8);
   });
@@ -186,7 +186,7 @@ describe("evaluateSignalProgress", () => {
   test("detects stop loss breach when price falls to or below stop", () => {
     const res = evaluateSignalProgress(1000, 950, 945, 28);
     assert.equal(res.targetStatus, "stop_breached");
-    assert.equal(res.statusLabel, "Stop Breached");
+    assert.equal(res.statusLabel, "Below stop");
     assert.equal(res.statusTone, "loss");
     assert.equal(res.sentiment?.zone, "oversold");
   });
@@ -194,18 +194,18 @@ describe("evaluateSignalProgress", () => {
   test("tracks in-progress signal before targets or stop are hit", () => {
     const res = evaluateSignalProgress(1000, 950, 1020, 52);
     assert.equal(res.targetStatus, "in_progress");
-    assert.equal(res.statusLabel, "+0.4R");
+    assert.equal(res.statusLabel, "Open");
     assert.equal(res.statusTone, "neutral");
   });
 
   test("handles missing or invalid prices safely", () => {
     const resNullPrice = evaluateSignalProgress(1000, 950, null, 50);
     assert.equal(resNullPrice.targetStatus, "in_progress");
-    assert.equal(resNullPrice.statusLabel, "Awaiting close");
+    assert.equal(resNullPrice.statusLabel, "Waiting for a close");
 
     const resInvalidStop = evaluateSignalProgress(1000, 1050, 1020, 50);
     assert.equal(resInvalidStop.targetStatus, "invalid");
-    assert.equal(resInvalidStop.statusLabel, "Invalid Stop");
+    assert.equal(resInvalidStop.statusLabel, "No valid stop");
   });
 });
 

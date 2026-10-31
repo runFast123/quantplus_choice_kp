@@ -5,6 +5,29 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — Easier to read and get around (`web/`)
+- **Signals page tells closed trades from open ones.** A buy that its rule has already exited (or a KK short that was
+  covered) used to be judged against today's price as if still open — "Stop breached", "+0.5R" — and counted in "Active
+  buy signals" (104 for a 4-stock radar; 21 are really open). Rows now pair entry and exit with `tradeFor`: closed trades
+  show "Closed" with the trade's result, open buys keep the stop and their **next** target (one column instead of three),
+  KK short entries read SHORT / COVER instead of EXIT. Status sits next to the signal. Plain words throughout (no "R",
+  "nodes", "de-risked"); `evaluateSignalProgress` labels are now "Hit target 1", "Below stop", "Open".
+- **Stock page:** "jump to" links under the header (Chart, Levels & alert, Trade plan, Research, Headlines, Signal history,
+  Backtest) with smooth scrolling (off under reduced motion); the research note and signal history no longer stretch to
+  their neighbour's height and leave an empty block.
+- **Search box remembers** the last 6 stocks you opened ("Recently viewed"); plain labels for its shortcuts.
+- **Markets:** one sector control instead of two (chips; the duplicate dropdown is gone), a "What do these columns mean?"
+  note above the table, and the table fits a 1440 px screen.
+- **Money reads as money:** Day's / Overall P&L show `+₹…` (`Delta kind="inr"`, `signedRupees`); thousands grouped in the
+  overview's market sentence and the research counts.
+- **Copy that is true:** Integrations showed extension "v1.0.0 · 48 KB" (it is 1.2.2) and promised "trailing stops" and
+  "real-time" P&L; the landing page listed a Ctrl+Q shortcut that doesn't exist, "+3 % / +6 % / +12 %" targets, "trailing
+  stops", BSE data and "4-tier sentiment audits". Both pages now describe what the product actually does, in plain words.
+- Phones: the Signals summary no longer draws a doubled border under its 2×2 grid.
+- **Portfolio health flags** (`lib/portfolio-health.ts`) in plain words and without advice: they said "review for systematic
+  trimming or profit locking" and "whether to accumulate, hold, or tax-loss harvest", and quoted a 15 % threshold for a
+  20 % check.
+
 ### Changed — Two years of prices for the 500 largest companies (`supabase/`, `pipelines/`; ADR-034)
 - Most stocks kept only 400 days (free-tier sizing, ADR-027), which cut Dry Run replays and the odds pool to ~13 months.
   **Migration 32** adds a `market_symbols` trigger: a top-500 company (now or later) keeps 760 days, never lowered;

@@ -5,7 +5,7 @@ import { expect, state, test } from "./helpers/fixtures";
 test.describe("markets screener", () => {
   test("sector filter narrows every row to that sector", async ({ proPage }) => {
     await proPage.goto("/app/markets");
-    await proPage.getByLabel("Sector").selectOption("Technology");
+    await proPage.getByRole("group", { name: "Sector" }).getByRole("button", { name: "Technology" }).click();
     await expect(proPage).toHaveURL(/sector=Technology/);
     const sectors = await proPage.locator("tbody tr td:nth-child(2)").allTextContents();
     expect(sectors.length).toBeGreaterThan(0);

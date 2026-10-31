@@ -21,6 +21,9 @@ import { PineScriptGeneratorPanel } from "@/components/market/pine-script-genera
 
 export const metadata: Metadata = { title: "Integrations & Extensions" };
 
+// Keep in step with extension/manifest.json when the zip in public/downloads is rebuilt.
+const EXTENSION_VERSION = "1.2.2";
+
 export default async function IntegrationsPage() {
   const s = await requireSession();
   const db = s.supabase;
@@ -35,29 +38,29 @@ export default async function IntegrationsPage() {
       <PageHeader
         eyebrow="Connections"
         title="Integrations & Extensions"
-        description="Overlay QuantsPulse quantitative signals directly onto your broker charts, export protected TradingView indicators, import broker portfolios, or bring your own AI keys."
+        description="See QuantsPulse signals on your broker's chart, add our rules to TradingView, bring in holdings from your broker, or add your own AI key."
       />
 
-      {/* 1. Chrome Extension Terminal */}
+      {/* 1. Chrome extension */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <BrowserIcon size={20} className="text-coral-ink" aria-hidden />
-          <h2 className="display text-[22px]">Chrome Extension Terminal</h2>
+          <h2 className="display text-[22px]">Chrome extension</h2>
         </div>
-        <Panel title="On-Chart Signal HUD & Broker Side Panel">
+        <Panel title="Signals on your broker's chart">
           <div className="flex flex-col gap-5 text-[13.5px]">
             <p className="leading-6 text-muted-foreground">
-              Run QuantsPulse directly inside your trading tabs. The extension automatically detects the active stock or index on your chart and renders an on-chart HUD bar and slide-over research panel with signals, targets, and sentiment audits.
+              The extension spots which stock or index you have open on your broker or TradingView and shows its latest signal, stop and targets in a small bar on the chart, with more detail in a side panel.
             </p>
 
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-card/60 p-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground text-[14px]">Terminal Package v1.0.0</span>
-                  <Badge tone="gain" pulse>Production Ready</Badge>
+                  <span className="font-semibold text-foreground text-[14px]">QuantsPulse for Chrome</span>
+                  <Badge>Version {EXTENSION_VERSION}</Badge>
                 </div>
                 <p className="mt-1 text-[12px] text-muted-foreground">
-                  Manifest V3 · 48 KB · Supports 23+ Indian brokers and TradingView
+                  Works on TradingView and 20+ Indian broker sites
                 </p>
               </div>
               <a
@@ -74,7 +77,7 @@ export default async function IntegrationsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <CheckCircleIcon size={18} className="text-gain shrink-0" aria-hidden />
-                  <span className="text-[13px] font-medium text-foreground">Active Account Authorized</span>
+                  <span className="text-[13px] font-medium text-foreground">Signed in</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground text-[11.5px] min-w-0 max-w-full">
                   <LockIcon size={13} className="shrink-0" aria-hidden />
@@ -82,30 +85,30 @@ export default async function IntegrationsPage() {
                 </div>
               </div>
               <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
-                Your QuantsPulse session is securely authenticated. When you open broker charts in this browser, the extension automatically pairs with your account to deliver proprietary trend signals, 1.0R trailing stops, and sentiment audits. Non-members or logged-out users are locked out by server-side verification.
+                The extension uses this sign-in, so there is nothing else to set up. If you sign out here, it stops showing signals until you sign in again.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">
-                <p className="eyebrow text-[11px]">On-Chart Signal HUD</p>
-                <p className="mt-1 text-[13px] font-medium text-foreground">Live Signals &amp; Targets</p>
+                <p className="eyebrow text-[11px]">On the chart</p>
+                <p className="mt-1 text-[13px] font-medium text-foreground">Signal, stop and targets</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  Displays Entry, Stop Loss (1.0R), and Profit Targets (0.75R, 2.0R, 3.0R) directly on top of your broker chart.
+                  The last signal&apos;s price, its stop-loss and its price targets, from the latest end-of-day close.
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">
-                <p className="eyebrow text-[11px]">23+ Indian Brokers</p>
-                <p className="mt-1 text-[13px] font-medium text-foreground">Zero-Click Detection</p>
+                <p className="eyebrow text-[11px]">Your broker</p>
+                <p className="mt-1 text-[13px] font-medium text-foreground">Finds the stock for you</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  Works on Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, Kotak Neo, and TradingView.
+                  Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, Kotak Neo, TradingView and more.
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">
-                <p className="eyebrow text-[11px]">Side Panel Terminal</p>
-                <p className="mt-1 text-[13px] font-medium text-foreground">Instant Research Depth</p>
+                <p className="eyebrow text-[11px]">Side panel</p>
+                <p className="mt-1 text-[13px] font-medium text-foreground">More detail, same tab</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  Full multi-factor breakdown, sentiment audit, 52-week position, and 1-click indicator setup without leaving your broker tab.
+                  The signal explained, the 52-week range and a one-click TradingView script, without leaving your broker.
                 </p>
               </div>
             </div>
@@ -126,7 +129,7 @@ export default async function IntegrationsPage() {
                   Click <strong>&ldquo;Load unpacked&rdquo;</strong> in the top-left corner and select the folder you just extracted.
                 </li>
                 <li>
-                  Open any broker chart (e.g. Choice FinX, Zerodha Kite, Groww, or TradingView) — your QuantsPulse session automatically connects and the signal HUD bar displays on your chart!
+                  Open a chart on your broker or TradingView. While you&apos;re signed in here, the signal bar appears on the chart.
                 </li>
               </ol>
             </div>
@@ -138,9 +141,9 @@ export default async function IntegrationsPage() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <CodeIcon size={20} className="text-coral-ink" aria-hidden />
-          <h2 className="display text-[22px]">TradingView Indicator Integration</h2>
+          <h2 className="display text-[22px]">TradingView indicator</h2>
         </div>
-        <Panel title="Protected Alternating Signal Indicator (TradingView v5)">
+        <Panel title="Our signal rules as a TradingView script (Pine v5)">
           <PineScriptGeneratorPanel initialSymbol="NIFTY" />
         </Panel>
       </section>
@@ -151,10 +154,10 @@ export default async function IntegrationsPage() {
           <FileCsvIcon size={20} className="text-coral-ink" aria-hidden />
           <h2 className="display text-[22px]">Broker Portfolio Import</h2>
         </div>
-        <Panel title="1-Click Holdings Reconciliation">
+        <Panel title="Import your holdings">
           <div className="flex flex-col gap-4 text-[13.5px]">
             <p className="leading-6 text-muted-foreground">
-              Import your existing equity holdings directly from your broker export files. We automatically strip exchange suffixes, clean tickers, and calculate your real-time portfolio P&amp;L against daily settled market closes.
+              Download your holdings file from your broker and upload it on the Portfolio page. We tidy up the stock codes for you and value everything at the last market close.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded border border-border bg-background px-2.5 py-1 text-[12px] font-medium">Zerodha Console (.csv)</span>
@@ -176,7 +179,7 @@ export default async function IntegrationsPage() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <SparkleIcon size={20} className="text-coral-ink" aria-hidden />
-          <h2 className="display text-[22px]">AI Provider Keys (BYOK)</h2>
+          <h2 className="display text-[22px]">Your own AI key</h2>
         </div>
         {!can(s, "ai_byok") ? (
           <PlanGate feature="Bring-your-own AI keys" />

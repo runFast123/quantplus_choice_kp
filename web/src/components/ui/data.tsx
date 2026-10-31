@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import type { ReactNode } from "react";
-import { pct, signed } from "@/lib/format";
+import { pct, signed, signedRupees } from "@/lib/format";
 
 /**
  * Gain/loss is never color-only: sign + glyph + color (design-system rule).
@@ -12,7 +12,8 @@ export function Delta({
   showGlyph = true,
 }: {
   value: number | null | undefined;
-  kind?: "pct" | "abs";
+  /** pct: +1.24% · abs: +1,240.50 · inr: +₹1,240.50 */
+  kind?: "pct" | "abs" | "inr";
   className?: string;
   showGlyph?: boolean;
 }) {
@@ -33,7 +34,7 @@ export function Delta({
           {dir === "up" ? "▲" : "▼"}
         </span>
       ) : null}
-      {kind === "pct" ? pct(value) : signed(value)}
+      {kind === "pct" ? pct(value) : kind === "inr" ? signedRupees(value) : signed(value)}
     </span>
   );
 }

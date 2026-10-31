@@ -58,21 +58,21 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         {/* ---------------- Hero ---------------- */}
         <section className="mx-auto grid max-w-[1240px] gap-12 px-5 pb-16 pt-10 md:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-16 lg:pt-16">
           <div>
-            <p className="eyebrow">For people who research NSE &amp; BSE stocks themselves</p>
+            <p className="eyebrow">For people who research Indian stocks themselves</p>
             <h1 className="display mt-5 text-[46px] leading-[1.02] text-foreground sm:text-[60px] lg:text-[72px]">
               Research on rules <br className="hidden sm:block" />
               you can <em className="relative whitespace-nowrap">read<Underline /></em>.
             </h1>
             <p className="mt-6 max-w-[34rem] text-[17px] leading-8 text-muted-foreground">
-              Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against published rules after every close — moving-average crosses,
-              RSI reversals, 4-tier sentiment audits, the price levels you set — and brings signals right to your broker charts via our Chrome Terminal HUD.
+              Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against simple, published rules after every close — moving-average crosses,
+              RSI rebounds, 20-day breakouts, the price levels you set — and can show the signals right on your broker&apos;s chart with our Chrome extension.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href={signedIn ? "/app" : "/signup"} size="lg">
                 {signedIn ? "Open the desk" : "Start free for 3 months"}
               </ButtonLink>
               <ButtonLink href="#terminal" size="lg" variant="secondary">
-                Terminal HUD
+                Chrome extension
               </ButtonLink>
               <ButtonLink href="#how" size="lg" variant="secondary">
                 See how it works
@@ -87,17 +87,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         {/* ---------------- Dateline ---------------- */}
         <div className="border-y border-border bg-card/70">
           <p className="num mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-1.5 px-5 py-3 text-[11.5px] uppercase tracking-[0.08em] text-muted-foreground md:px-8">
-            <span>3,600+ NSE &amp; BSE Listings</span>
+            <span>3,600+ NSE listings</span>
             <span aria-hidden>/</span>
-            <span>Settled Daily at 17:00 IST</span>
+            <span>Updated each weekday ~17:00 IST</span>
             <span aria-hidden>/</span>
-            <span>Extension HUD across 23+ Brokers</span>
+            <span>Chrome extension for 20+ brokers</span>
             <span aria-hidden>/</span>
-            <span>TradingView Chart Integration</span>
+            <span>TradingView charts</span>
             <span aria-hidden>/</span>
-            <span>1-Click CSV Portfolio Sync</span>
+            <span>Holdings import from CSV</span>
             <span aria-hidden>/</span>
-            <span>4-Tier Sentiment Audit</span>
+            <span>Plain-words price mood</span>
             <span aria-hidden>/</span>
             <span>Prices in ₹, times in IST</span>
           </p>
@@ -115,23 +115,23 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               n="01"
               title="Build or import your Market Radar"
               className="md:col-span-5"
-              body="Pick the names you'd actually buy, or import your holdings with 1 click from Zerodha, Groww, Angel One, ICICI Direct, or Upstox CSVs. Each row carries its last close, 52-week position, 14-day RSI and current rule state."
+              body="Pick the stocks you'd actually buy, or upload your holdings file from Zerodha, Groww, Angel One, ICICI Direct or Upstox. Each row shows its last close, where it sits in its 52-week range, its RSI and what our rules say now."
             >
               <RadarSketch />
             </Step>
             <Step
               n="02"
-              title="Mechanical rules & 4-tier sentiment"
+              title="Three simple rules, in plain words"
               className="md:col-span-7 md:pt-24"
-              body="Two published rule families: trend (SMA 20/50 crosses) and mean-reversion (RSI 30/70 reversals). Every signal is mapped through our 4-tier sentiment audit (Oversold Accumulation, Momentum Expansion, Overbought, Sentiment Exhaustion Peak) with asymmetric T1/T2/T3 alpha targets and 1.0R trailing risk."
+              body="A trend rule (the 20-day average crossing the 50-day), a rebound rule (RSI coming back from 30 or 70) and a 20-day breakout rule, each written out on the Signals page. Every buy comes with a stop-loss and three price targets, and a one-word read of how stretched the price is, from Beaten down to Very stretched."
             >
               <RuleSketch />
             </Step>
             <Step
               n="03"
-              title="Execute on your broker or TradingView"
+              title="See it on your broker's chart"
               className="md:col-span-6 md:col-start-4"
-              body="View signals directly on your broker's charts without opening another tab via the QuantsPulse Extension HUD (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan) or analyze interactive TradingView charts within your private desk."
+              body="Our Chrome extension shows the signal, stop and targets right on your broker's chart (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan and more). Or open any stock here for an interactive TradingView chart. You place any order yourself, with your broker."
             >
               <AllocationSketch />
             </Step>
@@ -141,13 +141,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         {/* ---------------- Terminal Extension Section ---------------- */}
         <section id="terminal" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-20 md:px-8 border-t border-border">
           <div className="grid gap-4 md:grid-cols-[220px_1fr]">
-            <p className="eyebrow pt-3">Extension HUD</p>
+            <p className="eyebrow pt-3">Chrome extension</p>
             <div>
               <h2 className="display text-[36px] leading-[1.1] md:text-[44px]">
                 Your research desk, overlaid on your broker&apos;s charts.
               </h2>
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-                Stop switching tabs and context. The QuantsPulse Chrome Extension Terminal projects a non-intrusive on-chart HUD and a full research slide-over panel right onto your broker&apos;s TradingView charts.
+                No more switching tabs. The QuantsPulse Chrome extension adds a small signal bar to your broker&apos;s chart, and a side panel with the details.
               </p>
             </div>
           </div>
@@ -157,30 +157,30 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <div className="panel-interactive p-5">
                 <div className="flex items-center gap-2.5">
                   <TerminalWindowIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
-                  <h3 className="text-[15px] font-semibold">On-Chart Heads-Up Display (HUD)</h3>
+                  <h3 className="text-[15px] font-semibold">A signal bar on the chart</h3>
                 </div>
                 <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                  Floating directly on the chart header: live signal badge (<span className="text-gain font-medium">ACTIVE LONG</span> or <span className="text-loss font-medium">EXIT</span>), Entry Base, 1.0R Trailing Stop, and scale-out Targets (T1 +3%, T2 +6%, T3 +12%).
+                  A small bar on your broker&apos;s chart shows the stock&apos;s latest signal (buy or exit), the price it fired at, its stop-loss and its price targets, from the last end-of-day close.
                 </p>
               </div>
 
               <div className="panel-interactive p-5">
                 <div className="flex items-center gap-2.5">
                   <BrowserIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
-                  <h3 className="text-[15px] font-semibold">Slide-over Research Drawer</h3>
+                  <h3 className="text-[15px] font-semibold">A side panel with the details</h3>
                 </div>
                 <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                  Click the floating trigger or tap the shortcut to slide open technical scorecards, company profile, 4-tier sentiment audit, and recent signals without leaving your broker window.
+                  Open the side panel for the signal explained in plain words, the 52-week range, recent signals and a one-click TradingView script, without leaving your broker.
                 </p>
               </div>
 
               <div className="panel-interactive p-5">
                 <div className="flex items-center gap-2.5">
                   <ShieldCheckIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
-                  <h3 className="text-[15px] font-semibold">23+ Brokers &amp; Zero Account Access</h3>
+                  <h3 className="text-[15px] font-semibold">20+ brokers, no account access</h3>
                 </div>
                 <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                  Works out of the box on Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, and TradingView. 100% read-only in your browser—never touches orders or trading keys.
+                  Works on Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, TradingView and more. It only reads the page: it never sees your broker password and never places orders.
                 </p>
               </div>
 
@@ -194,17 +194,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   Download Extension (.zip)
                 </a>
                 <ButtonLink href="/app/integrations" variant="secondary" size="md">
-                  Setup Instructions →
+                  How to install →
                 </ButtonLink>
               </div>
 
               <div className="rounded-lg border border-border bg-card/60 p-4 text-[12.5px] leading-relaxed text-muted-foreground">
                 <div className="flex items-center gap-1.5 font-medium text-foreground">
                   <LockIcon size={14} className="text-coral-ink shrink-0" aria-hidden />
-                  <span>Account-Gated Quantitative Intelligence</span>
+                  <span>For QuantsPulse members</span>
                 </div>
                 <p className="mt-1.5 text-[12px] leading-5">
-                  1-click download the ZIP and load it in Chrome. Signals, 1.0R trailing stops, and sentiment audits are exclusive to QuantsPulse members — your browser session automatically unlocks the on-chart HUD once you sign in.
+                  Download the ZIP and load it in Chrome. The signals show once you&apos;re signed in to QuantsPulse in the same browser.
                 </p>
               </div>
             </div>
@@ -347,15 +347,15 @@ const FAQ: [string, string][] = [
   ],
   [
     "Where does the market data come from, and how fresh is it?",
-    "End-of-day NSE and BSE candles from Yahoo Finance, loaded each weekday at approximately 5 pm IST once the session has settled. An automated pipeline updates ~3,600 listings (main board, SMEs, ETFs, and indices) with automatic exchange fallback. Signals, sentiment audits, charts, and research notes rebuild immediately right after. Price alerts test session highs and lows so intraday touches register.",
+    "End-of-day NSE prices from Yahoo Finance, loaded each weekday at about 5 pm IST once the session has settled: about 3,600 listings, including SME stocks, ETFs and indices. Signals, charts and research notes update right after. Price alerts check each day's high and low, so a level touched during the day still counts. There are no live intraday prices.",
   ],
   [
-    "How does the Chrome Extension Terminal work with my broker?",
-    "The extension runs locally in your browser and activates on 23+ Indian broker platforms including Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, and TradingView. It injects a sleek On-Chart HUD showing active signals, Entry levels, 1.0R risk stops, and T1/T2/T3 targets, plus a slide-over research drawer. It is completely read-only and never accesses your broker credentials or executes orders.",
+    "How does the Chrome extension work with my broker?",
+    "It runs in your own browser and works on TradingView and 20+ Indian broker sites, including Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan and Fyers. It spots the stock on your chart and shows its latest signal, stop-loss and price targets in a small bar, plus a side panel with more detail. It only reads the page: it never sees your broker password and never places orders.",
   ],
   [
     "Can I view TradingView charts directly in QuantsPulse?",
-    "Yes. The Market desk includes interactive TradingView Advanced Charts with real-time indicators, drawing tools, and multi-timeframe analysis seamlessly integrated with QuantsPulse historical signals and 4-tier sentiment audits.",
+    "Yes. Every stock page has an interactive TradingView chart with its drawing tools and indicators, next to our own end-of-day chart with each past signal marked on it.",
   ],
   [
     "Can I import my existing stock portfolio from Zerodha, Groww, or Angel One?",
@@ -441,10 +441,10 @@ function TerminalSpecimen() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3.5">
           <div className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-full bg-gain" aria-hidden />
-            <span className="text-[12px] font-medium text-foreground">Broker On-Chart HUD</span>
+            <span className="text-[12px] font-medium text-foreground">Signal bar on your broker</span>
             <span className="text-[11px] text-muted-foreground">· Choice FinX / Zerodha / Groww / TradingView</span>
           </div>
-          <span className="num text-[11px] text-muted-foreground uppercase tracking-wide">Sync: TCS.NS</span>
+          <span className="num text-[11px] text-muted-foreground uppercase tracking-wide">Example</span>
         </div>
 
         {/* HUD Bar simulation */}
@@ -453,11 +453,11 @@ function TerminalSpecimen() {
             <div className="flex items-center gap-2.5">
               <span className="num font-semibold text-[15px]">TCS</span>
               <span className="num text-[13px] text-muted-foreground">₹4,118.20</span>
-              <span className="num text-[12px] text-gain font-medium">+0.84%</span>
+              <span className="num text-[12px] text-gain font-medium"><span aria-hidden className="text-[0.7em]">▲</span> +0.84%</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded bg-gain-soft px-2 py-0.5 text-[11px] font-semibold text-gain tracking-wide">
-                ACTIVE LONG
+                BUY
               </span>
               <span className="rounded bg-background px-2 py-0.5 text-[11px] text-muted-foreground border border-border">
                 Rule: SMA 20/50
@@ -467,11 +467,11 @@ function TerminalSpecimen() {
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 border-t border-dashed border-border pt-3 text-[11.5px]">
             <div>
-              <p className="text-muted-foreground">Entry Base</p>
+              <p className="text-muted-foreground">Signal price</p>
               <p className="num font-medium text-foreground mt-0.5">₹4,080.00</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Trailing Stop</p>
+              <p className="text-muted-foreground">Stop-loss</p>
               <p className="num font-medium text-loss mt-0.5">₹3,940.00</p>
             </div>
             <div>
@@ -519,14 +519,14 @@ function TerminalSpecimen() {
         <div className="mt-3.5 flex items-center justify-between rounded border border-border bg-card px-3 py-2 text-[12px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <BrowserIcon size={14} className="text-coral-ink shrink-0" aria-hidden />
-            <span>Slide-over Drawer: Press [Ctrl + Q] or click HUD pill</span>
+            <span>Click the bar to open the side panel</span>
           </div>
-          <span className="num text-[11px] text-gain">● Live Observer Synced</span>
+          <span className="num text-[11px] text-muted-foreground">End-of-day data</span>
         </div>
       </div>
       <figcaption className="mt-3 flex items-start gap-3 pl-2 text-[12.5px] leading-5 text-muted-foreground">
         <span className="mt-2 h-px w-8 shrink-0 bg-coral" aria-hidden />
-        Native overlay rendered seamlessly on broker charts without leaving your trading window.
+        An example of the bar on a broker chart. Prices are illustrative.
       </figcaption>
     </figure>
   );

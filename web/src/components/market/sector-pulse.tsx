@@ -27,7 +27,7 @@ export function SectorPulse() {
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-border bg-card/60 p-3" aria-busy={pending}>
       <div className="flex items-center justify-between">
-        <span className="eyebrow">Sector Rotation & Focus</span>
+        <span className="eyebrow" id="sector-chips">Sector</span>
         {activeSector && (
           <button
             type="button"
@@ -39,10 +39,11 @@ export function SectorPulse() {
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[12px] no-scrollbar">
+      <div role="group" aria-labelledby="sector-chips" className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[12px] no-scrollbar">
         <button
           type="button"
           onClick={() => selectSector("")}
+          aria-pressed={!activeSector}
           className={clsx(
             "shrink-0 rounded px-2.5 py-1 text-[11.5px] font-medium transition-colors",
             !activeSector
@@ -50,7 +51,7 @@ export function SectorPulse() {
               : "border border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground",
           )}
         >
-          All Sectors
+          All sectors
         </button>
 
         {SECTORS.map((s) => {
@@ -60,6 +61,7 @@ export function SectorPulse() {
               key={s}
               type="button"
               onClick={() => selectSector(s)}
+              aria-pressed={isSelected}
               className={clsx(
                 "shrink-0 rounded px-2.5 py-1 text-[11.5px] font-medium transition-colors",
                 isSelected

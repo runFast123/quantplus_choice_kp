@@ -102,8 +102,8 @@ export default async function PortfolioPage() {
       <section className="panel grid grid-cols-2 md:grid-cols-4 md:divide-x md:divide-border">
         <Stat className="p-4" label="Current value" value={rupeesCompact(sum.value)} sub={rupees(sum.value)} />
         <Stat className="p-4" label="Invested" value={rupeesCompact(sum.invested)} sub={`${ps.length} position${ps.length === 1 ? "" : "s"}`} />
-        <Stat className="p-4" label="Day's P&L" value={<Delta value={sum.dayPnl} kind="abs" />} sub={<Delta value={sum.dayPct} />} />
-        <Stat className="p-4" label="Overall P&L" value={<Delta value={sum.totalPnl} kind="abs" />} sub={<Delta value={sum.totalPct} />} />
+        <Stat className="p-4" label="Day's P&L" value={<Delta value={sum.dayPnl} kind="inr" />} sub={<Delta value={sum.dayPct} />} />
+        <Stat className="p-4" label="Overall P&L" value={<Delta value={sum.totalPnl} kind="inr" />} sub={<Delta value={sum.totalPct} />} />
       </section>
 
       <Panel title="Add a holding">

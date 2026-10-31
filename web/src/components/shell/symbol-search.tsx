@@ -16,6 +16,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { useSymbolSearch } from "@/components/market/use-symbol-search";
 import { price } from "@/lib/format";
 import { SEGMENT_LABEL } from "@/lib/market";
+import { useRecentSymbols } from "./recent-symbols";
 
 interface QuickLink {
   href: string;
@@ -35,12 +36,12 @@ const QUICK_BENCHMARKS = [
 ];
 
 const QUICK_NAV: QuickLink[] = [
-  { href: "/app/watchlist", label: "Market Radar", sub: "Watchlists & alerts", icon: BinocularsIcon },
-  { href: "/app/signals", label: "Signals Desk", sub: "Active rule triggers", icon: LightningIcon },
+  { href: "/app/watchlist", label: "Market Radar", sub: "The stocks you're watching", icon: BinocularsIcon },
+  { href: "/app/signals", label: "Signals", sub: "When a rule fired, and why", icon: LightningIcon },
   { href: "/app/dry-run", label: "Dry Run", sub: "Try a plan on past prices", icon: FlaskIcon },
-  { href: "/app/portfolio", label: "Portfolio", sub: "Holdings & P&L", icon: BriefcaseIcon },
-  { href: "/app/research", label: "Research Desk", sub: "Stances & factor scores", icon: NotebookIcon },
-  { href: "/app/integrations", label: "Integrations & Terminal", sub: "Chrome extension & TV", icon: PlugsIcon },
+  { href: "/app/portfolio", label: "Portfolio", sub: "Your holdings and P&L", icon: BriefcaseIcon },
+  { href: "/app/research", label: "Research", sub: "A short note on every stock", icon: NotebookIcon },
+  { href: "/app/integrations", label: "Integrations", sub: "Chrome extension & TradingView", icon: PlugsIcon },
 ];
 
 const noopSubscribe = () => () => {};
@@ -57,6 +58,9 @@ export function SymbolSearch() {
   const [cursor, setCursor] = useState(0);
   const isMac = useSyncExternalStore(noopSubscribe, getIsMacSnapshot, getIsMacServerSnapshot);
   const { hits: results, pending } = useSymbolSearch(q, 8);
+  const recents = useRecentSymbols();
+  // Stocks this viewer opened lately, else a few well-known ones.
+  const quick = recents.length ? recents : QUICK_BENCHMARKS;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,7 +81,7 @@ export function SymbolSearch() {
   }, []);
 
   const isQuickPalette = q.trim() === "";
-  const totalItems = isQuickPalette ? QUICK_BENCHMARKS.length + QUICK_NAV.length : results.length;
+  const totalItems = isQuickPalette ? quick.length + QUICK_NAV.length : results.length;
 
   const goSymbol = (sym: string) => {
     setQ("");
@@ -95,10 +99,10 @@ export function SymbolSearch() {
 
   const handleSelectCursor = (idx: number) => {
     if (isQuickPalette) {
-      if (idx < QUICK_BENCHMARKS.length) {
-        goSymbol(QUICK_BENCHMARKS[idx].symbol);
+      if (idx < quick.length) {
+        goSymbol(quick[idx].symbol);
       } else {
-        const navIdx = idx - QUICK_BENCHMARKS.length;
+        const navIdx = idx - quick.length;
         if (QUICK_NAV[navIdx]) goRoute(QUICK_NAV[navIdx].href);
       }
     } else if (results[idx]) {
@@ -163,9 +167,9 @@ export function SymbolSearch() {
             <div className="flex flex-col gap-2 p-1">
               {/* Quick Benchmarks */}
               <div>
-                <p className="eyebrow px-2 py-1 text-[10.5px]">Top Benchmarks & Equities</p>
+                <p className="eyebrow px-2 py-1 text-[10.5px]">{recents.length ? "Recently viewed" : "Popular"}</p>
                 <div className="grid grid-cols-2 gap-1 mt-0.5">
-                  {QUICK_BENCHMARKS.map((b, i) => {
+                  {quick.map((b, i) => {
                     const isSelected = cursor === i;
                     return (
                       <button
@@ -199,10 +203,10 @@ export function SymbolSearch() {
 
               {/* Quick Navigation Links */}
               <div className="border-t border-border pt-1.5">
-                <p className="eyebrow px-2 py-1 text-[10.5px]">Desk Shortcuts</p>
+                <p className="eyebrow px-2 py-1 text-[10.5px]">Go to</p>
                 <ul className="flex flex-col gap-0.5 mt-0.5">
                   {QUICK_NAV.map((nav, i) => {
-                    const actualIdx = QUICK_BENCHMARKS.length + i;
+                    const actualIdx = quick.length + i;
                     const isSelected = cursor === actualIdx;
                     const Icon = nav.icon;
                     return (

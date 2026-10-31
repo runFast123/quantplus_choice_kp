@@ -7,7 +7,7 @@ import { SetupBadges } from "@/components/market/setup-badges";
 import { Badge, Delta, RangeBar } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, volume } from "@/lib/format";
-import { PRICE_SOURCE, SECTORS } from "@/lib/market";
+import { PRICE_SOURCE } from "@/lib/market";
 import { isSetupKey, SETUPS } from "@/lib/setups";
 import { Pager, pageParam } from "@/components/ui/pager";
 import type { Quote } from "@/lib/types";
@@ -82,7 +82,6 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
               { value: "all", label: "Everything" },
             ],
           },
-          { name: "sector", label: "Sector", options: [{ value: "", label: "All sectors" }, ...SECTORS.map((x) => ({ value: x, label: x }))] },
           {
             name: "signal",
             label: "Last signal",
@@ -121,6 +120,25 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
         {rows.length === 0 ? (
           <Empty title="Nothing matches.">Loosen a filter — oversold stocks in a single sector can be rare on any given day.</Empty>
         ) : (
+          <>
+          <details className="group mb-3 rounded-md border border-border bg-background/60 px-3 py-2 text-[12.5px]">
+            <summary className="text-muted-foreground transition-colors hover:text-foreground">What do these columns mean?</summary>
+            <dl className="mt-2 grid gap-x-6 gap-y-1.5 leading-5 sm:grid-cols-2">
+              {[
+                ["Last · Chg", "The last closing price, and how much it moved on that day."],
+                ["Volume", "How many shares changed hands that day (L = lakh, Cr = crore)."],
+                ["52-week range", "The lowest and highest close of the past year; the dot is where the price sits now."],
+                ["RSI", "A 0–100 gauge of recent moves: 70 or more means it rose fast, 30 or less means it fell hard."],
+                ["Signal", "The last time one of our rules fired on this stock: Buy or Exit. Research, not advice."],
+                ["Setups", "Chart patterns the last close matched, such as a new 20-day high."],
+              ].map(([k, v]) => (
+                <div key={k}>
+                  <dt className="inline font-medium text-foreground">{k}: </dt>
+                  <dd className="inline text-muted-foreground">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
           <TableWrap>
             <table className="w-full min-w-[1040px]">
               <thead>
@@ -148,7 +166,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
                         <span className="block max-w-[200px] truncate text-[11.5px] text-muted-foreground">{r.name}</span>
                       </Link>
                     </td>
-                    <td className={td + " text-muted-foreground"}>{r.sector ?? "—"}</td>
+                    <td className={td + " max-w-[150px] truncate text-muted-foreground"} title={r.sector ?? undefined}>{r.sector ?? "—"}</td>
                     <td className={tdNum}>{price(r.last_price)}</td>
                     <td className={tdNum}>
                       <Delta value={r.change_pct} />
@@ -180,6 +198,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
               </tbody>
             </table>
           </TableWrap>
+          </>
         )}
         <Pager path="/app/markets" params={params} page={page} pageSize={PAGE_SIZE} total={total} />
       </Panel>

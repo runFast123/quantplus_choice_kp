@@ -8,7 +8,7 @@ export function SiteNav({ signedIn }: { signedIn: boolean }) {
       <Logo />
       <nav aria-label="Site" className="hidden items-center gap-7 text-[13.5px] text-muted-foreground md:flex">
         <Link href="/#terminal" className="hover:text-foreground">
-          Terminal HUD
+          Chrome extension
         </Link>
         <Link href="/#how" className="hover:text-foreground">
           How it works

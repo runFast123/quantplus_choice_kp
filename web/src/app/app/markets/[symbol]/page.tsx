@@ -7,6 +7,7 @@ import { MarketChartView } from "@/components/charts/market-chart-view";
 import type { ChartMarker } from "@/components/charts/price-chart";
 import { AlertForm } from "@/components/market/alert-form";
 import { BacktestLab } from "@/components/market/backtest-lab";
+import { RememberSymbol } from "@/components/shell/recent-symbols";
 import { CopyPineButton } from "@/components/market/copy-pine-button";
 import { RadarToggle } from "@/components/market/radar-toggle";
 import { TradePlan } from "@/components/market/trade-plan";
@@ -137,11 +138,34 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
         </div>
       </header>
 
+      <RememberSymbol symbol={q.symbol} name={q.name} segment={q.segment ?? "equity"} />
+      <nav aria-label="On this page" className="-mt-2 flex gap-1.5 overflow-x-auto pb-1 text-[12px] no-scrollbar">
+        {[
+          ["#chart", "Chart"],
+          ["#levels", "Levels & alert"],
+          ...(q.last_price ? [["#plan", "Trade plan"]] : []),
+          ["#research", "Research"],
+          ["#news", "Headlines"],
+          ["#history", "Signal history"],
+          ["#backtest", "Backtest"],
+        ].map(([href, label]) => (
+          <a
+            key={href}
+            href={href}
+            className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
       {/* 1. Full-Width Interactive Chart */}
-      <MarketChartView candles={candles} markers={markers} symbol={q.symbol} exchange={q.exchange} />
+      <div id="chart" className="scroll-mt-28">
+        <MarketChartView candles={candles} markers={markers} symbol={q.symbol} exchange={q.exchange} />
+      </div>
 
       {/* 2. Below the Chart: Key Levels, Price Alert & Your Position */}
-      <div className={clsx("grid gap-6", held > 0 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 md:grid-cols-2")}>
+      <div id="levels" className={clsx("grid scroll-mt-28 gap-6", held > 0 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 md:grid-cols-2")}>
         <Panel title="Key levels">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
             <Level label="Prev close" value={price(q.prev_close)} />
@@ -180,7 +204,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
               <div>
                 <dt className="eyebrow">P&amp;L</dt>
                 <dd className="mt-0.5">
-                  <Delta value={(q.last_price! - avgCost) * held} kind="abs" />
+                  <Delta value={(q.last_price! - avgCost) * held} kind="inr" />
                 </dd>
               </div>
             </dl>
@@ -191,8 +215,10 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
       {/* 3. Trade Plan & Targets (Asymmetric Milestone Roadmap) */}
       {q.last_price ? (
         <Panel
+          id="plan"
+          className="scroll-mt-28"
           title="Trade plan & targets"
-          meta={latestBuySignal ? `Anchored to ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} signal` : "Asymmetric 0.75R / 2.0R / 3.0R model"}
+          meta={latestBuySignal ? `From the last ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} buy signal` : "A stop and three price targets"}
         >
           <TradePlan
             key={q.symbol}
@@ -207,7 +233,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
         </Panel>
       ) : null}
 
-      <div id="research" className="grid scroll-mt-24 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+      <div id="research" className="grid scroll-mt-28 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <Panel
           title="Research note"
           meta={note ? `session of ${date(note.as_of)}` : undefined}
@@ -282,7 +308,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           )}
         </Panel>
 
-        <Panel title="Headlines" meta={news.length ? `${news.length} most recent` : undefined}>
+        <Panel id="news" className="scroll-mt-28" title="Headlines" meta={news.length ? `${news.length} most recent` : undefined}>
           {news.length === 0 ? (
             <Empty title="No headlines matched yet.">We look for the company name, its common short names and its ticker across market feeds.</Empty>
           ) : (
@@ -291,8 +317,8 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
         </Panel>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Signal history" meta={`${signals.length} most recent`}>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Panel id="history" className="scroll-mt-28" title="Signal history" meta={`${signals.length} most recent`}>
           {signals.length === 0 ? (
             <Empty title="No signals yet.">Rules haven&apos;t fired on {q.symbol} in the history we hold.</Empty>
           ) : (
@@ -342,7 +368,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           ) : null}
         </Panel>
 
-        <Panel title="Backtest Lab" meta="Interactive SIP & rule simulation">
+        <Panel id="backtest" className="scroll-mt-28" title="Backtest Lab" meta="Try a monthly SIP or a rule on past prices">
           {candles.length >= 20 ? (
             <BacktestLab candles={candles} symbol={q.symbol} />
           ) : (
