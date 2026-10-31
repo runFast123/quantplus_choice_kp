@@ -56,6 +56,16 @@ const sig = await db.query(`select symbol, signal_type, (generated_at at time zo
 writeFileSync(join(here, "data", "sql_signals.json"), JSON.stringify(sig.rows));
 
 t = Date.now();
+const dips = await db.query("select private.refresh_dip_rules() n");
+console.log("dip rule rows", dips.rows[0].n, `${Date.now() - t} ms`);
+const dsig = await db.query(`select symbol, strategy, signal_type, (generated_at at time zone 'Asia/Kolkata')::date::text as day,
+  payload->>'signal_day' as signal_day, payload->>'fill' as fill, payload->>'exit_price' as exit_price, payload->>'result' as result
+  from public.trading_signals where strategy in ('rsi_dip', 'kk_dip') order by symbol, generated_at`);
+writeFileSync(join(here, "data", "sql_dip_signals.json"), JSON.stringify(dsig.rows));
+const watch = await db.query("select symbol, strategy, signal_day::text, limit_price from public.signal_watch order by 1, 2");
+console.log("dip-buy levels for the next session", watch.rows.length);
+
+t = Date.now();
 const g = await db.query("select private.grade_signals(null, null) n");
 console.log("graded", g.rows[0].n, `${Date.now() - t} ms`);
 const sc = await db.query("select * from public.strategy_scorecard where period = 'all'");

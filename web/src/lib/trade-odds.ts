@@ -189,9 +189,9 @@ export function historicalOdds(
   return out;
 }
 
-/** The panel's starting horizon: KK trades are five-session trades, Strong trend gets the panel's longest (20), the others ten. */
+/** The panel's starting horizon: KK and the dip rules are trades of about five sessions, Strong trend gets the panel's longest (20), the others ten. */
 export const defaultHorizon = (strategy?: string | null) =>
-  strategy === "kk_breakout" ? 5 : strategy === "strong_trend" ? 20 : 10;
+  strategy === "kk_breakout" || strategy === "kk_dip" || strategy === "rsi_dip" ? 5 : strategy === "strong_trend" ? 20 : 10;
 
 /**
  * The odds the chart's panel opens with for a signal's trade: its first target (or a target as far

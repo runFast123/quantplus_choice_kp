@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/layout";
 import { date, price, strategyLabel } from "@/lib/format";
 import { markerFromSignal, signalAction, tradeFor, type SignalAction } from "@/lib/signal-trade";
+import { DIP_EXIT, dipStatus, dipTestedSentence, isDipRule } from "@/lib/dip-rules";
 import { reviewDate, STRONG_TREND_TESTED as TESTED, strongTrendStatus, weatherView } from "@/lib/strong-trend";
 import { evaluateSignalProgress, type RawChartMarker } from "@/lib/trade-plan";
 import type { Signal } from "@/lib/types";
@@ -44,28 +45,41 @@ const STRATEGIES: { key: string; title: string; rule: string; reads: string; tes
     tested: `Tested on past prices (${TESTED.period}, ${TESTED.trades.toLocaleString("en-IN")} trades): ${TESTED.madeMoneyPct} in 100 made money after costs, the average trade ${TESTED.avgTradePct > 0 ? "+" : ""}${TESTED.avgTradePct}% (winners about +${TESTED.avgWinPct}%, losers about ${TESTED.avgLossPct}%). ${TESTED.recent.period}: ${TESTED.recent.madeMoneyPct} in 100, +${TESTED.recent.avgTradePct}%.`,
   },
   {
+    key: "rsi_dip",
+    title: "RSI dip",
+    rule: "When a stock above its 200-day average drops sharply for a day or two (2-day RSI under 10), buy the next day only if it dips one normal day's move lower.",
+    reads: `Buys a short dip in a rising stock and ${DIP_EXIT.toLowerCase()}. Safety stop 5× the normal daily move under the buy price.`,
+    tested: dipTestedSentence("rsi_dip"),
+  },
+  {
+    key: "kk_dip",
+    title: "KK dip",
+    rule: "When a stock above its 200-day average pushes at least 1% under its 20-day low, buy the next day only if it dips one normal day's move lower.",
+    reads: `Buys a deeper dip in a rising stock and ${DIP_EXIT.toLowerCase()}. Often fires with RSI dip on the same stock.`,
+    tested: dipTestedSentence("kk_dip"),
+  },
+  {
     key: "sma_20_50_cross",
     title: "SMA 20/50 cross",
     rule: "Buy when the 20-day average price rises above the 50-day average; exit when it drops back below.",
     reads: "Follows trends. Late on purpose: it waits for a move to prove itself.",
   },
-  {
-    key: "rsi_reversal",
-    title: "RSI reversal",
-    rule: "Buy when RSI (a 0–100 gauge of recent moves) climbs back above 30 after a hard fall; exit when it drops back below 70 after a fast rise.",
-    reads: "Bets that sharp moves calm down. Early on purpose.",
-  },
-  {
-    key: "kk_breakout",
-    title: "KK 20d Breakout",
-    rule: "Buy when the price dips at least 1% under its 20-day low, then climbs back above that day's high within 5 sessions.",
-    reads: "Catches a quick rebound. Takes profit in two steps and closes after 5 sessions either way.",
-  },
 ];
+// Replaced by the dip rules (ADR-036): their signals stay listed and graded as history.
+const OLD_RULES = ["rsi_reversal", "kk_breakout"];
+const ORDER = [...STRATEGIES.map((x) => x.key), ...OLD_RULES];
 
 const ACTION_LABEL: Record<SignalAction, string> = { buy: "BUY", exit: "EXIT", sell: "SHORT", cover: "COVER" };
 
-type StrongPlan = { stop: number | null; review: Date; status: ReturnType<typeof strongTrendStatus> };
+/** An open buy of a rule with its own tested plan (a safety stop and a review or bounce exit), not price targets. */
+type OwnPlan = {
+  stop: number | null;
+  stopTitle: string;
+  status: { label: string; tone: "neutral" | "loss" };
+  next: string;
+  nextSub: string;
+  nextTitle: string;
+};
 
 const pct = (n: number | null) => (n == null ? "—" : `${Math.round(n)}%`);
 
@@ -76,7 +90,7 @@ export default async function SignalsPage({
   const sp = await searchParams;
   const scope = sp.scope === "all" ? "all" : "mine";
   const strategy =
-    typeof sp.strategy === "string" && STRATEGIES.some((x) => x.key === sp.strategy)
+    typeof sp.strategy === "string" && ORDER.includes(sp.strategy)
       ? sp.strategy
       : "";
   const statusFilter =
@@ -86,7 +100,7 @@ export default async function SignalsPage({
 
   const db = s.supabase;
 
-  const [radarRes, holdRes, weatherRes, scoreRes] = await Promise.all([
+  const [radarRes, holdRes, weatherRes, scoreRes, watchRes] = await Promise.all([
     db.from("watchlist_items").select("symbol"),
     db.from("holdings").select("symbol"),
     db
@@ -99,6 +113,7 @@ export default async function SignalsPage({
       .from("strategy_scorecard")
       .select("strategy, side, graded_20, up_20_pct, beat_index_20_pct, vs_index_20_pts, stop_hit_20_pct, first_day")
       .eq("period", "all"),
+    db.from("signal_watch").select("symbol, strategy, signal_day, limit_price, stop, payload").order("symbol"),
   ]);
   const num = (x: unknown) => (x == null ? null : Number(x));
   const wx = weatherRes.data;
@@ -112,12 +127,16 @@ export default async function SignalsPage({
   const WeatherIcon = weather.state === "sunny" ? SunIcon : weather.state === "stormy" ? CloudLightningIcon : CloudSunIcon;
   const scores = ((scoreRes.data ?? []) as ScoreRow[]).sort(
     (a, b) =>
-      STRATEGIES.findIndex((x) => x.key === a.strategy) - STRATEGIES.findIndex((x) => x.key === b.strategy) ||
+      ORDER.indexOf(a.strategy) - ORDER.indexOf(b.strategy) ||
       a.side.localeCompare(b.side),
   );
   const mine = [
     ...new Set([...(radarRes.data ?? []), ...(holdRes.data ?? [])].map((r) => r.symbol)),
   ];
+  // Tomorrow's dip-buy levels (RSI dip / KK dip), for the stocks in scope.
+  const watches = (watchRes.data ?? []).filter(
+    (w) => (scope === "all" || mine.includes(w.symbol)) && (!strategy || w.strategy === strategy),
+  );
 
   let q = db
     .from("trading_signals")
@@ -153,15 +172,38 @@ export default async function SignalsPage({
         : null;
     const closed = action === "exit" || action === "cover" || Boolean(trade?.exit);
     const since = !closed && action === "buy" && last && at ? ((last - at) / at) * 100 : null;
-    const base = { sg, at, last, since, quote, action, closed, result, strong: null as StrongPlan | null };
+    const base = { sg, at, last, since, quote, action, closed, result, own: null as OwnPlan | null };
 
-    // Strong trend's tested plan is a safety stop and a review date, not price targets.
+    // Strong trend and the dip rules were tested with their own plan: a safety stop and a review date or a
+    // bounce exit, not price targets.
     if (sg.strategy === "strong_trend" && action === "buy" && !closed) {
       const stop = Number(sg.payload.stop) || null;
       return {
         ...base,
         evaluation: null,
-        strong: { stop, review: reviewDate(sg.generated_at), status: strongTrendStatus(stop, last) },
+        own: {
+          stop,
+          stopTitle: "Safety stop: 4× the stock's normal daily move below the signal close",
+          status: strongTrendStatus(stop, last),
+          next: `Review ~${date(reviewDate(sg.generated_at).toISOString())}`,
+          nextSub: "after 60 sessions",
+          nextTitle: "Strong trend has no fixed target: review after 60 trading sessions (the exact day depends on holidays)",
+        },
+      };
+    }
+    if (isDipRule(sg.strategy) && action === "buy" && !closed) {
+      const stop = Number(sg.payload.stop) || null;
+      return {
+        ...base,
+        evaluation: null,
+        own: {
+          stop,
+          stopTitle: "Safety stop: 5× the stock's normal daily move under the buy price",
+          status: dipStatus(stop, last),
+          next: "Sell on the bounce",
+          nextSub: "within 10 sessions",
+          nextTitle: DIP_EXIT,
+        },
       };
     }
 
@@ -184,7 +226,7 @@ export default async function SignalsPage({
 
   // Open buys only: a buy its rule has already exited is history, not a trade to track.
   const buyItems = evaluatedSignals.filter((item) => item.evaluation?.plan.isValid);
-  const strongOpen = evaluatedSignals.filter((item) => item.strong);
+  const ownOpen = evaluatedSignals.filter((item) => item.own);
   const t1PlusHits = buyItems.filter((item) =>
     ["t1_hit", "t2_hit", "t3_hit"].includes(item.evaluation?.targetStatus ?? ""),
   );
@@ -207,7 +249,7 @@ export default async function SignalsPage({
       );
     }
     if (statusFilter === "progress") {
-      return item.evaluation?.targetStatus === "in_progress" || Boolean(item.strong);
+      return item.evaluation?.targetStatus === "in_progress" || Boolean(item.own);
     }
     if (statusFilter === "exhaustion") {
       return ["sentiment_peak", "overbought"].includes(
@@ -233,7 +275,7 @@ export default async function SignalsPage({
       <PageHeader
         eyebrow="Rule-based"
         title="Signals"
-        description="Every signal comes from one of the four simple rules below, so you can always see why it fired, and every one is graded afterwards. Signals are research prompts, not advice. Each open buy shows a stop (the price where the idea is wrong)."
+        description="Every signal comes from one of the four simple rules below, so you can always see why it fired, and every one is graded afterwards. Signals are research prompts, not advice. Each open buy shows a stop (the price where the idea is wrong) and how it ends."
       />
 
       {/* Today's market weather: the condition Strong trend waits for */}
@@ -255,7 +297,7 @@ export default async function SignalsPage({
         <Stat
           className="p-4 border-b border-r border-border sm:border-b-0"
           label="Open buy signals"
-          value={buyItems.length + strongOpen.length}
+          value={buyItems.length + ownOpen.length}
           sub={`Out of ${evaluatedSignals.length} signals listed`}
         />
         <Stat
@@ -299,6 +341,57 @@ export default async function SignalsPage({
           </Link>
         ))}
       </div>
+
+      <p className="-mt-2 text-[12px] leading-5 text-muted-foreground">
+        RSI dip and KK dip replace the old RSI reversal and KK breakout rules, which lost money after costs in testing.
+        The old rules&apos; signals stay in the list and in the track record as history.
+      </p>
+
+      {/* Tomorrow's dip-buy levels: an RSI dip / KK dip signal is a price to buy at, valid for one session */}
+      <Panel title="Dip-buy levels for the next session" meta={`${watches.length} ${watches.length === 1 ? "stock" : "stocks"}`}>
+        {watches.length === 0 ? (
+          <Empty title={scope === "mine" ? "No dip-buy levels on your stocks." : "No dip-buy levels for the next session."}>
+            A level appears after a close when RSI dip or KK dip fires; it is good for the next session only.
+          </Empty>
+        ) : (
+          <>
+            <TableWrap>
+              <table className="w-full min-w-[640px]">
+                <thead>
+                  <tr>
+                    <th className={th}>Stock</th>
+                    <th className={th}>Rule</th>
+                    <th className={thNum}>Close</th>
+                    <th className={thNum}>Buy only at or under</th>
+                    <th className={thNum}>Safety stop</th>
+                    <th className={th}>Signal from</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {watches.map((w) => (
+                    <tr key={`${w.symbol}-${w.strategy}`} className={tr}>
+                      <td className={td}>
+                        <Link href={`/app/markets/${encodeURIComponent(w.symbol)}`} className="num font-medium hover:underline">
+                          {w.symbol}
+                        </Link>
+                      </td>
+                      <td className={td + " text-muted-foreground"}>{strategyLabel[w.strategy] ?? w.strategy}</td>
+                      <td className={tdNum}>₹{price(Number((w.payload as Record<string, unknown>)?.signal_close) || null)}</td>
+                      <td className={tdNum + " font-medium"}>₹{price(Number(w.limit_price))}</td>
+                      <td className={tdNum + " text-loss"}>₹{price(Number(w.stop))}</td>
+                      <td className={td + " num text-muted-foreground"}>close of {date(w.signal_day)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+            <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+              If the price trades down to this level in the next session the rule buys there; if it doesn&apos;t, the level
+              expires and there is no trade. {DIP_EXIT}. Research, not advice.
+            </p>
+          </>
+        )}
+      </Panel>
 
       {/* Every entry signal, graded afterwards from stored prices */}
       <Panel title="Track record" meta="Every entry signal, graded 20 trading sessions later">
@@ -461,7 +554,7 @@ export default async function SignalsPage({
                 </tr>
               </thead>
               <tbody>
-                {displayedSignals.map(({ sg, at, last, since, quote, evaluation, action, closed, result, strong }) => {
+                {displayedSignals.map(({ sg, at, last, since, quote, evaluation, action, closed, result, own }) => {
                   const plan = evaluation?.plan;
                   const sentiment = evaluation?.sentiment;
                   const targets = plan && plan.isValid ? [plan.t1, plan.t2, plan.t3] : [];
@@ -488,8 +581,8 @@ export default async function SignalsPage({
                       <td className={td}>
                         {evaluation ? (
                           <Badge tone={evaluation.statusTone}>{evaluation.statusLabel}</Badge>
-                        ) : strong ? (
-                          <Badge tone={strong.status.tone}>{strong.status.label}</Badge>
+                        ) : own ? (
+                          <Badge tone={own.status.tone}>{own.status.label}</Badge>
                         ) : closed ? (
                           <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                             Closed
@@ -513,11 +606,11 @@ export default async function SignalsPage({
                               −{plan.riskPercent.toFixed(1)}%
                             </span>
                           </div>
-                        ) : strong?.stop && at ? (
-                          <div className="flex flex-col items-end" title="Safety stop: 4× the stock's normal daily move below the signal close">
-                            <span className="num font-medium text-loss">₹{price(strong.stop)}</span>
+                        ) : own?.stop && at ? (
+                          <div className="flex flex-col items-end" title={own.stopTitle}>
+                            <span className="num font-medium text-loss">₹{price(own.stop)}</span>
                             <span className="text-[10px] text-muted-foreground">
-                              −{(((at - strong.stop) / at) * 100).toFixed(1)}%
+                              −{(((at - own.stop) / at) * 100).toFixed(1)}%
                             </span>
                           </div>
                         ) : (
@@ -525,13 +618,10 @@ export default async function SignalsPage({
                         )}
                       </td>
                       <td className={tdNum}>
-                        {strong ? (
-                          <div
-                            className="flex flex-col items-end"
-                            title="Strong trend has no fixed target: review after 60 trading sessions (the exact day depends on holidays)"
-                          >
-                            <span className="font-sans text-[12px]">Review ~{date(strong.review.toISOString())}</span>
-                            <span className="font-sans text-[10px] text-muted-foreground">after 60 sessions</span>
+                        {own ? (
+                          <div className="flex flex-col items-end" title={own.nextTitle}>
+                            <span className="font-sans text-[12px]">{own.next}</span>
+                            <span className="font-sans text-[10px] text-muted-foreground">{own.nextSub}</span>
                           </div>
                         ) : targets.length ? (
                           <div

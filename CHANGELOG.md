@@ -5,6 +5,20 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — RSI and KK fixed: RSI dip and KK dip replace the old rules (ADR-036)
+- **RSI dip / KK dip** (`supabase/migrations/20261001000035_dip_rules.sql`, `private.refresh_dip_rules`): a sharp dip
+  (2-day RSI under 10, or a push 1 % under the 20-day low) in a stock above its 200-day average, bought the next session
+  only at close − 1 ATR, sold on the first close above the 5-day average (≤ 10 sessions), 5 ATR safety stop; the 500
+  largest companies. Tested 2019–2026 after costs: 64 % and 68 % of trades made money (the old rules: ~38–40 %).
+- **Dip-buy levels** for the next session (`public.signal_watch`) on the Signals page and the stock page.
+- **RSI reversal stops producing signals** (removed from `refresh_market_analytics`); its and KK's stored signals stay
+  as history, labelled "(old rule)", and keep their grades in the track record. The chart no longer recomputes the old
+  KK rule in the browser: its KK and RSI chips show the stored signals of the old and new rules.
+- Accuracy audit (`pipelines/eod/audit.py`) recomputes only the rules it knows (SMA 20/50, RSI reversal up to its last
+  day) instead of flagging every other rule's signals as unexpected. Dry Run's rule filter knows the new rules.
+- Tests: `supabase/tests/11_dip_rules.sql` (14 checks), `web/src/lib/dip-rules.test.mts`; e2e specs follow the new
+  chip names. KK shorts: researched, no version made money after costs — not replaced (ADR-036).
+
 ### Fixed — Daily job inside its time limits; CI and the admin refresh
 - **The daily price job's analytics batches timed out** after migration 33 added weather, Strong trend and grading to
   each call (a batch of 100 took up to 6.4 s of PostgREST's 8 s, and went over under load). The pipeline now sends

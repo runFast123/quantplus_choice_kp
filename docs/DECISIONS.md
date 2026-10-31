@@ -274,3 +274,26 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   the live candles (`research/strategies/expect_live.py`, `pglite_live.mjs`).
 - **Not done:** the signal checker (researched, not shown: its gains were too small to change what users see);
   improving RSI reversal and KK (next); KK's stored signals stop on 24 Aug 2026 (a one-off import).
+
+### ADR-036 · RSI dip and KK dip replace RSI reversal and the KK breakout import
+**Date** 2026-10-31 · **Status** accepted
+- **Context:** graded on 2019–2026 prices (ADR-035's method), RSI reversal and the KK buys lost money after costs and
+  were wrong 58–63 % of the time; KK's signals were also a one-off import that ended on 24 Aug 2026, and the chart
+  recomputed the old KK rule in the browser for every other stock. The owner asked to fix both, not retire them.
+- **Diagnosis:** both bought falling stocks (84 % of RSI reversal signals were under the 200-day average), bought
+  strength after the bounce had started, and used fixed % levels that ignore each stock's normal daily move.
+- **Decision (migration 35):** two "dip in an uptrend" rules, chosen on 2019–23 and confirmed on 2024–26 (every nearby
+  setting was also profitable in both periods): `rsi_dip` (RSI(2) < 10) and `kk_dip` (a push 1 % under the 20-day
+  low), both only above the 200-day average; buy the next session only at close − 1 × ATR14 (a limit, filled when the
+  low trades 0.2 % through it); sell at the first close above the 5-day average or after 10 sessions; safety stop
+  5 × ATR14. Tested: RSI dip 3,058 trades, 64 % made money, +0.67 % a trade; KK dip 1,070, 68 %, +0.77 %
+  (2024–26: 60 % / +0.59 % and 67 % / +1.46 %), after a 0.5 % cost. The 500 largest companies only.
+- **Stored** like every rule: the buy on the fill day (with `fill`, so the grader uses it) and the exit; the pending
+  level in `public.signal_watch` (next session only). RSI reversal's block is removed from
+  `refresh_market_analytics`; old RSI reversal and KK signals stay as history (labelled "(old rule)").
+- **Checked:** the SQL and an independent Python version produce the same 987 buys and 975 exits on a read-only copy
+  of the live candles (fills equal to the paisa).
+- **Not done:** KK shorts. Shorting into a push over the 20-day high only in falling stocks, on a rally, covering on
+  the first dip, cut the wrong rate from ~65 % to ~40 %, but no version made money after costs in either period
+  (`research/strategies/improve_short.py`), and Indian cash shares can't be held short overnight. 90 % of KK dip
+  signals coincide with an RSI dip on the same stock within 3 sessions: KK dip is the deeper subset.

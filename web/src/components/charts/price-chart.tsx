@@ -21,7 +21,6 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { generateKkChartMarkers } from "@/lib/backtest-engine";
 import { price as fmtPrice, volume as fmtVolume } from "@/lib/format";
 import { toTradingViewSymbol } from "@/lib/market";
 import { explainMarker, isWinningExit, signalAction, tradeFor, type TradeView } from "@/lib/signal-trade";
@@ -31,6 +30,9 @@ import { TradeOdds } from "./trade-odds";
 
 export type ChartMarker = RawChartMarker;
 export type ChartStrategyFilter = "kk_breakout" | "sma_cross" | "rsi_reversal" | "strong_trend" | "all" | "none";
+
+// KK chip: the old imported KK trades (history) and the KK dip rule that replaced them (migration 35).
+const isKk = (s?: string | null) => s === "kk_breakout" || s === "kk_dip";
 
 const RANGES = [
   { key: "1M", days: 30 },
@@ -125,7 +127,7 @@ type Overlay = {
 /**
  * Compact Institutional TradingView Chart:
  * Displays verified Indian equity candles, strategy-isolated Buy/Exit signals
- * (including dynamic KK 20d Breakout entries & asymmetric T1/T2 milestones),
+ * (every stored rule: Strong trend, SMA 20/50, RSI and KK dips, and the old RSI / KK signals as history),
  * SMA 20/50/200 overlays, and an interactive signals timeline ribbon.
  */
 export function PriceChart({
@@ -172,14 +174,8 @@ export function PriceChart({
   const [showSma200, setShowSma200] = useState(false);
   const [showVolume, setShowVolume] = useState(true);
 
-  // Dynamic KK Strategy Signal Generation (Computed client-side from real historical candles)
-  const kkMarkers = useMemo(() => generateKkChartMarkers(candles), [candles]);
-
-  // 1. Isolate each strategy's markers cleanly without duplication or mismatches
-  const effectiveKkMarkers = useMemo(() => {
-    const dbKk = markers.filter((m) => m.strategy === "kk_breakout");
-    return dbKk.length > 0 ? dbKk : kkMarkers;
-  }, [markers, kkMarkers]);
+  // 1. Isolate each strategy's markers: every rule's signals are stored (the old client-side KK rule is retired).
+  const effectiveKkMarkers = useMemo(() => markers.filter((m) => isKk(m.strategy)), [markers]);
 
   const smaMarkers = useMemo(
     () =>
@@ -202,11 +198,7 @@ export function PriceChart({
     [markers],
   );
 
-  // All plans combined without duplicating KK markers
-  const allPlanMarkers = useMemo(() => {
-    const hasDbKk = markers.some((m) => m.strategy === "kk_breakout");
-    return hasDbKk ? markers : [...markers, ...kkMarkers];
-  }, [markers, kkMarkers]);
+  const allPlanMarkers = markers;
 
   // Strategy Counts for UI Badges (sum of individual plans = All Plans count)
   const kkCount = effectiveKkMarkers.length;
@@ -216,9 +208,7 @@ export function PriceChart({
   const totalCount = allPlanMarkers.length;
 
   // Strategy Mode Filter (Isolates strategies to eliminate multi-plan signal confusion)
-  const [strategyFilter, setStrategyFilter] = useState<ChartStrategyFilter>(() =>
-    effectiveKkMarkers.length > 0 ? "kk_breakout" : markers.length > 0 ? "all" : "kk_breakout",
-  );
+  const [strategyFilter, setStrategyFilter] = useState<ChartStrategyFilter>("all");
 
   // Signals Controls
   const [signalFilter, setSignalFilter] = useState<"all" | "buy" | "exit">("all");
@@ -448,7 +438,7 @@ export function PriceChart({
           let textLabel: string | undefined = undefined;
           if (showLabels) {
             if (isBuyEntry) {
-              textLabel = m.strategy === "kk_breakout" ? "KK BUY" : "BUY";
+              textLabel = isKk(m.strategy) ? "KK BUY" : "BUY";
             } else if (isSellEntry) {
               textLabel = m.strategy === "kk_breakout" ? "KK SELL" : "SELL";
             } else if (isCover) {
@@ -470,7 +460,9 @@ export function PriceChart({
               else if (m.resultType === "SL_HIT") textLabel = "SL -1R";
               else if (m.resultType === "STOP_HIT") textLabel = "Stop";
               else if (m.resultType === "REVIEW_60") textLabel = "Review";
-              else textLabel = m.strategy === "kk_breakout" ? "KK EXIT" : "EXIT";
+              else if (m.resultType === "BOUNCE") textLabel = "Bounce";
+              else if (m.resultType === "TIME_10") textLabel = "10 days";
+              else textLabel = isKk(m.strategy) ? "KK EXIT" : "EXIT";
             }
           }
 
@@ -800,10 +792,10 @@ export function PriceChart({
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              title="Isolate signals to the 20-bar Extreme Breakout plan with +0.75R / +2.0R asymmetric targets"
+              title="KK signals: the KK dip rule (a push under the 20-day low in a rising stock, bought on the next dip, sold on the bounce) and the old KK breakout trades"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-gain" />
-              <span>KK 20d Breakout</span>
+              <span>KK</span>
               <span className="num text-[9.5px]">({kkCount})</span>
             </button>
 
@@ -835,9 +827,9 @@ export function PriceChart({
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
-              title="Show only RSI Oversold bounce and Overbought mean-reversion signals"
+              title="RSI signals: the RSI dip rule (a sharp two-day drop in a rising stock, bought on the next dip, sold on the bounce) and the old RSI reversal signals"
             >
-              <span>RSI Reversal</span>
+              <span>RSI</span>
               <span className="num text-[9.5px]">({rsiCount})</span>
             </button>
 
@@ -1164,7 +1156,7 @@ export function PriceChart({
             <span className="font-medium text-foreground flex items-center gap-1.5">
               <span>Signals Timeline</span>
               <span className="num text-muted-foreground font-normal">
-                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK Breakout" : strategyFilter === "sma_cross" ? "SMA" : strategyFilter === "strong_trend" ? "Strong trend" : "RSI"} in {range})
+                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK" : strategyFilter === "sma_cross" ? "SMA" : strategyFilter === "strong_trend" ? "Strong trend" : "RSI"} in {range})
               </span>
             </span>
             <span className="text-[10px] text-muted-foreground">Click chip to focus candle</span>
@@ -1215,8 +1207,8 @@ export function PriceChart({
                   ) : null}
                   <span className="font-bold">{chipBadge}</span>
                   <span className="rounded bg-muted/50 px-1 py-0.2 text-[9px] font-semibold text-foreground">
-                    {sig.strategy === "kk_breakout"
-                      ? "KK 20d"
+                    {isKk(sig.strategy)
+                      ? "KK"
                       : sig.strategy?.includes("sma")
                         ? "SMA"
                         : sig.strategy?.includes("rsi")

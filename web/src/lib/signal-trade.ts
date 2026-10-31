@@ -48,6 +48,13 @@ export const STRONG_TREND_RESULTS: Record<string, string> = {
   REVIEW_60: "60 trading sessions passed: time to review.",
 };
 
+// How a dip trade ended (RSI dip / KK dip, migration 35).
+export const DIP_RESULTS: Record<string, string> = {
+  BOUNCE: "It closed above its 5-day average: sold on the bounce.",
+  TIME_10: "No bounce within 10 sessions: sold at the close.",
+  STOP_HIT: "The price fell to the safety stop.",
+};
+
 /** One plain sentence on what the rule saw — the Signals page's strategy rules, per action. */
 export function ruleSentence(strategy: string, action: SignalAction, resultType?: string | null): string {
   switch (strategy) {
@@ -66,6 +73,14 @@ export function ruleSentence(strategy: string, action: SignalAction, resultType?
       const result = KK_RESULTS[resultType ?? ""];
       return `The KK ${action === "cover" ? "short" : "long"} trade closed. ${result ?? ""}`.trim();
     }
+    case "rsi_dip":
+      return action === "buy"
+        ? "A sharp two-day drop (2-day RSI under 10) in a stock above its 200-day average; bought the next day only on a further dip of one normal day's move."
+        : `The RSI dip trade closed. ${DIP_RESULTS[resultType ?? ""] ?? ""}`.trim();
+    case "kk_dip":
+      return action === "buy"
+        ? "The price pushed at least 1% under its 20-day low in a stock above its 200-day average; bought the next day only on a further dip of one normal day's move."
+        : `The KK dip trade closed. ${DIP_RESULTS[resultType ?? ""] ?? ""}`.trim();
     case "strong_trend":
       return action === "buy"
         ? "Closed at a new 52-week high on at least twice its usual volume, above its 50-day average, while the market was rising and calm."

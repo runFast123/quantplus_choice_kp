@@ -47,9 +47,12 @@ const AMOUNTS = [100_000, 250_000, 500_000, 1_000_000];
 const CASH = [0, 5, 10, 20];
 const RULES: { key: string; label: string }[] = [
   { key: "all", label: "All matches" },
+  { key: "strong_trend", label: "New 52-week high" },
   { key: "sma_20_50_cross", label: "Trend turned up" },
-  { key: "rsi_reversal", label: "Bounced from a dip" },
-  { key: "kk_breakout", label: "Breakout" },
+  { key: "rsi_dip", label: "Bought a dip" },
+  { key: "kk_dip", label: "Bought a deeper dip" },
+  { key: "rsi_reversal", label: "Bounced (old rule)" },
+  { key: "kk_breakout", label: "Breakout (old rule)" },
 ];
 
 // Acknowledgement of the disclosure, remembered in this browser.

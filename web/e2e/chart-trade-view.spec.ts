@@ -9,7 +9,7 @@ test.describe("price chart trade view @chart", () => {
   test("a selected entry draws its risk and reward, and explains the rule", async ({ proPage }, info) => {
     await proPage.goto("/app/markets/TCS");
     await proPage.waitForLoadState("networkidle");
-    await proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" }).getByRole("radio", { name: /KK 20d Breakout/i }).click();
+    await proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" }).getByRole("radio", { name: /^KK \(/ }).click();
 
     const timeline = proPage.getByTestId("signals-timeline");
     const entry = timeline.getByRole("button", { name: /▲ BUY|▼ SELL/ }).first();
@@ -41,7 +41,7 @@ test.describe("price chart trade view @chart", () => {
   test("the trade view shows the odds in plain words: a verdict, 100 dots and the signal's past", async ({ proPage }, info) => {
     await proPage.goto("/app/markets/TCS");
     await proPage.waitForLoadState("networkidle");
-    await proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" }).getByRole("radio", { name: /KK 20d Breakout/i }).click();
+    await proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" }).getByRole("radio", { name: /^KK \(/ }).click();
     await proPage.getByTestId("signals-timeline").getByRole("button", { name: /▲ BUY|▼ SELL/ }).first().click();
 
     const odds = proPage.getByTestId("trade-odds");

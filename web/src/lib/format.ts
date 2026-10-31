@@ -117,9 +117,11 @@ export function signedInt(n: number): string {
 
 export const strategyLabel: Record<string, string> = {
   sma_20_50_cross: "SMA 20/50 cross",
-  rsi_reversal: "RSI reversal",
-  kk_breakout: "KK 20d Breakout",
+  rsi_reversal: "RSI reversal (old rule)",
+  kk_breakout: "KK breakout (old rule)",
   strong_trend: "Strong trend",
+  rsi_dip: "RSI dip",
+  kk_dip: "KK dip",
 };
 
 /** Direction-aware strategy name: e.g. "SMA Golden Cross" (buy) vs "SMA Death Cross" (exit). */
@@ -135,6 +137,9 @@ export function signalDisplayName(strategy: string, kind: "buy" | "exit"): strin
   }
   if (strategy === "strong_trend") {
     return kind === "buy" ? "Strong trend" : "Strong trend exit";
+  }
+  if (strategy === "rsi_dip" || strategy === "kk_dip") {
+    return `${strategyLabel[strategy]} ${kind === "buy" ? "buy" : "exit"}`;
   }
   return strategyLabel[strategy] ?? strategy;
 }

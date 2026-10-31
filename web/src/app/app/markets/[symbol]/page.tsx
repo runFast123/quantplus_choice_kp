@@ -18,6 +18,7 @@ import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
+import { DIP_EXIT, isDipRule } from "@/lib/dip-rules";
 import { reviewDate } from "@/lib/strong-trend";
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
@@ -50,13 +51,14 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const s = await requireSession();
   const db = s.supabase;
 
-  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes] = await Promise.all([
+  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     getCandles(db, symbol),
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(200),
     db.from("watchlist_items").select("id").eq("symbol", symbol).limit(1),
     can(s, "portfolio") ? db.from("holdings").select("*").eq("symbol", symbol) : Promise.resolve({ data: [] as Holding[] }),
     db.from("rsi_events").select("ts, rsi, event_type").eq("symbol", symbol).neq("event_type", "daily").order("ts", { ascending: false }).limit(6),
+    db.from("signal_watch").select("strategy, signal_day, limit_price, stop").eq("symbol", symbol),
   ]);
   if (!quoteRes.data) {
     const retired = (await getRetired(db, [symbol])).get(symbol);
@@ -68,11 +70,17 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const signals = (signalsRes.data ?? []) as Signal[];
   const markers: ChartMarker[] = signals.map(markerFromSignal);
 
-  // The targets calculator follows the last buy of a rule with targets; Strong trend's tested plan is a
-  // safety stop and a 60-session review instead (lib/strong-trend.ts).
-  const latestBuySignal = signals.find((s) => s.signal_type === "buy" && s.strategy !== "strong_trend");
+  // The targets calculator follows the last buy of a rule with targets. Strong trend (a safety stop and a 60-session
+  // review) and the dip rules (a safety stop and a bounce exit) were tested with their own plans instead.
+  const latestBuySignal = signals.find(
+    (s) => s.signal_type === "buy" && s.strategy !== "strong_trend" && !isDipRule(s.strategy),
+  );
   const lastStrong = signals.find((s) => s.strategy === "strong_trend");
   const openStrong = lastStrong?.signal_type === "buy" ? lastStrong : null;
+  const openDips = (["rsi_dip", "kk_dip"] as const)
+    .map((rule) => signals.find((s) => s.strategy === rule))
+    .filter((s): s is Signal => s?.signal_type === "buy");
+  const watches = watchRes.data ?? [];
   const signalEntry = latestBuySignal ? Number(latestBuySignal.payload.close) : null;
   const signalStop = latestBuySignal?.payload.stop ? Number(latestBuySignal.payload.stop) : null;
 
@@ -236,6 +244,29 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
               </p>
             </div>
           ) : null}
+          {openDips.map((d) => (
+            <div key={d.id} className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
+              <p className="font-medium">
+                Open {strategyLabel[d.strategy]} trade from {date(d.generated_at)}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                Bought at ₹{price(Number(d.payload.fill))} on a dip in a rising stock. {DIP_EXIT}; safety stop{" "}
+                <span className="num text-loss">₹{price(Number(d.payload.stop))}</span>.
+              </p>
+            </div>
+          ))}
+          {watches.map((w) => (
+            <div key={w.strategy} className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
+              <p className="font-medium">
+                {strategyLabel[w.strategy]} level for the next session: buy only at or under{" "}
+                <span className="num">₹{price(Number(w.limit_price))}</span>
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                From the close of {date(w.signal_day)}. If the price trades down there in the next session the rule buys;
+                otherwise the level expires. Safety stop about <span className="num text-loss">₹{price(Number(w.stop))}</span>.
+              </p>
+            </div>
+          ))}
           <TradePlan
             key={q.symbol}
             symbol={q.symbol}

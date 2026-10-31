@@ -9,9 +9,9 @@ test.describe("Strategy-Isolated Signals Chart & KK Breakout Plan", () => {
     const strategyGroup = proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" });
     await expect(strategyGroup).toBeVisible();
 
-    const kkRadio = strategyGroup.getByRole("radio", { name: /KK 20d Breakout/i });
+    const kkRadio = strategyGroup.getByRole("radio", { name: /^KK \(/ });
     const smaRadio = strategyGroup.getByRole("radio", { name: /SMA 20\/50/i });
-    const rsiRadio = strategyGroup.getByRole("radio", { name: /RSI Reversal/i });
+    const rsiRadio = strategyGroup.getByRole("radio", { name: /^RSI \(/ });
     const allRadio = strategyGroup.getByRole("radio", { name: /All Plans/i });
     const cleanRadio = strategyGroup.getByRole("radio", { name: /Clean \(Off\)/i });
 
@@ -21,7 +21,7 @@ test.describe("Strategy-Isolated Signals Chart & KK Breakout Plan", () => {
     await expect(allRadio).toBeVisible();
     await expect(cleanRadio).toBeVisible();
 
-    // 2. Select KK 20d Breakout
+    // 2. Select KK (the KK dip rule and the old KK breakout trades)
     await kkRadio.click();
     await expect(kkRadio).toHaveAttribute("aria-checked", "true");
 
@@ -35,7 +35,7 @@ test.describe("Strategy-Isolated Signals Chart & KK Breakout Plan", () => {
 
     const firstChip = chips.first();
     await expect(firstChip).toBeVisible();
-    await expect(firstChip).toContainText("KK 20d");
+    await expect(firstChip).toContainText("KK");
 
     // Click the chip to focus candle and select it
     await firstChip.click();
