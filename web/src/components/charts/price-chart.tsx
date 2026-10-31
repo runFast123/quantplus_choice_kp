@@ -106,7 +106,9 @@ function animateRange(chart: IChartApi, target: LogicalRange): () => void {
   const t0 = performance.now();
   let raf = 0;
   const step = (now: number) => {
-    const k = Math.min(1, (now - t0) / 260);
+    // A frame's timestamp can be a little earlier than t0 (it is the frame's start): clamp, or the first frame
+    // extrapolates past the start and hands the chart an inverted range ("from index after to index").
+    const k = Math.min(1, Math.max(0, (now - t0) / 260));
     const e = 1 - Math.pow(1 - k, 3);
     ts.setVisibleLogicalRange({
       from: start.from + (target.from - start.from) * e,

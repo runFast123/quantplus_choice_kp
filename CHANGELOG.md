@@ -24,6 +24,10 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
   chip names; `03_news_research` expects notes only for symbols with 50 sessions (the function's rule). KK shorts: researched, no version made money after costs — not replaced (ADR-036).
 
 ### Fixed — Daily job inside its time limits; CI and the admin refresh
+- **Chart: an occasional "from index cannot be after the to index" error** on a stock page's first load. The pan
+  animation's first frame could carry a timestamp a little earlier than its start, so the progress went negative and
+  the visible range came out inverted (about 1 load in 6 on a phone). The progress is clamped to 0–1
+  (`components/charts/price-chart.tsx`, `animateRange`).
 - **The daily price job's analytics batches timed out** after migration 33 added weather, Strong trend and grading to
   each call (a batch of 100 took up to 6.4 s of PostgREST's 8 s, and went over under load). The pipeline now sends
   50 symbols a call (`pipelines/eod/eod.py`, like the Vercel route) and the weather step rewrites only the last 10
