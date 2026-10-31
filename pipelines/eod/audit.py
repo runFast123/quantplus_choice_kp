@@ -10,7 +10,8 @@
 3. Every derived number recomputed independently in pandas and compared with
    what the app reads: market_snapshot (last, prev close, change, change %,
    52-week high/low, RSI), rsi_events (Wilder RSI 14), trading_signals
-   (SMA 20/50 crosses, RSI reversals — KK Breakout signals are imported, not recomputed here),
+   (SMA 20/50 crosses; RSI reversals up to the day that rule was retired, ADR-036 — the other rules are checked
+   by their own cross-checks in research/strategies/), 
    backtest_ledgers (monthly SIP).
 Writes nothing. Exit code 1 if any check fails.
 """
@@ -36,6 +37,8 @@ TOL_SIP = 0.05       # SIP value: numeric units × close in SQL vs float in pand
 # each night, so values from a stock's first sessions were computed with history no longer stored.
 # Wilder RSI forgets a start-up difference by (13/14)^n — under the tolerance after ~120 sessions.
 WARMUP = 120
+# Signal rules this audit recomputes from the candles; the others have their own cross-checks.
+RECOMPUTED = ("sma_20_50_cross", "rsi_reversal")
 # Big one-day moves checked by hand and found real (the date's price is right; see the note).
 REVIEWED_MOVES = {
     ("IDEA", "2025-04-01"): "+19 % on the government's dues-to-equity conversion; Yahoo's volume for the day is wrong",
@@ -150,6 +153,10 @@ def main(argv=None) -> int:
         if s in strict:
             r.check(d == newest, f"{s}: latest candle {d}, others have {newest} (stale)")
 
+    # RSI reversal was retired (ADR-036): stored signals are history up to its last day, none after.
+    last_rsi = get(db, "trading_signals", "select=generated_at&strategy=eq.rsi_reversal&order=generated_at.desc&limit=1")
+    rsi_until = pd.Timestamp(last_rsi.generated_at.iloc[0]).tz_convert("UTC").date() if len(last_rsi) else None
+
     snap = pd.concat([
         get(db, "market_snapshot", f"select=*&symbol=in.({urllib.parse.quote(','.join(f'\"{x}\"' for x in part))})")
         for part in chunks(symbols, 100)
@@ -234,9 +241,10 @@ def main(argv=None) -> int:
             if (s20[i] > s50[i] and s20[i - 1] <= s50[i - 1]) or (s20[i] < s50[i] and s20[i - 1] >= s50[i - 1]):
                 exp.add(("sma_20_50_cross", "buy" if s20[i] > s50[i] else "exit", c.index[i].date()))
         for t in c.index[((prsi < 30) & (rsi >= 30)) | ((prsi > 70) & (rsi <= 70))]:
-            exp.add(("rsi_reversal", "buy" if prsi[t] < 30 else "exit", t.date()))
+            if rsi_until and t.date() <= rsi_until:          # the rule stopped producing signals after this day
+                exp.add(("rsi_reversal", "buy" if prsi[t] < 30 else "exit", t.date()))
         sg = get(db, "trading_signals", f"select=strategy,signal_type,generated_at&symbol=eq.{q}&exchange=eq.NSE")
-        sg = sg[sg.strategy != "kk_breakout"] if len(sg) else sg
+        sg = sg[sg.strategy.isin(RECOMPUTED)] if len(sg) else sg
         got = {(x["strategy"], x["signal_type"], pd.Timestamp(x["generated_at"]).tz_convert("UTC").date()) for x in sg.to_dict("records")} if len(sg) else set()
         settled_from = c.index[min(WARMUP, len(c) - 1)].date()
         exp = {x for x in exp if x[2] >= settled_from}

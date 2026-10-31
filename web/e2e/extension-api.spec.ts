@@ -7,7 +7,7 @@ import { expect, test } from "./helpers/fixtures";
  */
 const EXT = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
 const KINDS = ["buy", "sell", "exit", "cover"];
-const STRATEGIES = ["sma_20_50_cross", "rsi_reversal", "kk_breakout"];
+const STRATEGIES = ["sma_20_50_cross", "rsi_reversal", "kk_breakout", "strong_trend", "rsi_dip", "kk_dip"];
 
 test.describe("extension API", () => {
   test("signed out: no quote, no session, no cross-site access", async ({ request }) => {
