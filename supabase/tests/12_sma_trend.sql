@@ -19,6 +19,7 @@ $$;
 -- Only the fixtures are ranked: everything else leaves the 500 largest for this test.
 update public.market_symbols set mcap_rank = null where mcap_rank is not null;
 delete from public.market_leaders;
+delete from public.trading_signals where strategy = 'sma_trend';          -- only the fixtures' trades count (rolled back)
 delete from public.market_candles where symbol = 'NIFTY';
 insert into public.market_symbols (symbol, exchange, name, is_active, segment) values ('NIFTY', 'NSE', 'NIFTY 50', true, 'index')
 on conflict (symbol, exchange) do update set is_active = true, segment = 'index';

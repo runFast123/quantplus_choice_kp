@@ -24,6 +24,8 @@ create function qp_t11.load(p_symbol text, p_close numeric[], p_open numeric[] d
   from unnest(p_close) with ordinality as t(c, i)
 $$;
 
+-- Only the fixtures' dip trades count in the summaries below (rolled back: the real ones stay).
+delete from public.trading_signals where strategy in ('rsi_dip', 'kk_dip');
 delete from public.market_candles where symbol = 'NIFTY';
 insert into public.market_symbols (symbol, exchange, name, is_active, segment) values ('NIFTY', 'NSE', 'NIFTY 50', true, 'index')
 on conflict (symbol, exchange) do update set is_active = true, segment = 'index';
