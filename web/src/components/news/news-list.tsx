@@ -37,7 +37,7 @@ export function NewsList({ items, showSummary = true, hideSymbol }: { items: New
               .filter((s) => s !== hideSymbol)
               .slice(0, 5)
               .map((s) => (
-                <Link key={s} href={`/app/markets/${encodeURIComponent(s)}`} className="num rounded-[4px] border border-border px-1.5 text-[11px] leading-5 hover:border-foreground">
+                <Link prefetch={false} key={s} href={`/app/markets/${encodeURIComponent(s)}`} className="num rounded-[4px] border border-border px-1.5 text-[11px] leading-5 hover:border-foreground">
                   {s}
                 </Link>
               ))}

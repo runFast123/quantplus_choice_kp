@@ -88,6 +88,7 @@ export default async function AlertsPage() {
               >
                 <div className="flex items-start justify-between">
                   <Link
+                    prefetch={false}
                     href={`/app/markets/${encodeURIComponent(symbol)}`}
                     className="num text-[15px] font-bold text-foreground hover:underline"
                   >
@@ -115,6 +116,7 @@ export default async function AlertsPage() {
                 </p>
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-[11px]">
                   <Link
+                    prefetch={false}
                     href={`/app/markets/${encodeURIComponent(symbol)}`}
                     className="text-foreground underline underline-offset-4"
                   >
@@ -157,7 +159,7 @@ export default async function AlertsPage() {
                   return (
                     <tr key={a.id} className={tr}>
                       <td className={td}>
-                        <Link href={`/app/markets/${encodeURIComponent(a.symbol)}`} className="num font-medium hover:underline">
+                        <Link prefetch={false} href={`/app/markets/${encodeURIComponent(a.symbol)}`} className="num font-medium hover:underline">
                           {a.symbol}
                         </Link>
                       </td>

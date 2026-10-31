@@ -11,6 +11,7 @@ export function TickerTape({ quotes }: { quotes: Quote[] }) {
   const row = (hidden: boolean) =>
     items.map((q) => (
       <Link
+        prefetch={false}
         key={(hidden ? "b" : "a") + q.symbol}
         href={`/app/markets/${encodeURIComponent(q.symbol)}`}
         tabIndex={hidden ? -1 : undefined}

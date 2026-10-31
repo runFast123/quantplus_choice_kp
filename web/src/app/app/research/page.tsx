@@ -76,6 +76,7 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
       <section className="grid grid-cols-3 gap-3" aria-label="Stance counts">
         {(["constructive", "neutral", "cautious"] as const).map((k) => (
           <Link
+            prefetch={false}
             key={k}
             href={`/app/research?${new URLSearchParams({ ...(scope === "mine" ? { scope } : {}), ...(segment !== "equity" ? { segment } : {}), ...(stance === k ? {} : { stance: k }) })}`}
             aria-current={stance === k ? "true" : undefined}
@@ -142,7 +143,7 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
                   return (
                     <tr key={n.symbol} className={tr}>
                       <td className={td}>
-                        <Link href={`/app/markets/${encodeURIComponent(n.symbol)}#research`} className="group block">
+                        <Link prefetch={false} href={`/app/markets/${encodeURIComponent(n.symbol)}#research`} className="group block">
                           <span className="num font-medium group-hover:underline">{n.symbol}</span>
                           <span className="block max-w-[170px] truncate text-[11.5px] text-muted-foreground">{n.name}</span>
                         </Link>

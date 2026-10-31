@@ -154,7 +154,7 @@ export default async function PortfolioPage() {
                     return (
                       <tr key={p.holding.id} className={tr}>
                         <td className={td}>
-                          <Link href={`/app/markets/${encodeURIComponent(p.holding.symbol)}`} className="num font-medium hover:underline">
+                          <Link prefetch={false} href={`/app/markets/${encodeURIComponent(p.holding.symbol)}`} className="num font-medium hover:underline">
                             {p.holding.symbol}
                           </Link>
                           <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">

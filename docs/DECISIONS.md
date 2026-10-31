@@ -297,3 +297,23 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   the first dip, cut the wrong rate from ~65 % to ~40 %, but no version made money after costs in either period
   (`research/strategies/improve_short.py`), and Indian cash shares can't be held short overnight. 90 % of KK dip
   signals coincide with an RSI dip on the same stock within 3 sessions: KK dip is the deeper subset.
+
+### ADR-037 · SMA 20/50 trend replaces the plain 20/50 cross
+**Date** 2026-10-31 · **Status** accepted
+- **Context:** the owner asked to improve SMA 20/50, the weakest rule left. The old rule bought every 20/50 cross and sold on
+  the cross back down: on 2019–26 prices (the ADR-035 method) 43 % of trades made money (37 % in 2024–26); on the stored
+  live signals 29 %. It whipsawed, fired in falling stocks, and the cross-down exit gave back most gains.
+- **Research:** 24 variants written down before running (`research/strategies/improve_sma.py`): 6 entry filters × 4 exits.
+  The exit mattered most; a leader filter (6-month return in the top 30 %) helped next. Chosen on 2019–23 by the owner's
+  goal, the fewest losing trades (≥ 150 a year, positive average): the leader's cross with Strong trend's plan. The
+  average-trade criterion written in the script header would have picked the leader's cross with the old exit
+  (+12.9 % a trade in 2019–23 but 53 % / 60 % of trades losing); both are reported.
+- **Decision (migration 38):** `sma_trend` = the 20-day average closes above the 50-day (exact decimal averages) and the stock's
+  126-session return ranks in the top 30 % of the 500 largest companies that day (`public.market_leaders`, cume_dist ≥ 0.7,
+  ranked once per session); next-open entry, safety stop 4 × ATR14 under the close, review after 60 sessions. Tested:
+  1,221 trades, 52 % made money, +5.6 % a trade (2024–26: 46 %, +2.3 %), after a 0.5 % cost. The old cross stops producing
+  signals; its history stays ("(old rule)").
+- **Checked:** the SQL and an independent Python version (integer-paise averages) produce the same 834 signals on a
+  read-only copy of the live candles.
+- **Limits:** about half of trend trades lose; they work because winners (~+22 %) are about twice the losers (~−11 %).
+  2024–26, a flat-to-falling market, was weaker for every long-only trend rule.

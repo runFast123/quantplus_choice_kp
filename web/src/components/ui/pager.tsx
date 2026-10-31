@@ -34,7 +34,7 @@ export function Pager({
       </span>
       <span className="flex items-center gap-2">
         {page > 1 ? (
-          <Link href={href(page - 1)} className={btn} rel="prev">
+          <Link prefetch={false} href={href(page - 1)} className={btn} rel="prev">
             <CaretLeftIcon size={13} aria-hidden /> Previous
           </Link>
         ) : null}
@@ -42,7 +42,7 @@ export function Pager({
           Page {page} of {pages}
         </span>
         {page < pages ? (
-          <Link href={href(page + 1)} className={btn} rel="next">
+          <Link prefetch={false} href={href(page + 1)} className={btn} rel="next">
             Next <CaretRightIcon size={13} aria-hidden />
           </Link>
         ) : null}

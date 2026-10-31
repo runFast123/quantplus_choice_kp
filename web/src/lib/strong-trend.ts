@@ -69,6 +69,25 @@ export function strongTrendStatus(stop: number | null, last: number | null): { l
   return { label: "Open", tone: "neutral" };
 }
 
+/** The two trend rules share one plan: a safety stop 4 × ATR14 under the close and a review after 60 sessions. */
+export const isTrendRule = (s: string | null | undefined) => s === "strong_trend" || s === "sma_trend";
+
+/**
+ * SMA 20/50 trend (migration 38, ADR-037), tested with the exact SQL rule: research/strategies/record_sma.py,
+ * Jul 2019 – Oct 2026, each year's 300 most traded NSE stocks, 0.5 % round-trip cost. `before` is the old SMA 20/50
+ * cross (cross in, cross out) on the same stocks and years. Update only by re-running that script.
+ */
+export const SMA_TREND_TESTED = {
+  period: "Jul 2019 – Oct 2026",
+  trades: 1221,
+  madeMoneyPct: 52,
+  avgTradePct: 5.6,
+  avgWinPct: 22,
+  avgLossPct: -11,
+  recent: { period: "2024 – Oct 2026", madeMoneyPct: 46, avgTradePct: 2.3 },
+  before: { madeMoneyPct: 43, avgTradePct: 7.2, recentMadeMoneyPct: 37 },
+} as const;
+
 /**
  * The record of the exact rule on past prices: research/strategies/record.py, Jul 2019 – Oct 2026,
  * each year's 300 most traded NSE stocks, entry at the next open, 0.5 % round-trip cost on the plan.

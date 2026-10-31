@@ -19,7 +19,7 @@ import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/d
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { DIP_EXIT, isDipRule } from "@/lib/dip-rules";
-import { reviewDate } from "@/lib/strong-trend";
+import { isTrendRule, reviewDate } from "@/lib/strong-trend";
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
@@ -51,7 +51,8 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const s = await requireSession();
   const db = s.supabase;
 
-  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes] = await Promise.all([
+  // Everything the page needs in one round trip (none of these depend on each other).
+  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes, [note], news, aiKeysRes, aiConsentRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     getCandles(db, symbol),
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(200),
@@ -59,6 +60,10 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     can(s, "portfolio") ? db.from("holdings").select("*").eq("symbol", symbol) : Promise.resolve({ data: [] as Holding[] }),
     db.from("rsi_events").select("ts, rsi, event_type").eq("symbol", symbol).neq("event_type", "daily").order("ts", { ascending: false }).limit(6),
     db.from("signal_watch").select("strategy, signal_day, limit_price, stop").eq("symbol", symbol),
+    getResearch(db, [symbol]),
+    getNews(db, { symbols: [symbol], limit: 12 }),
+    can(s, "ai_byok") ? db.from("ai_provider_keys").select("id").eq("status", "active").neq("provider", "other").limit(1) : Promise.resolve({ data: [] }),
+    db.from("user_consents").select("id").eq("purpose", "ai_processing").is("withdrawn_at", null).limit(1),
   ]);
   if (!quoteRes.data) {
     const retired = (await getRetired(db, [symbol])).get(symbol);
@@ -73,10 +78,11 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   // The targets calculator follows the last buy of a rule with targets. Strong trend (a safety stop and a 60-session
   // review) and the dip rules (a safety stop and a bounce exit) were tested with their own plans instead.
   const latestBuySignal = signals.find(
-    (s) => s.signal_type === "buy" && s.strategy !== "strong_trend" && !isDipRule(s.strategy),
+    (s) => s.signal_type === "buy" && !isTrendRule(s.strategy) && !isDipRule(s.strategy),
   );
-  const lastStrong = signals.find((s) => s.strategy === "strong_trend");
-  const openStrong = lastStrong?.signal_type === "buy" ? lastStrong : null;
+  const openTrends = (["strong_trend", "sma_trend"] as const)
+    .map((rule) => signals.find((s) => s.strategy === rule))
+    .filter((s): s is Signal => s?.signal_type === "buy");
   const openDips = (["rsi_dip", "kk_dip"] as const)
     .map((rule) => signals.find((s) => s.strategy === rule))
     .filter((s): s is Signal => s?.signal_type === "buy");
@@ -94,12 +100,6 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const held = holdings.reduce((a, h) => a + Number(h.quantity), 0);
   const avgCost = held ? holdings.reduce((a, h) => a + Number(h.quantity) * Number(h.avg_price), 0) / held : 0;
 
-  const [[note], news, aiKeysRes, aiConsentRes] = await Promise.all([
-    getResearch(db, [symbol]),
-    getNews(db, { symbols: [symbol], limit: 12 }),
-    can(s, "ai_byok") ? db.from("ai_provider_keys").select("id").eq("status", "active").neq("provider", "other").limit(1) : Promise.resolve({ data: [] }),
-    db.from("user_consents").select("id").eq("purpose", "ai_processing").is("withdrawn_at", null).limit(1),
-  ]);
   const aiReason = !can(s, "ai_byok")
     ? "AI reads with your own key are part of Pro."
     : !aiConsentRes.data?.length
@@ -233,17 +233,20 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           title="Trade plan & targets"
           meta={latestBuySignal ? `From the last ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} buy signal` : "A stop and three price targets"}
         >
-          {openStrong ? (
-            <div className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
-              <p className="font-medium">Open Strong trend signal from {date(openStrong.generated_at)}</p>
+          {openTrends.map((t) => (
+            <div key={t.id} className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
+              <p className="font-medium">
+                Open {strategyLabel[t.strategy]} signal from {date(t.generated_at)}
+              </p>
               <p className="mt-1 text-muted-foreground">
-                Closed at ₹{price(Number(openStrong.payload.close))}, a new 52-week high on heavy volume. Safety stop{" "}
-                <span className="num text-loss">₹{price(Number(openStrong.payload.stop))}</span>; review around{" "}
-                {date(reviewDate(openStrong.generated_at).toISOString())} (60 trading sessions). No fixed target: in
-                testing, holding to the review did better than taking profit early.
+                Closed at ₹{price(Number(t.payload.close))}
+                {t.strategy === "strong_trend" ? ", a new 52-week high on heavy volume" : ", the 20-day average turning above the 50-day in a market leader"}
+                . Safety stop <span className="num text-loss">₹{price(Number(t.payload.stop))}</span>; review around{" "}
+                {date(reviewDate(t.generated_at).toISOString())} (60 trading sessions). No fixed target: in testing, holding to
+                the review did better than taking profit early.
               </p>
             </div>
-          ) : null}
+          ))}
           {openDips.map((d) => (
             <div key={d.id} className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
               <p className="font-medium">

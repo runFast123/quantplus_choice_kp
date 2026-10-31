@@ -17,7 +17,14 @@ import {
 import { date, price, strategyLabel } from "@/lib/format";
 import { markerFromSignal, signalAction, tradeFor, type SignalAction } from "@/lib/signal-trade";
 import { DIP_EXIT, dipStatus, dipTestedSentence, isDipRule } from "@/lib/dip-rules";
-import { reviewDate, STRONG_TREND_TESTED as TESTED, strongTrendStatus, weatherView } from "@/lib/strong-trend";
+import {
+  isTrendRule,
+  reviewDate,
+  SMA_TREND_TESTED as SMA,
+  STRONG_TREND_TESTED as TESTED,
+  strongTrendStatus,
+  weatherView,
+} from "@/lib/strong-trend";
 import { evaluateSignalProgress, type RawChartMarker } from "@/lib/trade-plan";
 import type { Signal } from "@/lib/types";
 import { getQuotes } from "@/server/market-data";
@@ -61,14 +68,15 @@ const STRATEGIES: { key: string; title: string; rule: string; reads: string; tes
     tested: dipTestedSentence("kk_dip"),
   },
   {
-    key: "sma_20_50_cross",
-    title: "SMA 20/50 cross",
-    rule: "Buy when the 20-day average price rises above the 50-day average; exit when it drops back below.",
-    reads: "Follows trends. Late on purpose: it waits for a move to prove itself.",
+    key: "sma_trend",
+    title: "SMA 20/50 trend",
+    rule: "Buy when the 20-day average price rises above the 50-day average in a market leader: a stock whose 6-month return is in the top 30% of the 500 largest companies.",
+    reads: "Follows a turn up in a strong stock. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions.",
+    tested: `Tested on past prices (${SMA.period}, ${SMA.trades.toLocaleString("en-IN")} trades): ${SMA.madeMoneyPct} in 100 made money after costs, the average trade +${SMA.avgTradePct}% (winners about +${SMA.avgWinPct}%, losers about ${SMA.avgLossPct}%). ${SMA.recent.period}: ${SMA.recent.madeMoneyPct} in 100, +${SMA.recent.avgTradePct}%. The old cross-in, cross-out rule: ${SMA.before.madeMoneyPct} in 100 (${SMA.before.recentMadeMoneyPct} in 2024–26).`,
   },
 ];
-// Replaced by the dip rules (ADR-036): their signals stay listed and graded as history.
-const OLD_RULES = ["rsi_reversal", "kk_breakout"];
+// Replaced by the dip rules and the SMA trend rule (ADR-036, ADR-037): their signals stay listed as history.
+const OLD_RULES = ["sma_20_50_cross", "rsi_reversal", "kk_breakout"];
 const ORDER = [...STRATEGIES.map((x) => x.key), ...OLD_RULES];
 
 const ACTION_LABEL: Record<SignalAction, string> = { buy: "BUY", exit: "EXIT", sell: "SHORT", cover: "COVER" };
@@ -102,9 +110,25 @@ export default async function SignalsPage({
 
   const db = s.supabase;
 
-  const [radarRes, holdRes, weatherRes, scoreRes, watchRes, tradeRes] = await Promise.all([
-    db.from("watchlist_items").select("symbol"),
-    db.from("holdings").select("symbol"),
+  // Two independent chains run together, so the summary tables never hold up the signal list:
+  // the stocks in scope → their newest signals → those stocks' quotes, alongside weather, track record and levels.
+  const mineP = Promise.all([db.from("watchlist_items").select("symbol"), db.from("holdings").select("symbol")]).then(
+    ([radarRes, holdRes]) => [...new Set([...(radarRes.data ?? []), ...(holdRes.data ?? [])].map((r) => r.symbol))],
+  );
+  const signalsP = (async () => {
+    let q = db.from("trading_signals").select("*").order("generated_at", { ascending: false }).limit(200);
+    if (scope === "mine") {
+      const mine = await mineP;
+      q = q.in("symbol", mine.length ? mine : ["__none__"]);
+    }
+    if (strategy) q = q.eq("strategy", strategy);
+    const { data } = await q;
+    const rows = (data ?? []) as Signal[];
+    return { rows, quotes: await getQuotes(db, [...new Set(rows.map((x) => x.symbol))]) };
+  })();
+  const [mine, { rows: signals, quotes }, weatherRes, scoreRes, watchRes, tradeRes] = await Promise.all([
+    mineP,
+    signalsP,
     db
       .from("market_weather")
       .select("day, state, vix, nifty, nifty_sma50, nifty_sma200")
@@ -129,30 +153,14 @@ export default async function SignalsPage({
     vix: num(wx?.vix),
   });
   const WeatherIcon = weather.state === "sunny" ? SunIcon : weather.state === "stormy" ? CloudLightningIcon : CloudSunIcon;
-  const scores = ((scoreRes.data ?? []) as ScoreRow[]).sort(
-    (a, b) =>
-      ORDER.indexOf(a.strategy) - ORDER.indexOf(b.strategy) ||
-      a.side.localeCompare(b.side),
-  );
-  const mine = [
-    ...new Set([...(radarRes.data ?? []), ...(holdRes.data ?? [])].map((r) => r.symbol)),
-  ];
+  // The track record lists the rules in use; replaced rules' signals stay in the list below as history.
+  const scores = ((scoreRes.data ?? []) as ScoreRow[])
+    .filter((r) => STRATEGIES.some((x) => x.key === r.strategy))
+    .sort((a, b) => ORDER.indexOf(a.strategy) - ORDER.indexOf(b.strategy) || a.side.localeCompare(b.side));
   // Tomorrow's dip-buy levels (RSI dip / KK dip), for the stocks in scope.
   const watches = (watchRes.data ?? []).filter(
     (w) => (scope === "all" || mine.includes(w.symbol)) && (!strategy || w.strategy === strategy),
   );
-
-  let q = db
-    .from("trading_signals")
-    .select("*")
-    .order("generated_at", { ascending: false })
-    .limit(200);
-
-  if (scope === "mine") q = q.in("symbol", mine.length ? mine : ["__none__"]);
-  if (strategy) q = q.eq("strategy", strategy);
-  const { data } = await q;
-  const signals = (data ?? []) as Signal[];
-  const quotes = await getQuotes(db, [...new Set(signals.map((x) => x.symbol))]);
 
   // Each signal's round trip: a buy is closed by the next exit of the same rule (a short sell by
   // its cover). Rows are newest first, so a closing signal is always on the same page as its entry.
@@ -180,7 +188,7 @@ export default async function SignalsPage({
 
     // Strong trend and the dip rules were tested with their own plan: a safety stop and a review date or a
     // bounce exit, not price targets.
-    if (sg.strategy === "strong_trend" && action === "buy" && !closed) {
+    if (isTrendRule(sg.strategy) && action === "buy" && !closed) {
       const stop = Number(sg.payload.stop) || null;
       return {
         ...base,
@@ -191,7 +199,7 @@ export default async function SignalsPage({
           status: strongTrendStatus(stop, last),
           next: `Review ~${date(reviewDate(sg.generated_at).toISOString())}`,
           nextSub: "after 60 sessions",
-          nextTitle: "Strong trend has no fixed target: review after 60 trading sessions (the exact day depends on holidays)",
+          nextTitle: "No fixed target: review after 60 trading sessions (the exact day depends on holidays)",
         },
       };
     }
@@ -328,6 +336,7 @@ export default async function SignalsPage({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {STRATEGIES.map((st) => (
           <Link
+            prefetch={false}
             key={st.key}
             href={link({ strategy: strategy === st.key ? "" : st.key })}
             aria-current={strategy === st.key ? "true" : undefined}
@@ -347,8 +356,8 @@ export default async function SignalsPage({
       </div>
 
       <p className="-mt-2 text-[12px] leading-5 text-muted-foreground">
-        RSI dip and KK dip replace the old RSI reversal and KK breakout rules, which lost money after costs in testing.
-        The old rules&apos; signals stay in the list and in the track record as history.
+        RSI dip, KK dip and SMA 20/50 trend replace the old RSI reversal, KK breakout and SMA 20/50 cross rules, which
+        did worse in testing. The old rules&apos; signals stay in the signal list below as history.
       </p>
 
       {/* Tomorrow's dip-buy levels: an RSI dip / KK dip signal is a price to buy at, valid for one session */}
@@ -375,7 +384,7 @@ export default async function SignalsPage({
                   {watches.map((w) => (
                     <tr key={`${w.symbol}-${w.strategy}`} className={tr}>
                       <td className={td}>
-                        <Link href={`/app/markets/${encodeURIComponent(w.symbol)}`} className="num font-medium hover:underline">
+                        <Link prefetch={false} href={`/app/markets/${encodeURIComponent(w.symbol)}`} className="num font-medium hover:underline">
                           {w.symbol}
                         </Link>
                       </td>
@@ -456,13 +465,11 @@ export default async function SignalsPage({
               </table>
             </TableWrap>
             <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-              “By the rule&apos;s own plan” counts every closed trade the way the rule closed it (its stop, review, bounce
-              or opposite signal). The dip rules sell within days, Strong trend after up to 60 sessions. RSI reversal has
-              none: its exits only followed rallies, so pairing them would hide its losers. “20 sessions after” grades
-              every buy (and KK short) the same way: higher (a short: lower) 20 sessions after the entry, and the
-              difference from the Nifty 500 over those sessions. All before costs (about 0.5 % a round trip). Strong
-              trend, RSI dip and KK dip are new: their earlier signals were worked out afterwards with the same rules on
-              stored prices.
+              “By the rule&apos;s own plan” counts every closed trade the way the rule closed it (its safety stop, its
+              review, or the bounce). The dip rules sell within days, the trend rules after up to 60 sessions. “20
+              sessions after” grades every buy the same way: higher 20 sessions after the entry, and the difference from
+              the Nifty 500 over those sessions. All before costs (about 0.5 % a round trip). All four
+              rules are new: their earlier signals were worked out afterwards with the same rules on stored prices.
             </p>
           </>
         )}
@@ -487,6 +494,7 @@ export default async function SignalsPage({
                 { key: "exhaustion", label: "Running hot" },
               ].map((f) => (
                 <Link
+                  prefetch={false}
                   key={f.key}
                   role="tab"
                   aria-selected={statusFilter === f.key}
@@ -511,6 +519,7 @@ export default async function SignalsPage({
             >
               {(["mine", "all"] as const).map((k) => (
                 <Link
+                  prefetch={false}
                   key={k}
                   role="tab"
                   aria-selected={scope === k}
@@ -541,6 +550,7 @@ export default async function SignalsPage({
           >
             {statusFilter ? (
               <Link
+                prefetch={false}
                 href={link({ status: "" })}
                 className="text-foreground underline underline-offset-4"
               >
@@ -550,6 +560,7 @@ export default async function SignalsPage({
               <>
                 Signals only show for stocks on your radar or in your portfolio.{" "}
                 <Link
+                  prefetch={false}
                   href={link({ scope: "all" })}
                   className="text-foreground underline underline-offset-4"
                 >
@@ -591,6 +602,7 @@ export default async function SignalsPage({
                       </td>
                       <td className={td}>
                         <Link
+                          prefetch={false}
                           href={`/app/markets/${encodeURIComponent(sg.symbol)}`}
                           className="num font-medium hover:underline"
                         >

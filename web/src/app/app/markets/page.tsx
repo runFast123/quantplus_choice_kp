@@ -161,7 +161,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
                 {rows.map((r) => (
                   <tr key={r.exchange + r.symbol} className={tr}>
                     <td className={td}>
-                      <Link href={`/app/markets/${encodeURIComponent(r.symbol)}`} className="group block">
+                      <Link prefetch={false} href={`/app/markets/${encodeURIComponent(r.symbol)}`} className="group block">
                         <span className="num font-medium group-hover:underline">{r.symbol}</span>
                         <span className="block max-w-[200px] truncate text-[11.5px] text-muted-foreground">{r.name}</span>
                       </Link>

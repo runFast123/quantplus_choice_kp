@@ -41,3 +41,16 @@ test("tested record: internally consistent", () => {
   assert.ok(t.avgWinPct > 0 && t.avgLossPct < 0);
   assert.ok(t.higher20Pct > t.randomHigher20Pct);
 });
+
+test("SMA 20/50 trend: same plan as Strong trend, a leader's cross, better than the old cross", async () => {
+  const { isTrendRule, SMA_TREND_TESTED } = await import("./strong-trend");
+  const { strategyLabel } = await import("./format");
+  assert.ok(isTrendRule("sma_trend") && isTrendRule("strong_trend") && !isTrendRule("sma_20_50_cross"));
+  assert.equal(strategyLabel.sma_trend, "SMA 20/50 trend");
+  assert.equal(strategyLabel.sma_20_50_cross, "SMA 20/50 cross (old rule)");
+  assert.match(ruleSentence("sma_trend", "buy"), /market leader/);
+  assert.match(ruleSentence("sma_trend", "exit", "REVIEW_60"), /60 trading sessions/);
+  assert.equal(defaultHorizon("sma_trend"), 20);
+  assert.ok(SMA_TREND_TESTED.madeMoneyPct > SMA_TREND_TESTED.before.madeMoneyPct);
+  assert.ok(SMA_TREND_TESTED.recent.madeMoneyPct > SMA_TREND_TESTED.before.recentMadeMoneyPct);
+});

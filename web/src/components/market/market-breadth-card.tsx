@@ -34,6 +34,7 @@ export function MarketBreadthCard({ breadth }: { breadth: MarketBreadthData }) {
       meta={asOf ? `NSE Cash Market · ${date(asOf)}` : "NSE Cash Market"}
       actions={
         <Link
+          prefetch={false}
           href="/app/markets"
           className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -120,6 +121,7 @@ export function MarketBreadthCard({ breadth }: { breadth: MarketBreadthData }) {
                 {leaders.map((q) => (
                   <li key={q.symbol}>
                     <Link
+                      prefetch={false}
                       href={`/app/markets/${encodeURIComponent(q.symbol)}`}
                       className="group flex items-center justify-between py-2 text-left transition-colors hover:bg-foreground/[0.03] px-1 rounded"
                     >
@@ -156,6 +158,7 @@ export function MarketBreadthCard({ breadth }: { breadth: MarketBreadthData }) {
                 {laggards.map((q) => (
                   <li key={q.symbol}>
                     <Link
+                      prefetch={false}
                       href={`/app/markets/${encodeURIComponent(q.symbol)}`}
                       className="group flex items-center justify-between py-2 text-left transition-colors hover:bg-foreground/[0.03] px-1 rounded"
                     >

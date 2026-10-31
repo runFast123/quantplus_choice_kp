@@ -5,6 +5,20 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — SMA 20/50 fixed, a faster site, a track record of the rules in use (ADR-037)
+- **SMA 20/50 trend** (`supabase/migrations/20261001000038_sma_trend.sql`, `private.refresh_sma_trend`, `private.refresh_leaders`,
+  table `public.market_leaders`): the 20/50 cross only in a market leader (6-month return in the top 30 % of the 500
+  largest companies), with Strong trend's plan (4 × ATR safety stop, review after 60 sessions). Tested 2019–2026 after
+  costs: 52 % of trades made money (the old cross: 43 %; 2024–26: 46 % vs 37 %). The old cross stops producing signals.
+- **Speed:** links in lists, tables, the ticker and filters no longer prefetch on sight (`prefetch={false}`, 31 links): on
+  the live site a few clicks set off 62 background page renders, each one a server function reading the session, which
+  queued the click the user made. The app layout starts the ticker and notifications alongside the session check; the
+  overview and stock pages make one fewer database round trip; the Signals page runs its summaries alongside the signal
+  list instead of before it.
+- **Track record** lists the four rules in use; the old rules' signals stay in the signal list as history.
+- Audit recomputes the old SMA 20/50 and RSI rules only up to the day each was retired. Tests:
+  `supabase/tests/12_sma_trend.sql` (11 checks), unit tests for the trend rules.
+
 ### Changed — RSI and KK fixed: RSI dip and KK dip replace the old rules (ADR-036)
 - **RSI dip / KK dip** (`supabase/migrations/20261001000035_dip_rules.sql`, `private.refresh_dip_rules`): a sharp dip
   (2-day RSI under 10, or a push 1 % under the 20-day low) in a stock above its 200-day average, bought the next session

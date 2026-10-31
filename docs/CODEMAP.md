@@ -44,6 +44,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 34 | `analytics_batch_speed` | `private.refresh_market_weather(p_full boolean default false)` (normal run: last 10 sessions only); trigger `market_symbols_drop_ledger_when_retired` → `private.drop_ledger_when_retired()` (a retired symbol's SIP ledger is deleted) |
 | 35 | `dip_rules` | `refresh_market_analytics` without RSI reversal signals; `signal_watch` (next session's dip-buy levels, read-only to members); `private.refresh_dip_rules(p_symbols)` (strategies `rsi_dip`, `kk_dip`: buy on the fill day with `fill`, exit on bounce / 10 sessions / stop; top-500 equities); `svc_refresh_market_analytics` + cron also run it |
 | 36–37 | `trade_results`, `trade_results_fair` | view `strategy_trade_results` (per strategy × side: trades, made_money_pct, avg/win/loss %, first/last day; stored `pnl_pct` on exits, SMA exits paired with the previous buy, none for RSI reversal) |
+| 38 | `sma_trend` | `refresh_market_analytics` without SMA 20/50 cross signals; `market_leaders` (day × symbol: 126-session return, cume_dist among the 500 largest) + `private.refresh_leaders(p_full)` (normal run: last 14 days, once per session); `private.refresh_sma_trend(p_symbols)` (strategy `sma_trend`: buy + exit rows); wrapper and cron run it |
 | 25 | `news_story_dedupe` | `news_articles.story_hash` (trigger + unique), `private.news_story_hash()`, `svc_store_news_articles(jsonb)` |
 
 Seeds: `seed/dev_market_data.sql` (SYNTHETIC, dev/staging — **never production**) · `seed/ref_market_symbols.sql` (core 44,
@@ -113,7 +114,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `dry-run.test.mts` | unit tests (`npm run test:unit`) |
 | `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
 | `dip-rules.ts` | `isDipRule`, `DIP_EXIT`, `dipStatus(stop, last)`, `DIP_TESTED` (tested record per rule, from `research/strategies/record_dip.py`), `dipTestedSentence(rule)`, type `DipRule` |
-| `strong-trend.ts` | `weatherView({state, nifty, sma50, sma200, vix})` → `WeatherView` (names the actual reason), `reviewDate(signalAt)` (≈60 sessions), `strongTrendStatus(stop, last)`, `REVIEW_SESSIONS`, `STRONG_TREND_TESTED` (tested record, from `research/strategies/record.py`), type `Weather` |
+| `strong-trend.ts` | `isTrendRule(s)` (Strong trend, SMA 20/50 trend), `SMA_TREND_TESTED`, `weatherView({state, nifty, sma50, sma200, vix})` → `WeatherView` (names the actual reason), `reviewDate(signalAt)` (≈60 sessions), `strongTrendStatus(stop, last)`, `REVIEW_SESSIONS`, `STRONG_TREND_TESTED` (tested record, from `research/strategies/record.py`), type `Weather` |
 | `setups.test.mts` | unit tests (`npm run test:unit`) |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |

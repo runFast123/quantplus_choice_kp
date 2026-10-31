@@ -11,6 +11,7 @@ import { UserMenu } from "@/components/shell/user-menu";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { date } from "@/lib/format";
+import { supabaseServer } from "@/lib/supabase/server";
 import type { NotificationRow } from "@/lib/types";
 import { getTape } from "@/server/market-data";
 import { isPlatformAdmin } from "@/server/privileged/admin";
@@ -18,15 +19,16 @@ import { can, displayName, requireSession } from "@/server/session";
 import { refreshClaimsAction } from "./shell-actions";
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
+  // The ticker and notifications don't need the session's result (RLS reads the caller's JWT): start them now,
+  // in parallel with the session check, instead of one round trip after it.
+  const db = await supabaseServer();
+  const tapeP = getTape(db);
+  const notesP = db.from("notifications").select("*").order("created_at", { ascending: false }).limit(20);
   const s = await requireSession();
   const store = await cookies();
   const theme = store.get("qp_theme")?.value === "dark" ? "dark" : "light";
 
-  const [tape, notesRes, admin] = await Promise.all([
-    getTape(s.supabase),
-    s.supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20),
-    isPlatformAdmin(s.userId),
-  ]);
+  const [tape, notesRes, admin] = await Promise.all([tapeP, notesP, isPlatformAdmin(s.userId)]);
 
   const ent = s.entitlements;
   const planLabel = ent

@@ -158,7 +158,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
                   return (
                     <tr key={i.id} className={tr}>
                       <td className={td}>
-                        <Link href={`/app/markets/${encodeURIComponent(i.symbol)}`} className="group block">
+                        <Link prefetch={false} href={`/app/markets/${encodeURIComponent(i.symbol)}`} className="group block">
                           <span className="num font-medium group-hover:underline">{i.symbol}</span>
                           <span className="block max-w-[200px] truncate text-[11.5px] text-muted-foreground">{q?.name ?? retired.get(i.symbol)?.name}</span>
                         </Link>

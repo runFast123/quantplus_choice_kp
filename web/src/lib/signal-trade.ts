@@ -81,6 +81,10 @@ export function ruleSentence(strategy: string, action: SignalAction, resultType?
       return action === "buy"
         ? "The price pushed at least 1% under its 20-day low in a stock above its 200-day average; bought the next day only on a further dip of one normal day's move."
         : `The KK dip trade closed. ${DIP_RESULTS[resultType ?? ""] ?? ""}`.trim();
+    case "sma_trend":
+      return action === "buy"
+        ? "The 20-day average closed above the 50-day average in a market leader (6-month return in the top 30% of the 500 largest companies)."
+        : `The SMA 20/50 trend trade closed. ${STRONG_TREND_RESULTS[resultType ?? ""] ?? ""}`.trim();
     case "strong_trend":
       return action === "buy"
         ? "Closed at a new 52-week high on at least twice its usual volume, above its 50-day average, while the market was rising and calm."

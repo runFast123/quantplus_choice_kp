@@ -11,7 +11,7 @@ test.describe("signals @mobile", () => {
     await expect(card).toContainText("52-week high");
     await expect(card).toContainText("Tested on past prices");
     await expect(card).toContainText("made money after costs");
-    for (const rule of ["SMA 20/50 cross", "RSI dip", "KK dip"]) {
+    for (const rule of ["SMA 20/50 trend", "RSI dip", "KK dip"]) {
       await expect(proPage.getByRole("link", { name: new RegExp(rule) }).first()).toBeVisible();
     }
     await expect(proPage.getByRole("region", { name: "Market weather" })).toContainText(/Market weather: (Sunny|Mixed|Stormy|Unknown)/);

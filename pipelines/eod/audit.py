@@ -10,8 +10,8 @@
 3. Every derived number recomputed independently in pandas and compared with
    what the app reads: market_snapshot (last, prev close, change, change %,
    52-week high/low, RSI), rsi_events (Wilder RSI 14), trading_signals
-   (SMA 20/50 crosses; RSI reversals up to the day that rule was retired, ADR-036 — the other rules are checked
-   by their own cross-checks in research/strategies/), 
+   (SMA 20/50 crosses and RSI reversals, each up to the day it was retired, ADR-036/037 — the other rules are
+   checked by their own cross-checks in research/strategies/), 
    backtest_ledgers (monthly SIP).
 Writes nothing. Exit code 1 if any check fails.
 """
@@ -153,9 +153,11 @@ def main(argv=None) -> int:
         if s in strict:
             r.check(d == newest, f"{s}: latest candle {d}, others have {newest} (stale)")
 
-    # RSI reversal was retired (ADR-036): stored signals are history up to its last day, none after.
-    last_rsi = get(db, "trading_signals", "select=generated_at&strategy=eq.rsi_reversal&order=generated_at.desc&limit=1")
-    rsi_until = pd.Timestamp(last_rsi.generated_at.iloc[0]).tz_convert("UTC").date() if len(last_rsi) else None
+    # Both rules were retired (ADR-036, ADR-037): stored signals are history up to each rule's last day, none after.
+    def last_day(strategy):
+        last = get(db, "trading_signals", f"select=generated_at&strategy=eq.{strategy}&order=generated_at.desc&limit=1")
+        return pd.Timestamp(last.generated_at.iloc[0]).tz_convert("UTC").date() if len(last) else None
+    rsi_until, sma_until = last_day("rsi_reversal"), last_day("sma_20_50_cross")
 
     snap = pd.concat([
         get(db, "market_snapshot", f"select=*&symbol=in.({urllib.parse.quote(','.join(f'\"{x}\"' for x in part))})")
@@ -238,7 +240,8 @@ def main(argv=None) -> int:
         prsi = rsi.shift()
         exp = set()
         for i in range(50, len(dec)):
-            if (s20[i] > s50[i] and s20[i - 1] <= s50[i - 1]) or (s20[i] < s50[i] and s20[i - 1] >= s50[i - 1]):
+            if sma_until and c.index[i].date() <= sma_until and (
+                    (s20[i] > s50[i] and s20[i - 1] <= s50[i - 1]) or (s20[i] < s50[i] and s20[i - 1] >= s50[i - 1])):
                 exp.add(("sma_20_50_cross", "buy" if s20[i] > s50[i] else "exit", c.index[i].date()))
         for t in c.index[((prsi < 30) & (rsi >= 30)) | ((prsi > 70) & (rsi <= 70))]:
             if rsi_until and t.date() <= rsi_until:          # the rule stopped producing signals after this day

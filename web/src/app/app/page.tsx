@@ -26,17 +26,17 @@ export default async function OverviewPage() {
   const s = await requireSession();
   const db = s.supabase;
 
-  const { data: consents } = await db.from("user_consents").select("purpose").eq("purpose", "terms").is("withdrawn_at", null).limit(1);
-  if (!consents?.length) redirect("/app/welcome");
-
   const since = isoDaysAgo(14);
-  const [itemsRes, holdingsRes, breadth, alertsRes, pushRes] = await Promise.all([
+  // One round trip: the consent check runs with the first queries (it only decides a redirect).
+  const [consentsRes, itemsRes, holdingsRes, breadth, alertsRes, pushRes] = await Promise.all([
+    db.from("user_consents").select("purpose").eq("purpose", "terms").is("withdrawn_at", null).limit(1),
     db.from("watchlist_items").select("id, watchlist_id, symbol, exchange, added_at").order("added_at"),
     can(s, "portfolio") ? db.from("holdings").select("*") : Promise.resolve({ data: [] as Holding[] }),
     getBreadth(db),
     db.from("price_alerts").select("id", { count: "exact", head: true }),
     db.from("push_subscriptions").select("id", { count: "exact", head: true }),
   ]);
+  if (!consentsRes.data?.length) redirect("/app/welcome");
 
   const items = (itemsRes.data ?? []) as WatchlistItem[];
   const radarSymbols = [...new Set(items.map((i) => i.symbol))];
@@ -199,7 +199,7 @@ export default async function OverviewPage() {
                     return (
                       <tr key={sym} className={tr}>
                         <td className={td}>
-                          <Link href={`/app/markets/${encodeURIComponent(sym)}`} className="group block">
+                          <Link prefetch={false} href={`/app/markets/${encodeURIComponent(sym)}`} className="group block">
                             <span className="num font-medium group-hover:underline">{sym}</span>
                             <span className="block max-w-[180px] truncate text-[11.5px] text-muted-foreground">{q?.name}</span>
                           </Link>
@@ -216,7 +216,7 @@ export default async function OverviewPage() {
                         </td>
                         <td className={td}>
                           {noteBySymbol.get(sym) ? (
-                            <Link href={`/app/markets/${encodeURIComponent(sym)}#research`} title={noteBySymbol.get(sym)!.headline}>
+                            <Link prefetch={false} href={`/app/markets/${encodeURIComponent(sym)}#research`} title={noteBySymbol.get(sym)!.headline}>
                               <StanceBadge stance={noteBySymbol.get(sym)!.stance} />
                             </Link>
                           ) : (
@@ -254,7 +254,7 @@ export default async function OverviewPage() {
                       {sg.signal_type === "buy" ? "BUY" : "EXIT"}
                     </Badge>
                     <div className="min-w-0 flex-1">
-                      <Link href={`/app/markets/${encodeURIComponent(sg.symbol)}`} className="num text-[13px] font-medium hover:underline">
+                      <Link prefetch={false} href={`/app/markets/${encodeURIComponent(sg.symbol)}`} className="num text-[13px] font-medium hover:underline">
                         {sg.symbol}
                       </Link>
                       <p className="text-[12px] text-muted-foreground">

@@ -42,6 +42,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/app/news">)
         <div role="tablist" className="flex rounded-md border border-border p-0.5 text-[12.5px]">
           {(["mine", "all"] as const).map((k) => (
             <Link
+              prefetch={false}
               key={k}
               role="tab"
               aria-selected={scope === k}
@@ -67,7 +68,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/app/news">)
               {scope === "mine" ? (
                 <>
                   Headlines appear here when a story names a stock on your radar or in your portfolio.{" "}
-                  <Link href="/app/news?scope=all" className="text-foreground underline underline-offset-4">
+                  <Link prefetch={false} href="/app/news?scope=all" className="text-foreground underline underline-offset-4">
                     See the whole market
                   </Link>
                   .
@@ -78,7 +79,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/app/news">)
             <>
               <NewsList items={items} />
               {nextHref && items.length === 40 ? (
-                <Link href={nextHref} className="mt-4 inline-block text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                <Link prefetch={false} href={nextHref} className="mt-4 inline-block text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground">
                   Older headlines
                 </Link>
               ) : null}

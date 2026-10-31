@@ -48,9 +48,10 @@ const CASH = [0, 5, 10, 20];
 const RULES: { key: string; label: string }[] = [
   { key: "all", label: "All matches" },
   { key: "strong_trend", label: "New 52-week high" },
-  { key: "sma_20_50_cross", label: "Trend turned up" },
+  { key: "sma_trend", label: "Leader's trend turned up" },
   { key: "rsi_dip", label: "Bought a dip" },
   { key: "kk_dip", label: "Bought a deeper dip" },
+  { key: "sma_20_50_cross", label: "Trend turned up (old rule)" },
   { key: "rsi_reversal", label: "Bounced (old rule)" },
   { key: "kk_breakout", label: "Breakout (old rule)" },
 ];
@@ -366,7 +367,7 @@ export function DryRunStudio({ candidates, benchmark }: { candidates: Candidate[
                   <li key={c.symbol} className={clsx("flex min-w-0 flex-col gap-2 rounded-lg border p-3 transition-colors duration-150", on ? "border-foreground" : "border-border")}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <Link href={`/app/markets/${encodeURIComponent(c.symbol)}`} className="num text-[14px] font-semibold hover:underline">
+                        <Link prefetch={false} href={`/app/markets/${encodeURIComponent(c.symbol)}`} className="num text-[14px] font-semibold hover:underline">
                           {c.symbol}
                         </Link>
                         <p className="truncate text-[11.5px] text-muted-foreground">
@@ -424,7 +425,7 @@ export function DryRunStudio({ candidates, benchmark }: { candidates: Candidate[
                   <li key={p.symbol} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:gap-4">
                     <div className="flex min-w-0 items-center justify-between gap-2 md:w-44">
                       <div className="min-w-0">
-                        <Link href={`/app/markets/${encodeURIComponent(p.symbol)}`} className="num text-[14px] font-semibold hover:underline">
+                        <Link prefetch={false} href={`/app/markets/${encodeURIComponent(p.symbol)}`} className="num text-[14px] font-semibold hover:underline">
                           {p.symbol}
                         </Link>
                         <p className="truncate text-[11.5px] text-muted-foreground">{p.state === "ready" ? p.d.sector ?? "—" : p.state === "error" ? "Couldn't load prices" : "Loading…"}</p>
@@ -456,6 +457,7 @@ export function DryRunStudio({ candidates, benchmark }: { candidates: Candidate[
                         </span>
                         {p.odds && Tone ? (
                           <Link
+                            prefetch={false}
                             href={`/app/markets/${encodeURIComponent(p.symbol)}`}
                             title="When the rule matched: out of 100 replays of the next days, how many reached the signal's target first and how many its stop. Open the chart for the details."
                             className={clsx("flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] hover:underline", Tone.cls)}

@@ -66,7 +66,17 @@ const watch = await db.query("select symbol, strategy, signal_day::text, limit_p
 console.log("dip-buy levels for the next session", watch.rows.length);
 
 t = Date.now();
+await db.query("select private.refresh_leaders(true)");
+const smaN = await db.query("select private.refresh_sma_trend() n");
+console.log("sma trend rows", smaN.rows[0].n, `${Date.now() - t} ms (incl. ranking every session)`);
+const ssig = await db.query(`select symbol, signal_type, (generated_at at time zone 'Asia/Kolkata')::date::text as day,
+  payload->>'stop' as stop, payload->>'result' as result from public.trading_signals where strategy = 'sma_trend' order by symbol, generated_at`);
+writeFileSync(join(here, "data", "sql_sma_signals.json"), JSON.stringify(ssig.rows));
+
+t = Date.now();
 const g = await db.query("select private.grade_signals(null, null) n");
 console.log("graded", g.rows[0].n, `${Date.now() - t} ms`);
 const sc = await db.query("select * from public.strategy_scorecard where period = 'all'");
 console.log("scorecard", sc.rows);
+const tr = await db.query("select strategy, side, trades, made_money_pct, avg_result_pct, avg_win_pct, avg_loss_pct, first_day::text, last_day::text from public.strategy_trade_results order by 1, 2");
+console.log("TRADES " + JSON.stringify(tr.rows));
