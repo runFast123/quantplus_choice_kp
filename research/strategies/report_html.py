@@ -223,15 +223,21 @@ than the old ones, but past results do not promise future ones.</li>
 </ul>
 
 <h2>Website speed</h2>
-<p>Measured on the live site: clicks showed a loading screen within 0.1 s, but the page took 0.4–0.9 s to fill, and the
-Signals page 2.4–3 s. The cause: <b>62 of 63 page requests during six clicks were background "prefetches"</b> of links that
-merely scrolled into view (the ticker, every table row), each one a server call that queued the click actually made.
-Fixed by prefetching only the menu (31 list links changed) and by running database queries side by side on the layout,
-overview, stock and Signals pages (one to two fewer waits per page). Re-measured locally: background requests 62 → 2.</p>
+<p><b>Before (measured on the live site):</b> every click showed a loading screen within 0.1 s, but the Signals page took
+2.5–3.5 s to fill and other pages 0.4–0.9 s. <b>62 of 63 page requests during six clicks were background "prefetches"</b>:
+every link that scrolled into view (the ticker, each table row, every menu item on each page load) was rendered on the
+server in advance, and the click actually made waited behind them.</p>
+<p><b>Fixed:</b> list, table and ticker links no longer prefetch; menu links prefetch only when pointed at or tapped; the
+layout, overview, stock and Signals pages run their database queries side by side (one to two fewer waits each).</p>
+<p><b>After (live, three test runs after the deploy):</b> background requests 62 → 17–21; the Signals click 1.4–1.9 s; other
+pages 0.4–1.4 s; full page loads 0.3–0.9 s. One of the three runs hit a slow spell on the server side (pages up to 2.6 s,
+one click 9.6 s): servers that have just started need about 3 s for their first page, which still shows up after a deploy
+or a quiet spell.</p>
 
 <h2>Status</h2>
-<p>Strong trend, RSI dip and KK dip are live. SMA 20/50 trend, the speed fixes and the shorter track record are built and
-tested (database tests, 139 unit tests, the full browser suite) and are ready to go live on approval.</p>
+<p>All four rules, the speed fixes and the shorter track record are live (31 Oct 2026). The live database passes all 13
+test suites, the full browser suite passes against the live site, and the daily price job runs every step within its time
+limits. Each rule's record on the Signals page grows by itself as new signals are graded.</p>
 
 <div class="foot">QuantsPulse signals are research prompts, not investment advice. Figures: research/strategies/record.py,
 record_dip.py, record_sma.py (tested); public.strategy_trade_results (stored prices). Decisions: ADR-035, ADR-036, ADR-037.</div>
