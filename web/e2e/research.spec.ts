@@ -24,6 +24,16 @@ test.describe("research desk", () => {
     for (const s of stances) expect(s.toLowerCase()).toContain("cautious");
   });
 
+  test("find a stock by name, and see which stocks changed stance", async ({ proPage }) => {
+    await proPage.goto("/app/research");
+    await expect(proPage.getByRole("region", { name: "What changed" })).toContainText(/Turned constructive/);
+    const box = proPage.getByRole("searchbox").or(proPage.getByLabel("Find a stock"));
+    await box.fill("Infosys");
+    await box.press("Enter");
+    await expect(proPage).toHaveURL(/q=Infosys/);
+    await expect(proPage.locator("tbody tr").first()).toContainText("INFY");
+  });
+
   test("sort select is reflected in the URL", async ({ proPage }) => {
     await proPage.goto("/app/research");
     await proPage.getByLabel("Sort").selectOption("change");
@@ -73,7 +83,7 @@ test.describe("news", () => {
   test("whole-market feed with tone filter", async ({ proPage }) => {
     await proPage.goto("/app/news?scope=all");
     await expect(proPage.locator("main ol > li").first()).toBeVisible();
-    await proPage.getByLabel("Tone").selectOption("negative");
+    await proPage.getByRole("group", { name: "Tone" }).getByRole("link", { name: "Negative" }).click();
     await expect(proPage).toHaveURL(/tone=negative/);
     // Exact badge texts only: headlines themselves can contain words like "positive".
     const badges = await proPage.locator("main ol > li").getByText(/^(\+ positive|− negative|neutral)$/).allTextContents();
@@ -81,9 +91,18 @@ test.describe("news", () => {
     for (const b of badges) expect(b).toBe("− negative");
   });
 
+  test("stocks in the news are counted and link to the stock", async ({ proPage }) => {
+    await proPage.goto("/app/news?scope=all");
+    const list = proPage.getByTestId("stocks-in-news");
+    await expect(list.locator("li").first()).toContainText(/\d+ headlines?/);
+    await expect(list.getByRole("link").first()).toHaveAttribute("href", /\/app\/markets\/.+#research$/);
+    await expect(proPage.getByRole("region", { name: /^(Today|Yesterday|.*\d.*)$/ }).first()).toBeVisible();
+  });
+
   test("only active sources are listed", async ({ proPage }) => {
     await proPage.goto("/app/news?scope=all");
     const sources = proPage.locator("section", { hasText: "How tone is scored" });
+    await sources.getByText(/^Sources/).click();
     await expect(sources.getByText("Economic Times · Markets")).toBeVisible();
     await expect(sources.getByText("Moneycontrol · Market reports")).toBeVisible();
     await expect(sources.getByText("Disabled Source · Test")).toHaveCount(0);
@@ -91,6 +110,6 @@ test.describe("news", () => {
 
   test("'My stocks' with an empty radar explains itself", async ({ basicPage }) => {
     await basicPage.goto("/app/news");
-    await expect(basicPage.getByText(/Nothing on your stocks yet|named/)).toBeVisible();
+    await expect(basicPage.getByText("Nothing on your stocks yet.")).toBeVisible();
   });
 });

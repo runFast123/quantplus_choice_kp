@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import clsx from "clsx";
 import { CloudLightningIcon, CloudSunIcon, SunIcon } from "@phosphor-icons/react/ssr";
-import { Badge, Delta, Stat } from "@/components/ui/data";
+import { Badge, Delta } from "@/components/ui/data";
 import { CheckTag } from "@/components/market/check-tag";
 import { HealthChip, RuleHealthCard } from "@/components/market/rule-health";
+import { SectionTabs } from "@/components/ui/section-tabs";
 import {
   Empty,
   PageHeader,
@@ -16,7 +17,7 @@ import {
   thNum,
   tr,
 } from "@/components/ui/layout";
-import { date, price, strategyLabel } from "@/lib/format";
+import { date, isoDaysAgo, price, strategyLabel } from "@/lib/format";
 import { markerFromSignal, signalAction, tradeFor, type SignalAction } from "@/lib/signal-trade";
 import { DIP_EXIT, dipStatus, dipTestedSentence, isDipRule } from "@/lib/dip-rules";
 import {
@@ -122,6 +123,8 @@ type OwnPlan = {
 };
 
 const pct = (n: number | null) => (n == null ? "—" : `${Math.round(n)}%`);
+// Rows in the signal list before "Show all".
+const ROWS = 60;
 
 export default async function SignalsPage({
   searchParams,
@@ -133,10 +136,10 @@ export default async function SignalsPage({
     typeof sp.strategy === "string" && ORDER.includes(sp.strategy)
       ? sp.strategy
       : "";
-  const statusFilter =
-    typeof sp.status === "string" && ["targets", "progress", "exhaustion"].includes(sp.status)
-      ? sp.status
-      : "";
+  const statusFilter = typeof sp.status === "string" && ["open", "closed"].includes(sp.status) ? sp.status : "";
+  // Which rules the list shows: the four in use (default), the old ones they replaced, or both.
+  const rules = typeof sp.rules === "string" && ["old", "all"].includes(sp.rules) ? sp.rules : "";
+  const more = sp.more === "1";
 
   const db = s.supabase;
 
@@ -152,6 +155,8 @@ export default async function SignalsPage({
       q = q.in("symbol", mine.length ? mine : ["__none__"]);
     }
     if (strategy) q = q.eq("strategy", strategy);
+    else if (rules === "old") q = q.in("strategy", OLD_RULES);
+    else if (rules !== "all") q = q.in("strategy", STRATEGIES.map((x) => x.key));
     const { data } = await q;
     const rows = (data ?? []) as Signal[];
     // The signal checks' tags for these signals and for the next session's dip-buy levels (newer than any of them).
@@ -291,140 +296,98 @@ export default async function SignalsPage({
     return { ...base, evaluation: null };
   });
 
-  // Open buys only: a buy its rule has already exited is history, not a trade to track.
-  const buyItems = evaluatedSignals.filter((item) => item.evaluation?.plan.isValid);
-  const ownOpen = evaluatedSignals.filter((item) => item.own);
-  const t1PlusHits = buyItems.filter((item) =>
-    ["t1_hit", "t2_hit", "t3_hit"].includes(item.evaluation?.targetStatus ?? ""),
-  );
-  const t2PlusHits = buyItems.filter((item) =>
-    ["t2_hit", "t3_hit"].includes(item.evaluation?.targetStatus ?? ""),
-  );
-  const exhaustionAlerts = buyItems.filter((item) =>
-    ["sentiment_peak", "overbought"].includes(item.evaluation?.sentiment?.zone ?? ""),
-  );
+  // The four rules in use; fresh = an open buy from the last 7 days.
+  const current = new Set(STRATEGIES.map((x) => x.key));
+  const weekAgo = isoDaysAgo(7);
+  const fresh = evaluatedSignals.filter((x) => x.own && current.has(x.sg.strategy) && x.sg.generated_at >= weekAgo);
+  const statuses = STRATEGIES.map((st) => health.latest.get(st.key)?.status);
+  const onTrack = statuses.filter((x) => x === "within" || x === "above").length;
+  const weaker = STRATEGIES.filter((st) => health.latest.get(st.key)?.status === "below").map((st) => st.title);
 
-  const t1Rate =
-    buyItems.length > 0 ? (t1PlusHits.length / buyItems.length) * 100 : 0;
+  const displayedSignals = evaluatedSignals.filter((item) =>
+    statusFilter === "open" ? !item.closed && item.action === "buy" : statusFilter === "closed" ? item.closed : true,
+  );
+  const shownSignals = more ? displayedSignals : displayedSignals.slice(0, ROWS);
 
-  // Apply optional status filter
-  const displayedSignals = evaluatedSignals.filter((item) => {
-    if (!statusFilter) return true;
-    if (statusFilter === "targets") {
-      return ["t1_hit", "t2_hit", "t3_hit"].includes(
-        item.evaluation?.targetStatus ?? "",
-      );
-    }
-    if (statusFilter === "progress") {
-      return item.evaluation?.targetStatus === "in_progress" || Boolean(item.own);
-    }
-    if (statusFilter === "exhaustion") {
-      return ["sentiment_peak", "overbought"].includes(
-        item.evaluation?.sentiment?.zone ?? "",
-      );
-    }
-    return true;
-  });
-
-  const link = (patch: Record<string, string>) => {
+  const link = (patch: Record<string, string>, hash = "all") => {
     const p = new URLSearchParams({
       scope,
       ...(strategy ? { strategy } : {}),
       ...(statusFilter ? { status: statusFilter } : {}),
+      ...(rules ? { rules } : {}),
       ...patch,
     });
     for (const [k, v] of [...p.entries()]) if (!v) p.delete(k);
-    return `/app/signals?${p.toString()}`;
+    return `/app/signals?${p.toString()}${hash ? `#${hash}` : ""}`;
   };
 
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        eyebrow="Rule-based"
-        title="Signals"
-        description="Every signal comes from one of the four simple rules below, so you can always see why it fired, and every one is graded afterwards. Signals are research prompts, not advice. Each open buy shows a stop (the price where the idea is wrong) and how it ends."
-      />
+  const tag = (sg: Signal, action: SignalAction) =>
+    isCheckRule(sg.strategy) && action === "buy" && tags.has(checkKey(sg.strategy, sg.symbol, signalDayOf(sg))) ? <CheckTag rule={sg.strategy} /> : null;
 
-      {/* Today's market weather: the condition Strong trend waits for */}
-      <section className="panel flex items-start gap-3 p-4" aria-label="Market weather">
-        <WeatherIcon size={22} weight="duotone" aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />
-        <div className="min-w-0">
-          <p className="text-[13px]">
-            <span className="font-medium">Market weather: {weather.label}</span>
-            {weatherRes.data?.day ? (
-              <span className="text-muted-foreground"> · close of {date(weatherRes.data.day)}</span>
+  const todayTab = (
+    <div className="flex flex-col gap-5">
+      <Panel title="Fresh buys from the four rules" meta="Open, last 7 days">
+        {fresh.length === 0 ? (
+          <Empty title={scope === "mine" ? "No fresh buys on your stocks." : "No fresh buys this week."}>
+            {weather.state === "stormy" ? "In a stormy market the trend rules wait; the dip rules still fire on rising stocks. " : ""}
+            {scope === "mine" ? (
+              <Link prefetch={false} href={link({ scope: "all" }, "today")} className="text-foreground underline underline-offset-4">
+                See every stock
+              </Link>
             ) : null}
-          </p>
-          <p className="mt-0.5 text-[12.5px] leading-5 text-muted-foreground">{weather.sentence}</p>
-        </div>
-      </section>
-
-      {/* Summary strip */}
-      <section className="panel grid grid-cols-2 sm:grid-cols-4">
-        <Stat
-          className="p-4 border-b border-r border-border sm:border-b-0"
-          label="Open buy signals"
-          value={buyItems.length + ownOpen.length}
-          sub={`Out of ${evaluatedSignals.length} signals listed`}
-        />
-        <Stat
-          className="p-4 border-b border-border sm:border-b-0 sm:border-r"
-          label="Reached target 1"
-          value={`${t1PlusHits.length} (${t1Rate.toFixed(0)}%)`}
-          sub="Open buys with targets, at or above the first"
-        />
-        <Stat
-          className="p-4 border-r border-border"
-          label="Reached target 2"
-          value={t2PlusHits.length}
-          sub="Open buys with targets, at or above the second"
-        />
-        <Stat
-          className="p-4"
-          label="Running hot"
-          value={exhaustionAlerts.length}
-          sub="Open buys with RSI 70 or more: the price rose fast"
-        />
-      </section>
-
-      {/* Strategy Selector Cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {STRATEGIES.map((st) => (
-          <Link
-            prefetch={false}
-            key={st.key}
-            href={link({ strategy: strategy === st.key ? "" : st.key })}
-            aria-current={strategy === st.key ? "true" : undefined}
-            className={clsx(
-              "panel block p-4 transition-colors hover:border-muted-foreground/50",
-              strategy === st.key && "border-foreground",
-            )}
-          >
-            <p className="display text-[20px]">{st.title}</p>
-            <p className="mt-1.5 text-[13px] leading-5">{st.rule}</p>
-            <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{st.reads}</p>
-            {st.tested ? (
-              <p className="mt-2 border-t border-border pt-2 text-[12px] leading-5 text-muted-foreground">{st.tested}</p>
+          </Empty>
+        ) : (
+          <>
+            <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 [&>li:nth-child(n+7)]:hidden sm:[&>li:nth-child(n+7)]:flex" data-testid="fresh-buys">
+              {fresh.slice(0, 12).map(({ sg, at, last, since, own }) => (
+                <li key={sg.id} className="flex min-w-0 flex-col gap-2 rounded-lg border border-border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link prefetch={false} href={`/app/markets/${encodeURIComponent(sg.symbol)}`} className="num text-[14px] font-semibold hover:underline">
+                        {sg.symbol}
+                      </Link>
+                      <p className="text-[11.5px] text-muted-foreground">
+                        {strategyLabel[sg.strategy]} · {date(sg.generated_at)}
+                      </p>
+                    </div>
+                    {own ? <Badge tone={own.status.tone}>{own.status.label}</Badge> : null}
+                  </div>
+                  <p className="num flex flex-wrap items-baseline gap-x-2 text-[12.5px]">
+                    <span className="text-muted-foreground">₹{price(at)} →</span>
+                    <span>{last ? `₹${price(last)}` : "—"}</span>
+                    <Delta value={since} />
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {tag(sg, "buy")}
+                    <HealthChip row={health.latest.get(sg.strategy)} prefix="Rule:" />
+                  </div>
+                  {own ? (
+                    <p className="mt-auto flex justify-between gap-2 border-t border-border pt-2 text-[11.5px] text-muted-foreground">
+                      <span title={own.stopTitle}>
+                        Stop <span className="num text-loss">₹{price(own.stop)}</span>
+                      </span>
+                      <span title={own.nextTitle}>
+                        {own.next} <span className="text-muted-foreground/80">{own.nextSub}</span>
+                      </span>
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            {fresh.length > 6 ? (
+              <Link prefetch={false} href={link({ status: "open" })} className="mt-3 inline-block text-[12.5px] text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                See all {fresh.length} in the signal list
+              </Link>
             ) : null}
-            {health.latest.get(st.key) ? (
-              <p className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2 text-[12px] text-muted-foreground">
-                Lately: <HealthChip row={health.latest.get(st.key)} />
-                <span className="num">
-                  {health.latest.get(st.key)!.made}/{health.latest.get(st.key)!.trades} made money
-                </span>
-              </p>
-            ) : null}
-          </Link>
-        ))}
-      </div>
-
-      <p className="-mt-2 text-[12px] leading-5 text-muted-foreground">
-        RSI dip, KK dip and SMA 20/50 trend replace the old RSI reversal, KK breakout and SMA 20/50 cross rules, which
-        did worse in testing. The old rules&apos; signals stay in the signal list below as history.
-      </p>
+          </>
+        )}
+      </Panel>
 
       {/* Tomorrow's dip-buy levels: an RSI dip / KK dip signal is a price to buy at, valid for one session */}
-      <Panel title="Dip-buy levels for the next session" meta={`${watches.length} ${watches.length === 1 ? "stock" : "stocks"}`}>
+      <Panel
+        title="Dip-buy levels for the next session"
+        meta={watches.length ? `${watches.length} ${watches.length === 1 ? "stock" : "stocks"} · from the close of ${date(watches[0].signal_day)}` : undefined}
+      >
         {watches.length === 0 ? (
           <Empty title={scope === "mine" ? "No dip-buy levels on your stocks." : "No dip-buy levels for the next session."}>
             A level appears after a close when RSI dip or KK dip fires; it is good for the next session only.
@@ -432,15 +395,13 @@ export default async function SignalsPage({
         ) : (
           <>
             <TableWrap>
-              <table className="w-full min-w-[720px]">
+              <table className="w-full min-w-[520px]">
                 <thead>
                   <tr>
                     <th className={th}>Stock</th>
                     <th className={th}>Rule</th>
-                    <th className={thNum}>Close</th>
                     <th className={thNum}>Buy only at or under</th>
                     <th className={thNum}>Safety stop</th>
-                    <th className={th}>Signal from</th>
                     <th className={th}>Check</th>
                   </tr>
                 </thead>
@@ -453,10 +414,8 @@ export default async function SignalsPage({
                         </Link>
                       </td>
                       <td className={td + " text-muted-foreground"}>{strategyLabel[w.strategy] ?? w.strategy}</td>
-                      <td className={tdNum}>₹{price(Number((w.payload as Record<string, unknown>)?.signal_close) || null)}</td>
                       <td className={tdNum + " font-medium"}>₹{price(Number(w.limit_price))}</td>
                       <td className={tdNum + " text-loss"}>₹{price(Number(w.stop))}</td>
-                      <td className={td + " num text-muted-foreground"}>close of {date(w.signal_day)}</td>
                       <td className={td}>
                         {w.strategy === "rsi_dip" && tags.has(checkKey("rsi_dip", w.symbol, w.signal_day)) ? (
                           <CheckTag rule="rsi_dip" />
@@ -470,13 +429,267 @@ export default async function SignalsPage({
               </table>
             </TableWrap>
             <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-              If the price trades down to this level in the next session the rule buys there; if it doesn&apos;t, the level
-              expires and there is no trade. {DIP_EXIT}. Research, not advice.
+              If the price trades down to the level in the next session the rule buys there; if not, the level expires. {DIP_EXIT}.
             </p>
           </>
         )}
       </Panel>
+    </div>
+  );
 
+  const filterGroup = (label: string, param: "status" | "rules", value: string, options: { key: string; label: string }[]) => (
+    <div role="group" aria-label={label} className="flex max-w-full flex-wrap rounded-md border border-border p-0.5 text-[11.5px]">
+      {options.map((f) => (
+        <Link
+          prefetch={false}
+          key={f.key}
+          aria-current={value === f.key ? "true" : undefined}
+          href={link({ [param]: f.key, more: "" })}
+          className={clsx(
+            "rounded-[5px] px-2 py-0.5 transition-colors",
+            value === f.key ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {f.label}
+        </Link>
+      ))}
+    </div>
+  );
+
+  const allTab = (
+    <Panel
+      title={strategy ? `${strategyLabel[strategy]} signals` : rules === "old" ? "Old rules' signals" : "Signals"}
+      meta={`${displayedSignals.length} listed`}
+      actions={
+        <div className="flex max-w-full flex-wrap items-center gap-2">
+          {filterGroup("Show", "status", statusFilter, [
+            { key: "", label: "All" },
+            { key: "open", label: "Open buys" },
+            { key: "closed", label: "Closed" },
+          ])}
+          {strategy ? (
+            <Link prefetch={false} href={link({ strategy: "" })} className="rounded-md border border-border px-2 py-0.5 text-[11.5px] text-muted-foreground hover:text-foreground">
+              {strategyLabel[strategy]} ✕
+            </Link>
+          ) : (
+            filterGroup("Rules", "rules", rules, [
+              { key: "", label: "Four rules" },
+              { key: "old", label: "Old rules" },
+              { key: "all", label: "Both" },
+            ])
+          )}
+        </div>
+      }
+    >
+      {displayedSignals.length === 0 ? (
+        <Empty title={statusFilter ? "No signals match the selected filter." : scope === "mine" ? "No signals on your stocks." : "No signals."}>
+          {statusFilter ? (
+            <Link prefetch={false} href={link({ status: "" })} className="text-foreground underline underline-offset-4">
+              Show all signals
+            </Link>
+          ) : scope === "mine" ? (
+            <>
+              Signals only show for stocks on your radar or in your portfolio.{" "}
+              <Link prefetch={false} href={link({ scope: "all" })} className="text-foreground underline underline-offset-4">
+                See everything
+              </Link>
+              .
+            </>
+          ) : null}
+        </Empty>
+      ) : (
+        <>
+          {/* Phones: one card per signal */}
+          <ul className="flex flex-col divide-y divide-border sm:hidden" data-testid="signal-cards">
+            {shownSignals.map(({ sg, at, last, since, evaluation, action, closed, result, own }) => (
+              <li key={sg.id} className="flex flex-col gap-1 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Link prefetch={false} href={`/app/markets/${encodeURIComponent(sg.symbol)}`} className="num font-medium hover:underline">
+                      {sg.symbol}
+                    </Link>
+                    <Badge tone={action === "buy" || action === "cover" ? "gain" : "loss"}>{ACTION_LABEL[action]}</Badge>
+                  </span>
+                  <span className="num text-[11.5px] text-muted-foreground">{date(sg.generated_at)}</span>
+                </div>
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+                  {strategyLabel[sg.strategy] ?? sg.strategy}
+                  {tag(sg, action)}
+                  {evaluation ? <Badge tone={evaluation.statusTone}>{evaluation.statusLabel}</Badge> : own ? <Badge tone={own.status.tone}>{own.status.label}</Badge> : null}
+                </p>
+                <p className="num flex flex-wrap items-baseline gap-x-2 text-[12px]">
+                  <span className="text-muted-foreground">₹{price(at)}</span>
+                  {closed ? (
+                    <span className="flex items-center gap-1 text-muted-foreground">Closed {result != null ? <Delta value={result} /> : null}</span>
+                  ) : (
+                    <>
+                      <span>→ {last ? `₹${price(last)}` : "—"}</span>
+                      <Delta value={since} />
+                      {own?.stop ? <span className="text-muted-foreground">· stop <span className="text-loss">₹{price(own.stop)}</span></span> : null}
+                    </>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+
+          {/* Wider screens: the full table */}
+          <div className="hidden sm:block">
+            <TableWrap>
+              <table className="w-full min-w-[900px]">
+                <thead>
+                  <tr>
+                    <th className={th}>Date</th>
+                    <th className={th}>Stock</th>
+                    <th className={th}>Signal</th>
+                    <th className={th}>Status</th>
+                    <th className={th}>Rule</th>
+                    <th className={thNum}>Price then</th>
+                    <th className={thNum}>Stop</th>
+                    <th className={thNum}>Next target or review</th>
+                    <th className={thNum}>Last close</th>
+                    <th className={thNum}>Change since</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shownSignals.map(({ sg, at, last, since, evaluation, action, closed, result, own }) => {
+                    const plan = evaluation?.plan;
+                    const targets = plan && plan.isValid ? [plan.t1, plan.t2, plan.t3] : [];
+                    const next = targets.findIndex((t) => !last || last < t);
+                    return (
+                      <tr key={sg.id} className={tr}>
+                        <td className={td + " num text-muted-foreground"}>{date(sg.generated_at)}</td>
+                        <td className={td}>
+                          <Link prefetch={false} href={`/app/markets/${encodeURIComponent(sg.symbol)}`} className="num font-medium hover:underline">
+                            {sg.symbol}
+                          </Link>
+                        </td>
+                        <td className={td}>
+                          <Badge tone={action === "buy" || action === "cover" ? "gain" : "loss"}>{ACTION_LABEL[action]}</Badge>
+                        </td>
+                        <td className={td}>
+                          {evaluation ? (
+                            <Badge tone={evaluation.statusTone}>{evaluation.statusLabel}</Badge>
+                          ) : own ? (
+                            <Badge tone={own.status.tone}>{own.status.label}</Badge>
+                          ) : closed ? (
+                            <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                              Closed
+                              {result != null ? <Delta value={result} /> : null}
+                            </span>
+                          ) : (
+                            <span className="text-[12px] text-muted-foreground">Open</span>
+                          )}
+                        </td>
+                        <td className={td + " text-muted-foreground"}>
+                          <div className="flex flex-col items-start gap-1">
+                            {strategyLabel[sg.strategy] ?? sg.strategy}
+                            {tag(sg, action)}
+                          </div>
+                        </td>
+                        <td className={tdNum}>₹{price(at)}</td>
+                        <td className={tdNum}>
+                          {plan && plan.isValid ? (
+                            <div className="flex flex-col items-end">
+                              <span className="num font-medium text-loss">₹{price(plan.stop)}</span>
+                              <span className="text-[10px] text-muted-foreground">−{plan.riskPercent.toFixed(1)}%</span>
+                            </div>
+                          ) : own?.stop && at ? (
+                            <div className="flex flex-col items-end" title={own.stopTitle}>
+                              <span className="num font-medium text-loss">₹{price(own.stop)}</span>
+                              <span className="text-[10px] text-muted-foreground">−{(((at - own.stop) / at) * 100).toFixed(1)}%</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className={tdNum}>
+                          {own ? (
+                            <div className="flex flex-col items-end" title={own.nextTitle}>
+                              <span className="font-sans text-[12px]">{own.next}</span>
+                              <span className="font-sans text-[10px] text-muted-foreground">{own.nextSub}</span>
+                            </div>
+                          ) : targets.length ? (
+                            <div className="flex flex-col items-end" title={`Targets: ${targets.map((t, i) => `${i + 1}) ₹${price(t)}`).join("  ")}`}>
+                              {next === -1 ? (
+                                <span className="font-sans text-[12px] font-medium text-gain">All 3 reached</span>
+                              ) : (
+                                <>
+                                  <span className="num">₹{price(targets[next])}</span>
+                                  <span className="font-sans text-[10px] text-muted-foreground">target {next + 1} of 3</span>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="font-sans text-[12px] text-muted-foreground">
+                              {action === "exit" ? "Closed the buy" : action === "cover" ? "Closed the short" : closed ? "Trade closed" : action === "sell" ? "Short trade" : "—"}
+                            </span>
+                          )}
+                        </td>
+                        <td className={tdNum}>{last ? `₹${price(last)}` : "—"}</td>
+                        <td className={tdNum}>
+                          <Delta value={since} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TableWrap>
+          </div>
+          {!more && displayedSignals.length > ROWS ? (
+            <Link prefetch={false} href={link({ more: "1" })} className="mt-3 inline-block text-[12.5px] text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              Show all {displayedSignals.length}
+            </Link>
+          ) : null}
+        </>
+      )}
+    </Panel>
+  );
+
+  const rulesTab = (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" data-testid="rule-health">
+        {STRATEGIES.map((st) => {
+          const t = tradesBy.get(`${st.key}-long`);
+          return (
+            <article key={st.key} aria-label={st.title} className="panel flex min-w-0 flex-col gap-3 p-4">
+              <div>
+                <h3 className="display text-[20px]">{st.title}</h3>
+                <p className="mt-1 text-[13px] leading-5">{st.rule}</p>
+                <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{st.reads}</p>
+              </div>
+              <RuleHealthCard title={st.title} label="Lately" row={health.latest.get(st.key)} history={health.history.get(st.key) ?? []} />
+              {t ? (
+                <p className="text-[12px] text-muted-foreground">
+                  On this site: <span className="num text-foreground">{Number(t.trades).toLocaleString("en-IN")}</span> trades closed,{" "}
+                  <span className="num text-foreground">{pct(t.made_money_pct)}</span> made money.
+                </p>
+              ) : null}
+              {st.tested ? (
+                <details className="text-[12px] leading-5 text-muted-foreground">
+                  <summary className="cursor-pointer select-none text-foreground">Tested record</summary>
+                  <p className="mt-1">{st.tested}</p>
+                </details>
+              ) : null}
+              <Link prefetch={false} href={link({ strategy: st.key, rules: "" })} className="mt-auto text-[12.5px] font-medium hover:underline">
+                See its signals →
+              </Link>
+            </article>
+          );
+        })}
+      </div>
+      <p className="text-[12px] leading-5 text-muted-foreground">
+        After every close, each rule&apos;s last 40 finished trades are compared with how it did in testing, and every losing trade is
+        sorted by what went wrong. A rule that drifts outside its normal range is flagged for review; it is never changed or switched off
+        on its own, because a short bad run is usually just noise. RSI dip, KK dip and SMA 20/50 trend replaced the old RSI reversal, KK
+        breakout and SMA 20/50 cross rules, which did worse in testing; their signals stay in the list under &ldquo;Old rules&rdquo;.
+      </p>
+    </div>
+  );
+
+  const recordTab = (
+    <div className="flex flex-col gap-5">
       {/* Every entry signal, graded afterwards from stored prices */}
       <Panel title="Track record" meta="Every signal counted, winners and losers alike">
         {scores.length === 0 ? (
@@ -484,28 +697,16 @@ export default async function SignalsPage({
         ) : (
           <>
             <TableWrap>
-              <table className="w-full min-w-[980px]">
+              <table className="w-full min-w-[760px]">
                 <thead>
-                  <tr>
-                    <th className={th} />
-                    <th className={thNum + " border-b-0"} colSpan={3}>
-                      By the rule&apos;s own plan
-                    </th>
-                    <th className={thNum + " border-b-0"} colSpan={4}>
-                      20 trading sessions after each signal
-                    </th>
-                    <th className={th} />
-                  </tr>
                   <tr>
                     <th className={th}>Rule</th>
                     <th className={thNum}>Trades closed</th>
                     <th className={thNum}>Made money</th>
                     <th className={thNum}>Average trade</th>
-                    <th className={thNum}>Signals graded</th>
-                    <th className={thNum}>Went the right way</th>
+                    <th className={thNum}>Higher after 20 sessions</th>
                     <th className={thNum}>Vs the Nifty 500 (points)</th>
                     <th className={thNum}>Stop hit</th>
-                    <th className={thNum}>Since</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -513,22 +714,15 @@ export default async function SignalsPage({
                     const t = tradesBy.get(`${r.strategy}-${r.side}`);
                     return (
                       <tr key={`${r.strategy}-${r.side}`} className={tr}>
-                        <td className={td}>
-                          {strategyLabel[r.strategy] ?? r.strategy}
-                          {r.strategy === "kk_breakout" ? (
-                            <span className="text-muted-foreground"> · {r.side === "long" ? "buys" : "shorts"}</span>
-                          ) : null}
-                        </td>
+                        <td className={td}>{strategyLabel[r.strategy] ?? r.strategy}</td>
                         <td className={tdNum}>{t ? Number(t.trades).toLocaleString("en-IN") : "—"}</td>
                         <td className={tdNum}>{t ? pct(t.made_money_pct) : "—"}</td>
                         <td className={tdNum}>{t ? <Delta value={t.avg_result_pct == null ? null : Number(t.avg_result_pct)} /> : "—"}</td>
-                        <td className={tdNum}>{r.graded_20.toLocaleString("en-IN")}</td>
                         <td className={tdNum}>{pct(r.up_20_pct)}</td>
                         <td className={tdNum}>
                           <Delta value={r.vs_index_20_pts} kind="abs" />
                         </td>
                         <td className={tdNum}>{pct(r.stop_hit_20_pct)}</td>
-                        <td className={tdNum + " text-muted-foreground"}>{r.first_day ? date(r.first_day) : "—"}</td>
                       </tr>
                     );
                   })}
@@ -536,41 +730,20 @@ export default async function SignalsPage({
               </table>
             </TableWrap>
             <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-              “By the rule&apos;s own plan” counts every closed trade the way the rule closed it (its safety stop, its
-              review, or the bounce). The dip rules sell within days, the trend rules after up to 60 sessions. “20
-              sessions after” grades every buy the same way: higher 20 sessions after the entry, and the difference from
-              the Nifty 500 over those sessions. All before costs (about 0.5 % a round trip). All four
-              rules are new: their earlier signals were worked out afterwards with the same rules on stored prices.
+              &ldquo;Made money&rdquo; counts every closed trade the way the rule closed it (its safety stop, its review or the bounce).
+              &ldquo;Higher after 20 sessions&rdquo; grades every buy the same way, and the next column compares it with the Nifty 500
+              over those sessions. Before costs (about 0.5 % a round trip). Earlier signals were worked out afterwards with the same
+              rules on stored prices.
             </p>
           </>
         )}
       </Panel>
 
-      {/* Rule health and mistake review (ADR-039): each rule's recent record against its tested range, every day */}
-      <Panel title="Rule health" meta="Checked after every close" className="scroll-mt-28" id="health">
-        <p className="mb-4 max-w-3xl text-[13px] leading-5">
-          After every close, each rule&apos;s last 40 finished trades are compared with how it did in testing, and every losing
-          trade is sorted by what went wrong. A rule that drifts outside its normal range is flagged for review; it is never
-          changed or switched off on its own, because a short bad run is usually just noise.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="rule-health">
-          {STRATEGIES.map((st) => (
-            <RuleHealthCard key={st.key} title={st.title} row={health.latest.get(st.key)} history={health.history.get(st.key) ?? []} />
-          ))}
-        </div>
-        <p className="mt-3 text-[11.5px] leading-5 text-muted-foreground">
-          The normal range is where 9 in 10 stretches of this many trades land if the rule is doing what it did in testing.
-          Trades that finish on the same days often share one market move, so treat the range as a guide. The small line
-          shows the share that made money at each check over the past year.
-        </p>
-      </Panel>
-
       {/* The signal checks: what each tag means and how tagged signals have done (ADR-038) */}
       <Panel title="Signal checks" meta="Nothing is hidden">
         <p className="text-[13px] leading-5">
-          Two rules check how signals like today&apos;s have turned out and add a tag when the evidence is there. A tag is
-          extra information: every signal is still listed and graded. Of everything tested to make the rules adapt to
-          the market, these two checks were the only ideas that held up on stocks they had not been tried on.
+          Two rules check how signals like today&apos;s have turned out and add a tag when the evidence is there. A tag is extra
+          information: every signal is still listed and graded.
         </p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {CHECKS.map((c) => {
@@ -583,313 +756,127 @@ export default async function SignalsPage({
                   <CheckTag rule={c.rule} />
                 </div>
                 <p className="mt-1.5 text-[13px] leading-5">{c.what}</p>
-                <div className="mt-3">
-                  <TableWrap label={`${c.title}, tested record`}>
-                    <table className="w-full min-w-[360px]">
-                      <thead>
-                        <tr>
-                          <th className={th}>Tested</th>
-                          <th className={thNum}>Tagged</th>
-                          <th className={thNum}>Made money</th>
-                          <th className={thNum}>Others</th>
-                          <th className={thNum}>Made money</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tested.map((y) => (
-                          <tr key={y.year} className={tr}>
-                            <td className={td + " num"}>{y.year}</td>
-                            <td className={tdNum}>{y.tagged.n.toLocaleString("en-IN")}</td>
-                            <td className={tdNum}>{y.tagged.n ? pct(y.tagged.made) : "—"}</td>
-                            <td className={tdNum}>{y.rest.n.toLocaleString("en-IN")}</td>
-                            <td className={tdNum}>{pct(y.rest.made)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </TableWrap>
-                </div>
                 <p className="mt-2 text-[12.5px] leading-5">{standingLine(c.rule, tested)}</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{periodsSentence(c.rule)}</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
                   {recordRes.error
                     ? "On this site: the record could not be loaded just now; reload to try again."
                     : live.tagged.n + live.rest.n === 0
-                    ? "On this site: no checked trade has closed yet."
-                    : `On this site so far: ${live.tagged.n.toLocaleString("en-IN")} tagged ${live.tagged.n === 1 ? "trade" : "trades"} closed${live.tagged.n ? `, ${Math.round(live.tagged.made)} in 100 made money` : ""}, vs ${Math.round(live.rest.made)} in 100 for the other ${live.rest.n.toLocaleString("en-IN")} checked.`}
+                      ? "On this site: no checked trade has closed yet."
+                      : `On this site so far: ${live.tagged.n.toLocaleString("en-IN")} tagged ${live.tagged.n === 1 ? "trade" : "trades"} closed${live.tagged.n ? `, ${Math.round(live.tagged.made)} in 100 made money` : ""}, vs ${Math.round(live.rest.made)} in 100 for the other ${live.rest.n.toLocaleString("en-IN")} checked.`}
                 </p>
+                <details className="mt-2">
+                  <summary className="cursor-pointer select-none text-[12px] text-foreground">Tested record by year</summary>
+                  <div className="mt-2">
+                    <TableWrap label={`${c.title}, tested record`}>
+                      <table className="w-full min-w-[360px]">
+                        <thead>
+                          <tr>
+                            <th className={th}>Tested</th>
+                            <th className={thNum}>Tagged</th>
+                            <th className={thNum}>Made money</th>
+                            <th className={thNum}>Others</th>
+                            <th className={thNum}>Made money</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tested.map((y) => (
+                            <tr key={y.year} className={tr}>
+                              <td className={td + " num"}>{y.year}</td>
+                              <td className={tdNum}>{y.tagged.n.toLocaleString("en-IN")}</td>
+                              <td className={tdNum}>{y.tagged.n ? pct(y.tagged.made) : "—"}</td>
+                              <td className={tdNum}>{y.rest.n.toLocaleString("en-IN")}</td>
+                              <td className={tdNum}>{pct(y.rest.made)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </TableWrap>
+                  </div>
+                </details>
               </section>
             );
           })}
         </div>
         <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
-          Tested on each year&apos;s 300 most traded stocks, with every check using only what was known at the time;
-          results by the rule&apos;s own plan after about 0.5 % in costs. &ldquo;On this site&rdquo; counts this
-          site&apos;s own signals (the earlier ones worked out afterwards on stored prices, with the check of the time).{" "}
+          Tested on each year&apos;s 300 most traded stocks, with every check using only what was known at the time; results by the
+          rule&apos;s own plan after about 0.5 % in costs.{" "}
           {model
             ? `The RSI dip check is refitted at each quarter start on finished trades only: this one learned from ${Number(model.n_train ?? 0).toLocaleString("en-IN")} trades up to ${model.trained_through ? date(model.trained_through) : "—"}${model.valid_from < quarterStart ? "; this quarter's refit has not run yet" : ""}${model.shown === "false" ? ", and it could not rank its own past, so it tags nothing this quarter" : ""}.`
             : "The RSI dip check starts once its first model is stored."}{" "}
           Research, not advice.
         </p>
       </Panel>
+    </div>
+  );
 
-      {/* Signals Table Panel */}
-      <Panel
-        title={scope === "mine" ? "On your radar and portfolio" : "All stocks"}
-        meta={`${displayedSignals.length} signals displayed`}
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        eyebrow="Rule-based"
+        title="Signals"
+        description="Four simple rules scan every NSE stock after each close. See what they found, what to watch in the next session, and how each rule is doing. Signals are research prompts, not advice."
         actions={
-          <div className="flex max-w-full flex-wrap items-center gap-2">
-            {/* Status Filter */}
-            <div
-              role="tablist"
-              aria-label="Show"
-              className="flex max-w-full flex-wrap rounded-md border border-border p-0.5 text-[11px]"
-            >
-              {[
-                { key: "", label: "All" },
-                { key: "targets", label: "Hit a target" },
-                { key: "progress", label: "Still open" },
-                { key: "exhaustion", label: "Running hot" },
-              ].map((f) => (
-                <Link
-                  prefetch={false}
-                  key={f.key}
-                  role="tab"
-                  aria-selected={statusFilter === f.key}
-                  href={link({ status: f.key })}
-                  className={clsx(
-                    "rounded-[5px] px-2 py-0.5 transition-colors",
-                    statusFilter === f.key
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {f.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* Scope Switcher */}
-            <div
-              role="tablist"
-              aria-label="Stocks"
-              className="flex rounded-md border border-border p-0.5 text-[12px]"
-            >
-              {(["mine", "all"] as const).map((k) => (
-                <Link
-                  prefetch={false}
-                  key={k}
-                  role="tab"
-                  aria-selected={scope === k}
-                  href={link({ scope: k })}
-                  className={clsx(
-                    "rounded-[5px] px-2.5 py-1 transition-colors",
-                    scope === k
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {k === "mine" ? "My stocks" : "Everything"}
-                </Link>
-              ))}
-            </div>
-          </div>
-        }
-      >
-        {displayedSignals.length === 0 ? (
-          <Empty
-            title={
-              statusFilter
-                ? "No signals match the selected filter."
-                : scope === "mine"
-                  ? "No signals on your stocks."
-                  : "No signals."
-            }
-          >
-            {statusFilter ? (
+          <div role="group" aria-label="Stocks" className="flex rounded-md border border-border p-0.5 text-[12.5px]">
+            {(["mine", "all"] as const).map((k) => (
               <Link
                 prefetch={false}
-                href={link({ status: "" })}
-                className="text-foreground underline underline-offset-4"
+                key={k}
+                aria-current={scope === k ? "true" : undefined}
+                href={link({ scope: k }, "")}
+                className={clsx(
+                  "rounded-[5px] px-3 py-1.5 transition-colors",
+                  scope === k ? "bg-primary font-medium text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
               >
-                Show all signals
+                {k === "mine" ? "My stocks" : "Every stock"}
               </Link>
-            ) : scope === "mine" ? (
-              <>
-                Signals only show for stocks on your radar or in your portfolio.{" "}
-                <Link
-                  prefetch={false}
-                  href={link({ scope: "all" })}
-                  className="text-foreground underline underline-offset-4"
-                >
-                  See everything
-                </Link>
-                .
-              </>
-            ) : null}
-          </Empty>
-        ) : (
-          <TableWrap>
-            <table className="w-full min-w-[960px]">
-              <thead>
-                <tr>
-                  <th className={th}>Date</th>
-                  <th className={th}>Stock</th>
-                  <th className={th}>Signal</th>
-                  <th className={th}>Status</th>
-                  <th className={th}>Rule</th>
-                  <th className={thNum}>Price then</th>
-                  <th className={thNum}>Stop</th>
-                  <th className={thNum}>Next target or review</th>
-                  <th className={thNum}>Last close</th>
-                  <th className={thNum}>Change since</th>
-                  <th className={th}>Price mood</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedSignals.map(({ sg, at, last, since, quote, evaluation, action, closed, result, own }) => {
-                  const plan = evaluation?.plan;
-                  const sentiment = evaluation?.sentiment;
-                  const targets = plan && plan.isValid ? [plan.t1, plan.t2, plan.t3] : [];
-                  const next = targets.findIndex((t) => !last || last < t);
+            ))}
+          </div>
+        }
+      />
 
-                  return (
-                    <tr key={sg.id} className={tr}>
-                      <td className={td + " num text-muted-foreground"}>
-                        {date(sg.generated_at)}
-                      </td>
-                      <td className={td}>
-                        <Link
-                          prefetch={false}
-                          href={`/app/markets/${encodeURIComponent(sg.symbol)}`}
-                          className="num font-medium hover:underline"
-                        >
-                          {sg.symbol}
-                        </Link>
-                      </td>
-                      <td className={td}>
-                        <Badge tone={action === "buy" || action === "cover" ? "gain" : "loss"}>
-                          {ACTION_LABEL[action]}
-                        </Badge>
-                      </td>
-                      <td className={td}>
-                        {evaluation ? (
-                          <Badge tone={evaluation.statusTone}>{evaluation.statusLabel}</Badge>
-                        ) : own ? (
-                          <Badge tone={own.status.tone}>{own.status.label}</Badge>
-                        ) : closed ? (
-                          <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                            Closed
-                            {result != null ? <Delta value={result} /> : null}
-                          </span>
-                        ) : (
-                          <span className="text-[12px] text-muted-foreground">Open</span>
-                        )}
-                      </td>
-                      <td className={td + " text-muted-foreground"}>
-                        <div className="flex flex-col items-start gap-1">
-                          {strategyLabel[sg.strategy] ?? sg.strategy}
-                          {isCheckRule(sg.strategy) && action === "buy" && tags.has(checkKey(sg.strategy, sg.symbol, signalDayOf(sg))) ? (
-                            <CheckTag rule={sg.strategy} />
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className={tdNum}>₹{price(at)}</td>
-                      <td className={tdNum}>
-                        {plan && plan.isValid ? (
-                          <div className="flex flex-col items-end">
-                            <span className="num font-medium text-loss">
-                              ₹{price(plan.stop)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              −{plan.riskPercent.toFixed(1)}%
-                            </span>
-                          </div>
-                        ) : own?.stop && at ? (
-                          <div className="flex flex-col items-end" title={own.stopTitle}>
-                            <span className="num font-medium text-loss">₹{price(own.stop)}</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              −{(((at - own.stop) / at) * 100).toFixed(1)}%
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className={tdNum}>
-                        {own ? (
-                          <div className="flex flex-col items-end" title={own.nextTitle}>
-                            <span className="font-sans text-[12px]">{own.next}</span>
-                            <span className="font-sans text-[10px] text-muted-foreground">{own.nextSub}</span>
-                          </div>
-                        ) : targets.length ? (
-                          <div
-                            className="flex flex-col items-end"
-                            title={`Targets: ${targets.map((t, i) => `${i + 1}) ₹${price(t)}`).join("  ")}`}
-                          >
-                            {next === -1 ? (
-                              <span className="font-sans text-[12px] font-medium text-gain">All 3 reached</span>
-                            ) : (
-                              <>
-                                <span className="num">₹{price(targets[next])}</span>
-                                <span className="font-sans text-[10px] text-muted-foreground">
-                                  target {next + 1} of 3
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="font-sans text-[12px] text-muted-foreground">
-                            {action === "exit"
-                              ? "Closed the buy"
-                              : action === "cover"
-                                ? "Closed the short"
-                                : closed
-                                  ? "Trade closed"
-                                  : action === "sell"
-                                    ? "Short trade"
-                                    : "—"}
-                          </span>
-                        )}
-                      </td>
-                      <td className={tdNum}>{last ? `₹${price(last)}` : "—"}</td>
-                      <td className={tdNum}>
-                        <Delta value={since} />
-                      </td>
-                      <td className={td}>
-                        {sentiment ? (
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={clsx(
-                                "rounded px-1.5 py-0.5 text-[10.5px] font-medium uppercase",
-                                sentiment.tone === "gain"
-                                  ? "bg-gain-soft text-gain"
-                                  : sentiment.tone === "loss"
-                                    ? "bg-loss-soft text-loss"
-                                    : "bg-muted text-foreground",
-                              )}
-                              title={sentiment.sub}
-                            >
-                              {sentiment.label}
-                            </span>
-                            {quote?.rsi != null && (
-                              <span className="num text-[11px] text-muted-foreground">
-                                {quote.rsi.toFixed(0)}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </TableWrap>
-        )}
-      </Panel>
+      {/* Today in one row: the market, what fired, what to watch, how the rules are doing */}
+      <section aria-label="Today" className="panel grid grid-cols-2 lg:grid-cols-4">
+        <div className="col-span-2 flex items-start gap-3 border-b border-border p-4 lg:col-span-1 lg:border-b-0 lg:border-r" role="region" aria-label="Market weather">
+          <WeatherIcon size={22} weight="duotone" aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium">Market weather: {weather.label}</p>
+            <p className="mt-0.5 line-clamp-3 text-[12px] leading-5 text-muted-foreground" title={weather.sentence}>
+              {weather.sentence}
+            </p>
+          </div>
+        </div>
+        <a href="#today" className="flex flex-col gap-1 border-r border-border p-4 hover:bg-foreground/[0.02]">
+          <span className="eyebrow">Fresh buys</span>
+          <span className="num text-[22px] leading-7">{fresh.length}</span>
+          <span className="text-[11.5px] text-muted-foreground">open, from the last 7 days</span>
+        </a>
+        <a href="#today" className="flex flex-col gap-1 p-4 hover:bg-foreground/[0.02] lg:border-r lg:border-border">
+          <span className="eyebrow">To watch next session</span>
+          <span className="num text-[22px] leading-7">{watches.length}</span>
+          <span className="text-[11.5px] text-muted-foreground">dip-buy levels</span>
+        </a>
+        <a href="#rules" className="col-span-2 flex flex-col gap-1 border-t border-border p-4 hover:bg-foreground/[0.02] lg:col-span-1 lg:border-t-0">
+          <span className="eyebrow">Rules lately</span>
+          <span className="num text-[22px] leading-7">
+            {onTrack}
+            <span className="text-[14px] text-muted-foreground">/4</span>
+            <span className="ml-1.5 font-sans text-[12px] text-muted-foreground">on track or better</span>
+          </span>
+          <span className="text-[11.5px] text-muted-foreground">{weaker.length ? `Weaker than usual: ${weaker.join(", ")}` : "None weaker than usual"}</span>
+        </a>
+      </section>
+
+      <SectionTabs
+        label="Signals"
+        tabs={[
+          { id: "today", label: "Today", content: todayTab },
+          { id: "all", label: "All signals", content: allTab },
+          { id: "rules", label: "The four rules", aliases: ["health"], content: rulesTab },
+          { id: "record", label: "Track record", aliases: ["checks"], content: recordTab },
+        ]}
+      />
     </div>
   );
 }

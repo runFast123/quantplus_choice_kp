@@ -115,6 +115,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `dry-run.ts` | Dry Run math (ADR-033): `sizePlan(stocks, total, cashPct)` → `Plan` (even split, whole shares, loss at each stop), `replayPlan(plan, candles, benchmark)` → `Replay` (same amounts on the first common day, `limitedBy`), `badDays(points)` (worst day / 5 sessions / deepest fall + recovery), `guardrails(plan)` (7 general checks), `tradedValue(candles)` |
 | `dry-run.test.mts` | unit tests (`npm run test:unit`) |
 | `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
+| `news/display.ts` | `cleanTitle(title, source)` (drops a trailing publisher name), `summaryEchoes(summary, title)`, `dayLabel`, `groupByDay(items)` (IST days), `stocksInNews(items, limit)` → symbol, n, pos, neg |
 | `rule-health.ts` | `HEALTH_RULES`, `isHealthRule`, `HEALTH_STATUS` (label, tone, meaning per status), `CAUSE` (words per loss cause), `healthSentence(row)`, `mainCause`, `mistakeSentence(row)`, `pos`, types `HealthRow`, `HealthStatus`, `Cause` (ADR-039) |
 | `signal-checks.ts` | `isCheckRule`, `CHECK_TAG` (tag words + meaning), `checkKey`, `signalDayOf(sg)` (a dip's setup close), `quarterStartIST`, `daysAgoIST`, `CHECK_TESTED` (tested record by year, from `research/strategies/team`), `liveYears(rows, rule)`, `total`, `standingLine(rule, years)` (names the wrong years), `periodsSentence`, types `CheckRule`, `CheckYear`, `RecordRow` |
 | `dip-rules.ts` | `isDipRule`, `DIP_EXIT`, `dipStatus(stop, last)`, `DIP_TESTED` (tested record per rule, from `research/strategies/record_dip.py`), `dipTestedSentence(rule)`, type `DipRule` |
@@ -182,12 +183,13 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/device` | single-device takeover screen (target of `requireSession` for displaced devices) |
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener (`?setup=` filter + Setups column); symbol page: header, *At a glance* strip (`data-testid="at-a-glance"`), chart, then tabs Plan & alerts / Research & news / Signal history / Backtest (`#plan`, `#research`, `#history`, `#backtest`), "Matched on the last close" setups |
-| `/app/watchlist` `/app/portfolio` `/app/alerts` `/app/signals` | product pages |
+| `/app/watchlist` `/app/portfolio` `/app/alerts` | product pages |
+| `/app/signals` | Today strip, then tabs `#today` (fresh buys, dip-buy levels), `#all` (`?status=open|closed&rules=old|all&strategy=&more=1`), `#rules` (alias `#health`), `#record` (alias `#checks`) |
 | `/app/dry-run` | Dry Run (ADR-033): disclosure gate, then one screen — pick (fresh rule buys in the top 500 with stop, tag and rule health; *My radar*; any stock) beside a live plan panel → results tabs: replay vs NIFTY 50, bad days, guardrail checks |
 | `/app/workspace` `/app/integrations` `/app/billing` `/app/settings` | account pages (`settings?tab=profile|security|notifications|privacy|data`) |
 | `/app/settings/export` | GET → JSON download of `export_my_data()` |
-| `/app/research` | Research desk (`?scope=mine&stance=&sort=score|low|change|news`) |
-| `/app/news` | News feed (`?scope=all&tone=&kind=news|filing&before=`) |
+| `/app/research` | Research desk (`?scope=mine&stance=&sort=score|low|change|news&q=`): search, stance cards with meaning, Turned constructive / cautious, plain-sentence table (cards on phones), 50 per page |
+| `/app/news` | News feed (`?scope=all&tone=&kind=news|filing&before=`): tone/type chips, headlines by day, Stocks in the news (`data-testid="stocks-in-news"`) |
 | `/api/cron/news` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `ingestNews`, then `deliverPendingPush` |
 | `/api/cron/push` | GET/POST with `Authorization: Bearer $CRON_SECRET` → `deliverPendingPush` (Vercel cron 18:15 IST weekdays, after the pg_cron notifier) |
 | `/manifest.webmanifest` | install metadata (`app/manifest.ts`); `public/sw.js` shows pushes and opens their page; `public/icons/*` |
@@ -207,14 +209,14 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ui/use-echo-action.ts` | `useEchoAction(action, onResult?)` → `[state, dispatch, pending, values]`; refills non-secret fields after a server error. **Use this instead of bare `useActionState` for forms.** |
 | `ui/confirm-button.tsx` | `ConfirmButton` — two-step destructive action |
 | `ui/data.tsx` | `Delta` (gain/loss w/ glyph; `kind` pct / abs / inr), `Badge`, `Stat`, `Sparkline`, `RangeBar`, `ScoreBar` (diverging ±100), `StanceBadge`, `ToneBadge` |
-| `news/news-list.tsx` | `NewsList` (outbound links `rel=noopener noreferrer nofollow`, tone + symbol chips) |
+| `news/news-list.tsx` | `NewsList({items, showSummary, hideSymbol, byDay})` (outbound links `rel=noopener noreferrer nofollow`, tone + symbol chips, clean titles, echo summaries hidden) |
 | `research/factor-breakdown.tsx` | `FactorBreakdown` |
 | `research/ai-read.tsx` | `AiRead` (client; calls `askMyAi`) |
 | `ui/pager.tsx` | `Pager` (prev/next, keeps params), `pageParam(raw)` — every server-paginated table |
 | `ui/section-tabs.tsx` | `SectionTabs({tabs, label})` — one section at a time; `#id` / aliases open a tab; panels mount on first open (stock page) |
 | `ui/layout.tsx` | `PageHeader`, `Panel`, `Empty`, `PlanGate` (`data-testid="plan-gate"`), `TableWrap` (relative, focusable), table class strings `th thNum td tdNum tr` |
 | `shell/*` | `Sidebar`, `MobileNav` (bottom bar + "More" sheet), `TickerPause`, `TenantSwitcher`, `SymbolSearch` (global command palette with `/` and `Ctrl+K` / `Cmd+K` shortcuts, recently viewed stocks else popular presets, desk quick links), `recent-symbols.ts` (`useRecentSymbols`, `rememberSymbol`, `<RememberSymbol>` — last 6 stocks opened, localStorage `qp:recent-symbols`), `MarketClock` (+ "EOD <date> · next <day> 17:00" freshness chip from `asOf`), `Notifications` (realtime), `ThemeToggle`, `UserMenu`, `TickerTape` |
-| `market/rule-health.tsx` | `HealthChip({row, prefix})` (status + meaning in the title, `data-health`), `HealthTrack` (record vs range on 0–100), `RuleHealthCard` (Signals panel), `CauseBar` — ADR-039 |
+| `market/rule-health.tsx` | `HealthChip({row, prefix})` (status + meaning in the title, `data-health`), `HealthTrack` (record vs range on 0–100), `RuleHealthCard({title, row, history, label})` (Signals → The four rules), `CauseBar` — ADR-039 |
 | `market/check-tag.tsx` | `CheckTag({rule})` — a signal check's tag (icon + words, meaning in the title): Signals list, dip-buy levels, stock page |
 | `market/setup-badges.tsx` | `SetupBadges` (neutral badges, rule in the title) — screener and Market Radar |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (the Markets sector filter: one chip row, `aria-pressed`), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` ("How stretched are your stocks?": RSI zone in plain words, RSI gauge, filter chips, folded stop / targets), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton`, `PineScriptGeneratorPanel`, `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |

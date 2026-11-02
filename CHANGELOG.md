@@ -5,6 +5,24 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — Signals, Research and News: the answer first, details one step away
+- **Signals** (`app/app/signals/page.tsx`, ~11,900 px → ~2,000 px on desktop): a *Today* strip (market weather, fresh
+  buys from the last 7 days, dip-buy levels for the next session, rules on track); then tabs *Today* (fresh buys as
+  cards with stop, exit plan, tag and rule health; the dip-buy levels with four columns), *All signals* (the four rules
+  by default, *Old rules* / *Both* on request, Open / Closed filter, 60 rows then "Show all", cards on phones), *The four
+  rules* (each rule's description with its health and live record; tested record folded), *Track record* (the record
+  table and the signal checks, tested years folded). The old-rule target stats and the "price mood" column are gone from
+  the default view. `#health` and `#checks` still open the right tab. Filters: `status=open|closed`, `rules=old|all`.
+- **Research** (`app/app/research/page.tsx`): find a stock by name or symbol (`?q=`); each stance says what it means
+  ("most signs point up"); *Turned constructive / Turned cautious* lists the stocks whose stance changed at the latest
+  note; the cryptic T/M/R/S/N letters are replaced by the note's own plain sentence; cards on phones; 50 per page;
+  scoring explained in a fold.
+- **News** (`app/app/news/page.tsx`): tone and type as one-tap chips; headlines grouped by Today / Yesterday / date;
+  *Stocks in the news* (most named in the latest 200 headlines, with ▲ positive / ▼ negative counts, first on phones);
+  the tone explanation beside the list with the sources folded. `lib/news/display.ts` (`cleanTitle` drops a trailing
+  publisher name, `summaryEchoes` hides a summary that only repeats the headline, `groupByDay`, `stocksInNews`), used by
+  `NewsList` everywhere (`byDay` prop). Tests: `lib/news/display.test.mts`; e2e `signals`, `signal-checks`, `research`.
+
 ### Added — rule health and mistake review: every rule checked against its tested record after every close (ADR-039)
 - **Database** (`supabase/migrations/20261001000040_rule_health.sql`): `rule_expectations` (each rule's tested rate,
   Jul 2019 – Oct 2026), `rule_health` (one row per rule per day: the last 40 finished trades, how many made money, the

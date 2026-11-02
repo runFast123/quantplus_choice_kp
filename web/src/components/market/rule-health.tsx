@@ -54,11 +54,11 @@ export function HealthTrack({ row }: { row: HealthRow }) {
 }
 
 /** One rule's health: status, the record against its tested range, the trend and what its losses had in common. */
-export function RuleHealthCard({ title, row, history }: { title: string; row: HealthRow | undefined; history: number[] }) {
+export function RuleHealthCard({ title, row, history, label }: { title: string; row: HealthRow | undefined; history: number[]; label?: string }) {
   return (
     <section aria-label={`${title} health`} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border p-3.5">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-semibold">{title}</p>
+        <p className="text-[13px] font-semibold">{label ?? title}</p>
         <HealthChip row={row} />
       </div>
       {!row ? (
