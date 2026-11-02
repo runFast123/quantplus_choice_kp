@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { CloudLightningIcon, CloudSunIcon, SunIcon } from "@phosphor-icons/react/ssr";
 import { Badge, Delta, Stat } from "@/components/ui/data";
 import { CheckTag } from "@/components/market/check-tag";
+import { HealthChip, RuleHealthCard } from "@/components/market/rule-health";
 import {
   Empty,
   PageHeader,
@@ -42,7 +43,7 @@ import {
 } from "@/lib/signal-checks";
 import { evaluateSignalProgress, type RawChartMarker } from "@/lib/trade-plan";
 import type { Signal } from "@/lib/types";
-import { getQuotes } from "@/server/market-data";
+import { getQuotes, getRuleHealth } from "@/server/market-data";
 import { requireSession } from "@/server/session";
 
 export const metadata: Metadata = { title: "Signals" };
@@ -168,9 +169,10 @@ export default async function SignalsPage({
     const tags = new Set((tagRes.data ?? []).map((t) => checkKey(t.strategy, t.symbol, t.signal_day)));
     return { rows, quotes, tags };
   })();
-  const [mine, { rows: signals, quotes, tags }, weatherRes, scoreRes, watchRes, tradeRes, recordRes, modelRes] = await Promise.all([
+  const [mine, { rows: signals, quotes, tags }, health, weatherRes, scoreRes, watchRes, tradeRes, recordRes, modelRes] = await Promise.all([
     mineP,
     signalsP,
+    getRuleHealth(db),
     db
       .from("market_weather")
       .select("day, state, vix, nifty, nifty_sma50, nifty_sma200")
@@ -404,6 +406,14 @@ export default async function SignalsPage({
             {st.tested ? (
               <p className="mt-2 border-t border-border pt-2 text-[12px] leading-5 text-muted-foreground">{st.tested}</p>
             ) : null}
+            {health.latest.get(st.key) ? (
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2 text-[12px] text-muted-foreground">
+                Lately: <HealthChip row={health.latest.get(st.key)} />
+                <span className="num">
+                  {health.latest.get(st.key)!.made}/{health.latest.get(st.key)!.trades} made money
+                </span>
+              </p>
+            ) : null}
           </Link>
         ))}
       </div>
@@ -534,6 +544,25 @@ export default async function SignalsPage({
             </p>
           </>
         )}
+      </Panel>
+
+      {/* Rule health and mistake review (ADR-039): each rule's recent record against its tested range, every day */}
+      <Panel title="Rule health" meta="Checked after every close" className="scroll-mt-28" id="health">
+        <p className="mb-4 max-w-3xl text-[13px] leading-5">
+          After every close, each rule&apos;s last 40 finished trades are compared with how it did in testing, and every losing
+          trade is sorted by what went wrong. A rule that drifts outside its normal range is flagged for review; it is never
+          changed or switched off on its own, because a short bad run is usually just noise.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="rule-health">
+          {STRATEGIES.map((st) => (
+            <RuleHealthCard key={st.key} title={st.title} row={health.latest.get(st.key)} history={health.history.get(st.key) ?? []} />
+          ))}
+        </div>
+        <p className="mt-3 text-[11.5px] leading-5 text-muted-foreground">
+          The normal range is where 9 in 10 stretches of this many trades land if the rule is doing what it did in testing.
+          Trades that finish on the same days often share one market move, so treat the range as a guide. The small line
+          shows the share that made money at each check over the past year.
+        </p>
       </Panel>
 
       {/* The signal checks: what each tag means and how tagged signals have done (ADR-038) */}

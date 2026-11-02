@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { HealthRow } from "@/lib/rule-health";
 import type { Candle, Holding, Quote, RetiredSymbol } from "@/lib/types";
 
 export async function getQuotes(db: SupabaseClient, symbols?: string[]): Promise<Map<string, Quote>> {
@@ -73,25 +74,62 @@ export function normalizeQuote(r: Quote): Quote {
   };
 }
 
-/** Daily closes for sparklines, oldest → newest. */
+/** Daily closes for sparklines, oldest → newest. Queried in chunks so no request passes the 1,000-row cap. */
 export async function getSparks(db: SupabaseClient, symbols: string[], days = 45): Promise<Map<string, number[]>> {
   if (!symbols.length) return new Map();
   const since = new Date(Date.now() - days * 86400000).toISOString();
-  const { data } = await db
-    .from("market_candles")
-    .select("symbol, ts, close")
-    .eq("interval", "1d")
-    .in("symbol", symbols)
-    .gte("ts", since)
-    .order("ts", { ascending: true })
-    .limit(symbols.length * days);
+  const per = Math.max(1, Math.floor(1000 / days));
+  const chunks = Array.from({ length: Math.ceil(symbols.length / per) }, (_, i) => symbols.slice(i * per, (i + 1) * per));
+  const parts = await Promise.all(
+    chunks.map((chunk) =>
+      db
+        .from("market_candles")
+        .select("symbol, ts, close")
+        .eq("interval", "1d")
+        .in("symbol", chunk)
+        .gte("ts", since)
+        .order("ts", { ascending: true })
+        .limit(chunk.length * days),
+    ),
+  );
   const out = new Map<string, number[]>();
-  for (const r of data ?? []) {
+  for (const r of parts.flatMap((p) => p.data ?? [])) {
     const arr = out.get(r.symbol) ?? [];
     arr.push(Number(r.close));
     out.set(r.symbol, arr);
   }
   return out;
+}
+
+/**
+ * Rule health (migration 40): each rule's latest daily check and the share of its recent trades that made money over
+ * the last year of checks, oldest → newest. Empty when the table isn't there yet.
+ */
+export async function getRuleHealth(db: SupabaseClient): Promise<{ latest: Map<string, HealthRow>; history: Map<string, number[]> }> {
+  const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+  const { data } = await db
+    .from("rule_health")
+    .select("strategy, day, trades, made, made_pct, expected_pct, low_pct, high_pct, avg_pct, status, causes, first_exit, last_exit")
+    .gte("day", since)
+    .order("day", { ascending: false })
+    .limit(1000);
+  const latest = new Map<string, HealthRow>();
+  const history = new Map<string, number[]>();
+  for (const r of data ?? []) {
+    const row: HealthRow = {
+      ...r,
+      trades: Number(r.trades),
+      made: Number(r.made),
+      made_pct: r.made_pct == null ? null : Number(r.made_pct),
+      expected_pct: Number(r.expected_pct),
+      low_pct: Number(r.low_pct),
+      high_pct: Number(r.high_pct),
+      avg_pct: r.avg_pct == null ? null : Number(r.avg_pct),
+    };
+    if (!latest.has(row.strategy)) latest.set(row.strategy, row);
+    if (row.made_pct != null) history.set(row.strategy, [row.made_pct, ...(history.get(row.strategy) ?? [])]);
+  }
+  return { latest, history };
 }
 
 export async function getCandles(db: SupabaseClient, symbol: string, exchange = "NSE", days = 730): Promise<Candle[]> {

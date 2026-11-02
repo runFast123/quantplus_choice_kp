@@ -18,6 +18,7 @@ import { inputClass } from "@/components/ui/field";
 import { Empty, PageHeader, Panel, TableWrap, td, th, tr } from "@/components/ui/layout";
 import { date, dateTime, paiseToRupees, relative } from "@/lib/format";
 import { nseSession } from "@/lib/market";
+import { HEALTH_RULES, HEALTH_STATUS, mistakeSentence } from "@/lib/rule-health";
 import { quarterStartIST } from "@/lib/signal-checks";
 import {
   getDatabaseInventory,
@@ -29,6 +30,7 @@ import {
   searchUsers,
 } from "@/server/privileged/admin";
 import { newsSourceHealth } from "@/server/privileged/news";
+import { getRuleHealth } from "@/server/market-data";
 import { requireSession } from "@/server/session";
 import { ActivateForm } from "./activate-form";
 import { MaintenanceOperations } from "./maintenance-panel";
@@ -49,7 +51,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     ? sp.tab
     : "overview";
 
-  const [stats, users, feeds, dbInventory, payments, auditLogs, checks] = await Promise.all([
+  const [stats, users, feeds, dbInventory, payments, auditLogs, checks, health] = await Promise.all([
     platformStats(s.userId),
     searchUsers(s.userId, q),
     newsSourceHealth(),
@@ -57,6 +59,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     getRecentPayments(s.userId, 30),
     getRecentAuditLogs(s.userId, 30),
     getSignalCheckReview(s.userId),
+    getRuleHealth(s.supabase),
   ]);
   const refitMissing = !checks.models.some((m) => m.valid_from === quarterStartIST());
 
@@ -331,6 +334,37 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                 . The refit runs at each quarter start (GitHub workflow &ldquo;Signal checks refit&rdquo;); a quarter that
                 is not in force tags nothing. Re-tests of the rules themselves (the 27-setting grid, the KK dip and SMA
                 trend self-tests) are research jobs: PLAYBOOK §S.
+              </p>
+              <h3 className="mt-5 text-[13px] font-semibold">Rule health (ADR-039)</h3>
+              <ul className="mt-2 grid gap-2 text-[12.5px] sm:grid-cols-2" data-testid="admin-rule-health">
+                {HEALTH_RULES.map((rule) => {
+                  const h = health.latest.get(rule);
+                  return (
+                    <li key={rule} className="flex flex-col gap-1 rounded-lg border border-border p-3">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="num font-medium">{rule}</span>
+                        {h ? (
+                          <Badge tone={HEALTH_STATUS[h.status].tone}>{HEALTH_STATUS[h.status].label}</Badge>
+                        ) : (
+                          <Badge tone="loss">Not checked</Badge>
+                        )}
+                      </span>
+                      {h ? (
+                        <span className="text-muted-foreground">
+                          <span className="num">
+                            {h.made}/{h.trades}
+                          </span>{" "}
+                          made money (range {Math.round(h.low_pct)}–{Math.round(h.high_pct)}, tested {Math.round(h.expected_pct)}), checked {date(h.day)}.{" "}
+                          {mistakeSentence(h)}
+                        </span>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                A rule below its range for two checks in a row goes on the quarterly review agenda: look at what its losses
+                had in common, then test any change on data it hasn&apos;t seen before it goes live (PLAYBOOK §S).
               </p>
             </Panel>
 

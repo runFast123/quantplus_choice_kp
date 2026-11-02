@@ -5,6 +5,40 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — rule health and mistake review: every rule checked against its tested record after every close (ADR-039)
+- **Database** (`supabase/migrations/20261001000040_rule_health.sql`): `rule_expectations` (each rule's tested rate,
+  Jul 2019 – Oct 2026), `rule_health` (one row per rule per day: the last 40 finished trades, how many made money, the
+  90 % range the tested rate allows for that many trades, status below / within / above / too_few, losing trades by
+  cause), view `rule_mistakes` (every losing trade with the Nifty 500's move over the same days and one cause: whole
+  market fell ≥ 3 %, stock fell on its own, or a small loss under 1.5 %), `private.refresh_rule_health(day)`.
+  `signal_trades` gains `exit_reason`. `svc_refresh_signal_checks` now also returns `health`, so it runs after every
+  close with the checks. A year of weekly history is back-filled. Tests: `supabase/tests/14_rule_health.sql`.
+- **Nothing changes a rule on its own:** a rule outside its range is flagged for the quarterly review (PLAYBOOK §S); any
+  change still needs a test fixed in advance. On the live data at the time of writing, SMA 20/50 trend was below its
+  range (7 of its last 40 made money; 26 of 33 losses came while the whole market fell).
+- **App:** a *Rule health* panel on Signals (`components/market/rule-health.tsx`: status chip, record against the range
+  on a track, a sparkline of past checks, the losses by cause in plain words); a "Lately" line on each rule card; a
+  *Rule:* chip on stock-page signal notes and Dry Run cards; a rule-health block in the admin review.
+  `lib/rule-health.ts` holds the words (`healthSentence`, `mistakeSentence`).
+
+### Changed — Dry Run is one screen: pick on the left, your plan beside it, results in tabs
+- `components/dry-run/dry-run-studio.tsx`: three steps across the top tick themselves off; stock cards show a two-month
+  sparkline, why the stock is listed, its safety stop and distance, its signal check tag and how its rule has done lately;
+  a *My radar* filter adds Market Radar stocks (with or without a fresh signal); the plan panel (sticky on wide screens,
+  one tap away on phones) sizes the money live with an allocation bar, per-stock stops, the most you'd lose and the
+  good-habit score; results sit in three tabs (What happened, Bad days, Checks); a "What do these words mean?" glossary.
+- `app/app/dry-run/page.tsx` loads each match's stop and tag, rule health, the user's radar and sparklines.
+  `getSparks` now queries in chunks so long lists stay under the 1,000-row cap.
+
+### Changed — the stock page answers five questions first, then shows one section at a time
+- `app/app/markets/[symbol]/page.tsx`: an *At a glance* strip (long-term direction, how hot it is, where it sits in its
+  year, what our rules say now, the research stance) under the header; the chart; then tabs *Plan & alerts* (signal
+  notes and trade plan beside alert, key levels and position), *Research & news* (five headlines, the rest folded),
+  *Signal history*, *Backtest*. The empty gaps between uneven panels are gone.
+- `components/ui/section-tabs.tsx`: `SectionTabs` — one section at a time, `#hash` links open the right tab (old anchors
+  `#levels`, `#news` still work), panels mount on first open so charts measure their width.
+- e2e: `rule-health.spec.ts` (new); the `dry-run`, `research` and `strategy-plan` specs follow the tabs.
+
 ### Added — signal checks: Strong trend and RSI dip check their own record (ADR-038)
 - **Research by a team of four** (`research/strategies/team/`: BRIEF, ROUND2, ROUND3, FINAL): switching rules by market
   state, re-tuning settings every quarter, a health card per rule and a probability checker, each tested walk-forward

@@ -56,7 +56,8 @@ test.describe("Strategy-Isolated Signals Chart & KK Breakout Plan", () => {
     await proPage.goto("/app/markets/TCS");
     await proPage.waitForLoadState("networkidle");
 
-    // Scroll to Backtest Lab heading
+    // Open the Backtest tab, then the Backtest Lab heading
+    await proPage.getByRole("tab", { name: "Backtest" }).click();
     const backtestHeading = proPage.getByRole("heading", { name: "Backtest Lab" });
     await backtestHeading.scrollIntoViewIfNeeded();
     await expect(backtestHeading).toBeVisible();

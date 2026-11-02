@@ -38,6 +38,8 @@ test.describe("stock page", () => {
     await proPage.getByRole("tab", { name: "3M" }).click();
     await expect(proPage.getByRole("tab", { name: "3M" })).toHaveAttribute("aria-selected", "true");
 
+    await proPage.getByRole("tab", { name: "Research & news" }).click();
+    await expect(proPage).toHaveURL(/#research$/);
     const note = proPage.locator("#research");
     await expect(note.getByTestId("factor")).toHaveCount(6);
     for (const label of ["Trend", "Momentum", "52-week range", "Signals", "News tone", "Exchange filings"]) {
@@ -55,13 +57,14 @@ test.describe("stock page", () => {
 
   test("Pro without an AI key is told how to add one", async ({ proPage }) => {
     test.skip(!state().hook, HOOK_REASON); // plan features come from the JWT's tenant claim
-    await proPage.goto("/app/markets/INFY");
+    await proPage.goto("/app/markets/INFY#research");
     await expect(proPage.getByText(/Add an Anthropic, OpenAI or Gemini key in/)).toBeVisible();
   });
 
   test("Basic sees plan gates for alerts and AI reads", async ({ basicPage }) => {
     await basicPage.goto("/app/markets/TCS");
     await expect(basicPage.getByTestId("plan-gate").filter({ hasText: "Price alerts" })).toBeVisible();
+    await basicPage.getByRole("tab", { name: "Research & news" }).click();
     await expect(basicPage.getByText("AI reads with your own key are part of Pro.")).toBeVisible();
   });
 });

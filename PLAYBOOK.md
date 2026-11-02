@@ -145,7 +145,7 @@ delete from private.platform_admins where user_id = '<id>';
 - **Check accuracy:** `python pipelines/eod/audit.py` — must report 0 failures (also runs after every scheduled load).
   Splits/bonuses are handled automatically (full re-fetch of that stock); a demerger needs `HISTORY_FROM`.
 
-## S. Signal checks (quarterly review, ADR-038)
+## S. Signal checks and rule health (quarterly review, ADR-038, ADR-039)
 
 - **Daily:** nothing to do. `svc_refresh_signal_checks` runs after the analytics (EOD pipeline, Vercel route, admin
   button, cron backstop) and writes a frozen check for every new Strong trend buy and RSI dip setup.
@@ -156,6 +156,12 @@ delete from private.platform_admins where user_id = '<id>';
 - **Review (research, quarterly):** the live record by label (`signal_check_record`, the Signals page panel); the
   27-setting shadow grid and the KK dip / SMA trend self-tests (`research/strategies/team/params/`, `metalabel/`). A rule
   change, or turning a tag into a filter, needs a new pre-registered test, an ADR and a migration.
+- **Rule health (ADR-039, daily, automatic):** `private.refresh_rule_health()` runs inside `svc_refresh_signal_checks`
+  and writes one `rule_health` row per rule. Admin → *Signal checks review* → *Rule health*. A rule *below its range* on
+  two checks in a row goes on the quarterly agenda: read its `rule_mistakes` (what the losses had in common), then test
+  any fix pre-registered on data it hasn't seen. Never switch a rule off or change it just because it is below range.
+  Back-fill or repair a day: `select private.refresh_rule_health('2026-10-30');` (SQL editor / service role).
+  Expectations live in `rule_expectations`; change them only when the rule's record script is re-run.
 - **Rebuild the reference seed** after re-running the team's scripts: `cd research/strategies/team && python
   export_seed.py`, then `cd supabase/scripts && npm run seed:ref` (idempotent). Cross-check on a live copy first:
   `python ../dump_live.py ../../..`, `node check_live.mjs ../../..`, `python check_live.py`.

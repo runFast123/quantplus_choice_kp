@@ -55,6 +55,9 @@ Requirement IDs refer to `docs/BRD.md`.
 - Signal checks (ADR-038) only tag; they never skip a signal. Skipping Low RSI dips waits for two live quarters showing
   the tags separate when each month is counted once. KK dip and SMA trend have no check; rule settings never change
   automatically (a change needs a pre-registered re-test, PLAYBOOK §S). The Strong trend check's evidence is thin.
+- Rule health (ADR-039) flags drift and sorts losses by cause; it never pauses or changes a rule. Its range assumes
+  trades are independent, which trades finishing on the same days are not, so it is a guide. Causes use the Nifty 500
+  only (no sector move yet).
 - No derivatives (F&O), currency or commodity data — Yahoo has none for NSE; needs a licensed feed (ADR-027).
 - BSE-only listings aren't covered (NSE universe only).
 - Symbols outside the core keep ~13 months of candles (free-tier storage); upgrade the DB to keep more.

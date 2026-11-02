@@ -35,8 +35,12 @@ test.describe("Dry Run @mobile", () => {
 
     await expect(page.getByTestId("dry-run-replay-headline")).toContainText(/would be ₹[\d,]+ today/);
     await expect(page.getByTestId("replay-chart")).toBeVisible();
+    await page.getByRole("tab", { name: "Bad days" }).click();
     await expect(page.getByTestId("dry-run-bad-days")).toContainText("Worst single day");
+    await page.getByRole("tab", { name: /^Checks/ }).click();
     await expect(page.getByTestId("dry-run-score")).toHaveText(/^\d\/7$/);
+    // The steps tick themselves off once stocks are picked and the replay is drawn.
+    await expect(page.getByRole("list", { name: "How Dry Run works" }).getByText("(done)")).toHaveCount(2);
     await proPage.waitForTimeout(2500); // let the replay finish drawing
     await proPage.screenshot({ path: info.outputPath("dry-run.png"), fullPage: true });
 

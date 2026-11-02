@@ -353,3 +353,22 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   on long ratios); `rs_rank` comes from `market_leaders` (ties and the ≥ 300-session rule differ slightly); the first
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
+
+### ADR-039 · Rule health: each rule is checked daily against its tested record; drift is flagged, never auto-fixed
+**Date** 2026-11-02 · **Status** accepted
+- **Context:** the owner asked for the rules to "find their mistakes and improve day by day". ADR-038 showed that no
+  automatic filter or re-tuning beat the fixed rules when tested fairly, so improving means noticing drift early and
+  explaining it, with any change still going through a pre-registered test.
+- **Decision (migration 40):** after every close, for each of the four rules, the last 40 finished trades are compared
+  with the rule's tested made-money rate (`rule_expectations`, Jul 2019 – Oct 2026). The normal range is the 90 %
+  binomial band for that many trades (a control chart). Status: below / within / above / too_few (< 20 trades). Every
+  losing trade gets one plain cause from the Nifty 500 over the same days: whole market fell (≥ 3 %), stock fell on its
+  own, or a small loss (under 1.5 % after costs). History is kept per day (`rule_health`) so drift is visible over time.
+- **What it does not do:** it never changes, pauses or hides a rule. A rule below its range for two checks in a row goes
+  on the quarterly review (PLAYBOOK §S); a fix needs the same pre-registered, out-of-sample test as ADR-038.
+- **Caveats shown to users:** trades that finish on the same days share one market move, so the band is a guide, not a
+  verdict; a run better than usual is not a reason to expect more. Expectations are the long-run tested rate, not the
+  2024–26 rate, so a weak market shows up as *below* rather than being absorbed into the baseline.
+- **Alternatives rejected:** auto-pausing a rule below range (round 1 of ADR-038: pausing by market state lost to the
+  static rule); a rolling expectation (it would hide slow decay); win/loss streak alarms (too noisy at 40 trades).
+
