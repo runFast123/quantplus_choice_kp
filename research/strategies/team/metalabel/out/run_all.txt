@@ -1,0 +1,1120 @@
+
+=== STATIC BASELINE
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend   1.0     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip   1.0    2651   63.1  0.90  2384.0     -7.4              0.0             0.0
+2021-26       kk_dip   1.0     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL   1.0    6175   59.2  2.84 17559.0    -15.3              0.0             0.0
+2024-26 strong_trend   1.0     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend   1.0     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip   1.0    1274   60.3  0.59   747.0     -8.1              0.0             0.0
+2024-26       kk_dip   1.0     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL   1.0    2798   55.9  1.61  4512.0    -14.6              0.0             0.0
+
+=== V1 PRIMARY  HGB + skip (profit-max cut)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.88    1503   50.5  4.69  7056.0    -17.1             -2.3         -2736.0
+2021-26    sma_trend  0.98     903   49.2  4.07  3679.0    -17.7             -0.5          -182.0
+2021-26      rsi_dip  0.89    2351   62.8  0.88  2067.0     -7.5             -0.3          -317.0
+2021-26       kk_dip  0.89     790   69.4  1.42  1126.0     -7.3             -0.9          -396.0
+2021-26          ALL  0.90    5547   58.2  2.51 13928.0    -15.4             -1.0         -3631.0
+2024-26 strong_trend  0.93     607   46.1  2.48  1504.0    -16.5             -1.6          -636.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.85    1078   61.0  0.72   774.0     -7.9              0.7            27.0
+2024-26       kk_dip  0.90     381   66.7  1.09   413.0     -7.7              0.2          -207.0
+2024-26          ALL  0.90    2510   55.5  1.47  3697.0    -14.9             -0.4          -815.0
+
+=== V2 LR + skip (profit-max cut)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.79    1350   53.6  5.83  7873.0    -17.1              0.8         -1919.0
+2021-26    sma_trend  0.99     911   49.3  3.85  3505.0    -17.7             -0.4          -356.0
+2021-26      rsi_dip  0.84    2240   63.2  0.90  2021.0     -7.5              0.1          -363.0
+2021-26       kk_dip  0.72     639   67.8  1.47   937.0     -7.5             -2.5          -585.0
+2021-26          ALL  0.83    5140   58.8  2.79 14336.0    -15.2             -0.4         -3223.0
+2024-26 strong_trend  0.57     371   45.6  1.68   623.0    -16.6             -2.1         -1517.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.77     985   61.6  0.80   784.0     -7.9              1.3            37.0
+2024-26       kk_dip  0.86     366   68.0  1.68   615.0     -7.7              1.5            -5.0
+2024-26          ALL  0.77    2166   56.6  1.40  3027.0    -14.4              0.7         -1485.0
+
+=== V3 TREE d3 + skip (profit-max cut)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.61    1050   49.2  4.11  4312.0    -17.7             -3.6         -5480.0
+2021-26    sma_trend  0.93     858   49.5  3.88  3332.0    -17.4             -0.2          -529.0
+2021-26      rsi_dip  0.88    2330   63.4  0.86  2000.0     -7.9              0.3          -384.0
+2021-26       kk_dip  0.89     790   70.4  1.66  1308.0     -7.0              0.1          -214.0
+2021-26          ALL  0.81    5028   59.2  2.18 10952.0    -15.1              0.0         -6607.0
+2024-26 strong_trend  0.54     352   44.0  0.95   333.0    -16.3             -3.7         -1807.0
+2024-26    sma_trend  0.96     428   45.1  2.12   906.0    -16.6             -0.4           -99.0
+2024-26      rsi_dip  0.97    1231   60.6  0.63   779.0     -7.9              0.3            32.0
+2024-26       kk_dip  0.79     334   66.2  1.33   443.0     -7.7             -0.3          -177.0
+2024-26          ALL  0.84    2345   56.1  1.05  2461.0    -14.2              0.2         -2051.0
+
+=== V4 HGB + skip bottom 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.77    1322   51.9  4.96  6552.0    -17.6             -0.9         -3240.0
+2021-26    sma_trend  0.77     708   50.8  4.82  3416.0    -17.8              1.1          -445.0
+2021-26      rsi_dip  0.83    2188   64.0  1.00  2181.0     -7.6              0.9          -203.0
+2021-26       kk_dip  0.83     738   71.4  1.63  1205.0     -7.3              1.1          -317.0
+2021-26          ALL  0.80    4956   60.0  2.69 13354.0    -15.3              0.8         -4205.0
+2024-26 strong_trend  0.69     455   46.4  1.52   691.0    -16.9             -1.3         -1449.0
+2024-26    sma_trend  0.81     358   46.6  2.39   856.0    -17.2              1.1          -149.0
+2024-26      rsi_dip  0.73     928   63.0  0.92   855.0     -7.9              2.7           108.0
+2024-26       kk_dip  0.70     298   69.5  1.33   398.0     -8.9              3.0          -222.0
+2024-26          ALL  0.73    2039   57.4  1.37  2801.0    -15.0              1.5         -1711.0
+
+=== V5 LR + skip bottom 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.76    1304   54.1  5.78  7540.0    -16.9              1.3         -2252.0
+2021-26    sma_trend  0.74     688   48.1  3.44  2364.0    -17.5             -1.6         -1497.0
+2021-26      rsi_dip  0.82    2169   64.2  1.01  2194.0     -7.4              1.1          -190.0
+2021-26       kk_dip  0.76     677   70.9  1.77  1199.0     -7.1              0.6          -323.0
+2021-26          ALL  0.78    4838   60.1  2.75 13297.0    -14.8              0.9         -4262.0
+2024-26 strong_trend  0.54     357   45.7  1.65   590.0    -16.1             -2.0         -1550.0
+2024-26    sma_trend  0.64     284   43.0  1.14   324.0    -16.6             -2.5          -681.0
+2024-26      rsi_dip  0.70     888   63.3  0.97   862.0     -7.9              3.0           115.0
+2024-26       kk_dip  0.71     303   71.0  2.07   627.0     -7.3              4.5             7.0
+2024-26          ALL  0.65    1832   58.0  1.31  2403.0    -14.2              2.1         -2109.0
+
+=== V6 HGB take all, Low tier half size
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.20  7042.0    -17.3              0.0         -2750.0
+2021-26    sma_trend   1.0     924   49.7  4.28  3256.0    -17.7              0.0          -605.0
+2021-26      rsi_dip   1.0    2651   63.1  0.94  2107.0     -7.4              0.0          -277.0
+2021-26       kk_dip   1.0     885   70.3  1.70  1270.0     -7.0              0.0          -252.0
+2021-26          ALL   1.0    6175   59.2  2.67 13674.0    -15.3              0.0         -3885.0
+2024-26 strong_trend   1.0     656   47.7  2.28  1132.0    -16.6              0.0         -1008.0
+2024-26    sma_trend   1.0     444   45.5  2.28   859.0    -17.1              0.0          -146.0
+2024-26      rsi_dip   1.0    1274   60.3  0.77   770.0     -8.1              0.0            23.0
+2024-26       kk_dip   1.0     424   66.5  1.54   493.0     -7.7              0.0          -127.0
+2024-26          ALL   1.0    2798   55.9  1.48  3254.0    -14.6              0.0         -1258.0
+
+=== V7 HGB skip (profit) + Low half size
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.88    1503   50.5  4.48  5555.0    -17.1             -2.3         -4237.0
+2021-26    sma_trend  0.98     903   49.2  4.21  3165.0    -17.7             -0.5          -696.0
+2021-26      rsi_dip  0.89    2351   62.8  0.92  1918.0     -7.5             -0.3          -466.0
+2021-26       kk_dip  0.89     790   69.4  1.53  1068.0     -7.3             -0.9          -454.0
+2021-26          ALL  0.90    5547   58.2  2.45 11706.0    -15.4             -1.0         -5853.0
+2024-26 strong_trend  0.93     607   46.1  1.72   815.0    -16.5             -1.6         -1325.0
+2024-26    sma_trend  1.00     444   45.5  2.28   859.0    -17.1              0.0          -146.0
+2024-26      rsi_dip  0.85    1078   61.0  0.87   784.0     -7.9              0.7            37.0
+2024-26       kk_dip  0.90     381   66.7  1.31   389.0     -7.7              0.2          -231.0
+2024-26          ALL  0.90    2510   55.5  1.39  2846.0    -14.9             -0.4         -1666.0
+
+=== V8 HGB |net|-weighted + skip (profit)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.85    1459   50.8  4.97  7256.0    -17.1             -2.0         -2536.0
+2021-26    sma_trend  0.93     859   49.2  4.14  3554.0    -17.6             -0.5          -307.0
+2021-26      rsi_dip  0.90    2392   62.2  0.78  1866.0     -7.5             -0.9          -518.0
+2021-26       kk_dip  0.86     761   67.4  1.21   923.0     -7.4             -2.9          -599.0
+2021-26          ALL  0.89    5471   57.9  2.49 13599.0    -15.2             -1.3         -3960.0
+2024-26 strong_trend  0.95     622   46.1  2.55  1584.0    -16.6             -1.6          -556.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.92    1170   60.5  0.65   763.0     -7.8              0.2            16.0
+2024-26       kk_dip  0.89     378   64.8  0.90   340.0     -7.9             -1.7          -280.0
+2024-26          ALL  0.93    2614   55.2  1.41  3692.0    -14.9             -0.7          -820.0
+
+=== V9 HGB no derived feats + skip (profit)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.82    1406   52.1  5.53  7770.0    -16.6             -0.7         -2022.0
+2021-26    sma_trend  0.95     876   50.7  4.63  4060.0    -17.6              1.0           199.0
+2021-26      rsi_dip  0.90    2399   62.1  0.83  1983.0     -7.4             -1.0          -401.0
+2021-26       kk_dip  0.71     627   67.9  1.52   954.0     -7.6             -2.4          -568.0
+2021-26          ALL  0.86    5308   58.3  2.78 14767.0    -15.0             -0.9         -2792.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.92    1167   60.5  0.69   804.0     -7.6              0.2            57.0
+2024-26       kk_dip  0.72     306   65.7  1.63   498.0     -7.7             -0.8          -122.0
+2024-26          ALL  0.92    2573   55.3  1.73  4447.0    -15.0             -0.6           -65.0
+
+=== V10 HGB rolling 3y window + skip (profit)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.87    1490   50.2  4.51  6718.0    -17.3             -2.6         -3074.0
+2021-26    sma_trend  0.95     877   49.6  4.19  3678.0    -17.7             -0.1          -183.0
+2021-26      rsi_dip  0.93    2460   62.8  0.87  2130.0     -7.8             -0.3          -254.0
+2021-26       kk_dip  0.95     842   69.8  1.67  1408.0     -7.1             -0.5          -114.0
+2021-26          ALL  0.92    5669   58.5  2.46 13934.0    -15.3             -0.7         -3625.0
+2024-26 strong_trend  0.99     651   47.3  3.09  2009.0    -16.6             -0.4          -131.0
+2024-26    sma_trend  0.93     412   45.1  2.03   837.0    -17.3             -0.4          -168.0
+2024-26      rsi_dip  0.92    1172   60.5  0.64   746.0     -8.2              0.2            -1.0
+2024-26       kk_dip  0.99     419   66.8  1.49   625.0     -7.5              0.3             5.0
+2024-26          ALL  0.95    2654   55.9  1.59  4217.0    -14.8              0.0          -295.0
+
+=== V11a HGB embargo 0 + skip (profit)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.86    1479   50.4  4.75  7020.0    -17.1             -2.4         -2772.0
+2021-26    sma_trend  0.97     892   49.0  4.09  3652.0    -17.7             -0.7          -209.0
+2021-26      rsi_dip  0.92    2440   62.5  0.81  1988.0     -7.9             -0.6          -396.0
+2021-26       kk_dip  0.75     664   68.7  1.36   906.0     -7.2             -1.6          -616.0
+2021-26          ALL  0.89    5475   57.8  2.48 13566.0    -15.3             -1.4         -3993.0
+2024-26 strong_trend  0.98     641   46.8  2.83  1816.0    -16.6             -0.9          -324.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.95    1213   60.5  0.61   740.0     -8.2              0.2            -7.0
+2024-26       kk_dip  0.80     341   66.3  1.06   363.0     -8.6             -0.2          -257.0
+2024-26          ALL  0.94    2639   55.4  1.49  3924.0    -14.9             -0.5          -588.0
+
+=== V11b HGB embargo 20 + skip (profit)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.89    1529   51.5  5.20  7957.0    -17.1             -1.3         -1835.0
+2021-26    sma_trend  0.98     906   50.1  4.37  3958.0    -17.7              0.4            97.0
+2021-26      rsi_dip  0.91    2400   62.7  0.83  1997.0     -7.9             -0.4          -387.0
+2021-26       kk_dip  0.82     723   69.3  1.55  1121.0     -7.4             -1.0          -401.0
+2021-26          ALL  0.90    5558   58.4  2.70 15033.0    -15.3             -0.8         -2526.0
+2024-26 strong_trend  0.89     585   46.0  2.32  1357.0    -16.4             -1.7          -783.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.88    1127   59.9  0.53   602.0     -8.4             -0.4          -145.0
+2024-26       kk_dip  0.93     394   68.0  1.59   626.0     -7.6              1.5             6.0
+2024-26          ALL  0.91    2550   55.5  1.41  3590.0    -14.7             -0.4          -922.0
+
+=== V12 INFO ONLY daily hit-rate HGB + skip (profit)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.87    1488   50.8  4.77  7097.0    -17.1             -2.0         -2695.0
+2021-26    sma_trend  0.96     887   48.4  3.84  3406.0    -17.8             -1.3          -455.0
+2021-26      rsi_dip  0.90    2394   62.2  0.81  1945.0     -7.7             -0.9          -439.0
+2021-26       kk_dip  0.86     761   67.7  1.27   963.0     -7.7             -2.6          -559.0
+2021-26          ALL  0.90    5530   57.7  2.43 13411.0    -15.4             -1.5         -4148.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.91    1164   60.3  0.60   703.0     -8.0              0.0           -44.0
+2024-26       kk_dip  0.92     392   66.1  1.09   429.0     -8.1             -0.4          -191.0
+2024-26          ALL  0.95    2656   55.6  1.61  4277.0    -14.9             -0.3          -235.0
+
+=== V13 COHORT HGB + skip (profit-max cut)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.81    1388   50.3  4.22  5860.0    -17.3             -2.5         -3932.0
+2021-26    sma_trend  1.00     923   49.7  4.20  3873.0    -17.7              0.0            12.0
+2021-26      rsi_dip  0.89    2349   62.9  0.89  2082.0     -7.4             -0.2          -302.0
+2021-26       kk_dip  0.87     768   68.9  1.34  1028.0     -7.4             -1.4          -494.0
+2021-26          ALL  0.88    5428   58.3  2.37 12842.0    -15.3             -0.9         -4717.0
+2024-26 strong_trend  0.85     559   46.0  1.64   918.0    -16.6             -1.7         -1222.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.86    1101   61.2  0.72   791.0     -7.5              0.9            44.0
+2024-26       kk_dip  0.84     357   64.7  0.91   325.0     -7.9             -1.8          -295.0
+2024-26          ALL  0.88    2461   55.4  1.24  3040.0    -14.7             -0.5         -1472.0
+
+=== V14 COHORT LR + skip (profit-max cut)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.81    1384   52.0  5.28  7305.0    -17.3             -0.8         -2487.0
+2021-26    sma_trend  0.99     911   49.3  3.85  3505.0    -17.7             -0.4          -356.0
+2021-26      rsi_dip  0.88    2325   62.8  0.84  1959.0     -7.4             -0.3          -425.0
+2021-26       kk_dip  0.76     676   68.6  1.57  1062.0     -7.3             -1.7          -460.0
+2021-26          ALL  0.86    5296   58.4  2.61 13831.0    -15.2             -0.8         -3728.0
+2024-26 strong_trend  0.61     402   45.0  1.60   643.0    -16.4             -2.7         -1497.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.89    1129   61.1  0.72   812.0     -7.6              0.8            65.0
+2024-26       kk_dip  0.84     357   68.3  1.74   621.0     -7.5              1.8             1.0
+2024-26          ALL  0.83    2332   56.5  1.32  3081.0    -14.2              0.6         -1431.0
+
+=== V15 COHORT HGB + skip bottom 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.77    1328   51.8  4.86  6454.0    -17.6             -1.0         -3338.0
+2021-26    sma_trend  0.78     724   48.5  3.95  2861.0    -17.9             -1.2         -1000.0
+2021-26      rsi_dip  0.83    2201   64.3  1.03  2269.0     -7.4              1.2          -115.0
+2021-26       kk_dip  0.84     745   70.6  1.52  1134.0     -7.3              0.3          -388.0
+2021-26          ALL  0.81    4998   59.6  2.54 12718.0    -15.3              0.4         -4841.0
+2024-26 strong_trend  0.73     476   45.4  1.54   732.0    -16.6             -2.3         -1408.0
+2024-26    sma_trend  0.81     360   45.6  2.17   782.0    -17.4              0.1          -223.0
+2024-26      rsi_dip  0.72     911   63.1  0.89   811.0     -7.8              2.8            64.0
+2024-26       kk_dip  0.72     306   67.3  1.08   329.0     -8.3              0.8          -291.0
+2024-26          ALL  0.73    2053   56.6  1.29  2655.0    -14.9              0.7         -1857.0
+
+=== V16 COHORT LR + skip bottom 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.70    1207   52.0  5.30  6403.0    -17.0             -0.8         -3389.0
+2021-26    sma_trend  0.65     597   46.7  2.55  1525.0    -17.9             -3.0         -2336.0
+2021-26      rsi_dip  0.78    2065   63.3  0.87  1805.0     -7.8              0.2          -579.0
+2021-26       kk_dip  0.84     743   70.3  1.73  1287.0     -7.0              0.0          -235.0
+2021-26          ALL  0.75    4612   59.3  2.39 11020.0    -15.1              0.1         -6539.0
+2024-26 strong_trend  0.58     383   44.6  1.75   671.0    -16.3             -3.1         -1469.0
+2024-26    sma_trend  0.48     212   38.2 -1.65  -350.0    -17.3             -7.3         -1355.0
+2024-26      rsi_dip  0.68     861   61.8  0.71   609.0     -8.1              1.5          -138.0
+2024-26       kk_dip  0.75     316   68.0  1.78   562.0     -7.5              1.5           -58.0
+2024-26          ALL  0.63    1772   56.4  0.84  1492.0    -14.3              0.5         -3020.0
+
+=== V17 COHORT HGB take all, Low tier half size
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.00  6740.0    -17.3              0.0         -3052.0
+2021-26    sma_trend   1.0     924   49.7  3.81  2908.0    -17.7              0.0          -953.0
+2021-26      rsi_dip   1.0    2651   63.1  0.94  2114.0     -7.4              0.0          -270.0
+2021-26       kk_dip   1.0     885   70.3  1.61  1215.0     -7.0              0.0          -307.0
+2021-26          ALL   1.0    6175   59.2  2.54 12976.0    -15.3              0.0         -4583.0
+2024-26 strong_trend   1.0     656   47.7  2.10  1094.0    -16.6              0.0         -1046.0
+2024-26    sma_trend   1.0     444   45.5  1.86   681.0    -17.1              0.0          -324.0
+2024-26      rsi_dip   1.0    1274   60.3  0.70   681.0     -8.1              0.0           -66.0
+2024-26       kk_dip   1.0     424   66.5  1.32   420.0     -7.7              0.0          -200.0
+2024-26          ALL   1.0    2798   55.9  1.32  2877.0    -14.6              0.0         -1635.0
+
+=== V18 FWD HGB + skip (profit-max cut)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.00    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend  1.00     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip  0.98    2587   63.2  0.92  2378.0     -7.5              0.1            -6.0
+2021-26       kk_dip  1.00     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL  0.99    6111   59.2  2.87 17553.0    -15.3              0.0            -6.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.95    1210   60.3  0.61   741.0     -8.1              0.0            -6.0
+2024-26       kk_dip  1.00     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL  0.98    2734   55.9  1.65  4506.0    -14.8              0.0            -6.0
+
+=== V19 FWD LR + skip (profit-max cut)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.90    1543   51.0  4.70  7258.0    -17.8             -1.8         -2534.0
+2021-26    sma_trend  0.99     911   49.3  3.85  3505.0    -17.7             -0.4          -356.0
+2021-26      rsi_dip  0.94    2497   62.8  0.90  2238.0     -7.4             -0.3          -146.0
+2021-26       kk_dip  0.96     854   70.6  1.77  1515.0     -7.0              0.3            -7.0
+2021-26          ALL  0.94    5805   58.7  2.50 14515.0    -15.4             -0.5         -3044.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.97    1233   60.2  0.58   719.0     -8.1             -0.1           -28.0
+2024-26       kk_dip  0.94     399   66.4  1.47   586.0     -7.7             -0.1           -34.0
+2024-26          ALL  0.98    2732   55.7  1.63  4450.0    -14.8             -0.2           -62.0
+
+=== V20 FWD HGB + skip bottom 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.00    1714   52.8  5.72  9801.0    -17.3              0.0             9.0
+2021-26    sma_trend  1.00     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip  0.77    2042   64.2  1.07  2180.0     -7.4              1.1          -204.0
+2021-26       kk_dip  0.78     693   72.4  1.91  1322.0     -6.9              2.1          -200.0
+2021-26          ALL  0.87    5373   59.1  3.19 17165.0    -15.7             -0.1          -394.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.72     913   63.3  0.94   859.0     -7.9              3.0           112.0
+2024-26       kk_dip  0.81     343   69.4  1.69   580.0     -7.7              2.9           -40.0
+2024-26          ALL  0.84    2356   56.5  1.95  4584.0    -15.3              0.6            72.0
+
+=== V21 FWD LR + skip bottom 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.92    1576   52.3  5.40  8511.0    -17.6             -0.5         -1281.0
+2021-26    sma_trend  0.93     857   49.5  3.96  3396.0    -17.8             -0.2          -465.0
+2021-26      rsi_dip  0.71    1887   65.9  1.29  2430.0     -7.0              2.8            46.0
+2021-26       kk_dip  0.78     694   73.5  2.20  1526.0     -6.3              3.2             4.0
+2021-26          ALL  0.81    5014   59.9  3.16 15863.0    -15.8              0.7         -1696.0
+2024-26 strong_trend  0.91     599   48.7  3.53  2112.0    -16.6              1.0           -28.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.57     730   63.6  1.04   760.0     -7.4              3.3            13.0
+2024-26       kk_dip  0.72     305   70.8  2.11   643.0     -7.2              4.3            23.0
+2024-26          ALL  0.74    2078   56.5  2.18  4520.0    -15.4              0.6             8.0
+
+=== V22 FWD HGB take all, Low tier half size
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.71  9684.0    -17.3              0.0          -108.0
+2021-26    sma_trend   1.0     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip   1.0    2651   63.1  0.98  2123.0     -7.4              0.0          -261.0
+2021-26       kk_dip   1.0     885   70.3  1.87  1368.0     -7.0              0.0          -154.0
+2021-26          ALL   1.0    6175   59.2  3.08 17037.0    -15.3              0.0          -522.0
+2024-26 strong_trend   1.0     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend   1.0     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip   1.0    1274   60.3  0.74   722.0     -8.1              0.0           -25.0
+2024-26       kk_dip   1.0     424   66.5  1.60   565.0     -7.7              0.0           -55.0
+2024-26          ALL   1.0    2798   55.9  1.82  4432.0    -14.6              0.0           -80.0
+
+=== V23 FWD HGB exit-based training + skip (profit)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.00    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend  1.00     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip  0.97    2580   63.5  0.94  2421.0     -7.5              0.4            37.0
+2021-26       kk_dip  1.00     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL  0.99    6104   59.4  2.88 17596.0    -15.3              0.2            37.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.94    1203   61.0  0.65   784.0     -8.1              0.7            37.0
+2024-26       kk_dip  1.00     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL  0.97    2727   56.1  1.67  4549.0    -14.8              0.2            37.0
+
+=== V24 FWD HGB + self-gated skip 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.00    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend  1.00     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip  0.98    2586   62.8  0.89  2292.0     -7.6             -0.3           -92.0
+2021-26       kk_dip  0.92     816   71.0  1.75  1431.0     -7.1              0.7           -91.0
+2021-26          ALL  0.98    6041   59.1  2.88 17377.0    -15.3             -0.1          -182.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.96    1225   60.1  0.58   714.0     -8.3             -0.2           -33.0
+2024-26       kk_dip  0.88     373   68.4  1.59   594.0     -8.1              1.9           -26.0
+2024-26          ALL  0.96    2698   55.8  1.65  4453.0    -14.8             -0.1           -59.0
+
+=== V25 FWD LR + self-gated skip 20 %
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.95    1633   51.8  5.23  8539.0    -17.6             -1.0         -1253.0
+2021-26    sma_trend  0.93     857   49.5  3.96  3396.0    -17.8             -0.2          -465.0
+2021-26      rsi_dip  0.79    2084   65.3  1.20  2507.0     -7.1              2.2           123.0
+2021-26       kk_dip  0.82     726   73.1  2.11  1530.0     -6.3              2.8             8.0
+2021-26          ALL  0.86    5300   59.6  3.01 15972.0    -15.6              0.4         -1587.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.64     810   63.3  1.00   809.0     -7.5              3.0            62.0
+2024-26       kk_dip  0.72     305   70.8  2.11   643.0     -7.2              4.3            23.0
+2024-26          ALL  0.79    2215   56.2  2.08  4597.0    -15.3              0.3            85.0
+
+
+=== SUMMARY (ALL rules; made% and sum% vs static in brackets)
+V1    PRIMARY  HGB + skip (profit-max cut)           OOS AUC 0.551 BSS -3.3%
+      2021-26 kept 0.90 made 58.2 (-1.0) avg +2.51 sum 13928 (-3631) | per-rule dsum stron -2736 sma_t -182 rsi_d -317 kk_di -396
+      2024-26 kept 0.90 made 55.5 (-0.4) avg +1.47 sum 3697 (-815) | per-rule dsum stron -636 sma_t +0 rsi_d +27 kk_di -207
+V2    LR + skip (profit-max cut)                     OOS AUC 0.557 BSS -3.3%
+      2021-26 kept 0.83 made 58.8 (-0.4) avg +2.79 sum 14336 (-3223) | per-rule dsum stron -1919 sma_t -356 rsi_d -363 kk_di -585
+      2024-26 kept 0.77 made 56.6 (+0.7) avg +1.40 sum 3027 (-1485) | per-rule dsum stron -1517 sma_t +0 rsi_d +37 kk_di -5
+V3    TREE d3 + skip (profit-max cut)                OOS AUC 0.537 BSS -4.5%
+      2021-26 kept 0.81 made 59.2 (+0.0) avg +2.18 sum 10952 (-6607) | per-rule dsum stron -5480 sma_t -529 rsi_d -384 kk_di -214
+      2024-26 kept 0.84 made 56.1 (+0.2) avg +1.05 sum 2461 (-2051) | per-rule dsum stron -1807 sma_t -99 rsi_d +32 kk_di -177
+V4    HGB + skip bottom 20 %                         OOS AUC 0.551 BSS -3.3%
+      2021-26 kept 0.80 made 60.0 (+0.8) avg +2.69 sum 13354 (-4205) | per-rule dsum stron -3240 sma_t -445 rsi_d -203 kk_di -317
+      2024-26 kept 0.73 made 57.4 (+1.5) avg +1.37 sum 2801 (-1711) | per-rule dsum stron -1449 sma_t -149 rsi_d +108 kk_di -222
+V5    LR + skip bottom 20 %                          OOS AUC 0.557 BSS -3.3%
+      2021-26 kept 0.78 made 60.1 (+0.9) avg +2.75 sum 13297 (-4262) | per-rule dsum stron -2252 sma_t -1497 rsi_d -190 kk_di -323
+      2024-26 kept 0.65 made 58.0 (+2.1) avg +1.31 sum 2403 (-2109) | per-rule dsum stron -1550 sma_t -681 rsi_d +115 kk_di +7
+V6    HGB take all, Low tier half size               OOS AUC 0.551 BSS -3.3%
+      2021-26 kept 1.00 made 59.2 (+0.0) avg +2.67 sum 13674 (-3885) | per-rule dsum stron -2750 sma_t -605 rsi_d -277 kk_di -252
+      2024-26 kept 1.00 made 55.9 (+0.0) avg +1.48 sum 3254 (-1258) | per-rule dsum stron -1008 sma_t -146 rsi_d +23 kk_di -127
+V7    HGB skip (profit) + Low half size              OOS AUC 0.551 BSS -3.3%
+      2021-26 kept 0.90 made 58.2 (-1.0) avg +2.45 sum 11706 (-5853) | per-rule dsum stron -4237 sma_t -696 rsi_d -466 kk_di -454
+      2024-26 kept 0.90 made 55.5 (-0.4) avg +1.39 sum 2846 (-1666) | per-rule dsum stron -1325 sma_t -146 rsi_d +37 kk_di -231
+V8    HGB |net|-weighted + skip (profit)             OOS AUC 0.544 BSS -3.5%
+      2021-26 kept 0.89 made 57.9 (-1.3) avg +2.49 sum 13599 (-3960) | per-rule dsum stron -2536 sma_t -307 rsi_d -518 kk_di -599
+      2024-26 kept 0.93 made 55.2 (-0.7) avg +1.41 sum 3692 (-820) | per-rule dsum stron -556 sma_t +0 rsi_d +16 kk_di -280
+V9    HGB no derived feats + skip (profit)           OOS AUC 0.557 BSS -3.8%
+      2021-26 kept 0.86 made 58.3 (-0.9) avg +2.78 sum 14767 (-2792) | per-rule dsum stron -2022 sma_t +199 rsi_d -401 kk_di -568
+      2024-26 kept 0.92 made 55.3 (-0.6) avg +1.73 sum 4447 (-65) | per-rule dsum stron +0 sma_t +0 rsi_d +57 kk_di -122
+V10   HGB rolling 3y window + skip (profit)          OOS AUC 0.561 BSS -3.3%
+      2021-26 kept 0.92 made 58.5 (-0.7) avg +2.46 sum 13934 (-3625) | per-rule dsum stron -3074 sma_t -183 rsi_d -254 kk_di -114
+      2024-26 kept 0.95 made 55.9 (+0.0) avg +1.59 sum 4217 (-295) | per-rule dsum stron -131 sma_t -168 rsi_d -1 kk_di +5
+V11a  HGB embargo 0 + skip (profit)                  OOS AUC 0.550 BSS -3.4%
+      2021-26 kept 0.89 made 57.8 (-1.4) avg +2.48 sum 13566 (-3993) | per-rule dsum stron -2772 sma_t -209 rsi_d -396 kk_di -616
+      2024-26 kept 0.94 made 55.4 (-0.5) avg +1.49 sum 3924 (-588) | per-rule dsum stron -324 sma_t +0 rsi_d -7 kk_di -257
+V11b  HGB embargo 20 + skip (profit)                 OOS AUC 0.547 BSS -3.5%
+      2021-26 kept 0.90 made 58.4 (-0.8) avg +2.70 sum 15033 (-2526) | per-rule dsum stron -1835 sma_t +97 rsi_d -387 kk_di -401
+      2024-26 kept 0.91 made 55.5 (-0.4) avg +1.41 sum 3590 (-922) | per-rule dsum stron -783 sma_t +0 rsi_d -145 kk_di +6
+V12   INFO ONLY daily hit-rate HGB + skip (profit)   OOS AUC 0.551 BSS -4.3%
+      2021-26 kept 0.90 made 57.7 (-1.5) avg +2.43 sum 13411 (-4148) | per-rule dsum stron -2695 sma_t -455 rsi_d -439 kk_di -559
+      2024-26 kept 0.95 made 55.6 (-0.3) avg +1.61 sum 4277 (-235) | per-rule dsum stron +0 sma_t +0 rsi_d -44 kk_di -191
+V13   COHORT HGB + skip (profit-max cut)             OOS AUC 0.543 BSS -3.6%
+      2021-26 kept 0.88 made 58.3 (-0.9) avg +2.37 sum 12842 (-4717) | per-rule dsum stron -3932 sma_t +12 rsi_d -302 kk_di -494
+      2024-26 kept 0.88 made 55.4 (-0.5) avg +1.24 sum 3040 (-1472) | per-rule dsum stron -1222 sma_t +0 rsi_d +44 kk_di -295
+V14   COHORT LR + skip (profit-max cut)              OOS AUC 0.553 BSS -3.2%
+      2021-26 kept 0.86 made 58.4 (-0.8) avg +2.61 sum 13831 (-3728) | per-rule dsum stron -2487 sma_t -356 rsi_d -425 kk_di -460
+      2024-26 kept 0.83 made 56.5 (+0.6) avg +1.32 sum 3081 (-1431) | per-rule dsum stron -1497 sma_t +0 rsi_d +65 kk_di +1
+V15   COHORT HGB + skip bottom 20 %                  OOS AUC 0.543 BSS -3.6%
+      2021-26 kept 0.81 made 59.6 (+0.4) avg +2.54 sum 12718 (-4841) | per-rule dsum stron -3338 sma_t -1000 rsi_d -115 kk_di -388
+      2024-26 kept 0.73 made 56.6 (+0.7) avg +1.29 sum 2655 (-1857) | per-rule dsum stron -1408 sma_t -223 rsi_d +64 kk_di -291
+V16   COHORT LR + skip bottom 20 %                   OOS AUC 0.553 BSS -3.2%
+      2021-26 kept 0.75 made 59.3 (+0.1) avg +2.39 sum 11020 (-6539) | per-rule dsum stron -3389 sma_t -2336 rsi_d -579 kk_di -235
+      2024-26 kept 0.63 made 56.4 (+0.5) avg +0.84 sum 1492 (-3020) | per-rule dsum stron -1469 sma_t -1355 rsi_d -138 kk_di -58
+V17   COHORT HGB take all, Low tier half size        OOS AUC 0.543 BSS -3.6%
+      2021-26 kept 1.00 made 59.2 (+0.0) avg +2.54 sum 12976 (-4583) | per-rule dsum stron -3052 sma_t -953 rsi_d -270 kk_di -307
+      2024-26 kept 1.00 made 55.9 (+0.0) avg +1.32 sum 2877 (-1635) | per-rule dsum stron -1046 sma_t -324 rsi_d -66 kk_di -200
+V18   FWD HGB + skip (profit-max cut)                OOS AUC 0.562 BSS -2.0%
+      2021-26 kept 0.99 made 59.2 (+0.0) avg +2.87 sum 17553 (-6) | per-rule dsum stron +0 sma_t +0 rsi_d -6 kk_di +0
+      2024-26 kept 0.98 made 55.9 (+0.0) avg +1.65 sum 4506 (-6) | per-rule dsum stron +0 sma_t +0 rsi_d -6 kk_di +0
+V19   FWD LR + skip (profit-max cut)                 OOS AUC 0.549 BSS -2.9%
+      2021-26 kept 0.94 made 58.7 (-0.5) avg +2.50 sum 14515 (-3044) | per-rule dsum stron -2534 sma_t -356 rsi_d -146 kk_di -7
+      2024-26 kept 0.98 made 55.7 (-0.2) avg +1.63 sum 4450 (-62) | per-rule dsum stron +0 sma_t +0 rsi_d -28 kk_di -34
+V20   FWD HGB + skip bottom 20 %                     OOS AUC 0.562 BSS -2.0%
+      2021-26 kept 0.87 made 59.1 (-0.1) avg +3.19 sum 17165 (-394) | per-rule dsum stron +9 sma_t +0 rsi_d -204 kk_di -200
+      2024-26 kept 0.84 made 56.5 (+0.6) avg +1.95 sum 4584 (+72) | per-rule dsum stron +0 sma_t +0 rsi_d +112 kk_di -40
+V21   FWD LR + skip bottom 20 %                      OOS AUC 0.549 BSS -2.9%
+      2021-26 kept 0.81 made 59.9 (+0.7) avg +3.16 sum 15863 (-1696) | per-rule dsum stron -1281 sma_t -465 rsi_d +46 kk_di +4
+      2024-26 kept 0.74 made 56.5 (+0.6) avg +2.18 sum 4520 (+8) | per-rule dsum stron -28 sma_t +0 rsi_d +13 kk_di +23
+V22   FWD HGB take all, Low tier half size           OOS AUC 0.562 BSS -2.0%
+      2021-26 kept 1.00 made 59.2 (+0.0) avg +3.08 sum 17037 (-522) | per-rule dsum stron -108 sma_t +0 rsi_d -261 kk_di -154
+      2024-26 kept 1.00 made 55.9 (+0.0) avg +1.82 sum 4432 (-80) | per-rule dsum stron +0 sma_t +0 rsi_d -25 kk_di -55
+V23   FWD HGB exit-based training + skip (profit)    OOS AUC 0.553 BSS -0.5%
+      2021-26 kept 0.99 made 59.4 (+0.2) avg +2.88 sum 17596 (+37) | per-rule dsum stron +0 sma_t +0 rsi_d +37 kk_di +0
+      2024-26 kept 0.97 made 56.1 (+0.2) avg +1.67 sum 4549 (+37) | per-rule dsum stron +0 sma_t +0 rsi_d +37 kk_di +0
+V24   FWD HGB + self-gated skip 20 %                 OOS AUC 0.562 BSS -2.0%
+      2021-26 kept 0.98 made 59.1 (-0.1) avg +2.88 sum 17377 (-182) | per-rule dsum stron +0 sma_t +0 rsi_d -92 kk_di -91
+      2024-26 kept 0.96 made 55.8 (-0.1) avg +1.65 sum 4453 (-59) | per-rule dsum stron +0 sma_t +0 rsi_d -33 kk_di -26
+V25   FWD LR + self-gated skip 20 %                  OOS AUC 0.549 BSS -2.9%
+      2021-26 kept 0.86 made 59.6 (+0.4) avg +3.01 sum 15972 (-1587) | per-rule dsum stron -1253 sma_t -465 rsi_d +123 kk_di +8
+      2024-26 kept 0.79 made 56.2 (+0.3) avg +2.08 sum 4597 (+85) | per-rule dsum stron +0 sma_t +0 rsi_d +62 kk_di +23
+
+
+######## ROBUSTNESS V1
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6175 0.551 0.2503      0.2424  -3.3   0.590 0.592
+strong_trend 1715 0.404 0.2880      0.2619 -10.0   0.463 0.528
+   sma_trend  924 0.469 0.2596      0.2566  -1.1   0.517 0.497
+     rsi_dip 2651 0.522 0.2347      0.2341  -0.2   0.670 0.631
+      kk_dip  885 0.445 0.2147      0.2143  -0.1   0.672 0.703
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]   309   0.227  0.647    0.094
+(0.4, 0.5]   924   0.467  0.576    0.087
+(0.5, 0.6]  1546   0.544  0.472    0.016
+(0.6, 0.7]  2537   0.658  0.646    0.012
+(0.7, 0.8]   829   0.730  0.656    0.015
+(0.8, 1.0]    30   0.827  0.500   -0.018
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.48  0.40  0.23  0.51  0.56  0.65
+rsi_dip       0.51  0.45  0.38  0.61  0.51  0.56
+sma_trend     0.56  0.54  0.54  0.51  0.54  0.56
+strong_trend  0.37  0.41  0.54  0.41  0.48  0.44
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     0.5      0.3        0.0           0.5
+2021-04-01     0.5      0.5        0.0           0.3
+2021-07-01     0.5      0.2        0.0           0.2
+2021-10-01     0.5      0.3        0.0           0.1
+2022-01-01     0.3      0.1        0.0           0.0
+2022-04-01     0.3      0.1        0.0           0.0
+2022-07-01     0.4      0.1        0.1           0.0
+2022-10-01     0.3      0.1        0.0           0.0
+2023-01-01     0.4      0.1        0.0           0.0
+2023-04-01     0.2      0.1        0.1           0.3
+2023-07-01     0.2      0.1        0.0           0.0
+2023-10-01     0.2      0.1        0.0           0.0
+2024-01-01     0.0      0.0        0.0           0.3
+2024-04-01     0.3      0.1        0.0           0.0
+2024-07-01     0.0      0.0        0.0           0.0
+2024-10-01     0.0      0.0        0.0           0.0
+2025-01-01     0.1      0.1        0.0           0.0
+2025-04-01     0.0      0.2        0.0           0.0
+2025-07-01     0.0      0.2        0.0           0.0
+2025-10-01     0.0      0.0        0.0           0.0
+2026-01-01     0.1      0.1        0.0           0.0
+2026-04-01     0.2      0.2        0.1           0.0
+2026-07-01     0.0      0.2        0.0           0.1
+2026-10-01     0.1      0.3        0.2           0.0
+per year:
+      dmade                                          dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend     ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                          
+2021  -1.9   -1.0    -1.4       0.0         -5.8 -1964.0  -56.0  -245.0       0.0      -1663.0
+2022  -0.5   -1.4    -0.1       0.0          0.0   -61.0  -52.0    -9.0       0.0          0.0
+2023  -1.6   -3.3    -2.0       0.5         -0.9  -791.0  -81.0   -89.0    -183.0       -437.0
+2024  -1.0   -2.9    -0.1       0.0         -2.2  -857.0 -222.0     0.0       0.0       -636.0
+2025   0.2    0.0     1.1       0.0          0.0    11.0    0.0    11.0       0.0          0.0
+2026   0.2    7.7     2.9       0.0          0.0    31.0   15.0    16.0       0.0          0.0
+tiers (OOS):
+                       avg%              made%                    n                
+tier                  High   Low Normal  High   Low Normal    High     Low  Normal
+period  rule                                                                      
+2021-26 ALL           1.57  3.66   3.11  60.7  57.9   59.3  1838.0  2122.0  2215.0
+        kk_dip        1.66  1.84   1.68  71.2  68.6   70.8   337.0   274.0   274.0
+        rsi_dip       1.04  0.69   0.94  64.7  60.8   63.3   970.0   803.0   878.0
+        sma_trend     5.03  3.72   3.85  52.2  47.4   49.7   291.0   325.0   308.0
+        strong_trend -0.58  7.64   5.87  40.0  55.3   54.4   240.0   720.0   755.0
+2024-26 ALL           1.54  2.08   1.04  57.8  53.3   58.1   685.0  1211.0   902.0
+        kk_dip        2.48  1.21   1.29  77.3  61.9   67.6    75.0   210.0   139.0
+        rsi_dip       1.52 -0.09   0.76  67.2  53.9   63.4   314.0   547.0   413.0
+        sma_trend     3.66  2.16   0.79  46.6  42.6   46.9   163.0   136.0   145.0
+        strong_trend -1.54  6.34   1.61  38.3  50.9   48.8   133.0   318.0   205.0
+null random skip: {'method dmade': np.float64(-1.05), 'null dmade p50/p95': (np.float64(-0.79), np.float64(-0.56)), 'share null >= method': np.float64(0.936), 'method dsum': np.float64(-3631.0), 'null dsum p5/p50/p95': (np.float64(-3556.0), np.float64(-3132.0), np.float64(-2717.0))}
+threshold sensitivity (fixed skip share):
+  hgb skip 10%  2021-26 kept 0.91 made 60.0 (+0.8) avg +2.74 sum 15383 (-2176) | per-rule dsum stron -1841 sma_t -257 rsi_d +64 kk_di -142
+               2024-26 kept 0.86 made 57.3 (+1.4) avg +1.37 sum 3314 (-1198) | per-rule dsum stron -1214 sma_t -46 rsi_d +160 kk_di -98
+  hgb skip 20%  2021-26 kept 0.80 made 60.0 (+0.8) avg +2.69 sum 13354 (-4205) | per-rule dsum stron -3240 sma_t -445 rsi_d -203 kk_di -317
+               2024-26 kept 0.73 made 57.4 (+1.5) avg +1.37 sum 2801 (-1711) | per-rule dsum stron -1449 sma_t -149 rsi_d +108 kk_di -222
+  hgb skip 30%  2021-26 kept 0.69 made 59.8 (+0.6) avg +2.54 sum 10865 (-6694) | per-rule dsum stron -5018 sma_t -744 rsi_d -477 kk_di -455
+               2024-26 kept 0.61 made 57.6 (+1.7) avg +1.32 sum 2240 (-2272) | per-rule dsum stron -1973 sma_t -97 rsi_d +36 kk_di -238
+  hgb skip 40%  2021-26 kept 0.58 made 60.1 (+0.9) avg +2.20 sum 7927 (-9632) | per-rule dsum stron -6932 sma_t -1441 rsi_d -710 kk_di -549
+               2024-26 kept 0.50 made 58.2 (+2.3) avg +1.37 sum 1917 (-2595) | per-rule dsum stron -2109 sma_t -188 rsi_d -34 kk_di -264
+
+
+######## ROBUSTNESS V2
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6175 0.557 0.2503      0.2424  -3.3   0.586 0.592
+strong_trend 1715 0.471 0.2789      0.2619  -6.5   0.455 0.528
+   sma_trend  924 0.404 0.2641      0.2566  -2.9   0.512 0.497
+     rsi_dip 2651 0.533 0.2348      0.2341  -0.3   0.671 0.631
+      kk_dip  885 0.465 0.2268      0.2143  -5.8   0.659 0.703
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]   412   0.245  0.561    0.069
+(0.4, 0.5]  1043   0.463  0.571    0.075
+(0.5, 0.6]  1391   0.546  0.485    0.019
+(0.6, 0.7]  2359   0.657  0.641    0.011
+(0.7, 0.8]   903   0.740  0.664    0.017
+(0.8, 1.0]    67   0.814  0.657    0.028
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.48  0.43  0.34  0.60  0.56  0.56
+rsi_dip       0.46  0.46  0.35  0.62  0.47  0.59
+sma_trend     0.47  0.35  0.45  0.26  0.38  0.62
+strong_trend  0.50  0.58  0.51  0.48  0.45  0.41
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     0.5      0.4        0.3           0.5
+2021-04-01     0.5      0.2        0.0           0.4
+2021-07-01     0.5      0.3        0.0           0.0
+2021-10-01     0.5      0.2        0.0           0.0
+2022-01-01     0.3      0.1        0.0           0.2
+2022-04-01     0.3      0.1        0.0           0.0
+2022-07-01     0.4      0.1        0.0           0.0
+2022-10-01     0.5      0.1        0.0           0.0
+2023-01-01     0.5      0.1        0.0           0.0
+2023-04-01     0.4      0.1        0.0           0.0
+2023-07-01     0.5      0.2        0.0           0.0
+2023-10-01     0.5      0.1        0.0           0.0
+2024-01-01     0.1      0.0        0.0           0.0
+2024-04-01     0.0      0.0        0.0           0.2
+2024-07-01     0.1      0.0        0.0           0.2
+2024-10-01     0.0      0.0        0.0           0.0
+2025-01-01     0.1      0.0        0.0           0.0
+2025-04-01     0.0      0.2        0.0           0.0
+2025-07-01     0.0      0.2        0.0           0.0
+2025-10-01     0.1      0.2        0.0           0.0
+2026-01-01     0.1      0.1        0.0           0.0
+2026-04-01     0.1      0.3        0.0           0.0
+2026-07-01     0.2      0.3        0.0           0.0
+2026-10-01     0.1      0.1        0.0           0.0
+per year:
+      dmade                                          dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend     ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                          
+2021  -2.3   -2.3    -0.9      -3.5         -1.5 -1496.0 -229.0  -242.0    -356.0       -668.0
+2022  -0.2   -4.2    -0.4       0.0          2.8   122.0 -107.0   -37.0       0.0        265.0
+2023  -2.0  -13.7    -1.9       0.0          0.0  -365.0 -243.0  -121.0       0.0          0.0
+2024   1.7    1.5     0.0       0.0         -1.8 -1510.0    6.0     0.0       0.0      -1517.0
+2025  -1.1    0.6    -2.2       0.0          0.0   -38.0    2.0   -40.0       0.0          0.0
+2026   0.6    4.5     9.3       0.0          0.0    63.0  -14.0    77.0       0.0          0.0
+tiers (OOS):
+                       avg%              made%                    n                
+tier                  High   Low Normal  High   Low Normal    High     Low  Normal
+period  rule                                                                      
+2021-26 ALL           2.03  3.26   3.00  62.4  57.7   58.6  1574.0  2163.0  2438.0
+        kk_dip        2.10  1.52   1.61  72.7  69.4   69.3   249.0   314.0   322.0
+        rsi_dip       1.40  0.57   0.73  66.9  59.5   62.7   868.0   841.0   942.0
+        sma_trend     4.96  7.05   0.79  51.9  56.7   41.1   206.0   363.0   355.0
+        strong_trend  1.74  5.47   7.11  45.0  50.1   57.3   251.0   645.0   819.0
+2024-26 ALL           1.63  2.13   0.69  62.0  53.3   55.5   645.0  1367.0   786.0
+        kk_dip        3.75  0.28   1.59  81.1  60.5   65.3    90.0   190.0   144.0
+        rsi_dip       2.29 -0.24   0.38  71.3  53.6   61.2   327.0   586.0   361.0
+        sma_trend     1.58  5.31  -2.82  47.4  52.3   30.7   114.0   216.0   114.0
+        strong_trend -1.87  4.94   2.98  35.1  49.9   51.5   114.0   375.0   167.0
+null random skip: {'method dmade': np.float64(-0.45), 'null dmade p50/p95': (np.float64(-0.54), np.float64(-0.29)), 'share null >= method': np.float64(0.31), 'method dsum': np.float64(-3224.0), 'null dsum p5/p50/p95': (np.float64(-3182.0), np.float64(-2898.0), np.float64(-2579.0))}
+threshold sensitivity (fixed skip share):
+  lr skip 10%  2021-26 kept 0.88 made 59.9 (+0.7) avg +2.76 sum 14966 (-2593) | per-rule dsum stron -1478 sma_t -919 rsi_d +13 kk_di -209
+               2024-26 kept 0.79 made 57.4 (+1.5) avg +1.40 sum 3102 (-1410) | per-rule dsum stron -1173 sma_t -381 rsi_d +142 kk_di +2
+  lr skip 20%  2021-26 kept 0.78 made 60.1 (+0.9) avg +2.75 sum 13297 (-4262) | per-rule dsum stron -2252 sma_t -1497 rsi_d -190 kk_di -323
+               2024-26 kept 0.65 made 58.0 (+2.1) avg +1.31 sum 2403 (-2109) | per-rule dsum stron -1550 sma_t -681 rsi_d +115 kk_di +7
+  lr skip 30%  2021-26 kept 0.69 made 60.0 (+0.8) avg +2.67 sum 11339 (-6220) | per-rule dsum stron -2994 sma_t -2411 rsi_d -401 kk_di -414
+               2024-26 kept 0.55 made 58.2 (+2.3) avg +1.13 sum 1731 (-2781) | per-rule dsum stron -1811 sma_t -1087 rsi_d +139 kk_di -21
+  lr skip 40%  2021-26 kept 0.58 made 59.6 (+0.4) avg +2.44 sum 8702 (-8857) | per-rule dsum stron -4833 sma_t -2776 rsi_d -648 kk_di -600
+               2024-26 kept 0.44 made 58.2 (+2.3) avg +1.09 sum 1353 (-3159) | per-rule dsum stron -2130 sma_t -1052 rsi_d +133 kk_di -110
+
+
+######## ROBUSTNESS V13
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6175 0.543 0.2520      0.2432  -3.6   0.596 0.592
+strong_trend 1715 0.396 0.2910      0.2637 -10.4   0.472 0.528
+   sma_trend  924 0.428 0.2618      0.2567  -2.0   0.532 0.497
+     rsi_dip 2651 0.513 0.2355      0.2345  -0.4   0.671 0.631
+      kk_dip  885 0.430 0.2157      0.2156  -0.0   0.674 0.703
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]   229   0.176  0.681    0.113
+(0.4, 0.5]   980   0.469  0.581    0.087
+(0.5, 0.6]  1452   0.548  0.477    0.013
+(0.6, 0.7]  2671   0.658  0.644    0.014
+(0.7, 0.8]   793   0.736  0.618    0.009
+(0.8, 1.0]    50   0.822  0.620    0.010
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.48  0.48  0.22  0.41  0.49  0.53
+rsi_dip       0.50  0.47  0.39  0.58  0.49  0.58
+sma_trend     0.50  0.47  0.55  0.35  0.49  0.58
+strong_trend  0.40  0.38  0.52  0.42  0.47  0.51
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     0.5      0.5        0.0           0.5
+2021-04-01     0.5      0.4        0.0           0.5
+2021-07-01     0.5      0.5        0.0           0.4
+2021-10-01     0.5      0.3        0.0           0.1
+2022-01-01     0.3      0.1        0.0           0.0
+2022-04-01     0.4      0.1        0.0           0.0
+2022-07-01     0.5      0.2        0.0           0.0
+2022-10-01     0.3      0.2        0.0           0.0
+2023-01-01     0.5      0.1        0.0           0.0
+2023-04-01     0.2      0.1        0.0           0.4
+2023-07-01     0.3      0.1        0.1           0.0
+2023-10-01     0.2      0.1        0.1           0.0
+2024-01-01     0.4      0.1        0.0           0.2
+2024-04-01     0.4      0.0        0.0           0.1
+2024-07-01     0.0      0.0        0.0           0.0
+2024-10-01     0.1      0.0        0.2           0.1
+2025-01-01     0.2      0.1        0.0           0.0
+2025-04-01     0.0      0.2        0.0           0.0
+2025-07-01     0.1      0.2        0.0           0.0
+2025-10-01     0.0      0.1        0.0           0.0
+2026-01-01     0.0      0.1        0.0           0.0
+2026-04-01     0.0      0.1        0.0           0.0
+2026-07-01     0.1      0.1        0.0           0.0
+2026-10-01     0.2      0.2        0.0           0.0
+per year:
+      dmade                                          dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend     ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                          
+2021  -1.6   -0.6    -1.4       0.0         -5.3 -1838.0  -61.0  -302.0       0.0      -1474.0
+2022  -0.6   -0.3    -0.6       0.0          0.0   -55.0  -42.0   -13.0       0.0          0.0
+2023  -0.9   -3.1    -0.8       0.6         -0.8 -1353.0  -95.0   -31.0      11.0      -1237.0
+2024  -1.0   -2.2    -0.3       0.0         -2.2 -1558.0 -269.0   -69.0       0.0      -1222.0
+2025  -0.3   -1.5     0.8       0.0          0.0    24.0   10.0    14.0       0.0          0.0
+2026   0.3   -0.4     3.6       0.0          0.0    62.0  -37.0    99.0       0.0          0.0
+tiers (OOS):
+                       avg%              made%                    n                
+tier                  High   Low Normal  High   Low Normal    High     Low  Normal
+period  rule                                                                      
+2021-26 ALL           1.45  4.31   2.56  59.3  59.8   58.6  1762.0  2128.0  2285.0
+        kk_dip        1.25  2.34   1.71  67.7  70.2   73.4   337.0   262.0   286.0
+        rsi_dip       0.95  0.67   1.05  64.4  60.2   64.2   916.0   812.0   923.0
+        sma_trend     4.86  5.92   2.00  45.8  55.3   47.4   262.0   322.0   340.0
+        strong_trend -0.04  8.34   5.02  43.3  57.7   51.1   247.0   732.0   736.0
+2024-26 ALL           1.08  2.64   0.61  53.8  57.1   55.9   623.0  1239.0   936.0
+        kk_dip        0.91  1.90   1.11  63.9  64.9   70.8    83.0   211.0   130.0
+        rsi_dip       1.21  0.22   0.75  66.3  56.6   62.1   246.0   603.0   425.0
+        sma_trend     2.44  4.18   0.12  38.8  50.3   46.7   139.0   155.0   150.0
+        strong_trend -0.24  7.75   0.37  41.9  55.9   42.0   155.0   270.0   231.0
+null random skip: {'method dmade': np.float64(-0.95), 'null dmade p50/p95': (np.float64(-0.79), np.float64(-0.49)), 'share null >= method': np.float64(0.838), 'method dsum': np.float64(-4717.0), 'null dsum p5/p50/p95': (np.float64(-4368.0), np.float64(-3920.0), np.float64(-3397.0))}
+threshold sensitivity (fixed skip share):
+  hgb skip 10%  2021-26 kept 0.91 made 59.4 (+0.2) avg +2.60 sum 14540 (-3019) | per-rule dsum stron -2281 sma_t -568 rsi_d +66 kk_di -235
+               2024-26 kept 0.86 made 56.4 (+0.5) avg +1.35 sum 3260 (-1252) | per-rule dsum stron -1095 sma_t -99 rsi_d +124 kk_di -181
+  hgb skip 20%  2021-26 kept 0.81 made 59.6 (+0.4) avg +2.54 sum 12718 (-4841) | per-rule dsum stron -3338 sma_t -1000 rsi_d -115 kk_di -388
+               2024-26 kept 0.73 made 56.6 (+0.7) avg +1.29 sum 2655 (-1857) | per-rule dsum stron -1408 sma_t -223 rsi_d +64 kk_di -291
+  hgb skip 30%  2021-26 kept 0.69 made 59.0 (-0.2) avg +2.28 sum 9789 (-7770) | per-rule dsum stron -5187 sma_t -1552 rsi_d -476 kk_di -555
+               2024-26 kept 0.60 made 55.3 (-0.6) avg +1.00 sum 1685 (-2827) | per-rule dsum stron -1852 sma_t -488 rsi_d -132 kk_di -353
+  hgb skip 40%  2021-26 kept 0.58 made 59.0 (-0.2) avg +1.91 sum 6827 (-10732) | per-rule dsum stron -7404 sma_t -1998 rsi_d -740 kk_di -590
+               2024-26 kept 0.48 made 54.4 (-1.5) avg +0.74 sum 985 (-3527) | per-rule dsum stron -2273 sma_t -655 rsi_d -232 kk_di -366
+
+
+######## ROBUSTNESS V14
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6175 0.553 0.2510      0.2432  -3.2   0.583 0.592
+strong_trend 1715 0.444 0.2875      0.2637  -9.1   0.441 0.528
+   sma_trend  924 0.421 0.2619      0.2567  -2.1   0.519 0.497
+     rsi_dip 2651 0.511 0.2354      0.2345  -0.4   0.667 0.631
+      kk_dip  885 0.443 0.2156      0.2156  -0.0   0.676 0.703
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]   392   0.247  0.594    0.088
+(0.4, 0.5]  1007   0.462  0.535    0.065
+(0.5, 0.6]  1333   0.543  0.507    0.029
+(0.6, 0.7]  2690   0.653  0.639    0.009
+(0.7, 0.8]   719   0.741  0.652    0.015
+(0.8, 1.0]    34   0.810  0.676    0.017
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.46  0.43  0.30  0.38  0.57  0.56
+rsi_dip       0.45  0.45  0.36  0.56  0.47  0.59
+sma_trend     0.34  0.38  0.50  0.27  0.48  0.49
+strong_trend  0.40  0.39  0.50  0.45  0.44  0.39
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     0.5      0.4        0.3           0.5
+2021-04-01     0.5      0.2        0.0           0.0
+2021-07-01     0.5      0.3        0.0           0.3
+2021-10-01     0.5      0.2        0.0           0.0
+2022-01-01     0.3      0.0        0.0           0.0
+2022-04-01     0.4      0.1        0.0           0.0
+2022-07-01     0.5      0.2        0.0           0.0
+2022-10-01     0.5      0.1        0.0           0.0
+2023-01-01     0.5      0.1        0.0           0.0
+2023-04-01     0.3      0.1        0.0           0.0
+2023-07-01     0.4      0.1        0.0           0.0
+2023-10-01     0.5      0.1        0.0           0.0
+2024-01-01     0.1      0.0        0.0           0.0
+2024-04-01     0.1      0.0        0.0           0.3
+2024-07-01     0.0      0.0        0.0           0.1
+2024-10-01     0.1      0.0        0.0           0.0
+2025-01-01     0.1      0.0        0.0           0.0
+2025-04-01     0.0      0.1        0.0           0.0
+2025-07-01     0.0      0.1        0.0           0.0
+2025-10-01     0.2      0.1        0.0           0.0
+2026-01-01     0.1      0.1        0.0           0.0
+2026-04-01     0.1      0.0        0.0           0.0
+2026-07-01     0.2      0.0        0.0           0.0
+2026-10-01     0.1      0.1        0.0           0.0
+per year:
+      dmade                                          dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend     ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                          
+2021  -2.4   -1.1    -1.9      -3.5         -3.1 -1756.0  -86.0  -324.0    -356.0       -990.0
+2022  -1.8   -5.1     0.1       0.0          0.0  -199.0 -140.0   -58.0       0.0          0.0
+2023  -1.8  -12.8    -1.6       0.0          0.0  -343.0 -234.0  -108.0       0.0          0.0
+2024   1.1    1.8     0.0       0.0         -3.2 -1487.0    9.0     0.0       0.0      -1497.0
+2025  -0.1    1.1     0.0       0.0          0.0   -11.0    4.0   -15.0       0.0          0.0
+2026   0.2    4.8     3.0       0.0          0.0    66.0  -13.0    79.0       0.0          0.0
+tiers (OOS):
+                       avg%              made%                    n                
+tier                  High   Low Normal  High   Low Normal    High     Low  Normal
+period  rule                                                                      
+2021-26 ALL           1.74  3.52   2.76  62.2  58.3   58.4  1417.0  2592.0  2166.0
+        kk_dip        1.48  1.97   1.74  70.1  73.9   67.5   301.0   264.0   320.0
+        rsi_dip       1.15  0.89   0.66  64.7  62.3   62.4   811.0   990.0   850.0
+        sma_trend     5.02  5.81   1.58  51.6  53.1   44.1   126.0   465.0   333.0
+        strong_trend  2.51  5.75   6.52  45.3  51.9   56.0   179.0   873.0   663.0
+2024-26 ALL           0.35  2.55   0.55  56.9  55.4   56.4   515.0  1535.0   748.0
+        kk_dip        1.56  1.09   1.90  67.0  66.3   66.4    97.0   187.0   140.0
+        rsi_dip       1.53  0.24   0.50  66.3  57.3   61.0   264.0   628.0   382.0
+        sma_trend    -3.10  4.45  -2.50  36.4  50.5   32.5    55.0   309.0    80.0
+        strong_trend -2.08  5.32   1.08  33.3  51.1   47.9    99.0   411.0   146.0
+null random skip: {'method dmade': np.float64(-0.86), 'null dmade p50/p95': (np.float64(-0.74), np.float64(-0.5)), 'share null >= method': np.float64(0.776), 'method dsum': np.float64(-3728.0), 'null dsum p5/p50/p95': (np.float64(-3726.0), np.float64(-3469.0), np.float64(-3199.0))}
+threshold sensitivity (fixed skip share):
+  lr skip 10%  2021-26 kept 0.87 made 59.6 (+0.4) avg +2.59 sum 13917 (-3642) | per-rule dsum stron -2354 sma_t -1023 rsi_d -179 kk_di -86
+               2024-26 kept 0.79 made 57.0 (+1.1) avg +1.39 sum 3091 (-1421) | per-rule dsum stron -778 sma_t -624 rsi_d -16 kk_di -3
+  lr skip 20%  2021-26 kept 0.75 made 59.3 (+0.1) avg +2.39 sum 11020 (-6539) | per-rule dsum stron -3389 sma_t -2336 rsi_d -579 kk_di -235
+               2024-26 kept 0.63 made 56.4 (+0.5) avg +0.84 sum 1492 (-3020) | per-rule dsum stron -1469 sma_t -1355 rsi_d -138 kk_di -58
+  lr skip 30%  2021-26 kept 0.62 made 59.8 (+0.6) avg +2.34 sum 8936 (-8623) | per-rule dsum stron -4661 sma_t -2751 rsi_d -751 kk_di -460
+               2024-26 kept 0.49 made 56.6 (+0.7) avg +0.54 sum 737 (-3775) | per-rule dsum stron -2042 sma_t -1444 rsi_d -120 kk_di -169
+  lr skip 40%  2021-26 kept 0.50 made 59.7 (+0.5) avg +2.20 sum 6846 (-10713) | per-rule dsum stron -5993 sma_t -2882 rsi_d -1137 kk_di -701
+               2024-26 kept 0.38 made 56.0 (+0.1) avg +0.28 sum 302 (-4210) | per-rule dsum stron -2277 sma_t -1397 rsi_d -224 kk_di -311
+
+
+######## ROBUSTNESS V18
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6054 0.562 0.2457      0.2408  -2.0   0.654 0.590
+strong_trend 1640 0.467 0.2628      0.2556  -2.8   0.592 0.520
+   sma_trend  924 0.442 0.2708      0.2567  -5.5   0.565 0.497
+     rsi_dip 2651 0.552 0.2368      0.2345  -1.0   0.694 0.631
+      kk_dip  839 0.541 0.2123      0.2142   0.9   0.748 0.700
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]    36   0.390  0.333   -0.017
+(0.4, 0.5]   174   0.477  0.621    0.069
+(0.5, 0.6]  1908   0.551  0.539    0.054
+(0.6, 0.7]  2071   0.663  0.574   -0.001
+(0.7, 0.8]  1382   0.747  0.645    0.029
+(0.8, 1.0]   483   0.839  0.710    0.022
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.45  0.48  0.73  0.63  0.58  0.56
+rsi_dip       0.51  0.47  0.53  0.64  0.49  0.51
+sma_trend     0.57  0.40  0.58  0.34  0.49  0.63
+strong_trend  0.62  0.35  0.57  0.52  0.46  0.50
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     NaN      0.0        0.0           NaN
+2021-04-01     0.0      0.0        0.0           0.0
+2021-07-01     0.0      0.0        0.0           0.0
+2021-10-01     0.0      0.0        0.0           0.0
+2022-01-01     0.0      0.0        0.0           0.0
+2022-04-01     0.0      0.0        0.0           0.0
+2022-07-01     0.0      0.0        0.0           0.0
+2022-10-01     0.0      0.0        0.0           0.0
+2023-01-01     0.0      0.0        0.0           0.0
+2023-04-01     0.0      0.0        0.0           0.0
+2023-07-01     0.0      0.0        0.0           0.0
+2023-10-01     0.0      0.0        0.0           0.0
+2024-01-01     0.0      0.0        0.0           0.0
+2024-04-01     0.0      0.0        0.0           0.0
+2024-07-01     0.0      0.0        0.0           0.0
+2024-10-01     0.0      0.0        0.0           0.0
+2025-01-01     0.0      0.0        0.0           0.0
+2025-04-01     0.0      0.0        0.0           0.0
+2025-07-01     0.0      0.0        0.0           0.0
+2025-10-01     0.0      0.0        0.0           0.0
+2026-01-01     0.0      0.0        0.0           0.0
+2026-04-01     0.0      0.1        0.0           0.0
+2026-07-01     0.0      0.2        0.0           0.0
+2026-10-01     0.0      0.1        0.0           0.0
+per year:
+      dmade                                       dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend  ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                       
+2021   0.0    0.0     0.0       0.0          0.0  0.0    0.0     0.0       0.0          0.0
+2022   0.0    0.0     0.0       0.0          0.0  0.0    0.0     0.0       0.0          0.0
+2023   0.0    0.0     0.0       0.0          0.0  0.0    0.0     0.0       0.0          0.0
+2024   0.0    0.0     0.0       0.0          0.0  0.0    0.0     0.0       0.0          0.0
+2025   0.0    0.0     0.0       0.0          0.0  0.0    0.0     0.0       0.0          0.0
+2026  -0.4    0.0     0.5       0.0          0.0 -6.0    0.0    -6.0       0.0          0.0
+tiers (OOS):
+                       avg%              made%                   n                
+tier                  High   Low Normal  High   Low Normal   High     Low  Normal
+period  rule                                                                     
+2021-26 ALL           2.41  0.80   3.55  72.7  61.9   56.2  688.0  1299.0  4188.0
+        kk_dip        3.24  1.00   1.43  79.2  64.9   69.5  216.0   308.0   361.0
+        rsi_dip       1.99  0.55   0.76  70.0  61.3   61.8  467.0   953.0  1231.0
+        sma_trend      NaN   NaN   4.18   NaN   NaN   49.7    NaN     NaN   924.0
+        strong_trend  5.70  5.68   5.71  40.0  52.6   52.8    5.0    38.0  1672.0
+2024-26 ALL           2.43  0.22   2.05  73.7  57.2   51.9  339.0   739.0  1720.0
+        kk_dip        3.55  0.78   0.27  78.0  62.0   60.7  132.0   142.0   150.0
+        rsi_dip       1.72  0.08   0.73  71.0  56.1   60.9  207.0   597.0   470.0
+        sma_trend      NaN   NaN   2.26   NaN   NaN   45.5    NaN     NaN   444.0
+        strong_trend   NaN   NaN   3.26   NaN   NaN   47.7    NaN     NaN   656.0
+null random skip: {'method dmade': np.float64(-0.0), 'null dmade p50/p95': (np.float64(-0.07), np.float64(-0.0)), 'share null >= method': np.float64(0.074), 'method dsum': np.float64(-6.0), 'null dsum p5/p50/p95': (np.float64(-115.0), np.float64(-72.0), np.float64(-30.0))}
+threshold sensitivity (fixed skip share):
+  hgb skip 10%  2021-26 kept 0.93 made 59.3 (+0.1) avg +3.07 sum 17594 (+35) | per-rule dsum stron +0 sma_t +0 rsi_d +95 kk_di -60
+               2024-26 kept 0.92 made 56.7 (+0.8) avg +1.84 sum 4759 (+247) | per-rule dsum stron +0 sma_t +0 rsi_d +206 kk_di +40
+  hgb skip 20%  2021-26 kept 0.87 made 59.1 (-0.1) avg +3.19 sum 17165 (-394) | per-rule dsum stron +9 sma_t +0 rsi_d -204 kk_di -200
+               2024-26 kept 0.84 made 56.5 (+0.6) avg +1.95 sum 4584 (+72) | per-rule dsum stron +0 sma_t +0 rsi_d +112 kk_di -40
+  hgb skip 30%  2021-26 kept 0.81 made 58.8 (-0.4) avg +3.36 sum 16774 (-785) | per-rule dsum stron -127 sma_t +0 rsi_d -421 kk_di -237
+               2024-26 kept 0.76 made 56.1 (+0.2) avg +2.10 sum 4472 (-40) | per-rule dsum stron +0 sma_t +0 rsi_d +24 kk_di -64
+  hgb skip 40%  2021-26 kept 0.74 made 58.1 (-1.1) avg +3.43 sum 15739 (-1820) | per-rule dsum stron -766 sma_t +0 rsi_d -678 kk_di -377
+               2024-26 kept 0.68 made 55.1 (-0.8) avg +2.25 sum 4294 (-218) | per-rule dsum stron +0 sma_t +0 rsi_d -107 kk_di -111
+
+
+######## ROBUSTNESS V19
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6054 0.549 0.2479      0.2408  -2.9   0.631 0.590
+strong_trend 1640 0.434 0.2784      0.2556  -8.9   0.579 0.520
+   sma_trend  924 0.456 0.2745      0.2567  -6.9   0.562 0.497
+     rsi_dip 2651 0.548 0.2323      0.2345   1.0   0.652 0.631
+      kk_dip  839 0.589 0.2082      0.2142   2.8   0.743 0.700
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]    94   0.333  0.702    0.158
+(0.4, 0.5]   431   0.457  0.629    0.105
+(0.5, 0.6]  1891   0.554  0.515    0.030
+(0.6, 0.7]  2184   0.663  0.584    0.001
+(0.7, 0.8]  1154   0.728  0.671    0.025
+(0.8, 1.0]   300   0.858  0.700    0.053
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.55  0.52  0.75  0.67  0.57  0.60
+rsi_dip       0.46  0.51  0.62  0.62  0.47  0.59
+sma_trend     0.40  0.43  0.41  0.34  0.49  0.60
+strong_trend  0.62  0.35  0.48  0.52  0.47  0.61
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     NaN      0.0        0.3           NaN
+2021-04-01     0.0      0.5        0.0           0.0
+2021-07-01     0.0      0.0        0.0           0.0
+2021-10-01     0.0      0.0        0.0           0.0
+2022-01-01     0.0      0.2        0.0           0.0
+2022-04-01     0.1      0.0        0.0           0.0
+2022-07-01     0.0      0.0        0.0           0.0
+2022-10-01     0.0      0.0        0.0           0.0
+2023-01-01     0.0      0.0        0.0           0.0
+2023-04-01     0.0      0.0        0.0           0.5
+2023-07-01     0.0      0.0        0.0           0.5
+2023-10-01     0.0      0.0        0.0           0.0
+2024-01-01     0.0      0.0        0.0           0.0
+2024-04-01     0.1      0.0        0.0           0.0
+2024-07-01     0.0      0.0        0.0           0.0
+2024-10-01     0.0      0.0        0.0           0.0
+2025-01-01     0.0      0.0        0.0           0.0
+2025-04-01     0.0      0.0        0.0           0.0
+2025-07-01     0.0      0.0        0.0           0.0
+2025-10-01     0.0      0.0        0.0           0.0
+2026-01-01     0.0      0.0        0.0           0.0
+2026-04-01     0.0      0.0        0.0           0.0
+2026-07-01     0.1      0.1        0.0           0.0
+2026-10-01     0.1      0.3        0.0           0.0
+per year:
+      dmade                                          dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend     ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                          
+2021  -0.7    0.0    -0.9      -3.5          0.0  -456.0    0.0  -100.0    -356.0          0.0
+2022  -0.5    1.3     0.1       0.0          0.0     8.0   27.0   -19.0       0.0          0.0
+2023   0.1    0.0     0.0       0.0         -0.5 -2534.0    0.0     0.0       0.0      -2534.0
+2024  -0.1    0.2     0.0       0.0          0.0    -1.0   -2.0     0.0       0.0          0.0
+2025   0.0    0.0     0.0       0.0          0.0     0.0    0.0     0.0       0.0          0.0
+2026  -1.0    0.0    -0.3       0.0          0.0   -61.0  -33.0   -28.0       0.0          0.0
+tiers (OOS):
+                        avg%               made%                   n                
+tier                   High    Low Normal  High   Low Normal   High     Low  Normal
+period  rule                                                                       
+2021-26 ALL            4.74   1.70   3.04  72.8  58.1   57.1  734.0  1837.0  3604.0
+        kk_dip         3.31   0.76   1.58  83.2  65.6   66.1  226.0   323.0   336.0
+        rsi_dip        2.64   0.07   1.22  75.1  57.4   65.3  289.0  1101.0  1261.0
+        sma_trend     11.34   2.50   4.02  55.2  47.5   49.8   58.0   181.0   685.0
+        strong_trend   8.15  10.10   4.64  60.2  59.1   50.8  161.0   232.0  1322.0
+2024-26 ALL            1.97   0.16   2.52  71.0  56.1   52.5  324.0  1002.0  1472.0
+        kk_dip         3.10   0.34   1.89  78.6  60.6   66.2   98.0   193.0   133.0
+        rsi_dip        2.54   0.07   0.58  73.6  56.6   60.5  197.0   738.0   339.0
+        sma_trend    -10.50    NaN   2.83  15.8   NaN   46.8   19.0     NaN   425.0
+        strong_trend   3.34   0.66   3.58  50.0  38.0   48.9   10.0    71.0   575.0
+null random skip: {'method dmade': np.float64(-0.53), 'null dmade p50/p95': (np.float64(-0.62), np.float64(-0.48)), 'share null >= method': np.float64(0.198), 'method dsum': np.float64(-3044.0), 'null dsum p5/p50/p95': (np.float64(-3339.0), np.float64(-3092.0), np.float64(-2838.0))}
+threshold sensitivity (fixed skip share):
+  lr skip 10%  2021-26 kept 0.90 made 59.8 (+0.6) avg +3.06 sum 16936 (-623) | per-rule dsum stron -309 sma_t -366 rsi_d +58 kk_di -7
+               2024-26 kept 0.84 made 56.5 (+0.6) avg +1.92 sum 4504 (-8) | per-rule dsum stron -53 sma_t +0 rsi_d +73 kk_di -28
+  lr skip 20%  2021-26 kept 0.81 made 59.9 (+0.7) avg +3.16 sum 15863 (-1696) | per-rule dsum stron -1281 sma_t -465 rsi_d +46 kk_di +4
+               2024-26 kept 0.74 made 56.5 (+0.6) avg +2.18 sum 4520 (+8) | per-rule dsum stron -28 sma_t +0 rsi_d +13 kk_di +23
+  lr skip 30%  2021-26 kept 0.73 made 59.6 (+0.4) avg +3.23 sum 14585 (-2974) | per-rule dsum stron -2229 sma_t -499 rsi_d -48 kk_di -198
+               2024-26 kept 0.67 made 56.2 (+0.3) avg +2.37 sum 4407 (-105) | per-rule dsum stron -69 sma_t +0 rsi_d +11 kk_di -47
+  lr skip 40%  2021-26 kept 0.65 made 60.1 (+0.9) avg +3.40 sum 13634 (-3925) | per-rule dsum stron -2971 sma_t -516 rsi_d -130 kk_di -309
+               2024-26 kept 0.60 made 55.8 (-0.1) avg +2.55 sum 4245 (-267) | per-rule dsum stron -86 sma_t +0 rsi_d -58 kk_di -124
+
+
+######## ROBUSTNESS V24
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6054 0.562 0.2457      0.2408  -2.0   0.654 0.590
+strong_trend 1640 0.467 0.2628      0.2556  -2.8   0.592 0.520
+   sma_trend  924 0.442 0.2708      0.2567  -5.5   0.565 0.497
+     rsi_dip 2651 0.552 0.2368      0.2345  -1.0   0.694 0.631
+      kk_dip  839 0.541 0.2123      0.2142   0.9   0.748 0.700
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]    36   0.390  0.333   -0.017
+(0.4, 0.5]   174   0.477  0.621    0.069
+(0.5, 0.6]  1908   0.551  0.539    0.054
+(0.6, 0.7]  2071   0.663  0.574   -0.001
+(0.7, 0.8]  1382   0.747  0.645    0.029
+(0.8, 1.0]   483   0.839  0.710    0.022
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.45  0.48  0.73  0.63  0.58  0.56
+rsi_dip       0.51  0.47  0.53  0.64  0.49  0.51
+sma_trend     0.57  0.40  0.58  0.34  0.49  0.63
+strong_trend  0.62  0.35  0.57  0.52  0.46  0.50
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     NaN      0.0        0.0           NaN
+2021-04-01     0.0      0.0        0.0           0.0
+2021-07-01     0.0      0.0        0.0           0.0
+2021-10-01     0.0      0.0        0.0           0.0
+2022-01-01     0.0      0.0        0.0           0.0
+2022-04-01     0.0      0.0        0.0           0.0
+2022-07-01     0.0      0.0        0.0           0.0
+2022-10-01     0.0      0.0        0.0           0.0
+2023-01-01     0.0      0.0        0.0           0.0
+2023-04-01     0.0      0.0        0.0           0.0
+2023-07-01     0.0      0.0        0.0           0.0
+2023-10-01     0.0      0.0        0.0           0.0
+2024-01-01     0.0      0.0        0.0           0.0
+2024-04-01     0.0      0.0        0.0           0.0
+2024-07-01     0.0      0.0        0.0           0.0
+2024-10-01     0.0      0.0        0.0           0.0
+2025-01-01     0.0      0.0        0.0           0.0
+2025-04-01     0.0      0.0        0.0           0.0
+2025-07-01     0.0      0.0        0.0           0.0
+2025-10-01     0.0      0.0        0.0           0.0
+2026-01-01     0.0      0.0        0.0           0.0
+2026-04-01     0.0      0.1        0.0           0.0
+2026-07-01     0.0      0.2        0.0           0.0
+2026-10-01     0.0      0.1        0.0           0.0
+per year:
+      dmade                                        dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend   ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                        
+2021  -0.4   -0.1    -0.7       0.0          0.0 -81.0  -21.0   -59.0       0.0          0.0
+2022  -0.6   -2.0     0.0       0.0          0.0 -43.0  -43.0     0.0       0.0          0.0
+2023   0.0    0.0     0.0       0.0          0.0   0.0    0.0     0.0       0.0          0.0
+2024   0.2    2.8     0.0       0.0          0.0  21.0   20.0     0.0       0.0          0.0
+2025   0.3    2.0     0.0       0.0          0.0   5.0    5.0     0.0       0.0          0.0
+2026  -1.7   -0.6    -0.7       0.0          0.0 -85.0  -52.0   -33.0       0.0          0.0
+tiers (OOS):
+                       avg%              made%                   n                
+tier                  High   Low Normal  High   Low Normal   High     Low  Normal
+period  rule                                                                     
+2021-26 ALL           2.41  0.80   3.55  72.7  61.9   56.2  688.0  1299.0  4188.0
+        kk_dip        3.24  1.00   1.43  79.2  64.9   69.5  216.0   308.0   361.0
+        rsi_dip       1.99  0.55   0.76  70.0  61.3   61.8  467.0   953.0  1231.0
+        sma_trend      NaN   NaN   4.18   NaN   NaN   49.7    NaN     NaN   924.0
+        strong_trend  5.70  5.68   5.71  40.0  52.6   52.8    5.0    38.0  1672.0
+2024-26 ALL           2.43  0.22   2.05  73.7  57.2   51.9  339.0   739.0  1720.0
+        kk_dip        3.55  0.78   0.27  78.0  62.0   60.7  132.0   142.0   150.0
+        rsi_dip       1.72  0.08   0.73  71.0  56.1   60.9  207.0   597.0   470.0
+        sma_trend      NaN   NaN   2.26   NaN   NaN   45.5    NaN     NaN   444.0
+        strong_trend   NaN   NaN   3.26   NaN   NaN   47.7    NaN     NaN   656.0
+null random skip: {'method dmade': np.float64(-0.18), 'null dmade p50/p95': (np.float64(-0.21), np.float64(-0.09)), 'share null >= method': np.float64(0.332), 'method dsum': np.float64(-183.0), 'null dsum p5/p50/p95': (np.float64(-254.0), np.float64(-178.0), np.float64(-108.0))}
+threshold sensitivity (fixed skip share):
+  hgb skip 10%  2021-26 kept 0.93 made 59.3 (+0.1) avg +3.07 sum 17594 (+35) | per-rule dsum stron +0 sma_t +0 rsi_d +95 kk_di -60
+               2024-26 kept 0.92 made 56.7 (+0.8) avg +1.84 sum 4759 (+247) | per-rule dsum stron +0 sma_t +0 rsi_d +206 kk_di +40
+  hgb skip 20%  2021-26 kept 0.87 made 59.1 (-0.1) avg +3.19 sum 17165 (-394) | per-rule dsum stron +9 sma_t +0 rsi_d -204 kk_di -200
+               2024-26 kept 0.84 made 56.5 (+0.6) avg +1.95 sum 4584 (+72) | per-rule dsum stron +0 sma_t +0 rsi_d +112 kk_di -40
+  hgb skip 30%  2021-26 kept 0.81 made 58.8 (-0.4) avg +3.36 sum 16774 (-785) | per-rule dsum stron -127 sma_t +0 rsi_d -421 kk_di -237
+               2024-26 kept 0.76 made 56.1 (+0.2) avg +2.10 sum 4472 (-40) | per-rule dsum stron +0 sma_t +0 rsi_d +24 kk_di -64
+  hgb skip 40%  2021-26 kept 0.74 made 58.1 (-1.1) avg +3.43 sum 15739 (-1820) | per-rule dsum stron -766 sma_t +0 rsi_d -678 kk_di -377
+               2024-26 kept 0.68 made 55.1 (-0.8) avg +2.25 sum 4294 (-218) | per-rule dsum stron +0 sma_t +0 rsi_d -107 kk_di -111
+
+
+######## ROBUSTNESS V25
+calibration (OOS):
+         rule    n   AUC  Brier  Brier_base  BSS%  mean_p  made
+         ALL 6054 0.549 0.2479      0.2408  -2.9   0.631 0.590
+strong_trend 1640 0.434 0.2784      0.2556  -8.9   0.579 0.520
+   sma_trend  924 0.456 0.2745      0.2567  -6.9   0.562 0.497
+     rsi_dip 2651 0.548 0.2323      0.2345   1.0   0.652 0.631
+      kk_dip  839 0.589 0.2082      0.2142   2.8   0.743 0.700
+reliability (OOS, all rules):
+                n  mean_p   made  avg_net
+bucket                                  
+(0.0, 0.4]    94   0.333  0.702    0.158
+(0.4, 0.5]   431   0.457  0.629    0.105
+(0.5, 0.6]  1891   0.554  0.515    0.030
+(0.6, 0.7]  2184   0.663  0.584    0.001
+(0.7, 0.8]  1154   0.728  0.671    0.025
+(0.8, 1.0]   300   0.858  0.700    0.053
+AUC by rule x year:
+               2021  2022  2023  2024  2025  2026
+kk_dip        0.55  0.52  0.75  0.67  0.57  0.60
+rsi_dip       0.46  0.51  0.62  0.62  0.47  0.59
+sma_trend     0.40  0.43  0.41  0.34  0.49  0.60
+strong_trend  0.62  0.35  0.48  0.52  0.47  0.61
+chosen skip share q (profit-max) by rule, per quarter:
+ rule        kk_dip  rsi_dip  sma_trend  strong_trend
+Q                                                   
+2021-01-01     NaN      0.0        0.3           NaN
+2021-04-01     0.0      0.5        0.0           0.0
+2021-07-01     0.0      0.0        0.0           0.0
+2021-10-01     0.0      0.0        0.0           0.0
+2022-01-01     0.0      0.2        0.0           0.0
+2022-04-01     0.1      0.0        0.0           0.0
+2022-07-01     0.0      0.0        0.0           0.0
+2022-10-01     0.0      0.0        0.0           0.0
+2023-01-01     0.0      0.0        0.0           0.0
+2023-04-01     0.0      0.0        0.0           0.5
+2023-07-01     0.0      0.0        0.0           0.5
+2023-10-01     0.0      0.0        0.0           0.0
+2024-01-01     0.0      0.0        0.0           0.0
+2024-04-01     0.1      0.0        0.0           0.0
+2024-07-01     0.0      0.0        0.0           0.0
+2024-10-01     0.0      0.0        0.0           0.0
+2025-01-01     0.0      0.0        0.0           0.0
+2025-04-01     0.0      0.0        0.0           0.0
+2025-07-01     0.0      0.0        0.0           0.0
+2025-10-01     0.0      0.0        0.0           0.0
+2026-01-01     0.0      0.0        0.0           0.0
+2026-04-01     0.0      0.0        0.0           0.0
+2026-07-01     0.1      0.1        0.0           0.0
+2026-10-01     0.1      0.3        0.0           0.0
+per year:
+      dmade                                          dsum                                      
+rule   ALL kk_dip rsi_dip sma_trend strong_trend     ALL kk_dip rsi_dip sma_trend strong_trend
+year                                                                                          
+2021  -0.3    0.7     0.0      -3.5          0.0  -383.0  -27.0     0.0    -356.0          0.0
+2022   0.0    1.2     0.0      -1.5          0.0   -92.0   11.0     6.0    -109.0          0.0
+2023   1.1    1.2     3.1       0.0         -0.9 -1198.0    2.0    55.0       0.0      -1253.0
+2024   0.9    5.3     2.2       0.0          0.0    54.0   20.0    34.0       0.0          0.0
+2025  -1.5    2.2    -5.0       0.0          0.0   -41.0    2.0   -43.0       0.0          0.0
+2026  -0.8    9.2    10.2       0.0          0.0    72.0    0.0    71.0       0.0          0.0
+tiers (OOS):
+                        avg%               made%                   n                
+tier                   High    Low Normal  High   Low Normal   High     Low  Normal
+period  rule                                                                       
+2021-26 ALL            4.74   1.70   3.04  72.8  58.1   57.1  734.0  1837.0  3604.0
+        kk_dip         3.31   0.76   1.58  83.2  65.6   66.1  226.0   323.0   336.0
+        rsi_dip        2.64   0.07   1.22  75.1  57.4   65.3  289.0  1101.0  1261.0
+        sma_trend     11.34   2.50   4.02  55.2  47.5   49.8   58.0   181.0   685.0
+        strong_trend   8.15  10.10   4.64  60.2  59.1   50.8  161.0   232.0  1322.0
+2024-26 ALL            1.97   0.16   2.52  71.0  56.1   52.5  324.0  1002.0  1472.0
+        kk_dip         3.10   0.34   1.89  78.6  60.6   66.2   98.0   193.0   133.0
+        rsi_dip        2.54   0.07   0.58  73.6  56.6   60.5  197.0   738.0   339.0
+        sma_trend    -10.50    NaN   2.83  15.8   NaN   46.8   19.0     NaN   425.0
+        strong_trend   3.34   0.66   3.58  50.0  38.0   48.9   10.0    71.0   575.0
+null random skip: {'method dmade': np.float64(0.4), 'null dmade p50/p95': (np.float64(-0.37), np.float64(-0.09)), 'share null >= method': np.float64(0.0), 'method dsum': np.float64(-1588.0), 'null dsum p5/p50/p95': (np.float64(-2476.0), np.float64(-2175.0), np.float64(-1910.0))}
+threshold sensitivity (fixed skip share):
+  lr skip 10%  2021-26 kept 0.90 made 59.8 (+0.6) avg +3.06 sum 16936 (-623) | per-rule dsum stron -309 sma_t -366 rsi_d +58 kk_di -7
+               2024-26 kept 0.84 made 56.5 (+0.6) avg +1.92 sum 4504 (-8) | per-rule dsum stron -53 sma_t +0 rsi_d +73 kk_di -28
+  lr skip 20%  2021-26 kept 0.81 made 59.9 (+0.7) avg +3.16 sum 15863 (-1696) | per-rule dsum stron -1281 sma_t -465 rsi_d +46 kk_di +4
+               2024-26 kept 0.74 made 56.5 (+0.6) avg +2.18 sum 4520 (+8) | per-rule dsum stron -28 sma_t +0 rsi_d +13 kk_di +23
+  lr skip 30%  2021-26 kept 0.73 made 59.6 (+0.4) avg +3.23 sum 14585 (-2974) | per-rule dsum stron -2229 sma_t -499 rsi_d -48 kk_di -198
+               2024-26 kept 0.67 made 56.2 (+0.3) avg +2.37 sum 4407 (-105) | per-rule dsum stron -69 sma_t +0 rsi_d +11 kk_di -47
+  lr skip 40%  2021-26 kept 0.65 made 60.1 (+0.9) avg +3.40 sum 13634 (-3925) | per-rule dsum stron -2971 sma_t -516 rsi_d -130 kk_di -309
+               2024-26 kept 0.60 made 55.8 (-0.1) avg +2.55 sum 4245 (-267) | per-rule dsum stron -86 sma_t +0 rsi_d -58 kk_di -124

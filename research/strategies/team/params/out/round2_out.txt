@@ -1,0 +1,107 @@
+
+R1 avg strong_trend: design-years table (raw / smoothed avg %)
+plan  design n  raw  smoothed
+3/40      1243 2.69      3.54
+3/60      1153 4.70      5.15
+3/90      1042 7.50      7.03
+4/40      1202 3.22      3.69
+4/60      1095 5.70      5.69
+4/90       979 8.88      7.87
+5/40      1189 3.16      4.11
+5/60      1079 5.95      6.05
+5/90       954 9.39      8.07
+-> chosen plan 5/90  (today 4/60)
+
+R1 avg sma_trend: design-years table (raw / smoothed avg %)
+plan  design n   raw  smoothed
+3/40       783  3.98      4.91
+3/60       753  6.43      7.07
+3/90       713 11.15      9.94
+4/40       771  4.32      4.82
+4/60       737  6.71      7.32
+4/90       689 12.23     10.66
+5/40       766  4.27      5.16
+5/60       728  6.90      7.61
+5/90       680 12.56     10.56
+-> chosen plan 4/90  (today 4/60)
+
+=== R1 avg: trend plan chosen on 2019-07..2023-08 cohorts, checked 2024-26
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.83    1428   56.2  8.65 12350.0    -20.9              3.4          2558.0
+2021-26    sma_trend  0.93     855   47.0  6.29  5382.0    -18.1             -2.7          1521.0
+2021-26      rsi_dip  1.00    2651   63.1  0.90  2384.0     -7.4              0.0             0.0
+2021-26       kk_dip  1.00     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL  0.94    5819   60.1  3.72 21638.0    -16.6              0.9          4079.0
+2024-26 strong_trend  0.81     530   47.9  3.11  1651.0    -20.2              0.2          -489.0
+2024-26    sma_trend  0.92     409   42.8  2.41   988.0    -17.5             -2.7           -17.0
+2024-26      rsi_dip  1.00    1274   60.3  0.59   747.0     -8.1              0.0             0.0
+2024-26       kk_dip  1.00     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL  0.94    2637   56.1  1.52  4005.0    -16.0              0.2          -507.0
+   bootstrap strong_trend 2024-26 avg(new)-avg(today): p(<=0) = 0.578, 90% range -1.46 .. 1.34 points
+   bootstrap sma_trend 2024-26 avg(new)-avg(today): p(<=0) = 0.446, 90% range -1.25 .. 1.64 points
+
+R2 per-100-days strong_trend: design-years table (raw / smoothed per 100 trade-days %)
+plan  design n   raw  smoothed
+3/40      1243  8.90      9.87
+3/60      1153 11.40     11.35
+3/90      1042 13.32     12.66
+4/40      1202  9.32      9.65
+4/60      1095 11.78     11.43
+4/90       979 13.27     12.77
+5/40      1189  8.61      9.78
+5/60      1079 11.39     11.13
+5/90       954 12.73     12.46
+-> chosen plan 4/90  (today 4/60)
+
+R2 per-100-days sma_trend: design-years table (raw / smoothed per 100 trade-days %)
+plan  design n   raw  smoothed
+3/40       783 12.52     13.15
+3/60       753 14.62     14.79
+3/90       713 18.37     16.92
+4/40       771 12.30     12.50
+4/60       737 13.64     14.29
+4/90       689 17.77     16.66
+5/40       766 11.54     12.31
+5/60       728 13.10     13.79
+5/90       680 16.88     15.92
+-> chosen plan 3/90  (today 4/60)
+
+=== R2 per-100-days: trend plan chosen on 2019-07..2023-08 cohorts, checked 2024-26
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.86    1469   51.7  7.99 11737.0    -18.3             -1.1          1945.0
+2021-26    sma_trend  0.97     897   39.5  5.32  4770.0    -14.8            -10.2           909.0
+2021-26      rsi_dip  1.00    2651   63.1  0.90  2384.0     -7.4              0.0             0.0
+2021-26       kk_dip  1.00     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL  0.96    5902   57.7  3.46 20413.0    -14.4             -1.5          2854.0
+2024-26 strong_trend  0.84     549   43.7  2.91  1600.0    -18.0             -4.0          -540.0
+2024-26    sma_trend  0.98     434   33.2  1.16   505.0    -14.4            -12.3          -500.0
+2024-26      rsi_dip  1.00    1274   60.3  0.59   747.0     -8.1              0.0             0.0
+2024-26       kk_dip  1.00     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL  0.96    2681   53.5  1.29  3472.0    -14.0             -2.4         -1040.0
+   bootstrap strong_trend 2024-26 avg(new)-avg(today): p(<=0) = 0.693, 90% range -1.42 .. 0.87 points
+   bootstrap sma_trend 2024-26 avg(new)-avg(today): p(<=0) = 0.772, 90% range -3.48 .. 1.2 points
+
+=== days held and return per 100 days in a trade
+                     avg days                             per 100 trade-days %                            
+variant                R1 avg R2 per-100-days static 4/60               R1 avg R2 per-100-days static 4/60
+period  rule                                                                                              
+2021-26 ALL              30.7            28.0        23.2                12.10           12.35       12.23
+        sma_trend        63.5            53.4        46.5                 9.91            9.96        8.98
+        strong_trend     75.5            68.5        48.8                11.46           11.66       11.69
+2024-26 ALL              26.9            24.3        20.9                 5.65            5.33        7.70
+        sma_trend        60.9            49.3        45.0                 3.97            2.36        5.03
+        strong_trend     71.1            64.5        46.3                 4.38            4.52        7.05
+
+=== R3: C4 monitor check (complete cohorts, 12-month outcomes)
+        rule  quarters  mean rho  rho>0 share  perm p  today rank train (median)  today rank next (median)  rank corr train~next  best beats today next yr  avg regret % (best - today)  late trades
+strong_trend        18      0.25         0.67   0.000                       13.0                      12.0                  0.29                      0.44                         0.76            0
+   sma_trend        18      0.62         0.89   0.000                       15.5                      14.5                 -0.74                      0.94                         4.81            0
+     rsi_dip        18      0.21         0.67   0.000                       12.0                      14.0                 -0.06                      0.56                         0.14            0
+      kk_dip        18     -0.01         0.50   0.597                       13.0                      12.5                 -0.25                      0.50                         0.12            0
+
+=== censoring severity and feedback lag (descriptive)
+        rule       plan  closed-so-far made%  closed share  whole cohort made%  complete-cohort lag (sessions)
+strong_trend 4 ATR / 60                 20.2          0.26                54.2                              65
+strong_trend 4 ATR / 90                  0.0          0.19                52.9                              95
+   sma_trend 4 ATR / 60                 18.3          0.32                51.5                              65
+   sma_trend 4 ATR / 90                  0.0          0.25                48.4                              95

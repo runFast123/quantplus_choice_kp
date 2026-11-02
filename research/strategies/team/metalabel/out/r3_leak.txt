@@ -1,0 +1,56 @@
+own row flagged as a setup: 100.0 % of top-300 rsi_dip trades
+
+(1) per signal day (days with >= 1 fill): 736 days; median setups 21.0 fills 2.0
+    corr with the NEXT session's Nifty move   close->close   close->low
+    fill_rate  -0.489        -0.520
+    fills      -0.384        -0.460
+    setups     +0.086        +0.004
+    corr(old n_same_day, new) on top-300 trades: 0.686
+
+(2) OLD (filled count, D***)
+  top300   2021-26: High 77.7% (238)  Low 55.9% (827)  Normal 62.9% (453)  none 65.3% (1133) | High-Low +21.9 (null p 0.001); High > Low in 11 of 12 quarters
+  top300   2024-26: High 74.7% (166)  Low 56.0% (746)  Normal 62.4% (362) | High-Low +18.7 (null p 0.001); High > Low in 9 of 10 quarters
+  per year top300:
+tier       High        Low     Normal       none  High-Low
+year                                                      
+2021        NaN        NaN        NaN  69% (605)       NaN
+2022        NaN        NaN        NaN  61% (430)       NaN
+2023   85% (72)   54% (81)   65% (91)   61% (98)      30.4
+2024  76% (139)  53% (245)  62% (261)        NaN      22.5
+2025   46% (13)  58% (259)   51% (43)        NaN     -11.8
+2026   93% (14)  57% (242)   71% (58)        NaN      35.8
+  r301_500 2021-26: High 79.7% (138)  Low 61.8% (280)  Normal 63.8% (210)  none 71.1% (301) | High-Low +17.9 (null p 0.001); High > Low in 11 of 13 quarters
+  r301_500 2024-26: High 75.6% (90)  Low 61.9% (265)  Normal 63.4% (186) | High-Low +13.7 (null p 0.017); High > Low in 8 of 10 quarters
+  per year r301_500:
+tier      High        Low    Normal       none  High-Low
+year                                                    
+2021       NaN        NaN       NaN  73% (132)       NaN
+2022       NaN        NaN       NaN  67% (130)       NaN
+2023  88% (48)   60% (15)  67% (24)   77% (39)      27.5
+2024  75% (65)   64% (61)  61% (87)        NaN      11.5
+2025  80% (10)  61% (119)  60% (45)        NaN      18.7
+2026  73% (15)   61% (85)  70% (54)        NaN      12.2
+
+(2) NEW (setup count)
+  top300   2021-26: High 79.5% (205)  Low 55.5% (857)  Normal 64.3% (456)  none 65.3% (1133) | High-Low +24.0 (null p 0.001); High > Low in 11 of 12 quarters
+  top300   2024-26: High 75.9% (133)  Low 55.5% (768)  Normal 64.6% (373) | High-Low +20.5 (null p 0.001); High > Low in 9 of 10 quarters
+  per year top300:
+tier       High        Low     Normal       none  High-Low
+year                                                      
+2021        NaN        NaN        NaN  69% (605)       NaN
+2022        NaN        NaN        NaN  61% (430)       NaN
+2023   86% (72)   56% (89)   63% (83)   61% (98)      29.9
+2024  76% (115)  54% (278)  64% (252)        NaN      22.1
+2025    50% (6)  56% (257)   58% (52)        NaN      -6.4
+2026   92% (12)  57% (233)   71% (69)        NaN      35.0
+  r301_500 2021-26: High 83.2% (101)  Low 62.7% (300)  Normal 63.9% (227)  none 71.1% (301) | High-Low +20.5 (null p 0.002); High > Low in 9 of 12 quarters
+  r301_500 2024-26: High 78.3% (60)  Low 62.2% (278)  Normal 64.0% (203) | High-Low +16.1 (null p 0.015); High > Low in 7 of 10 quarters
+  per year r301_500:
+tier      High        Low     Normal       none  High-Low
+year                                                     
+2021       NaN        NaN        NaN  73% (132)       NaN
+2022       NaN        NaN        NaN  67% (130)       NaN
+2023  90% (41)   68% (22)   62% (24)   77% (39)      22.1
+2024  80% (45)   59% (68)  65% (100)        NaN      21.2
+2025  100% (3)  63% (119)   58% (52)        NaN      37.0
+2026  67% (12)   64% (91)   69% (51)        NaN       2.9

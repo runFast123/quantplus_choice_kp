@@ -1,0 +1,53 @@
+C:\Users\kaival.trapasia\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sklearn\impute\_base.py:647: UserWarning: Skipping features without any observed values: ['hr_rule']. At least one non-missing value is needed for imputation with strategy='median'.
+  warnings.warn(
+C:\Users\kaival.trapasia\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sklearn\impute\_base.py:647: UserWarning: Skipping features without any observed values: ['hr_rule']. At least one non-missing value is needed for imputation with strategy='median'.
+  warnings.warn(
+C:\Users\kaival.trapasia\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sklearn\impute\_base.py:647: UserWarning: Skipping features without any observed values: ['hr_rule']. At least one non-missing value is needed for imputation with strategy='median'.
+  warnings.warn(
+C:\Users\kaival.trapasia\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sklearn\impute\_base.py:647: UserWarning: Skipping features without any observed values: ['hr_rule']. At least one non-missing value is needed for imputation with strategy='median'.
+  warnings.warn(
+C:\Users\kaival.trapasia\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sklearn\impute\_base.py:647: UserWarning: Skipping features without any observed values: ['hr_rule']. At least one non-missing value is needed for imputation with strategy='median'.
+  warnings.warn(
+C:\Users\kaival.trapasia\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\sklearn\impute\_base.py:647: UserWarning: Skipping features without any observed values: ['hr_rule']. At least one non-missing value is needed for imputation with strategy='median'.
+  warnings.warn(
+         Q  n_train   auc  slope  cut_lo  cut_hi  shown
+2021-01-01      337 0.390  0.000  0.6286  0.6286  False
+2021-04-01      491 0.420  0.000  0.6601  0.6601  False
+2021-07-01      594 0.388  0.000  0.6949  0.6949  False
+2021-10-01      761 0.483  0.005  0.7157  0.7164  False
+2022-01-01      944 0.464  0.000  0.6896  0.6896  False
+2022-04-01     1150 0.557  0.043  0.6954  0.7024   True
+2022-07-01     1240 0.565  0.055  0.6866  0.6939   True
+2022-10-01     1264 0.573  0.119  0.6834  0.6990   True
+2023-01-01     1367 0.476  0.000  0.6874  0.6874  False
+2023-04-01     1512 0.533  0.176  0.6678  0.6867  False
+2023-07-01     1565 0.525  0.132  0.6646  0.6777  False
+2023-10-01     1616 0.533  0.170  0.6624  0.6798  False
+2024-01-01     1767 0.550  0.274  0.6540  0.6853   True
+2024-04-01     1879 0.565  0.361  0.6500  0.6912   True
+2024-07-01     2068 0.573  0.338  0.6458  0.6914   True
+2024-10-01     2193 0.569  0.343  0.6460  0.6899   True
+2025-01-01     2396 0.566  0.335  0.6288  0.6684   True
+2025-04-01     2525 0.562  0.334  0.6169  0.6563   True
+2025-07-01     2546 0.561  0.327  0.6174  0.6573   True
+2025-10-01     2646 0.551  0.314  0.6191  0.6542   True
+2026-01-01     2729 0.558  0.358  0.6145  0.6528   True
+2026-04-01     2849 0.549  0.309  0.6106  0.6427  False
+2026-07-01     2904 0.550  0.298  0.6087  0.6417  False
+2026-10-01     2968 0.555  0.315  0.6079  0.6436   True
+2021-26: tier shown in 13 of 24 quarters (54 %)
+2024-26: tier shown in 10 of 12 quarters (83 %)
+ period  gated  signals  High n  High made%  High avg%  Normal n  Normal made%  Normal avg%  Low n  Low made%  Low avg%  High-Low
+2021-26   True     1403     205        71.7       2.67       452          61.1         0.44    746       55.9      0.03      15.8
+2024-26   True     1123     157        73.9       2.95       324          60.2         0.29    642       55.6      0.04      18.3
+2021-26  False     2651     289        75.4       2.93      1280          65.4         0.99   1082       57.0      0.24      18.4
+2024-26  False     1274     166        74.7       3.00       362          62.4         0.55    746       56.0      0.07      18.7
+
+DIAGNOSTIC pooled 6 blocks: shown quarters 14 of 24; AUC by quarter [0.5, 0.505, 0.5, 0.5, 0.546, 0.5, 0.5, 0.574, 0.557, 0.537, 0.532, 0.5, 0.551, 0.555, 0.556, 0.568, 0.573, 0.579, 0.578, 0.575, 0.567, 0.565, 0.566, 0.571]
+  2021-26: tier shown in 14 of 24 quarters
+  2024-26: tier shown in 12 of 12 quarters
+ period  gated  signals  High n  High made%  High avg%  Normal n  Normal made%  Normal avg%  Low n  Low made%  Low avg%  High-Low
+2021-26   True     1480     183        72.7       2.68       402          64.7         0.87    895       57.0      0.05      15.7
+2024-26   True     1274     181        72.4       2.56       336          61.6         0.62    757       56.8      0.10      15.6
+2021-26  False     2651     198        74.2       2.75      1370          65.8         1.23   1083       57.6      0.14      16.6
+2024-26  False     1274     181        72.4       2.56       336          61.6         0.62    757       56.8      0.10      15.6

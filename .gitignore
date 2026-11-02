@@ -20,3 +20,6 @@ scratch/
 
 # research downloads (prices, Yahoo terms: personal use)
 research/strategies/data/
+# the research team's working files (ADR-038): keep scripts, reports and the small outputs the seed is built from
+research/strategies/team/**/*.parquet
+research/strategies/team/**/*.err

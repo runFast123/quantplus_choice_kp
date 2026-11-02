@@ -1,0 +1,134 @@
+rsi_dip signals: {'r301_500': 929, 'top300': 2651} | tier counts: {('r301_500', 'High'): 56, ('r301_500', 'Low'): 286, ('r301_500', 'Normal'): 587, ('top300', 'High'): 94, ('top300', 'Low'): 761, ('top300', 'Normal'): 1796}
+size rank missing: 0
+
+--- top 300, shown quarters: share of each tier by year (%)
+tier  High   Low  Normal  all rsi
+year                             
+2022   2.0   8.0    16.0     10.0
+2023   0.0  11.0     6.0      9.0
+2024  84.0  12.0    45.0     26.0
+2025   9.0  34.0    16.0     28.0
+2026   5.0  34.0    17.0     28.0
+
+--- top 300, shown quarters: share of each tier by weather (%)
+tier     High   Low  Normal  all rsi
+weather                             
+mixed     4.0  14.0     9.0     12.0
+stormy   10.0  26.0    23.0     24.0
+sunny    86.0  60.0    68.0     64.0
+
+--- top 300, shown quarters: share of each tier by size3 (%)
+tier   High   Low  Normal  all rsi
+size3                             
+big    22.0  38.0    27.0     34.0
+mid    31.0  35.0    30.0     33.0
+small  47.0  27.0    43.0     33.0
+
+--- top 300, shown quarters: share of each tier by sector (%)
+tier                    High   Low  Normal  all rsi
+sector                                             
+Basic Materials         11.0  16.0    13.0     14.0
+Communication Services   2.0   4.0     3.0      3.0
+Consumer Cyclical       12.0  11.0    13.0     11.0
+Consumer Defensive       5.0   5.0     5.0      5.0
+Energy                   3.0   3.0     1.0      3.0
+Financial Services      17.0  24.0    19.0     22.0
+Healthcare               7.0  10.0     8.0      9.0
+Industrials             21.0  16.0    21.0     17.0
+Real Estate              2.0   2.0     4.0      3.0
+Technology              14.0   7.0     7.0      8.0
+Utilities                5.0   3.0     6.0      4.0
+
+--- share of High by universe x year (all signals):
+year       2021   2022   2023    2024   2025   2026
+uni                                                
+r301_500  0/132  4/130  0/126  46/213  5/174  1/154
+top300    0/605  2/430  0/342  79/645  8/315  5/314
+
+--- tier High - Low made% INSIDE each group, shown quarters (n High / n Low)
+universe  period          sunny     not sunny            big            mid          small
+  top300 2021-26 +18.1 (81/454) +9.6 (13/307) +24.6 (21/289)  +9.9 (29/266) +10.1 (44/206)
+  top300 2024-26 +18.5 (79/336) +9.8 (13/281) +24.3 (21/233) +11.1 (29/213)  +9.4 (42/171)
+r301_500 2021-26 +22.4 (51/162) +11.5 (5/124)  +5.2 (32/139) +37.0 (23/116)   -61.3 (1/31)
+r301_500 2024-26 +23.2 (47/126) +11.9 (5/116)  +2.3 (28/107) +37.5 (23/104)   -61.3 (1/31)
+
+=== D* tier (High - Low made%), null = shuffle within year
+universe          scope  period  n High  n Low  made High  made Low  gap     p
+  top300 shown quarters 2021-26      94    761       71.3      56.0 15.3 0.001
+  top300 shown quarters 2024-26      92    617       70.7      55.6 15.1 0.002
+  top300   all quarters 2021-26      94    761       71.3      56.0 15.3 0.002
+  top300   all quarters 2024-26      92    617       70.7      55.6 15.1 0.003
+r301_500 shown quarters 2021-26      56    286       80.4      62.6 17.8 0.001
+r301_500 shown quarters 2024-26      52    242       78.8      61.6 17.3 0.002
+r301_500   all quarters 2021-26      56    286       80.4      62.6 17.8 0.005
+r301_500   all quarters 2024-26      52    242       78.8      61.6 17.3 0.011
+
+=== S1 biggest stocks (High = top third by traded value, Low = bottom third)
+universe          scope  period  n High  n Low  made High  made Low   gap     p
+  top300 shown quarters 2021-26     385    369       55.8      64.5  -8.7 0.993
+  top300 shown quarters 2024-26     312    303       55.4      62.4  -6.9 0.970
+  top300   all quarters 2021-26     907    879       58.3      68.6 -10.3 1.000
+  top300   all quarters 2024-26     427    414       60.0      63.0  -3.1 0.845
+r301_500 shown quarters 2021-26     255     45       69.8      60.0   9.8 0.121
+r301_500 shown quarters 2024-26     190     45       66.8      60.0   6.8 0.148
+r301_500   all quarters 2021-26     564     45       71.8      60.0  11.8 0.096
+r301_500   all quarters 2024-26     260     45       68.1      60.0   8.1 0.124
+
+S2: LR on 337 rsi_dip trades signalled before 2020-12-04; top standardised coefficients:
+breadth50     0.607
+breadth200    0.359
+vix           0.282
+vix_chg5      0.267
+gap           0.237
+atrpct        0.205
+
+=== S2 one feature: +breadth50 (training tertiles each quarter)
+universe          scope  period  n High  n Low  made High  made Low  gap     p
+  top300 shown quarters 2021-26     177    616       66.7      61.0  5.6 0.048
+  top300 shown quarters 2024-26     170    478       68.2      58.4  9.9 0.015
+  top300   all quarters 2021-26     752   1056       65.4      66.5 -1.1 0.866
+  top300   all quarters 2024-26     360    492       66.9      59.1  7.8 0.024
+r301_500 shown quarters 2021-26      62    309       77.4      66.7 10.8 0.033
+r301_500 shown quarters 2024-26      60    256       76.7      63.7 13.0 0.034
+r301_500   all quarters 2021-26     220    436       67.7      69.7 -2.0 0.833
+r301_500   all quarters 2024-26     123    260       70.7      63.8  6.9 0.126
+
+--- overlap: share of the tier's High that S2 also calls High (shown quarters): {'r301_500': 23, 'top300': 34}
+
+--- per quarter (top 500 = both universes)
+     q  shown top300 H/L  top300 gap r301_500 H/L  r301_500 gap  top500 gap  live record H  live record L
+2021Q1  False        0/0         NaN          0/0           NaN         NaN            NaN            NaN
+2021Q2  False        0/0         NaN          0/0           NaN         NaN            NaN            NaN
+2021Q3  False        0/0         NaN          0/0           NaN         NaN            NaN            NaN
+2021Q4  False        0/0         NaN          0/0           NaN         NaN            NaN            NaN
+2022Q1  False        0/0         NaN          0/0           NaN         NaN            NaN            NaN
+2022Q2  False        0/0         NaN          0/0           NaN         NaN            NaN            NaN
+2022Q3  False        0/0         NaN          0/0           NaN         NaN            NaN            NaN
+2022Q4   True       2/62        40.3         4/19          31.6        38.3            NaN            NaN
+2023Q1   True       0/82         NaN         0/25           NaN         NaN            NaN           73.2
+2023Q2  False        0/0         NaN          0/0           NaN         NaN          100.0           59.4
+2023Q3  False        0/0         NaN          0/0           NaN         NaN          100.0           60.1
+2023Q4  False        0/0         NaN          0/0           NaN         NaN          100.0           60.1
+2024Q1  False        0/0         NaN          0/0           NaN         NaN          100.0           60.1
+2024Q2   True      41/27        17.6         16/3          54.2        23.9          100.0           60.1
+2024Q3  False        0/0         NaN          0/0           NaN         NaN           76.4           59.1
+2024Q4   True      38/66        35.1        30/12          10.0        33.6           79.4           59.2
+2025Q1   True       7/61        -8.0         2/33          39.4         1.3           76.2           56.7
+2025Q2   True       0/36         NaN         0/23           NaN         NaN           74.3           54.0
+2025Q3   True      0/117         NaN         3/44          12.1        12.6           74.3           55.1
+2025Q4   True       1/48        37.5         0/31           NaN        36.7           73.9           55.4
+2026Q1   True      1/119        48.7         0/45           NaN        47.6           74.3           56.7
+2026Q2   True       0/41         NaN         1/11         -81.8       -63.5           74.5           55.9
+2026Q3   True       1/81        37.0         0/22           NaN        36.9           74.0           56.4
+2026Q4   True       3/21        19.0         0/18           NaN        25.6           74.1           56.6
+
+quarters where the public record said High beats Low by >= 5 but the quarter's own gap was negative: 1 of 12 shown -> ['2026Q2']
+
+--- per year, shown quarters, top 500
+      n High  made High  made Low  made all   gap
+year                                             
+2022     6.0      100.0      61.7      71.2  38.3
+2023     0.0        NaN      58.9      65.7   NaN
+2024   125.0       74.4      42.6      58.3  31.8
+2025    13.0       61.5      59.3      58.5   2.3
+2026     6.0       83.3      59.5      62.6  23.8

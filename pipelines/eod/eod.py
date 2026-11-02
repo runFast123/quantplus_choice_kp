@@ -10,7 +10,7 @@ Covers every active row in public.market_symbols (~3,600: NSE main board +
 SME, major ETFs, NSE indices — see universe.py). Symbols with no data yet get
 their full `history_days`; the rest get the last `--days`. Then, in batches
 small enough for PostgREST's 8 s statement limit:
-svc_refresh_market_analytics -> svc_refresh_research -> svc_run_eod_notifier.
+svc_refresh_market_analytics -> svc_refresh_signal_checks -> svc_refresh_research -> svc_run_eod_notifier.
 
 Needs SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY,
 from the environment or web/.env.local. Secrets are never printed.
@@ -490,6 +490,12 @@ def main(argv: list[str] | None = None) -> int:
             for k, v in (db.rpc("svc_refresh_market_analytics", {"p_days": days, "p_symbols": part}) or {}).items():
                 totals[k] = totals.get(k, 0) + v
     print("eod: analytics", totals)
+    # After every batch: the checks need the whole day's signals (ADR-038). Not fatal: the 17:55 IST cron backstop
+    # runs them again, and research notes and alerts must not wait on them.
+    try:
+        print("eod: signal checks", db.rpc("svc_refresh_signal_checks"))
+    except RuntimeError as e:
+        print("eod: signal checks failed (the cron backstop retries):", e)
     notes = sum(db.rpc("svc_refresh_research", {"p_symbols": part}) or 0 for part in chunks(touched, RESEARCH_CHUNK))
     print("eod: research notes", notes)
     print("eod: notifier", db.rpc("svc_run_eod_notifier"))

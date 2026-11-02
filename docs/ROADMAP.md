@@ -52,6 +52,9 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Run the Playwright e2e suite in CI against a staging Supabase project (needs staging secrets).
 
 ## Known limitations (by design for now)
+- Signal checks (ADR-038) only tag; they never skip a signal. Skipping Low RSI dips waits for two live quarters showing
+  the tags separate when each month is counted once. KK dip and SMA trend have no check; rule settings never change
+  automatically (a change needs a pre-registered re-test, PLAYBOOK §S). The Strong trend check's evidence is thin.
 - No derivatives (F&O), currency or commodity data — Yahoo has none for NSE; needs a licensed feed (ADR-027).
 - BSE-only listings aren't covered (NSE universe only).
 - Symbols outside the core keep ~13 months of candles (free-tier storage); upgrade the DB to keep more.

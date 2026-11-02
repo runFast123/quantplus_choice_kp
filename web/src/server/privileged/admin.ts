@@ -1,5 +1,6 @@
 import "server-only";
 
+import { daysAgoIST } from "@/lib/signal-checks";
 import type { PlanCode, SubscriptionStatus, TenantType } from "@/lib/types";
 import { PrivilegedError } from "./guards";
 import { serviceRole } from "./service-role";
@@ -322,6 +323,61 @@ export async function getRecentAuditLogs(actorId: string, limit = 25): Promise<A
   return (data ?? []) as AuditLogRow[];
 }
 
+export interface SignalCheckReview {
+  models: {
+    valid_from: string;
+    version: string;
+    hr_rule: number | null;
+    n_train: number | null;
+    trained_through: string | null;
+    shown: boolean;
+    slope: number | null;
+    auc: number | null;
+  }[];
+  training: { research: number; live: number };
+  recent: { strategy: string; label: string; signals: number }[];
+}
+
+/** The quarterly review of the signal checks (ADR-038): the RSI dip models in force, what they learn from, and the
+ *  last 90 days' labels. Market research data only; no user data. */
+export async function getSignalCheckReview(actorId: string): Promise<SignalCheckReview> {
+  if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
+  const db = serviceRole();
+  const since = daysAgoIST(90);
+  const [modelRes, researchRes, liveRes, recentRes] = await Promise.all([
+    db
+      .from("signal_check_models")
+      .select(
+        "valid_from, version, hr_rule, n_train:model->>n_train, trained_through:model->>trained_through, shown:model->>shown, slope:model->>platt_a, auc:model->>self_test_auc",
+      )
+      .eq("strategy", "rsi_dip")
+      .order("valid_from", { ascending: false })
+      .limit(8),
+    db.from("signal_check_training").select("symbol", { count: "exact", head: true }).eq("source", "research"),
+    db.from("signal_check_training").select("symbol", { count: "exact", head: true }).eq("source", "live"),
+    db.from("signal_checks").select("strategy, label").gte("signal_day", since).limit(5000),
+  ]);
+  const num = (x: unknown) => (x == null || x === "" ? null : Number(x));
+  const counts = new Map<string, number>();
+  for (const r of recentRes.data ?? []) counts.set(`${r.strategy}|${r.label}`, (counts.get(`${r.strategy}|${r.label}`) ?? 0) + 1);
+  return {
+    models: (modelRes.data ?? []).map((m) => ({
+      valid_from: m.valid_from as string,
+      version: m.version as string,
+      hr_rule: num(m.hr_rule),
+      n_train: num(m.n_train),
+      trained_through: (m.trained_through as string | null) ?? null,
+      shown: m.shown === "true",
+      slope: num(m.slope),
+      auc: num(m.auc),
+    })),
+    training: { research: researchRes.count ?? 0, live: liveRes.count ?? 0 },
+    recent: [...counts.entries()]
+      .map(([k, signals]) => ({ strategy: k.split("|")[0], label: k.split("|")[1], signals }))
+      .sort((x, y) => x.strategy.localeCompare(y.strategy) || y.signals - x.signals),
+  };
+}
+
 export async function triggerMarketAnalytics(actorId: string, days = 10) {
   if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
   const db = serviceRole();
@@ -347,7 +403,12 @@ export async function triggerMarketAnalytics(actorId: string, days = 10) {
     if (error) throw new PrivilegedError(error.message);
     for (const [k, v] of Object.entries((data ?? {}) as Record<string, number>)) totals[k] = (totals[k] ?? 0) + Number(v);
   }
-  return totals as { rsi_events: number; signals: number; ledgers: number; quotes: number };
+  // The signal checks need the whole day's signals, so they run once after every batch (ADR-038).
+  const { data: checks, error: checksError } = await db.rpc("svc_refresh_signal_checks");
+  if (checksError) throw new PrivilegedError(checksError.message);
+  const c = (checks ?? {}) as Record<string, number>;
+  totals.signal_checks = Number(c.rsi ?? 0) + Number(c.trend ?? 0);
+  return totals as { rsi_events: number; signals: number; ledgers: number; quotes: number; signal_checks: number };
 }
 
 export async function triggerResearchRefresh(actorId: string) {

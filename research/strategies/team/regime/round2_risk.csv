@@ -1,0 +1,7 @@
+measure,static,V8,trade null,p trade,month null,p month,test,C1 cohort
+worst quarter,-974,-459.0,-748,0.0,-769,0.089,H1 V8,
+max drawdown,-1764,-916.0,-1118,0.022,-1234,0.11,H1 V8,
+sum%,17559,16163.0,15493,0.021,15545,0.202,H1 V8,
+worst quarter,-974,,-957,0.907,-960,0.959,H2 C1 cohort,-976.0
+max drawdown,-1772,,-1440,0.495,-1526,0.375,H2 C1 cohort,-1432.0
+sum%,17559,,15650,0.001,15879,0.197,H2 C1 cohort,16415.0

@@ -1,0 +1,112 @@
+
+=== static
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend   1.0     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip   1.0    2651   63.1  0.90  2384.0     -7.4              0.0             0.0
+2021-26       kk_dip   1.0     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL   1.0    6175   59.2  2.84 17559.0    -15.3              0.0             0.0
+2024-26 strong_trend   1.0     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend   1.0     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip   1.0    1274   60.3  0.59   747.0     -8.1              0.0             0.0
+2024-26       kk_dip   1.0     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL   1.0    2798   55.9  1.61  4512.0    -14.6              0.0             0.0
+
+=== R1 complete cohorts, weather -- FILTER (Healthy 1 / On watch 0.5 / Weak skipped)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.85    1451   54.9  6.98  9870.0    -17.2              2.1            78.0
+2021-26    sma_trend  0.77     713   48.5  4.07  2787.0    -18.0             -1.2         -1074.0
+2021-26      rsi_dip  0.94    2500   62.5  0.88  2115.0     -7.9             -0.6          -269.0
+2021-26       kk_dip  0.96     852   71.1  1.83  1514.0     -7.0              0.8            -8.0
+2021-26          ALL  0.89    5516   60.0  3.06 16287.0    -15.2              0.8         -1272.0
+2024-26 strong_trend  0.83     542   47.6  3.76  1935.0    -16.6             -0.1          -205.0
+2024-26    sma_trend  0.82     365   45.8  2.54   922.0    -17.4              0.3           -83.0
+2024-26      rsi_dip  0.97    1233   59.8  0.58   689.0     -8.2             -0.5           -58.0
+2024-26       kk_dip  0.92     391   68.0  1.70   639.0     -7.5              1.5            19.0
+2024-26          ALL  0.90    2531   56.4  1.71  4186.0    -14.8              0.5          -326.0
+
+=== R1 complete cohorts, weather -- RISK LAYER (flagged = half size, nothing hidden)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  6.35  9814.0    -17.3              0.0            22.0
+2021-26    sma_trend   1.0     924   49.7  4.29  3394.0    -17.7              0.0          -467.0
+2021-26      rsi_dip   1.0    2651   63.1  0.90  2237.0     -7.4              0.0          -147.0
+2021-26       kk_dip   1.0     885   70.3  1.78  1505.0     -7.0              0.0           -17.0
+2021-26          ALL   1.0    6175   59.2  3.00 16949.0    -15.3              0.0          -610.0
+2024-26 strong_trend   1.0     656   47.7  3.47  1982.0    -16.6              0.0          -158.0
+2024-26    sma_trend   1.0     444   45.5  2.42   973.0    -17.1              0.0           -32.0
+2024-26      rsi_dip   1.0    1274   60.3  0.59   715.0     -8.1              0.0           -32.0
+2024-26       kk_dip   1.0     424   66.5  1.60   630.0     -7.7              0.0            10.0
+2024-26          ALL   1.0    2798   55.9  1.67  4300.0    -14.6              0.0          -212.0
+
+=== R2 + trend graded at 20 sessions -- FILTER (Healthy 1 / On watch 0.5 / Weak skipped)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.75    1288   57.0  7.37  8722.0    -16.6              4.2         -1070.0
+2021-26    sma_trend  0.81     751   52.6  5.17  3440.0    -17.7              2.9          -421.0
+2021-26      rsi_dip  0.94    2500   62.5  0.88  2115.0     -7.9             -0.6          -269.0
+2021-26       kk_dip  0.96     852   71.1  1.83  1514.0     -7.0              0.8            -8.0
+2021-26          ALL  0.87    5391   61.2  3.11 15791.0    -14.4              2.0         -1768.0
+2024-26 strong_trend  0.68     446   51.6  4.19  1669.0    -16.5              3.9          -471.0
+2024-26    sma_trend  0.86     380   46.8  3.26  1114.0    -17.5              1.3           109.0
+2024-26      rsi_dip  0.97    1233   59.8  0.58   689.0     -8.2             -0.5           -58.0
+2024-26       kk_dip  0.92     391   68.0  1.70   639.0     -7.5              1.5            19.0
+2024-26          ALL  0.88    2450   57.6  1.78  4111.0    -14.2              1.7          -401.0
+
+=== R2 + trend graded at 20 sessions -- RISK LAYER (flagged = half size, nothing hidden)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  6.33  8842.0    -17.3              0.0          -950.0
+2021-26    sma_trend   1.0     924   49.7  4.48  3366.0    -17.7              0.0          -495.0
+2021-26      rsi_dip   1.0    2651   63.1  0.90  2237.0     -7.4              0.0          -147.0
+2021-26       kk_dip   1.0     885   70.3  1.78  1505.0     -7.0              0.0           -17.0
+2021-26          ALL   1.0    6175   59.2  2.92 15949.0    -15.3              0.0         -1610.0
+2024-26 strong_trend   1.0     656   47.7  3.43  1726.0    -16.6              0.0          -414.0
+2024-26    sma_trend   1.0     444   45.5  3.13  1168.0    -17.1              0.0           163.0
+2024-26      rsi_dip   1.0    1274   60.3  0.59   715.0     -8.1              0.0           -32.0
+2024-26       kk_dip   1.0     424   66.5  1.60   630.0     -7.7              0.0            10.0
+2024-26          ALL   1.0    2798   55.9  1.71  4239.0    -14.6              0.0          -273.0
+
+=== R3 R2 x regime trend-fear state -- FILTER (Healthy 1 / On watch 0.5 / Weak skipped)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.71    1214   54.9  6.78  7665.0    -17.1              2.1         -2127.0
+2021-26    sma_trend  0.78     722   51.7  5.30  3616.0    -17.6              2.0          -245.0
+2021-26      rsi_dip  0.92    2428   63.0  0.93  2162.0     -7.7             -0.1          -222.0
+2021-26       kk_dip  0.95     842   70.7  1.80  1437.0     -6.8              0.4           -85.0
+2021-26          ALL  0.84    5206   60.8  3.02 14881.0    -14.6              1.6         -2678.0
+2024-26 strong_trend  0.69     455   49.7  3.95  1665.0    -16.6              2.0          -475.0
+2024-26    sma_trend  0.86     383   45.4  2.58   906.0    -17.4             -0.1           -99.0
+2024-26      rsi_dip  0.90    1152   60.5  0.65   722.0     -8.1              0.2           -25.0
+2024-26       kk_dip  1.00     423   66.7  1.54   599.0     -7.7              0.2           -21.0
+2024-26          ALL  0.86    2413   57.1  1.71  3892.0    -14.4              1.2          -620.0
+
+=== R3 R2 x regime trend-fear state -- RISK LAYER (flagged = half size, nothing hidden)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  6.07  8386.0    -17.3              0.0         -1406.0
+2021-26    sma_trend   1.0     924   49.7  4.72  3701.0    -17.7              0.0          -160.0
+2021-26      rsi_dip   1.0    2651   63.1  0.93  2250.0     -7.4              0.0          -134.0
+2021-26       kk_dip   1.0     885   70.3  1.77  1451.0     -7.0              0.0           -71.0
+2021-26          ALL   1.0    6175   59.2  2.92 15787.0    -15.3              0.0         -1772.0
+2024-26 strong_trend   1.0     656   47.7  3.39  1769.0    -16.6              0.0          -371.0
+2024-26    sma_trend   1.0     444   45.5  2.57   982.0    -17.1              0.0           -23.0
+2024-26      rsi_dip   1.0    1274   60.3  0.62   725.0     -8.1              0.0           -22.0
+2024-26       kk_dip   1.0     424   66.5  1.54   598.0     -7.7              0.0           -22.0
+2024-26          ALL   1.0    2798   55.9  1.65  4073.0    -14.6              0.0          -439.0
+
+=== DISPLAY test: made% (trades) per label; gap = best - worst group; matched rule x year null
+                         variant  period     Healthy   On watch       Weak  gap  null mean     p                                                  Healthy-flagged by rule
+    R1 complete cohorts, weather 2021-26 60.7 (5139) 50.9 (377) 52.5 (659)  9.8        7.8 0.087 {'strong_trend': 13.2, 'sma_trend': 2.4, 'rsi_dip': 0.9, 'kk_dip': 10.5}
+    R1 complete cohorts, weather 2024-26 56.7 (2367) 53.0 (164) 51.3 (267)  5.3        6.2 0.610 {'strong_trend': -3.5, 'sma_trend': 3.3, 'rsi_dip': 0.9, 'kk_dip': 13.7}
+R2 + trend graded at 20 sessions 2021-26 61.6 (4763) 57.8 (628) 45.9 (784) 15.7       12.7 0.023 {'strong_trend': 10.7, 'sma_trend': 4.1, 'rsi_dip': 0.9, 'kk_dip': 10.5}
+R2 + trend graded at 20 sessions 2024-26 58.8 (2173) 48.0 (277) 44.3 (348) 14.6        9.2 0.016 {'strong_trend': 4.3, 'sma_trend': 19.9, 'rsi_dip': 0.9, 'kk_dip': 13.7}
+ R3 R2 x regime trend-fear state 2021-26 61.2 (4638) 57.6 (568) 51.0 (969) 10.2        8.4 0.108  {'strong_trend': 3.6, 'sma_trend': 7.5, 'rsi_dip': 2.9, 'kk_dip': 10.2}
+ R3 R2 x regime trend-fear state 2024-26 57.4 (2143) 55.2 (270) 48.3 (385)  9.1        7.0 0.178 {'strong_trend': -0.4, 'sma_trend': 1.0, 'rsi_dip': 2.0, 'kk_dip': 14.6}
+
+=== RISK LAYER test (2021-26): worst quarter / max drawdown vs static and matched null (p = share of null as good)
+                         variant  worst Q  static  null  p(null>=)  max DD  static DD  null DD  p DD
+    R1 complete cohorts, weather     -976    -974  -963      0.906   -1457      -1764    -1380 0.989
+R2 + trend graded at 20 sessions     -631    -974  -843      0.000   -1111      -1764    -1287 0.000
+ R3 R2 x regime trend-fear state     -794    -974  -867      0.005   -1233      -1764    -1287 0.115
+
+=== FILTER test: ALL made% vs random skips matched by rule x year
+                         variant  made21  null21   p21  made24  null24   p24
+    R1 complete cohorts, weather    60.0    60.0 0.504    56.4    56.4 0.417
+R2 + trend graded at 20 sessions    61.2    60.8 0.021    57.6    56.8 0.011
+ R3 R2 x regime trend-fear state    60.8    60.5 0.093    57.1    56.8 0.123

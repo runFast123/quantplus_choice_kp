@@ -1,0 +1,32 @@
+1. per year: share of signals and made% by tier
+          n                      made                   
+tier   High    Low Normal  none  High   Low Normal  none
+year                                                    
+2021    3.0  323.0  279.0   NaN  66.7  68.4   70.3   NaN
+2022   21.0  239.0  170.0   NaN  66.7  57.7   64.1   NaN
+2023   72.0   81.0   91.0  98.0  84.7  54.3   64.8  61.2
+2024  139.0  245.0  261.0   NaN  75.5  53.1   62.5   NaN
+2025   13.0  259.0   43.0   NaN  46.2  57.9   51.2   NaN
+2026   14.0  242.0   58.0   NaN  92.9  57.0   70.7   NaN
+
+2. quarters 2024-26
+     Q   n  test below cut_lo  train (final model) below cut_lo  test above cut_hi  raw shift test - train
+2024Q1 187               0.58                              0.41               0.16                  -0.278
+2024Q2 110               0.31                              0.37               0.34                   0.138
+2024Q3 161               0.24                              0.41               0.20                   0.122
+2024Q4 187               0.34                              0.40               0.21                   0.048
+2025Q1  99               0.61                              0.49               0.12                  -0.120
+2025Q2  37               0.97                              0.50               0.00                  -0.727
+2025Q3 125               0.93                              0.49               0.00                  -0.513
+2025Q4  54               0.87                              0.42               0.02                  -0.437
+2026Q1 125               0.95                              0.41               0.02                  -0.648
+2026Q2  52               0.63                              0.35               0.06                  -0.353
+2026Q3  99               0.72                              0.30               0.06                  -0.401
+2026Q4  38               0.50                              0.32               0.08                  -0.245
+   mean raw-score shift 2025Q1-2026Q4 by feature (coef x change in standardised mean), most negative first:
+   breadth200 -0.318, n_same_day -0.091, atrpct -0.082, vix -0.041, d200 -0.020, nifty_r20 -0.018, slope200 -0.014, gap -0.014 | total -0.431
+   most positive: rs_rank +0.017, breadth50 +0.021, wx +0.046, hr_rule +0.102
+
+3. quarters with a numerically flat calibration (a < 1e-6): ['2021Q1', '2021Q2', '2021Q3', '2021Q4', '2022Q1', '2022Q2', '2022Q3', '2022Q4', '2023Q1']
+   2021-26 with a < 1e-6 as 'none': High 77.7% (238) Low 55.9% (827) | High - Low +21.9
+   2024-26 with a < 1e-6 as 'none': High 74.7% (166) Low 56.0% (746) | High - Low +18.7

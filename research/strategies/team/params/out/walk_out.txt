@@ -1,0 +1,259 @@
+C:\Users\kaival.trapasia\Desktop\Quantpluse_kp\research\strategies\team\params\walk.py:60: RuntimeWarning: invalid value encountered in sqrt
+  se = {"t": 1.0, "made": np.sqrt(raw[cur] * (1 - raw[cur]) / n[cur])}.get(spec["obj"], sd[cur] / np.sqrt(n[cur]))
+
+=== V0 static (today's settings)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend   1.0     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip   1.0    2651   63.1  0.90  2384.0     -7.4              0.0             0.0
+2021-26       kk_dip   1.0     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL   1.0    6175   59.2  2.84 17559.0    -15.3              0.0             0.0
+2024-26 strong_trend   1.0     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend   1.0     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip   1.0    1274   60.3  0.59   747.0     -8.1              0.0             0.0
+2024-26       kk_dip   1.0     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL   1.0    2798   55.9  1.61  4512.0    -14.6              0.0             0.0
+
+=== V1 primary
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.91    1554   55.5  7.67 11917.0    -19.9              2.7          2125.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.56    1472   64.8  1.14  1685.0     -6.7              1.7          -699.0
+2021-26       kk_dip  0.97     860   68.1  1.36  1170.0     -8.1             -2.2          -352.0
+2021-26          ALL  0.71    4379   60.8  4.39 19208.0    -18.0              1.6          1649.0
+2024-26 strong_trend  0.72     472   47.5  3.09  1457.0    -20.3             -0.2          -683.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.32     403   63.8  0.96   388.0     -8.4              3.5          -359.0
+2024-26       kk_dip  0.29     125   75.2  2.71   339.0     -9.6              8.7          -281.0
+2024-26          ALL  0.44    1242   56.2  2.78  3453.0    -19.4              0.3         -1059.0
+
+=== V2 no neighbourhood avg
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.87    1499   55.6  7.85 11762.0    -19.9              2.8          1970.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.60    1603   64.9  1.17  1880.0     -6.7              1.8          -504.0
+2021-26       kk_dip  0.87     767   68.2  1.44  1101.0     -8.2             -2.1          -421.0
+2021-26          ALL  0.71    4362   60.9  4.40 19179.0    -17.9              1.7          1620.0
+2024-26 strong_trend  0.64     417   46.5  3.12  1302.0    -21.0             -1.2          -838.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.33     422   64.0  1.01   426.0     -8.6              3.7          -321.0
+2024-26       kk_dip  0.29     125   75.2  2.71   339.0     -9.6              8.7          -281.0
+2024-26          ALL  0.43    1206   56.5  2.77  3335.0    -19.5              0.6         -1177.0
+
+=== V3 objective sum
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.97    1659   55.8  7.10 11774.0    -19.6              3.0          1982.0
+2021-26    sma_trend  1.30    1204   49.3  6.68  8047.0    -18.6             -0.4          4186.0
+2021-26      rsi_dip  1.73    4585   58.8  0.45  2054.0     -7.6             -4.3          -330.0
+2021-26       kk_dip  1.82    1614   66.0  1.04  1675.0     -7.8             -4.3           153.0
+2021-26          ALL  1.47    9062   58.3  2.60 23551.0    -15.4             -0.9          5992.0
+2024-26 strong_trend  0.93     612   49.0  3.61  2210.0    -19.9              1.3            70.0
+2024-26    sma_trend  1.27     562   45.7  2.79  1569.0    -19.1              0.2           564.0
+2024-26      rsi_dip  1.17    1488   58.1  0.35   515.0     -8.9             -2.2          -232.0
+2024-26       kk_dip  2.28     966   64.1  0.88   851.0     -7.8             -2.4           231.0
+2024-26          ALL  1.30    3628   56.2  1.42  5146.0    -16.0              0.3           634.0
+
+=== V4 objective made%
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.05    1797   56.6  6.27 11267.0    -19.4              3.8          1475.0
+2021-26    sma_trend  0.78     722   54.8  6.19  4468.0    -20.7              5.1           607.0
+2021-26      rsi_dip  0.45    1193   66.9  1.24  1475.0     -7.0              3.8          -909.0
+2021-26       kk_dip  0.67     589   72.5  2.13  1255.0     -7.1              2.2          -267.0
+2021-26          ALL  0.70    4301   61.4  4.29 18464.0    -18.1              2.2           905.0
+2024-26 strong_trend  1.04     682   52.3  3.14  2139.0    -18.5              4.6            -1.0
+2024-26    sma_trend  0.93     414   53.1  4.33  1792.0    -19.1              7.6           787.0
+2024-26      rsi_dip  0.28     360   62.2  0.83   299.0     -9.3              1.9          -448.0
+2024-26       kk_dip  0.38     162   73.5  3.04   493.0     -7.2              7.0          -127.0
+2024-26          ALL  0.58    1618   56.9  2.92  4723.0    -17.7              1.0           211.0
+
+=== V5 objective t-stat
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.01    1737   56.6  7.25 12595.0    -19.2              3.8          2803.0
+2021-26    sma_trend  1.31    1210   50.0  6.47  7827.0    -20.2              0.3          3966.0
+2021-26      rsi_dip  1.36    3610   60.6  0.68  2471.0     -7.6             -2.5            87.0
+2021-26       kk_dip  1.73    1530   66.3  1.10  1685.0     -7.9             -4.0           163.0
+2021-26          ALL  1.31    8087   59.2  3.04 24578.0    -16.3              0.0          7019.0
+2024-26 strong_trend  1.01     662   50.6  3.84  2540.0    -19.1              2.9           400.0
+2024-26    sma_trend  1.29     571   46.6  2.69  1536.0    -19.6              1.1           531.0
+2024-26      rsi_dip  0.89    1130   61.2  0.86   975.0     -8.9              0.9           228.0
+2024-26       kk_dip  1.92     814   64.3  0.94   766.0     -8.1             -2.2           146.0
+2024-26          ALL  1.14    3177   57.1  1.83  5817.0    -16.7              1.2          1305.0
+
+=== V6 2-year window
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.84    1436   53.3  5.80  8332.0    -20.1              0.5         -1460.0
+2021-26    sma_trend  0.54     495   51.5  7.66  3792.0    -22.4              1.8           -69.0
+2021-26      rsi_dip  0.58    1533   65.4  1.17  1788.0     -6.6              2.3          -596.0
+2021-26       kk_dip  0.79     697   70.6  1.77  1237.0     -6.6              0.3          -285.0
+2021-26          ALL  0.67    4161   60.4  3.64 15148.0    -18.2              1.2         -2411.0
+2024-26 strong_trend  0.68     447   47.0  4.30  1922.0    -21.0             -0.7          -218.0
+2024-26    sma_trend  0.55     244   51.2  3.64   888.0    -21.1              5.7          -117.0
+2024-26      rsi_dip  0.38     490   64.3  0.95   464.0     -9.1              4.0          -283.0
+2024-26       kk_dip  0.30     127   75.6  2.72   345.0    -10.2              9.1          -275.0
+2024-26          ALL  0.47    1308   57.0  2.77  3620.0    -19.6              1.1          -892.0
+
+=== V7 expanding window
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.94    1612   55.4  7.51 12103.0    -19.6              2.6          2311.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.54    1429   63.7  1.06  1521.0     -6.8              0.6          -863.0
+2021-26       kk_dip  1.44    1277   67.6  1.43  1826.0     -7.5             -2.7           304.0
+2021-26          ALL  0.78    4811   60.8  4.13 19885.0    -17.4              1.6          2326.0
+2024-26 strong_trend  0.81     530   47.9  3.10  1642.0    -20.1              0.2          -498.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.28     360   60.8  0.68   243.0     -8.6              0.5          -504.0
+2024-26       kk_dip  1.00     423   68.6  1.96   831.0     -7.2              2.1           211.0
+2024-26          ALL  0.56    1555   57.0  2.56  3985.0    -18.5              1.1          -527.0
+
+=== V8 half-yearly
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.91    1563   55.1  7.55 11806.0    -19.7              2.3          2014.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.56    1472   64.7  1.14  1683.0     -6.7              1.6          -701.0
+2021-26       kk_dip  1.00     886   68.1  1.33  1176.0     -8.2             -2.2          -346.0
+2021-26          ALL  0.71    4414   60.6  4.33 19101.0    -18.0              1.4          1542.0
+2024-26 strong_trend  0.73     478   47.1  2.92  1397.0    -20.3             -0.6          -743.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.32     403   63.8  0.96   388.0     -8.4              3.5          -359.0
+2024-26       kk_dip  0.29     125   75.2  2.71   339.0     -9.6              8.7          -281.0
+2024-26          ALL  0.45    1248   56.0  2.72  3392.0    -19.3              0.1         -1120.0
+
+=== V9 hysteresis 1 SE
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.94    1619   55.9  7.38 11956.0    -19.9              3.1          2164.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.74    1950   61.5  0.80  1560.0     -7.6             -1.6          -824.0
+2021-26       kk_dip  1.05     926   67.3  1.26  1170.0     -8.0             -3.0          -352.0
+2021-26          ALL  0.81    4988   59.9  3.83 19122.0    -17.6              0.7          1563.0
+2024-26 strong_trend  0.89     582   47.4  2.90  1690.0    -20.2             -0.3          -450.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.28     360   60.6  0.54   195.0     -9.3              0.3          -552.0
+2024-26       kk_dip  0.29     125   75.2  2.76   345.0     -8.0              8.7          -275.0
+2024-26          ALL  0.47    1309   54.3  2.67  3498.0    -19.2             -1.6         -1014.0
+
+=== V10 choose once, freeze
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.21    2076   45.4  4.41  9145.0    -14.3             -7.4          -647.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  1.63    4325   57.3  0.35  1533.0     -7.5             -5.8          -851.0
+2021-26       kk_dip  2.21    1956   63.5  0.87  1708.0     -7.5             -6.8           186.0
+2021-26          ALL  1.43    8850   55.6  1.90 16822.0    -12.6             -3.6          -737.0
+2024-26 strong_trend  1.20     787   40.2  2.13  1672.0    -13.8             -7.5          -468.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  1.60    2041   54.4  0.03    60.0     -7.7             -5.9          -687.0
+2024-26       kk_dip  2.32     982   60.8  0.69   676.0     -7.5             -5.7            56.0
+2024-26          ALL  1.45    4052   53.0  0.91  3677.0    -12.0             -2.9          -835.0
+
+=== S1 min trades 25
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.91    1554   55.5  7.67 11917.0    -19.9              2.7          2125.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.56    1472   64.8  1.14  1685.0     -6.7              1.7          -699.0
+2021-26       kk_dip  0.97     860   68.1  1.36  1170.0     -8.1             -2.2          -352.0
+2021-26          ALL  0.71    4379   60.8  4.39 19208.0    -18.0              1.6          1649.0
+2024-26 strong_trend  0.72     472   47.5  3.09  1457.0    -20.3             -0.2          -683.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.32     403   63.8  0.96   388.0     -8.4              3.5          -359.0
+2024-26       kk_dip  0.29     125   75.2  2.71   339.0     -9.6              8.7          -281.0
+2024-26          ALL  0.44    1242   56.2  2.78  3453.0    -19.4              0.3         -1059.0
+
+=== S2 min trades 100
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.91    1554   55.5  7.67 11917.0    -19.9              2.7          2125.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.56    1472   64.8  1.14  1685.0     -6.7              1.7          -699.0
+2021-26       kk_dip  0.97     860   68.1  1.36  1170.0     -8.1             -2.2          -352.0
+2021-26          ALL  0.71    4379   60.8  4.39 19208.0    -18.0              1.6          1649.0
+2024-26 strong_trend  0.72     472   47.5  3.09  1457.0    -20.3             -0.2          -683.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.32     403   63.8  0.96   388.0     -8.4              3.5          -359.0
+2024-26       kk_dip  0.29     125   75.2  2.71   339.0     -9.6              8.7          -281.0
+2024-26          ALL  0.44    1242   56.2  2.78  3453.0    -19.4              0.3         -1059.0
+V11 hindsight best fixed strong_trend: 3/5/90
+V11 hindsight best fixed sma_trend: 0.8/5/90
+V11 hindsight best fixed rsi_dip: 5/1.25/10
+V11 hindsight best fixed kk_dip: 0.02/1.25/10
+
+=== V11 DIAGNOSTIC hindsight best fixed (look-ahead)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.66    1133   54.6  8.77  9932.0    -21.0              1.8           140.0
+2021-26    sma_trend  0.53     493   52.5  9.00  4436.0    -22.4              2.8           575.0
+2021-26      rsi_dip  0.30     804   69.2  1.47  1181.0     -7.8              6.1         -1203.0
+2021-26       kk_dip  0.31     278   77.3  2.92   813.0     -7.2              7.0          -709.0
+2021-26          ALL  0.44    2708   60.9  6.04 16362.0    -20.1              1.7         -1197.0
+2024-26 strong_trend  0.64     420   45.7  3.59  1509.0    -20.6             -2.0          -631.0
+2024-26    sma_trend  0.55     242   50.8  5.24  1269.0    -21.4              5.3           264.0
+2024-26      rsi_dip  0.28     360   62.2  0.90   324.0     -8.6              1.9          -423.0
+2024-26       kk_dip  0.29     125   75.2  2.76   345.0     -8.0              8.7          -275.0
+2024-26          ALL  0.41    1147   55.2  3.00  3446.0    -20.0             -0.7         -1066.0
+
+=== stability (quarterly variants): switches = quarters whose settings differ from the quarter before
+V1 primary                 strong_trend  periods 24 switches  4 avg jump 0.22 steps | today's used  0 | most used 1.5/5/90 x10 | distinct 5
+V1 primary                 sma_trend     periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x24 | distinct 1
+V1 primary                 rsi_dip       periods 24 switches  6 avg jump 0.26 steps | today's used  0 | most used 5/1.25/15 x9 | distinct 7
+V1 primary                 kk_dip        periods 24 switches  4 avg jump 0.30 steps | today's used  0 | most used 0.02/1.25/10 x9 | distinct 4
+V2 no neighbourhood avg    strong_trend  periods 24 switches  3 avg jump 0.22 steps | today's used  0 | most used 1.5/5/90 x11 | distinct 4
+V2 no neighbourhood avg    sma_trend     periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x24 | distinct 1
+V2 no neighbourhood avg    rsi_dip       periods 24 switches  5 avg jump 0.30 steps | today's used  0 | most used 5/1.25/15 x7 | distinct 6
+V2 no neighbourhood avg    kk_dip        periods 24 switches  5 avg jump 0.35 steps | today's used  0 | most used 0.02/1.25/10 x8 | distinct 5
+V3 objective sum           strong_trend  periods 24 switches  4 avg jump 0.26 steps | today's used  0 | most used 1.5/5/90 x21 | distinct 4
+V3 objective sum           sma_trend     periods 24 switches  5 avg jump 0.22 steps | today's used  0 | most used 0.6/4/90 x17 | distinct 3
+V3 objective sum           rsi_dip       periods 24 switches  5 avg jump 0.30 steps | today's used  0 | most used 15/1.25/15 x9 | distinct 5
+V3 objective sum           kk_dip        periods 24 switches  2 avg jump 0.22 steps | today's used  0 | most used 0.005/0.75/15 x15 | distinct 3
+V4 objective made%         strong_trend  periods 24 switches 14 avg jump 1.09 steps | today's used  1 | most used 1.5/5/60 x6 | distinct 8
+V4 objective made%         sma_trend     periods 24 switches 10 avg jump 0.83 steps | today's used  0 | most used 0.8/5/90 x8 | distinct 5
+V4 objective made%         rsi_dip       periods 24 switches  3 avg jump 0.22 steps | today's used  0 | most used 5/1.25/15 x20 | distinct 4
+V4 objective made%         kk_dip        periods 24 switches  6 avg jump 0.48 steps | today's used  8 | most used 0.02/1.25/15 x12 | distinct 4
+V5 objective t-stat        strong_trend  periods 24 switches  8 avg jump 0.39 steps | today's used  0 | most used 1.5/5/90 x16 | distinct 3
+V5 objective t-stat        sma_trend     periods 24 switches  6 avg jump 0.26 steps | today's used  0 | most used 0.6/4/90 x12 | distinct 3
+V5 objective t-stat        rsi_dip       periods 24 switches  5 avg jump 0.30 steps | today's used  0 | most used 15/1.25/15 x12 | distinct 5
+V5 objective t-stat        kk_dip        periods 24 switches  6 avg jump 0.43 steps | today's used  0 | most used 0.005/0.75/15 x10 | distinct 5
+V6 2-year window           strong_trend  periods 24 switches  9 avg jump 0.74 steps | today's used  0 | most used 3/5/90 x10 | distinct 8
+V6 2-year window           sma_trend     periods 24 switches  5 avg jump 0.35 steps | today's used  0 | most used 0.8/5/90 x17 | distinct 3
+V6 2-year window           rsi_dip       periods 24 switches  8 avg jump 0.48 steps | today's used  0 | most used 5/1.25/15 x8 | distinct 8
+V6 2-year window           kk_dip        periods 24 switches  6 avg jump 0.48 steps | today's used  0 | most used 0.02/1.25/10 x12 | distinct 4
+V7 expanding window        strong_trend  periods 24 switches  3 avg jump 0.17 steps | today's used  0 | most used 1.5/5/90 x11 | distinct 4
+V7 expanding window        sma_trend     periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x24 | distinct 1
+V7 expanding window        rsi_dip       periods 24 switches  4 avg jump 0.17 steps | today's used  0 | most used 5/1.25/10 x11 | distinct 5
+V7 expanding window        kk_dip        periods 24 switches  3 avg jump 0.13 steps | today's used  0 | most used 0.01/0.75/5 x9 | distinct 4
+V8 half-yearly             strong_trend  periods 12 switches  3 avg jump 0.45 steps | today's used  0 | most used 1.5/5/90 x5 | distinct 4
+V8 half-yearly             sma_trend     periods 12 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x12 | distinct 1
+V8 half-yearly             rsi_dip       periods 12 switches  6 avg jump 0.55 steps | today's used  0 | most used 5/1.25/15 x4 | distinct 7
+V8 half-yearly             kk_dip        periods 12 switches  4 avg jump 0.64 steps | today's used  0 | most used 0.02/1.25/10 x4 | distinct 4
+V9 hysteresis 1 SE         strong_trend  periods 24 switches  1 avg jump 0.13 steps | today's used  2 | most used 1.5/5/90 x22 | distinct 2
+V9 hysteresis 1 SE         sma_trend     periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x24 | distinct 1
+V9 hysteresis 1 SE         rsi_dip       periods 24 switches  2 avg jump 0.22 steps | today's used  0 | most used 5/1.25/15 x10 | distinct 3
+V9 hysteresis 1 SE         kk_dip        periods 24 switches  1 avg jump 0.22 steps | today's used  0 | most used 0.02/1.25/10 x15 | distinct 2
+V10 choose once, freeze    strong_trend  periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 1.5/3/60 x24 | distinct 1
+V10 choose once, freeze    sma_trend     periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x24 | distinct 1
+V10 choose once, freeze    rsi_dip       periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 10/0.75/5 x24 | distinct 1
+V10 choose once, freeze    kk_dip        periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.005/0.75/5 x24 | distinct 1
+S1 min trades 25           strong_trend  periods 24 switches  4 avg jump 0.22 steps | today's used  0 | most used 1.5/5/90 x10 | distinct 5
+S1 min trades 25           sma_trend     periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x24 | distinct 1
+S1 min trades 25           rsi_dip       periods 24 switches  6 avg jump 0.26 steps | today's used  0 | most used 5/1.25/15 x9 | distinct 7
+S1 min trades 25           kk_dip        periods 24 switches  4 avg jump 0.30 steps | today's used  0 | most used 0.02/1.25/10 x9 | distinct 4
+S2 min trades 100          strong_trend  periods 24 switches  4 avg jump 0.22 steps | today's used  0 | most used 1.5/5/90 x10 | distinct 5
+S2 min trades 100          sma_trend     periods 24 switches  0 avg jump 0.00 steps | today's used  0 | most used 0.8/5/90 x24 | distinct 1
+S2 min trades 100          rsi_dip       periods 24 switches  6 avg jump 0.26 steps | today's used  0 | most used 5/1.25/15 x9 | distinct 7
+S2 min trades 100          kk_dip        periods 24 switches  4 avg jump 0.30 steps | today's used  0 | most used 0.02/1.25/10 x9 | distinct 4
+
+=== does the training winner keep winning? Spearman rho (training smoothed avg vs next quarter), by rule
+              mean  median  count  <lambda_0>
+rule                                         
+kk_dip        0.06    0.19     22        0.55
+rsi_dip       0.22    0.34     24        0.75
+sma_trend     0.27    0.39     22        0.68
+strong_trend  0.21    0.40     20        0.65
+
+=== per year, ALL rules: static vs V1 primary
+      static                         V1                      
+      trades made%  avg%    sum% trades made%   avg%     sum%
+year                                                         
+2021  1346.0  63.3  3.45  4644.0   1710  62.5   3.14   5365.0
+2022   993.0  52.7 -0.09   -93.0    741  52.8  -0.17   -127.0
+2023  1038.0  69.2  8.19  8497.0    686  73.6  15.33  10517.0
+2024  1424.0  56.9  2.26  3213.0    665  54.9   3.08   2050.0
+2025   751.0  54.2  1.13   847.0    325  56.6   1.62    527.0
+2026   623.0  55.9  0.73   452.0    252  59.1   3.48    876.0
+2019     NaN   NaN   NaN     NaN    135  56.3   4.74    640.0
+2020     NaN   NaN   NaN     NaN   1027  58.7   2.83   2907.0

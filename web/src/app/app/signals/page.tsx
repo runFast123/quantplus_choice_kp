@@ -3,6 +3,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { CloudLightningIcon, CloudSunIcon, SunIcon } from "@phosphor-icons/react/ssr";
 import { Badge, Delta, Stat } from "@/components/ui/data";
+import { CheckTag } from "@/components/market/check-tag";
 import {
   Empty,
   PageHeader,
@@ -25,6 +26,20 @@ import {
   strongTrendStatus,
   weatherView,
 } from "@/lib/strong-trend";
+import {
+  CHECK_TESTED,
+  checkKey,
+  daysAgoIST,
+  isCheckRule,
+  liveYears,
+  periodsSentence,
+  quarterStartIST,
+  signalDayOf,
+  standingLine,
+  total,
+  type CheckRule,
+  type RecordRow,
+} from "@/lib/signal-checks";
 import { evaluateSignalProgress, type RawChartMarker } from "@/lib/trade-plan";
 import type { Signal } from "@/lib/types";
 import { getQuotes } from "@/server/market-data";
@@ -81,6 +96,20 @@ const ORDER = [...STRATEGIES.map((x) => x.key), ...OLD_RULES];
 
 const ACTION_LABEL: Record<SignalAction, string> = { buy: "BUY", exit: "EXIT", sell: "SHORT", cover: "COVER" };
 
+// The two signal checks (ADR-038), in the order the panel shows them.
+const CHECKS: { rule: CheckRule; title: string; what: string }[] = [
+  {
+    rule: "rsi_dip",
+    title: "RSI dip check",
+    what: "Scores each RSI dip on 25 numbers known at its close (the stock's trend, swings and volume, and the market) against how past dips like it turned out, and tags those that score like the best third of past dips.",
+  },
+  {
+    rule: "strong_trend",
+    title: "Strong trend check",
+    what: "Tags a Strong trend buy when the rule's last 30 finished trades in the same market weather lost money over their first 20 sessions.",
+  },
+];
+
 /** An open buy of a rule with its own tested plan (a safety stop and a review or bounce exit), not price targets. */
 type OwnPlan = {
   stop: number | null;
@@ -124,9 +153,22 @@ export default async function SignalsPage({
     if (strategy) q = q.eq("strategy", strategy);
     const { data } = await q;
     const rows = (data ?? []) as Signal[];
-    return { rows, quotes: await getQuotes(db, [...new Set(rows.map((x) => x.symbol))]) };
+    // The signal checks' tags for these signals and for the next session's dip-buy levels (newer than any of them).
+    const days = rows.filter((x) => isCheckRule(x.strategy)).map(signalDayOf).sort();
+    const since = days[0] ?? daysAgoIST(14);
+    const [quotes, tagRes] = await Promise.all([
+      getQuotes(db, [...new Set(rows.map((x) => x.symbol))]),
+      db
+        .from("signal_checks")
+        .select("strategy, symbol, signal_day")
+        .eq("tagged", true)
+        .gte("signal_day", since)
+        .limit(1000),
+    ]);
+    const tags = new Set((tagRes.data ?? []).map((t) => checkKey(t.strategy, t.symbol, t.signal_day)));
+    return { rows, quotes, tags };
   })();
-  const [mine, { rows: signals, quotes }, weatherRes, scoreRes, watchRes, tradeRes] = await Promise.all([
+  const [mine, { rows: signals, quotes, tags }, weatherRes, scoreRes, watchRes, tradeRes, recordRes, modelRes] = await Promise.all([
     mineP,
     signalsP,
     db
@@ -141,7 +183,18 @@ export default async function SignalsPage({
       .eq("period", "all"),
     db.from("signal_watch").select("symbol, strategy, signal_day, limit_price, stop, payload").order("symbol"),
     db.from("strategy_trade_results").select("strategy, side, trades, made_money_pct, avg_result_pct"),
+    db.from("signal_check_record").select("strategy, month, label, signals, trades, made_money"),
+    db
+      .from("signal_check_models")
+      .select("valid_from, n_train:model->>n_train, trained_through:model->>trained_through, shown:model->>shown")
+      .eq("strategy", "rsi_dip")
+      .order("valid_from", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+  const record = (recordRes.data ?? []) as RecordRow[];
+  const model = modelRes.data as { valid_from: string; n_train: string | null; trained_through: string | null; shown: string | null } | null;
+  const quarterStart = quarterStartIST();
   const tradesBy = new Map(((tradeRes.data ?? []) as TradeRow[]).map((t) => [`${t.strategy}-${t.side}`, t]));
   const num = (x: unknown) => (x == null ? null : Number(x));
   const wx = weatherRes.data;
@@ -369,7 +422,7 @@ export default async function SignalsPage({
         ) : (
           <>
             <TableWrap>
-              <table className="w-full min-w-[640px]">
+              <table className="w-full min-w-[720px]">
                 <thead>
                   <tr>
                     <th className={th}>Stock</th>
@@ -378,6 +431,7 @@ export default async function SignalsPage({
                     <th className={thNum}>Buy only at or under</th>
                     <th className={thNum}>Safety stop</th>
                     <th className={th}>Signal from</th>
+                    <th className={th}>Check</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -393,6 +447,13 @@ export default async function SignalsPage({
                       <td className={tdNum + " font-medium"}>₹{price(Number(w.limit_price))}</td>
                       <td className={tdNum + " text-loss"}>₹{price(Number(w.stop))}</td>
                       <td className={td + " num text-muted-foreground"}>close of {date(w.signal_day)}</td>
+                      <td className={td}>
+                        {w.strategy === "rsi_dip" && tags.has(checkKey("rsi_dip", w.symbol, w.signal_day)) ? (
+                          <CheckTag rule="rsi_dip" />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -473,6 +534,74 @@ export default async function SignalsPage({
             </p>
           </>
         )}
+      </Panel>
+
+      {/* The signal checks: what each tag means and how tagged signals have done (ADR-038) */}
+      <Panel title="Signal checks" meta="Nothing is hidden">
+        <p className="text-[13px] leading-5">
+          Two rules check how signals like today&apos;s have turned out and add a tag when the evidence is there. A tag is
+          extra information: every signal is still listed and graded. Of everything tested to make the rules adapt to
+          the market, these two checks were the only ideas that held up on stocks they had not been tried on.
+        </p>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          {CHECKS.map((c) => {
+            const tested = CHECK_TESTED[c.rule].years;
+            const live = total(liveYears(record, c.rule));
+            return (
+              <section key={c.rule} aria-label={c.title} className="min-w-0 rounded-md border border-border p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="display text-[18px]">{c.title}</h3>
+                  <CheckTag rule={c.rule} />
+                </div>
+                <p className="mt-1.5 text-[13px] leading-5">{c.what}</p>
+                <div className="mt-3">
+                  <TableWrap label={`${c.title}, tested record`}>
+                    <table className="w-full min-w-[360px]">
+                      <thead>
+                        <tr>
+                          <th className={th}>Tested</th>
+                          <th className={thNum}>Tagged</th>
+                          <th className={thNum}>Made money</th>
+                          <th className={thNum}>Others</th>
+                          <th className={thNum}>Made money</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tested.map((y) => (
+                          <tr key={y.year} className={tr}>
+                            <td className={td + " num"}>{y.year}</td>
+                            <td className={tdNum}>{y.tagged.n.toLocaleString("en-IN")}</td>
+                            <td className={tdNum}>{y.tagged.n ? pct(y.tagged.made) : "—"}</td>
+                            <td className={tdNum}>{y.rest.n.toLocaleString("en-IN")}</td>
+                            <td className={tdNum}>{pct(y.rest.made)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableWrap>
+                </div>
+                <p className="mt-2 text-[12.5px] leading-5">{standingLine(c.rule, tested)}</p>
+                <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{periodsSentence(c.rule)}</p>
+                <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                  {recordRes.error
+                    ? "On this site: the record could not be loaded just now; reload to try again."
+                    : live.tagged.n + live.rest.n === 0
+                    ? "On this site: no checked trade has closed yet."
+                    : `On this site so far: ${live.tagged.n.toLocaleString("en-IN")} tagged ${live.tagged.n === 1 ? "trade" : "trades"} closed${live.tagged.n ? `, ${Math.round(live.tagged.made)} in 100 made money` : ""}, vs ${Math.round(live.rest.made)} in 100 for the other ${live.rest.n.toLocaleString("en-IN")} checked.`}
+                </p>
+              </section>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+          Tested on each year&apos;s 300 most traded stocks, with every check using only what was known at the time;
+          results by the rule&apos;s own plan after about 0.5 % in costs. &ldquo;On this site&rdquo; counts this
+          site&apos;s own signals (the earlier ones worked out afterwards on stored prices, with the check of the time).{" "}
+          {model
+            ? `The RSI dip check is refitted at each quarter start on finished trades only: this one learned from ${Number(model.n_train ?? 0).toLocaleString("en-IN")} trades up to ${model.trained_through ? date(model.trained_through) : "—"}${model.valid_from < quarterStart ? "; this quarter's refit has not run yet" : ""}${model.shown === "false" ? ", and it could not rank its own past, so it tags nothing this quarter" : ""}.`
+            : "The RSI dip check starts once its first model is stored."}{" "}
+          Research, not advice.
+        </p>
       </Panel>
 
       {/* Signals Table Panel */}
@@ -629,7 +758,12 @@ export default async function SignalsPage({
                         )}
                       </td>
                       <td className={td + " text-muted-foreground"}>
-                        {strategyLabel[sg.strategy] ?? sg.strategy}
+                        <div className="flex flex-col items-start gap-1">
+                          {strategyLabel[sg.strategy] ?? sg.strategy}
+                          {isCheckRule(sg.strategy) && action === "buy" && tags.has(checkKey(sg.strategy, sg.symbol, signalDayOf(sg))) ? (
+                            <CheckTag rule={sg.strategy} />
+                          ) : null}
+                        </div>
                       </td>
                       <td className={tdNum}>₹{price(at)}</td>
                       <td className={tdNum}>

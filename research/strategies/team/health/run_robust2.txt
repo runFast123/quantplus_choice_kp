@@ -1,0 +1,92 @@
+=== permutation null: same number of paused / half-size trades per rule x year, chosen at random (1,000 draws)
+    p(random>=) small = health beats random on that line (for worst quarter / drawdown, higher = better)
+variant                    V1 rule-level rolling-50   V4 CUSUM    V5 SPRT  V8 rule x weather (daily)  V11 = V8 quarter-frozen  V8 watch-only (half size, no pause)
+made%                                        59.900     60.400     61.200                     60.800                   60.800                               59.200
+made% random mean                            60.900     60.700     60.900                     60.700                   60.600                               59.200
+made% p(random>=)                             1.000      0.955      0.131                      0.411                    0.136                                1.000
+sum%                                      14659.900  14811.000  15176.700                  16163.200                16757.800                            16645.000
+sum% random mean                          15886.100  14981.500  15464.800                  15490.500                16034.700                            16126.200
+sum% p(random>=)                              1.000      0.680      0.794                      0.024                    0.006                                0.004
+worst quarter                              -848.300   -471.600   -545.800                   -459.100                 -973.600                             -625.500
+worst quarter random mean                  -910.800   -583.500   -863.100                   -749.200                 -828.400                             -850.400
+worst quarter p(random>=)                     0.033      0.002      0.000                      0.000                    1.000                                0.000
+max drawdown                              -1800.100  -1255.600  -1363.900                   -915.700                -1457.900                            -1203.700
+max drawdown random mean                  -1366.900   -942.000  -1294.900                  -1118.900                -1278.400                            -1261.100
+max drawdown p(random>=)                      0.998      0.998      0.696                      0.018                    0.899                                0.105
+
+=== same, shuffled within rule over the whole 2021-26 (also credits WHEN in the 6 years it pauses)
+variant                      V5 SPRT  V8 rule x weather (daily)  V11 = V8 quarter-frozen  V8 watch-only (half size, no pause)
+made%                         61.200                       60.8                   60.800                                 59.2
+made% random mean             59.200                       59.9                   59.600                                 59.2
+made% p(random>=)              0.000                        0.0                    0.000                                  1.0
+sum%                       15176.700                    16163.2                16757.800                              16645.0
+sum% random mean           12744.500                    13690.8                14008.700                              15251.3
+sum% p(random>=)               0.000                        0.0                    0.000                                  0.0
+worst quarter               -545.800                     -459.1                 -973.600                               -625.5
+worst quarter random mean   -680.200                     -695.1                 -728.100                               -808.7
+worst quarter p(random>=)      0.013                        0.0                    1.000                                  0.0
+max drawdown               -1363.900                     -915.7                -1457.900                              -1203.7
+max drawdown random mean   -1252.900                    -1248.1                -1303.600                              -1462.1
+max drawdown p(random>=)       0.828                        0.0                    0.924                                  0.0
+--- V8 daily n=20 t=-0.5: paused 1342 trades (made 52.4 %, avg +1.55 %, sum +2080 %); on watch / part-size 333 (avg +2.09 %)
+    worst quarter sum% -424 (static -974); max drawdown of cum sum% -1051 (static -1751)
+--- V8 daily n=20 t=-1.0: paused 1005 trades (made 49.9 %, avg +0.74 %, sum +748 %); on watch / part-size 670 (avg +3.03 %)
+    worst quarter sum% -444 (static -974); max drawdown of cum sum% -1048 (static -1751)
+--- V8 daily n=20 t=-2.0: paused 575 trades (made 47.8 %, avg +0.60 %, sum +346 %); on watch / part-size 1100 (avg +2.21 %)
+    worst quarter sum% -503 (static -974); max drawdown of cum sum% -1092 (static -1751)
+--- V8 daily n=30 t=-0.5: paused 1166 trades (made 50.9 %, avg +1.38 %, sum +1606 %); on watch / part-size 489 (avg +0.46 %)
+    worst quarter sum% -359 (static -974); max drawdown of cum sum% -826 (static -1751)
+--- V8 daily n=30 t=-1.0: paused 858 trades (made 49.8 %, avg +1.12 %, sum +964 %); on watch / part-size 797 (avg +1.09 %)
+    worst quarter sum% -459 (static -974); max drawdown of cum sum% -925 (static -1751)
+--- V8 daily n=30 t=-2.0: paused 510 trades (made 47.5 %, avg +0.68 %, sum +346 %); on watch / part-size 1145 (avg +1.29 %)
+    worst quarter sum% -631 (static -974); max drawdown of cum sum% -1107 (static -1751)
+--- V8 daily n=60 t=-0.5: paused 1025 trades (made 49.2 %, avg +0.32 %, sum +323 %); on watch / part-size 174 (avg +1.08 %)
+    worst quarter sum% -730 (static -974); max drawdown of cum sum% -1243 (static -1751)
+--- V8 daily n=60 t=-1.0: paused 860 trades (made 49.0 %, avg +0.59 %, sum +508 %); on watch / part-size 339 (avg +0.01 %)
+    worst quarter sum% -786 (static -974); max drawdown of cum sum% -1300 (static -1751)
+--- V8 daily n=60 t=-2.0: paused 488 trades (made 48.6 %, avg +1.31 %, sum +639 %); on watch / part-size 711 (avg -0.18 %)
+    worst quarter sum% -846 (static -974); max drawdown of cum sum% -1359 (static -1751)
+--- V11 quarterly n=20 t=-0.5: paused 1071 trades (made 54.9 %, avg +2.38 %, sum +2546 %); on watch / part-size 279 (avg +4.13 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1376 (static -1751)
+--- V11 quarterly n=20 t=-1.0: paused 795 trades (made 51.1 %, avg +0.52 %, sum +417 %); on watch / part-size 555 (avg +5.91 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1376 (static -1751)
+--- V11 quarterly n=20 t=-2.0: paused 428 trades (made 46.5 %, avg -0.49 %, sum -212 %); on watch / part-size 922 (avg +4.24 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1380 (static -1751)
+--- V11 quarterly n=30 t=-0.5: paused 1142 trades (made 50.4 %, avg +1.38 %, sum +1576 %); on watch / part-size 137 (avg -2.15 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1555 (static -1751)
+--- V11 quarterly n=30 t=-1.0: paused 847 trades (made 49.5 %, avg +0.38 %, sum +322 %); on watch / part-size 432 (avg +2.22 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1467 (static -1751)
+--- V11 quarterly n=30 t=-2.0: paused 471 trades (made 45.4 %, avg -0.01 %, sum -4 %); on watch / part-size 808 (avg +1.59 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1472 (static -1751)
+--- V11 quarterly n=60 t=-0.5: paused 1206 trades (made 49.7 %, avg +0.43 %, sum +523 %); on watch / part-size 241 (avg +1.63 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1660 (static -1751)
+--- V11 quarterly n=60 t=-1.0: paused 915 trades (made 46.6 %, avg -0.02 %, sum -21 %); on watch / part-size 532 (avg +1.76 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1660 (static -1751)
+--- V11 quarterly n=60 t=-2.0: paused 569 trades (made 42.5 %, avg +0.17 %, sum +99 %); on watch / part-size 878 (avg +0.93 %)
+    worst quarter sum% -974 (static -974); max drawdown of cum sum% -1660 (static -1751)
+
+=== sensitivity (ALL rules; static: made 59.2 / 55.9, sum 17559 / 4512, worst quarter -974, max DD -1751)
+                  setting  kept  made21   sum21  avg21  made24  sum24  avg24  paused  worstQ  maxDD
+     V8 daily n=20 t=-0.5  0.78    61.1 15131.0   3.24    57.6 4076.0   1.98    1342    -424  -1051
+     V8 daily n=20 t=-1.0  0.84    61.1 15797.0   3.27    57.4 4052.0   1.92    1005    -444  -1048
+     V8 daily n=20 t=-2.0  0.91    60.4 15998.0   3.17    56.8 4139.0   1.85     575    -503  -1092
+     V8 daily n=30 t=-0.5  0.81    61.2 15842.0   3.33    57.1 4158.0   1.95    1166    -359   -826
+     V8 daily n=30 t=-1.0  0.86    60.8 16163.0   3.29    56.6 4139.0   1.86     858    -459   -925
+     V8 daily n=30 t=-2.0  0.92    60.3 16472.0   3.23    55.9 3971.0   1.73     510    -631  -1107
+     V8 daily n=60 t=-0.5  0.83    61.2 17142.0   3.39    56.8 3734.0   1.70    1025    -730  -1243
+     V8 daily n=60 t=-1.0  0.86    60.9 17050.0   3.31    56.5 3662.0   1.63     860    -786  -1300
+     V8 daily n=60 t=-2.0  0.92    60.2 16984.0   3.19    55.5 3566.0   1.51     488    -846  -1359
+V11 quarterly n=20 t=-0.5  0.83    60.1 14437.0   2.91    56.0 4415.0   1.93    1071    -974  -1376
+V11 quarterly n=20 t=-1.0  0.87    60.4 15501.0   3.04    56.0 4418.0   1.93     795    -974  -1376
+V11 quarterly n=20 t=-2.0  0.93    60.2 15816.0   2.99    56.5 4523.0   1.89     428    -974  -1380
+V11 quarterly n=30 t=-0.5  0.82    61.2 16131.0   3.25    58.1 4307.0   2.03    1142    -974  -1555
+V11 quarterly n=30 t=-1.0  0.86    60.8 16758.0   3.28    56.9 4402.0   1.97     847    -974  -1467
+V11 quarterly n=30 t=-2.0  0.92    60.4 16921.0   3.19    56.6 4425.0   1.89     471    -974  -1472
+V11 quarterly n=60 t=-0.5  0.80    61.6 16839.0   3.47    58.1 3916.0   1.94    1206    -974  -1660
+V11 quarterly n=60 t=-1.0  0.85    61.4 17111.0   3.43    57.7 4048.0   1.93     915    -974  -1660
+V11 quarterly n=60 t=-2.0  0.91    60.9 17051.0   3.30    57.0 3950.0   1.80     569    -974  -1660
+
+=== reaction speed vs whipsaw: switches per year per rule x weather bucket
+n=20: median switches/yr 2.7, max 14.9; paused share of judged days (signal-weighted) 24 %
+n=30: median switches/yr 2.2, max 11.8; paused share of judged days (signal-weighted) 24 %
+n=60: median switches/yr 1.2, max 6.3; paused share of judged days (signal-weighted) 22 %

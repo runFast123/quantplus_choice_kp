@@ -1,0 +1,5 @@
+rule,period,n High,n Low,made High,made Low,gap,p yr,null month,p month,months High>Low,gap by year
+rsi_dip,2021-26,289,1101,75.1,57.4,17.7,0.0,3.2,0.0,13/17,"[np.float64(30.8), np.float64(-1.4), np.float64(25.3), np.float64(21.6), np.float64(-8.4), np.float64(41.6)]"
+rsi_dip,2024-26,197,738,73.6,56.6,17.0,0.0,3.1,0.0,9/12,"[np.float64(21.6), np.float64(-8.4), np.float64(41.6)]"
+kk_dip,2021-26,226,323,83.2,65.6,17.6,0.0,7.2,0.0,6/8,"[np.float64(4.2), np.float64(4.1), np.float64(35.6), np.float64(33.3), np.float64(14.4), np.float64(8.3)]"
+kk_dip,2024-26,98,193,78.6,60.6,17.9,0.0,4.3,0.0,3/4,"[np.float64(33.3), np.float64(14.4), np.float64(8.3)]"

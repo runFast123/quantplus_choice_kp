@@ -329,6 +329,16 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
       }
     }
 
+    // A2. Signal checks, once every batch is done: they need the whole day's signals (ADR-038)
+    try {
+      const { data: cData, error: cError } = await db.rpc("svc_refresh_signal_checks");
+      if (cError) console.warn("svc_refresh_signal_checks error:", cError.message);
+      else analyticsTotals.signal_checks = Number((cData as Record<string, number> | null)?.rsi ?? 0) +
+        Number((cData as Record<string, number> | null)?.trend ?? 0);
+    } catch (err) {
+      console.warn("svc_refresh_signal_checks error:", err);
+    }
+
     // B. Rebuild Research Notes
     const RESEARCH_CHUNK = 100;
     for (let n = 0; n < touchedSymbols.length; n += RESEARCH_CHUNK) {

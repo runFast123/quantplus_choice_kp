@@ -27,8 +27,8 @@ def get(path):
         return json.loads(r.read())
 
 
-syms = get("market_symbols?select=symbol,exchange,segment,mcap_rank,is_active&is_active=eq.true&segment=eq.equity&mcap_rank=lte.500")
-syms += get("market_symbols?select=symbol,exchange,segment,mcap_rank,is_active&symbol=in.(NIFTY,INDIAVIX,NIFTY500)")
+syms = get("market_symbols?select=symbol,exchange,segment,mcap_rank,sector,is_active&is_active=eq.true&segment=eq.equity&mcap_rank=lte.500")
+syms += get("market_symbols?select=symbol,exchange,segment,mcap_rank,sector,is_active&symbol=in.(NIFTY,INDIAVIX,NIFTY500)")
 pd.DataFrame(syms).to_csv(OUT / "live_symbols.csv", index=False)
 
 
@@ -44,7 +44,8 @@ df = pd.DataFrame(rows)
 df.to_parquet(OUT / "live_candles.parquet", index=False)
 # the same rows as JSON for pglite_live.mjs (Node reads no parquet)
 df["volume"] = df.volume.fillna(0).astype("int64")
-json.dump({"symbols": [{"symbol": r["symbol"], "segment": r["segment"], "mcap_rank": r.get("mcap_rank")} for r in syms],
+json.dump({"symbols": [{"symbol": r["symbol"], "segment": r["segment"], "mcap_rank": r.get("mcap_rank"),
+                        "sector": r.get("sector")} for r in syms],
            "candles": df[["symbol", "ts", "open", "high", "low", "close", "volume"]].to_dict("records")},
           open(OUT / "live_rows.json", "w"))
 print("symbols", len(syms), "candles", len(df), "from", df.ts.min(), "to", df.ts.max())

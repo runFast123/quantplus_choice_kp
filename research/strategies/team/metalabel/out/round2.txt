@@ -1,0 +1,67 @@
+reproduction ranks 1-300: mine 4128 ref 4128 matched 4128 max|net diff| 0.0e+00
+ranks 301-500 dip trades: 1380 ({'kk_dip': 355, 'rsi_dip': 929} from 2021); features missing 0.006
+top-300 p vs round-1 cache: 6175 rows, max |diff| 0.0e+00
+
+######## R1 = V26 confirmatory (filter, dip rules only)
+
+=== R1 (V26) top 300
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  1.00    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend  1.00     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip  0.71    1887   65.9  1.29  2430.0     -7.0              2.8            46.0
+2021-26       kk_dip  0.78     694   73.5  2.20  1526.0     -6.3              3.2             4.0
+2021-26          ALL  0.85    5220   59.7  3.37 17609.0    -15.7              0.5            50.0
+2024-26 strong_trend  1.00     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend  1.00     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip  0.57     730   63.6  1.04   760.0     -7.4              3.3            13.0
+2024-26       kk_dip  0.72     305   70.8  2.11   643.0     -7.2              4.3            23.0
+2024-26          ALL  0.76    2135   56.0  2.13  4548.0    -15.4              0.1            36.0
+  matched null (rule x year) top300 rsi_dip 2021-26: method made 65.9  null median 64.1  p = 0.001
+  matched null (rule x year) top300 rsi_dip 2024-26: method made 63.6  null median 61.0  p = 0.006
+  matched null (rule x year) top300 kk_dip 2021-26: method made 73.5  null median 70.5  p = 0.001
+  matched null (rule x year) top300 kk_dip 2024-26: method made 70.8  null median 65.9  p = 0.001
+
+R1 on ranks 301-500 (independent stocks; static = all their dip trades):
+ period    rule  kept  trades  made%  avg%   sum%  worst5%  static made%  static sum%  vs static made%  vs static sum%
+2021-26 rsi_dip  0.76     704   70.6  1.86 1307.0     -8.0          67.9       1487.0              2.7          -180.0
+2021-26  kk_dip  0.81     289   73.0  2.31  667.0     -7.7          73.5        802.0             -0.5          -135.0
+2021-26     DIP  0.77     993   71.3  1.99 1975.0     -7.9          69.5       2289.0              1.8          -314.0
+2024-26 rsi_dip  0.68     369   66.9  1.34  493.0     -6.6          64.7        639.0              2.2          -146.0
+2024-26  kk_dip  0.77     160   68.8  1.43  229.0     -8.7          71.0        319.0             -2.2           -90.0
+2024-26     DIP  0.71     529   67.5  1.37  722.0     -7.7          66.4        957.0              1.1          -235.0
+  matched null r301_500 rsi_dip 2021-26: method made 70.6  null median 68.6  p = 0.008
+  matched null r301_500 rsi_dip 2024-26: method made 66.9  null median 65.0  p = 0.083
+  matched null r301_500 kk_dip 2021-26: method made 73.0  null median 73.7  p = 0.836
+  matched null r301_500 kk_dip 2024-26: method made 68.8  null median 71.2  p = 0.952
+  per year r301_500 (made% kept - static, kept share):
+    rsi_dip 2021: +0.0 (1.00) 2022: +1.3 (0.80) 2023: +5.8 (0.79) 2024: +0.3 (0.84) 2025: +2.1 (0.53) 2026: +4.8 (0.64)
+    kk_dip 2021: -1.7 (0.90) 2022: +2.7 (0.81) 2023: +1.0 (0.93) 2024: +1.0 (0.79) 2025: -2.9 (0.91) 2026: -7.8 (0.56)
+
+######## R2 C2 tier (gated by forward AUC >= .55)
+  top300   strong_trend 2021-26: High 0.0% (1.0, -21.15) Low 71.0% (131.0, +16.09) Normal 51.3% (1583.0, +4.87) | High-Low -71.0 (null median +29.8, p = 0.948)
+  top300   strong_trend 2024-26: Normal 47.7% (656.0, +3.26) | High-Low +nan (null median +nan, p = nan)
+  top300   sma_trend    2021-26: High 76.9% (13.0, +26.89) Low 65.2% (112.0, +9.32) Normal 47.1% (799.0, +3.09) | High-Low +11.7 (null median +29.9, p = 0.921)
+  top300   sma_trend    2024-26: Normal 45.5% (444.0, +2.26) | High-Low +nan (null median +nan, p = nan)
+  top300   rsi_dip      2021-26: High 71.3% (94.0, +2.09) Low 56.0% (761.0, -0.18) Normal 65.6% (1796.0, +1.30) | High-Low +15.3 (null median +1.3, p = 0.003)
+  top300   rsi_dip      2024-26: High 70.7% (92.0, +1.84) Low 55.6% (617.0, -0.10) Normal 63.7% (565.0, +1.13) | High-Low +15.1 (null median +2.1, p = 0.003)
+  top300   kk_dip       2021-26: High 80.3% (137.0, +3.37) Low 65.1% (275.0, +0.75) Normal 70.4% (473.0, +1.80) | High-Low +15.2 (null median -1.6, p = 0.001)
+  top300   kk_dip       2024-26: High 78.6% (98.0, +3.10) Low 60.6% (193.0, +0.34) Normal 66.2% (133.0, +1.89) | High-Low +17.9 (null median -2.6, p = 0.001)
+  r301_500 rsi_dip      2021-26: High 80.4% (56.0, +3.54) Low 62.6% (286.0, +0.94) Normal 69.3% (587.0, +1.74) | High-Low +17.8 (null median +0.4, p = 0.007)
+  r301_500 rsi_dip      2024-26: High 78.8% (52.0, +3.01) Low 61.6% (242.0, +0.96) Normal 64.8% (247.0, +1.01) | High-Low +17.3 (null median +2.2, p = 0.006)
+  r301_500 kk_dip       2021-26: High 73.5% (68.0, +1.95) Low 74.6% (114.0, +1.83) Normal 72.8% (173.0, +2.67) | High-Low -1.0 (null median +0.7, p = 0.608)
+  r301_500 kk_dip       2024-26: High 77.4% (53.0, +2.19) Low 71.4% (91.0, +1.34) Normal 65.1% (63.0, +1.28) | High-Low +5.9 (null median +0.3, p = 0.232)
+  quarters with the tier shown: {'kk_dip': 0.71, 'rsi_dip': 0.5, 'sma_trend': 0.25, 'strong_trend': 0.08}
+
+######## R3 C2 x complete-cohort weather card
+  top300   strong_trend 2021-26: High 0.0% (1.0, -21.15) Low 50.7% (452.0, +4.79) Normal 53.6% (1262.0, +6.06) | High-Low -50.7 (null median +49.3, p = 0.929)
+  top300   strong_trend 2024-26: Low 46.5% (157.0, +0.76) Normal 48.1% (499.0, +4.05) | High-Low +nan (null median +nan, p = nan)
+  top300   sma_trend    2021-26: Low 55.6% (306.0, +5.74) Normal 46.8% (618.0, +3.41) | High-Low +nan (null median +nan, p = nan)
+  top300   sma_trend    2024-26: Low 43.9% (82.0, +1.12) Normal 45.9% (362.0, +2.52) | High-Low +nan (null median +nan, p = nan)
+  top300   rsi_dip      2021-26: High 70.7% (92.0, +1.84) Low 58.5% (966.0, +0.15) Normal 65.4% (1593.0, +1.30) | High-Low +12.2 (null median +0.7, p = 0.010)
+  top300   rsi_dip      2024-26: High 70.7% (92.0, +1.84) Low 55.4% (626.0, -0.11) Normal 64.0% (556.0, +1.16) | High-Low +15.2 (null median +1.8, p = 0.003)
+  top300   kk_dip       2021-26: High 80.5% (133.0, +3.35) Low 64.4% (320.0, +0.72) Normal 71.5% (432.0, +1.96) | High-Low +16.1 (null median -1.0, p = 0.001)
+  top300   kk_dip       2024-26: High 78.9% (95.0, +3.14) Low 59.6% (223.0, +0.33) Normal 69.8% (106.0, +2.35) | High-Low +19.3 (null median -2.2, p = 0.001)
+  r301_500 rsi_dip      2021-26: High 79.6% (49.0, +3.05) Low 62.6% (372.0, +0.98) Normal 70.7% (508.0, +1.91) | High-Low +17.0 (null median -0.3, p = 0.001)
+  r301_500 rsi_dip      2024-26: High 79.6% (49.0, +3.05) Low 61.7% (248.0, +0.97) Normal 64.8% (244.0, +1.02) | High-Low +17.9 (null median +2.8, p = 0.008)
+  r301_500 kk_dip       2021-26: High 72.7% (66.0, +1.82) Low 74.0% (131.0, +1.79) Normal 73.4% (158.0, +2.83) | High-Low -1.3 (null median +1.0, p = 0.666)
+  r301_500 kk_dip       2024-26: High 76.5% (51.0, +2.04) Low 69.9% (103.0, +1.20) Normal 67.9% (53.0, +1.71) | High-Low +6.6 (null median +0.7, p = 0.238)

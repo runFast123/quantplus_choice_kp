@@ -1,0 +1,184 @@
+C:\Users\kaival.trapasia\Desktop\Quantpluse_kp\research\strategies\team\health\health.py:80: RuntimeWarning: Mean of empty slice
+  aw, al = h[h > 0].mean(), abs(h[h <= 0].mean())
+C:\Users\kaival.trapasia\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\numpy\_core\_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+C:\Users\kaival.trapasia\Desktop\Quantpluse_kp\research\strategies\team\health\health.py:112: RuntimeWarning: divide by zero encountered in scalar divide
+  L += np.log(p1 / p0) if x[k - 1] > 0 else np.log((1 - p1) / (1 - p0))
+
+=== static rules (today)
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.71  9792.0    -17.3              0.0             0.0
+2021-26    sma_trend   1.0     924   49.7  4.18  3861.0    -17.7              0.0             0.0
+2021-26      rsi_dip   1.0    2651   63.1  0.90  2384.0     -7.4              0.0             0.0
+2021-26       kk_dip   1.0     885   70.3  1.72  1522.0     -7.0              0.0             0.0
+2021-26          ALL   1.0    6175   59.2  2.84 17559.0    -15.3              0.0             0.0
+2024-26 strong_trend   1.0     656   47.7  3.26  2140.0    -16.6              0.0             0.0
+2024-26    sma_trend   1.0     444   45.5  2.26  1005.0    -17.1              0.0             0.0
+2024-26      rsi_dip   1.0    1274   60.3  0.59   747.0     -8.1              0.0             0.0
+2024-26       kk_dip   1.0     424   66.5  1.46   620.0     -7.7              0.0             0.0
+2024-26          ALL   1.0    2798   55.9  1.61  4512.0    -14.6              0.0             0.0
+
+=== V1 rolling-50 mean
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.81    1391   53.8  6.73  9157.0    -17.3              1.0          -635.0
+2021-26    sma_trend  0.67     619   45.2  3.10  1850.0    -17.6             -4.5         -2011.0
+2021-26      rsi_dip  0.92    2434   63.3  0.98  2200.0     -7.2              0.2          -184.0
+2021-26       kk_dip  0.99     878   70.3  1.73  1453.0     -7.1              0.0           -69.0
+2021-26          ALL  0.86    5322   59.9  2.91 14660.0    -15.0              0.7         -2899.0
+2024-26 strong_trend  0.75     489   44.0  2.83  1316.0    -17.2             -3.7          -824.0
+2024-26    sma_trend  0.71     314   38.9  0.15    45.0    -17.4             -6.6          -960.0
+2024-26      rsi_dip  0.86    1099   61.0  0.71   718.0     -7.5              0.7           -29.0
+2024-26       kk_dip  0.98     417   66.4  1.49   569.0     -7.7             -0.1           -51.0
+2024-26          ALL  0.83    2319   55.4  1.22  2648.0    -15.1             -0.5         -1864.0
+--- V1 rolling-50 mean: paused 853 trades (made 55.3 %, avg +3.21 %, sum +2740 %); on watch / part-size 577 (avg +0.55 %)
+    worst quarter sum% -848 (static -974); max drawdown of cum sum% -1803 (static -1751)
+
+=== V2 EWMA hl25
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.82    1398   53.9  6.77  9252.0    -17.3              1.1          -540.0
+2021-26    sma_trend  0.77     716   45.7  3.30  2126.0    -17.6             -4.0         -1735.0
+2021-26      rsi_dip  0.93    2471   63.8  1.01  2387.0     -7.2              0.7             3.0
+2021-26       kk_dip  0.99     878   70.3  1.73  1483.0     -7.1              0.0           -39.0
+2021-26          ALL  0.88    5463   59.9  2.91 15248.0    -15.1              0.7         -2311.0
+2024-26 strong_trend  0.73     482   44.4  3.04  1402.0    -17.3             -3.3          -738.0
+2024-26    sma_trend  0.76     338   39.1  0.23    70.0    -17.4             -6.4          -935.0
+2024-26      rsi_dip  0.86    1099   61.6  0.79   819.0     -7.4              1.3            72.0
+2024-26       kk_dip  0.98     417   66.4  1.46   582.0     -7.7             -0.1           -38.0
+2024-26          ALL  0.83    2336   55.7  1.30  2872.0    -15.0             -0.2         -1640.0
+--- V2 EWMA hl25: paused 712 trades (made 53.9 %, avg +3.13 %, sum +2232 %); on watch / part-size 457 (avg +0.35 %)
+    worst quarter sum% -872 (static -974); max drawdown of cum sum% -1641 (static -1751)
+
+=== V3 Beta win-rate
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.95    1636   52.7  5.93  9357.0    -17.4             -0.1          -435.0
+2021-26    sma_trend  0.88     815   47.6  3.37  2603.0    -17.6             -2.1         -1258.0
+2021-26      rsi_dip  0.93    2461   63.6  0.99  2206.0     -7.2              0.5          -178.0
+2021-26       kk_dip  0.93     825   70.9  1.87  1273.0     -6.9              0.6          -249.0
+2021-26          ALL  0.93    5737   59.2  2.94 15439.0    -15.3              0.0         -2120.0
+2024-26 strong_trend  0.98     642   47.0  2.79  1738.0    -16.6             -0.7          -402.0
+2024-26    sma_trend  0.82     363   40.2  0.41   146.0    -17.4             -5.3          -859.0
+2024-26      rsi_dip  0.90    1150   60.6  0.83   847.0     -7.3              0.3           100.0
+2024-26       kk_dip  0.86     364   67.3  1.93   610.0     -7.3              0.8           -10.0
+2024-26          ALL  0.90    2519   55.2  1.45  3341.0    -14.8             -0.7         -1171.0
+--- V3 Beta win-rate: paused 438 trades (made 59.1 %, avg +3.34 %, sum +1465 %); on watch / part-size 982 (avg +1.34 %)
+    worst quarter sum% -894 (static -974); max drawdown of cum sum% -1655 (static -1751)
+
+=== V4 CUSUM k.25 h4
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.84    1445   54.9  6.98  9595.0    -17.1              2.1          -197.0
+2021-26    sma_trend  0.56     520   45.4  2.93  1419.0    -17.7             -4.3         -2442.0
+2021-26      rsi_dip  0.96    2532   63.1  0.93  2287.0     -7.2              0.0           -97.0
+2021-26       kk_dip  0.99     875   70.3  1.76  1510.0     -7.1              0.0           -12.0
+2021-26          ALL  0.87    5372   60.4  2.86 14811.0    -14.4              1.2         -2748.0
+2024-26 strong_trend  0.84     550   48.0  3.75  1919.0    -16.7              0.3          -221.0
+2024-26    sma_trend  0.51     227   44.9  1.03   202.0    -16.6             -0.6          -803.0
+2024-26      rsi_dip  0.92    1168   60.4  0.70   788.0     -7.7              0.1            41.0
+2024-26       kk_dip  0.98     414   66.4  1.54   611.0     -7.7             -0.1            -9.0
+2024-26          ALL  0.84    2359   57.1  1.58  3519.0    -14.0              1.2          -993.0
+--- V4 CUSUM k.25 h4: paused 803 trades (made 51.7 %, avg +2.53 %, sum +2029 %); on watch / part-size 397 (avg +3.62 %)
+    worst quarter sum% -472 (static -974); max drawdown of cum sum% -1256 (static -1751)
+
+=== V5 SPRT d.10
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.76    1307   55.3  7.17  9213.0    -17.3              2.5          -579.0
+2021-26    sma_trend  0.71     659   48.3  3.79  2356.0    -17.4             -1.4         -1505.0
+2021-26      rsi_dip  0.71    1894   65.3  1.19  2145.0     -6.9              2.2          -239.0
+2021-26       kk_dip  0.76     675   73.9  2.17  1464.0     -6.4              3.6           -58.0
+2021-26          ALL  0.73    4535   61.2  3.46 15177.0    -15.3              2.0         -2382.0
+2024-26 strong_trend  0.64     423   46.1  3.64  1516.0    -17.0             -1.6          -624.0
+2024-26    sma_trend  0.71     316   39.6  0.43   132.0    -17.4             -5.9          -873.0
+2024-26      rsi_dip  0.62     795   63.6  1.19   902.0     -5.9              3.3           155.0
+2024-26       kk_dip  0.50     214   74.3  2.63   562.0     -6.5              7.8           -58.0
+2024-26          ALL  0.62    1748   56.4  1.84  3112.0    -15.3              0.5         -1400.0
+--- V5 SPRT d.10: paused 1640 trades (made 53.7 %, avg +1.06 %, sum +1734 %); on watch / part-size 293 (avg +4.43 %)
+    worst quarter sum% -546 (static -974); max drawdown of cum sum% -1366 (static -1751)
+
+=== V6 P(edge) sizing
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  6.48  8871.0    -17.3              0.0          -921.0
+2021-26    sma_trend   1.0     924   49.7  3.45  2174.0    -17.7              0.0         -1687.0
+2021-26      rsi_dip   1.0    2651   63.1  1.01  2104.0     -7.4              0.0          -280.0
+2021-26       kk_dip   1.0     885   70.3  1.84  1441.0     -7.0              0.0           -81.0
+2021-26          ALL   1.0    6175   59.2  3.00 14589.0    -15.3              0.0         -2970.0
+2024-26 strong_trend   1.0     656   47.7  3.24  1528.0    -16.6              0.0          -612.0
+2024-26    sma_trend   1.0     444   45.5  0.88   274.0    -17.1              0.0          -731.0
+2024-26      rsi_dip   1.0    1274   60.3  0.76   721.0     -8.1              0.0           -26.0
+2024-26       kk_dip   1.0     424   66.5  1.72   575.0     -7.7              0.0           -45.0
+2024-26          ALL   1.0    2798   55.9  1.50  3098.0    -14.6              0.0         -1414.0
+--- V6 P(edge) sizing: nothing paused; part-size 6175 (avg +2.84 %)
+    worst quarter sum% -760 (static -974); max drawdown of cum sum% -1221 (static -1751)
+
+=== V7 Thompson bandit
+ period         rule  kept  trades  made%  avg%   sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend   1.0    1715   52.8  5.70 2452.0    -17.3              0.0         -7340.0
+2021-26    sma_trend   1.0     924   49.7  4.18  965.0    -17.7              0.0         -2896.0
+2021-26      rsi_dip   1.0    2651   63.1  0.93 1167.0     -7.4              0.0         -1217.0
+2021-26       kk_dip   1.0     885   70.3  1.72 1385.0     -7.0              0.0          -137.0
+2021-26          ALL   1.0    6175   59.2  2.19 5969.0    -15.3              0.0        -11590.0
+2024-26 strong_trend   1.0     656   47.7  3.26  535.0    -16.6              0.0         -1605.0
+2024-26    sma_trend   1.0     444   45.5  2.26  251.0    -17.1              0.0          -754.0
+2024-26      rsi_dip   1.0    1274   60.3  0.65  412.0     -8.1              0.0          -335.0
+2024-26       kk_dip   1.0     424   66.5  1.38  510.0     -7.7              0.0          -110.0
+2024-26          ALL   1.0    2798   55.9  1.33 1708.0    -14.6              0.0         -2804.0
+--- V7 Thompson bandit: nothing paused; part-size 4894 (avg +3.22 %)
+    worst quarter sum% -214 (static -974); max drawdown of cum sum% -452 (static -1751)
+
+=== V8 rule x weather
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.83    1416   54.2  6.82  9431.0    -17.3              1.4          -361.0
+2021-26    sma_trend  0.70     646   51.5  5.15  3022.0    -17.9              1.8          -839.0
+2021-26      rsi_dip  0.91    2402   63.5  1.03  2199.0     -7.1              0.4          -185.0
+2021-26       kk_dip  0.96     853   70.8  1.84  1511.0     -7.0              0.5           -11.0
+2021-26          ALL  0.86    5317   60.8  3.29 16163.0    -14.9              1.6         -1396.0
+2024-26 strong_trend  0.80     524   45.0  2.92  1472.0    -17.0             -2.7          -668.0
+2024-26    sma_trend  0.74     330   49.1  4.02  1245.0    -17.1              3.6           240.0
+2024-26      rsi_dip  0.91    1153   60.4  0.75   787.0     -7.4              0.1            40.0
+2024-26       kk_dip  0.92     392   67.3  1.73   635.0     -7.6              0.8            15.0
+2024-26          ALL  0.86    2399   56.6  1.86  4139.0    -14.5              0.7          -373.0
+--- V8 rule x weather: paused 858 trades (made 49.8 %, avg +1.12 %, sum +964 %); on watch / part-size 797 (avg +1.09 %)
+    worst quarter sum% -459 (static -974); max drawdown of cum sum% -925 (static -1751)
+
+=== V9 rule x sector
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.86    1479   54.4  6.68  9372.0    -17.3              1.6          -420.0
+2021-26    sma_trend  0.77     715   45.9  3.39  2324.0    -17.7             -3.8         -1537.0
+2021-26      rsi_dip  0.92    2431   63.5  1.01  2228.0     -7.3              0.4          -156.0
+2021-26       kk_dip  0.98     868   70.2  1.69  1417.0     -7.2             -0.1          -105.0
+2021-26          ALL  0.89    5493   59.8  2.99 15341.0    -15.1              0.6         -2218.0
+2024-26 strong_trend  0.86     565   48.1  3.45  1815.0    -17.0              0.4          -325.0
+2024-26    sma_trend  0.75     335   40.0  0.75   245.0    -17.5             -5.5          -760.0
+2024-26      rsi_dip  0.88    1119   60.6  0.71   699.0     -7.9              0.3           -48.0
+2024-26       kk_dip  0.99     421   66.7  1.48   590.0     -7.7              0.2           -30.0
+2024-26          ALL  0.87    2440   55.9  1.50  3349.0    -15.0              0.0         -1163.0
+--- V9 rule x sector: paused 682 trades (made 54.7 %, avg +2.51 %, sum +1713 %); on watch / part-size 732 (avg +1.38 %)
+    worst quarter sum% -916 (static -974); max drawdown of cum sum% -1321 (static -1751)
+
+=== V10 mark-to-market
+ period         rule  kept  trades  made%  avg%    sum%  worst5%  vs static made%  vs static sum%
+2021-26 strong_trend  0.77    1317   55.7  6.98  8515.0    -16.6              2.9         -1277.0
+2021-26    sma_trend  0.77     713   47.0  3.91  2636.0    -17.6             -2.7         -1225.0
+2021-26      rsi_dip  0.84    2222   61.8  0.72  1505.0     -7.4             -1.3          -879.0
+2021-26       kk_dip  0.97     859   69.8  1.59  1311.0     -7.3             -0.5          -211.0
+2021-26          ALL  0.83    5111   59.5  2.90 13967.0    -14.6              0.3         -3592.0
+2024-26 strong_trend  0.70     461   47.1  3.40  1454.0    -16.6             -0.6          -686.0
+2024-26    sma_trend  0.78     348   44.0  2.07   665.0    -17.3             -1.5          -340.0
+2024-26      rsi_dip  0.81    1037   60.8  0.64   630.0     -7.4              0.5          -117.0
+2024-26       kk_dip  0.97     412   66.3  1.41   553.0     -7.7             -0.2           -67.0
+2024-26          ALL  0.81    2258   56.4  1.56  3302.0    -14.4              0.5         -1210.0
+--- V10 mark-to-market: paused 1064 trades (made 58.0 %, avg +2.81 %, sum +2989 %); on watch / part-size 596 (avg +2.03 %)
+    worst quarter sum% -513 (static -974); max drawdown of cum sum% -874 (static -1751)
+
+=== summary (ALL rules)
+           variant  made21   sum21  avg21  made24  sum24  avg24  kept21
+V1 rolling-50 mean    59.9 14660.0   2.91    55.4 2648.0   1.22    0.86
+      V2 EWMA hl25    59.9 15248.0   2.91    55.7 2872.0   1.30    0.88
+  V3 Beta win-rate    59.2 15439.0   2.94    55.2 3341.0   1.45    0.93
+  V4 CUSUM k.25 h4    60.4 14811.0   2.86    57.1 3519.0   1.58    0.87
+      V5 SPRT d.10    61.2 15177.0   3.46    56.4 3112.0   1.84    0.73
+ V6 P(edge) sizing    59.2 14589.0   3.00    55.9 3098.0   1.50    1.00
+V7 Thompson bandit    59.2  5969.0   2.19    55.9 1708.0   1.33    1.00
+ V8 rule x weather    60.8 16163.0   3.29    56.6 4139.0   1.86    0.86
+  V9 rule x sector    59.8 15341.0   2.99    55.9 3349.0   1.50    0.89
+V10 mark-to-market    59.5 13967.0   2.90    56.4 3302.0   1.56    0.83
+
+best by the pre-registered rule (sum% >= 90 % of static 17559): V8 rule x weather

@@ -69,7 +69,7 @@ export async function refreshMarketAnalyticsAction(): Promise<ActionState> {
     revalidatePath("/admin");
     return {
       ok: true,
-      message: `Analytics refreshed: ${res.quotes} quotes updated, ${res.signals} signals produced, ${res.rsi_events} RSI milestones calculated.`,
+      message: `Analytics refreshed: ${res.quotes} quotes updated, ${res.signals} signals produced, ${res.rsi_events} RSI milestones calculated, ${res.signal_checks} signal checks written.`,
     };
   } catch (e) {
     return { error: `Analytics calculation failed: ${(e as Error).message}` };

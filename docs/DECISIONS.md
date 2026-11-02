@@ -317,3 +317,39 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   read-only copy of the live candles.
 - **Limits:** about half of trend trades lose; they work because winners (~+22 %) are about twice the losers (~−11 %).
   2024–26, a flat-to-falling market, was weaker for every long-only trend rule.
+
+### ADR-038 · Signal checks: the rules check their own record (display only), nothing auto-tunes
+**Date** 2026-11-02 · **Status** accepted
+- **Context:** the owner asked for the four rules to adapt to the market by themselves, to an industrial standard, and for
+  a team of four agents to compete and agree. A shared dataset (7,337 trades of the four live rules, 2019-07–2026-10, each
+  year's top 300, 0.5 % cost), one scorer (`research/strategies/team/evaluate.py`) and walk-forward rules (each quarter
+  learns only from trades already finished) were fixed first (`team/BRIEF.md`).
+- **Round 1 (one method each):** regime switching (pause a rule in market states where it lost), re-optimising settings
+  quarterly, a rule × weather health card, and meta-labelling (a model of each signal's chance). No method beat the static
+  rules on accuracy against a fair random-skip test. Two traps were found that affect any adaptive method: trades that
+  finished recently are mostly stop-outs for the 60-session trend rules (9 % made money vs 54 % for the whole cohort), so
+  only complete cohorts may be used; and evidence must be counted in episodes (months, years), not trades.
+- **Rounds 2–3:** each member critiqued the others, re-tested on complete cohorts and on stocks ranked 301–500 (data none
+  had used), and voted. The re-optimiser's one stable finding (5 × ATR, 90 sessions) failed a clean test chosen on
+  2019–23 and checked on 2024–26: the rules keep 4 × ATR / 60. Market-state labels flipped between periods and forecast
+  worse than a rule's own record. A look-ahead in the meta-label's same-day count (filled trades are known only the next
+  day) was found and fixed; the result held.
+- **Decision (D***, `team/FINAL.md`, all four agreed; migration 39):** two display-only checks, nothing hidden or skipped.
+  *Strong trend*: tag *weak* when the last 30 finished trades in the same weather lost money over 20 sessions (t < −1).
+  *RSI dip*: a logistic regression on 25 close-of-day features, refitted each quarter on complete cohorts with
+  forward-only calibration (slope clipped ≥ 0, in force only above 1e-6), tags the top third. Only the tag with evidence is
+  shown (High, Weak): a Low label covered ~80 % of 2025–26 dips that made the rule's usual rate. KK dip and SMA trend get
+  no tag (inconclusive / no support). The public record names the years each tag was wrong; the 2025 RSI reversal and
+  the Strong trend check's thin month count are shown, not hidden.
+- **How it runs:** the database computes features and scores daily (`svc_refresh_signal_checks`, after every analytics
+  batch); the refit is Python (`pipelines/eod/checks_refit.py`, a byte-for-byte copy of the team's `tier_model.py`) at
+  each quarter start, reading the stored training set (research record + live trades closed since, with the features they
+  were scored on). Checks are frozen once written. Parity on the live candles: 98.9 % same RSI dip label, 100 % Strong
+  trend.
+- **Not done, and why:** skipping Low RSI dips (+3–4 points per rule in research) waits for two live quarters of
+  separation counted by month; automatic changes to rule settings stay out (past best settings barely kept winning:
+  rank correlation 0.06–0.27); the 27-setting grid and the KK dip / SMA trend self-tests are a quarterly research job.
+- **Known differences from the research:** live prices are split-adjusted only (research also dividend-adjusted, ≤ ~2 %
+  on long ratios); `rs_rank` comes from `market_leaders` (ties and the ≥ 300-session rule differ slightly); the first
+  RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
+  does for missing values.

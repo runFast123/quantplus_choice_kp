@@ -1,0 +1,38 @@
+=== R2 sensitivity to the bucket window (display gap / p, risk worst quarter / drawdown / p; static -974 / -1764)
+ n  gap21   p21  gap24   p24  worstQ  pQ  maxDD   pDD        sum21 risk
+20   16.8 0.009   20.3 0.000    -595 0.0  -1052 0.000 [16247.0, 4440.0]
+30   15.7 0.023   14.6 0.016    -631 0.0  -1111 0.000 [15949.0, 4239.0]
+60   17.5 0.002   11.9 0.022    -833 0.0  -1373 0.541 [15441.0, 4361.0]
+
+=== R2 risk layer per year (sum% and worst quarter)
+      risk_sum  static_sum  risk worst Q  static worst Q
+y                                                       
+2021      4281        4644        -237.0          -187.0
+2022         7         -93        -354.0          -592.0
+2023      7422        8497         425.0           633.0
+2024      2939        3213        -631.0          -974.0
+2025       811         847         106.0            69.0
+2026       488         452          27.0            29.0
+
+=== critique checks: label separation (made% per group (trades)), matched rule x year null
+                label  period       High      Normal         Low  gap  null     p     up-calm  up-nervous  down-calm down-nervous
+ C2 tier strong_trend 2021-26 60.2 (161) 50.8 (1322)  59.1 (232)  9.5   8.2 0.316         NaN         NaN        NaN          NaN
+ C2 tier strong_trend 2024-26  50.0 (10)  48.9 (575)   38.0 (71) 10.8   9.7 0.385         NaN         NaN        NaN          NaN
+    C2 tier sma_trend 2021-26  55.2 (58)  49.8 (685)  47.5 (181)  7.7  19.1 0.984         NaN         NaN        NaN          NaN
+    C2 tier sma_trend 2024-26  15.8 (19)  46.8 (425)         NaN  NaN   NaN 0.000         NaN         NaN        NaN          NaN
+      C2 tier rsi_dip 2021-26 75.1 (289) 65.3 (1261) 57.4 (1101) 17.7   5.1 0.000         NaN         NaN        NaN          NaN
+      C2 tier rsi_dip 2024-26 73.6 (197)  60.5 (339)  56.6 (738) 17.0   4.7 0.000         NaN         NaN        NaN          NaN
+       C2 tier kk_dip 2021-26 83.2 (226)  66.1 (336)  65.6 (323) 17.6   4.7 0.000         NaN         NaN        NaN          NaN
+       C2 tier kk_dip 2024-26  78.6 (98)  66.2 (133)  60.6 (193) 17.9   7.3 0.009         NaN         NaN        NaN          NaN
+         C2 tier dips 2021-26 78.6 (515) 65.4 (1597) 59.3 (1424) 19.4   4.4 0.000         NaN         NaN        NaN          NaN
+         C2 tier dips 2024-26 75.3 (295)  62.1 (472)  57.5 (931) 17.8   3.8 0.000         NaN         NaN        NaN          NaN
+         C3 state ALL 2021-26        NaN         NaN         NaN  5.0   4.7 0.356 59.0 (3251) 58.5 (1994) 63.4 (216)   61.2 (714)
+         C3 state ALL 2024-26        NaN         NaN         NaN 12.2   6.8 0.017  47.9 (843) 59.2 (1297) 58.2 (141)   60.2 (517)
+C3 state strong_trend 2021-26        NaN         NaN         NaN  3.2   4.0 0.660 53.8 (1171)  50.6 (544)        NaN          NaN
+C3 state strong_trend 2024-26        NaN         NaN         NaN  7.3   2.9 0.054  43.5 (276)  50.8 (380)        NaN          NaN
+   C3 state sma_trend 2021-26        NaN         NaN         NaN 20.4  13.5 0.037  49.6 (413)  40.0 (260)  58.8 (97)   60.4 (154)
+   C3 state sma_trend 2024-26        NaN         NaN         NaN 16.3  13.4 0.258  40.0 (140)  42.6 (141)  46.7 (60)   56.3 (103)
+     C3 state rsi_dip 2021-26        NaN         NaN         NaN  8.3   7.2 0.292 63.3 (1273)  64.0 (902)  67.4 (95)   59.1 (381)
+     C3 state rsi_dip 2024-26        NaN         NaN         NaN 13.0   7.5 0.086  54.2 (336)  63.8 (588)  67.2 (64)   58.7 (286)
+      C3 state kk_dip 2021-26        NaN         NaN         NaN  6.4   8.0 0.662  70.3 (394)  72.9 (288)  66.7 (24)   66.5 (179)
+      C3 state kk_dip 2024-26        NaN         NaN         NaN 23.9  12.2 0.006   50.5 (91)  74.5 (188)  64.7 (17)   66.4 (128)

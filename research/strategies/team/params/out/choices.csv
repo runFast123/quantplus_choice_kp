@@ -1,0 +1,1105 @@
+variant,rule,from,cfg,settings
+V1 primary,strong_trend,2021-01-01,1,1.5/3/60
+V1 primary,strong_trend,2021-04-01,4,1.5/4/60
+V1 primary,strong_trend,2021-07-01,8,1.5/5/90
+V1 primary,strong_trend,2021-10-01,8,1.5/5/90
+V1 primary,strong_trend,2022-01-01,8,1.5/5/90
+V1 primary,strong_trend,2022-04-01,8,1.5/5/90
+V1 primary,strong_trend,2022-07-01,8,1.5/5/90
+V1 primary,strong_trend,2022-10-01,8,1.5/5/90
+V1 primary,strong_trend,2023-01-01,8,1.5/5/90
+V1 primary,strong_trend,2023-04-01,8,1.5/5/90
+V1 primary,strong_trend,2023-07-01,8,1.5/5/90
+V1 primary,strong_trend,2023-10-01,8,1.5/5/90
+V1 primary,strong_trend,2024-01-01,17,2/5/90
+V1 primary,strong_trend,2024-04-01,17,2/5/90
+V1 primary,strong_trend,2024-07-01,17,2/5/90
+V1 primary,strong_trend,2024-10-01,26,3/5/90
+V1 primary,strong_trend,2025-01-01,26,3/5/90
+V1 primary,strong_trend,2025-04-01,26,3/5/90
+V1 primary,strong_trend,2025-07-01,26,3/5/90
+V1 primary,strong_trend,2025-10-01,26,3/5/90
+V1 primary,strong_trend,2026-01-01,26,3/5/90
+V1 primary,strong_trend,2026-04-01,26,3/5/90
+V1 primary,strong_trend,2026-07-01,26,3/5/90
+V1 primary,strong_trend,2026-10-01,26,3/5/90
+V1 primary,sma_trend,2021-01-01,26,0.8/5/90
+V1 primary,sma_trend,2021-04-01,26,0.8/5/90
+V1 primary,sma_trend,2021-07-01,26,0.8/5/90
+V1 primary,sma_trend,2021-10-01,26,0.8/5/90
+V1 primary,sma_trend,2022-01-01,26,0.8/5/90
+V1 primary,sma_trend,2022-04-01,26,0.8/5/90
+V1 primary,sma_trend,2022-07-01,26,0.8/5/90
+V1 primary,sma_trend,2022-10-01,26,0.8/5/90
+V1 primary,sma_trend,2023-01-01,26,0.8/5/90
+V1 primary,sma_trend,2023-04-01,26,0.8/5/90
+V1 primary,sma_trend,2023-07-01,26,0.8/5/90
+V1 primary,sma_trend,2023-10-01,26,0.8/5/90
+V1 primary,sma_trend,2024-01-01,26,0.8/5/90
+V1 primary,sma_trend,2024-04-01,26,0.8/5/90
+V1 primary,sma_trend,2024-07-01,26,0.8/5/90
+V1 primary,sma_trend,2024-10-01,26,0.8/5/90
+V1 primary,sma_trend,2025-01-01,26,0.8/5/90
+V1 primary,sma_trend,2025-04-01,26,0.8/5/90
+V1 primary,sma_trend,2025-07-01,26,0.8/5/90
+V1 primary,sma_trend,2025-10-01,26,0.8/5/90
+V1 primary,sma_trend,2026-01-01,26,0.8/5/90
+V1 primary,sma_trend,2026-04-01,26,0.8/5/90
+V1 primary,sma_trend,2026-07-01,26,0.8/5/90
+V1 primary,sma_trend,2026-10-01,26,0.8/5/90
+V1 primary,rsi_dip,2021-01-01,9,10/0.75/5
+V1 primary,rsi_dip,2021-04-01,9,10/0.75/5
+V1 primary,rsi_dip,2021-07-01,0,5/0.75/5
+V1 primary,rsi_dip,2021-10-01,0,5/0.75/5
+V1 primary,rsi_dip,2022-01-01,3,5/1/5
+V1 primary,rsi_dip,2022-04-01,3,5/1/5
+V1 primary,rsi_dip,2022-07-01,6,5/1.25/5
+V1 primary,rsi_dip,2022-10-01,6,5/1.25/5
+V1 primary,rsi_dip,2023-01-01,6,5/1.25/5
+V1 primary,rsi_dip,2023-04-01,7,5/1.25/10
+V1 primary,rsi_dip,2023-07-01,7,5/1.25/10
+V1 primary,rsi_dip,2023-10-01,7,5/1.25/10
+V1 primary,rsi_dip,2024-01-01,7,5/1.25/10
+V1 primary,rsi_dip,2024-04-01,8,5/1.25/15
+V1 primary,rsi_dip,2024-07-01,8,5/1.25/15
+V1 primary,rsi_dip,2024-10-01,8,5/1.25/15
+V1 primary,rsi_dip,2025-01-01,8,5/1.25/15
+V1 primary,rsi_dip,2025-04-01,8,5/1.25/15
+V1 primary,rsi_dip,2025-07-01,8,5/1.25/15
+V1 primary,rsi_dip,2025-10-01,8,5/1.25/15
+V1 primary,rsi_dip,2026-01-01,8,5/1.25/15
+V1 primary,rsi_dip,2026-04-01,8,5/1.25/15
+V1 primary,rsi_dip,2026-07-01,17,10/1.25/15
+V1 primary,rsi_dip,2026-10-01,17,10/1.25/15
+V1 primary,kk_dip,2021-01-01,0,0.005/0.75/5
+V1 primary,kk_dip,2021-04-01,0,0.005/0.75/5
+V1 primary,kk_dip,2021-07-01,0,0.005/0.75/5
+V1 primary,kk_dip,2021-10-01,0,0.005/0.75/5
+V1 primary,kk_dip,2022-01-01,0,0.005/0.75/5
+V1 primary,kk_dip,2022-04-01,9,0.01/0.75/5
+V1 primary,kk_dip,2022-07-01,9,0.01/0.75/5
+V1 primary,kk_dip,2022-10-01,9,0.01/0.75/5
+V1 primary,kk_dip,2023-01-01,9,0.01/0.75/5
+V1 primary,kk_dip,2023-04-01,25,0.02/1.25/10
+V1 primary,kk_dip,2023-07-01,25,0.02/1.25/10
+V1 primary,kk_dip,2023-10-01,25,0.02/1.25/10
+V1 primary,kk_dip,2024-01-01,26,0.02/1.25/15
+V1 primary,kk_dip,2024-04-01,26,0.02/1.25/15
+V1 primary,kk_dip,2024-07-01,26,0.02/1.25/15
+V1 primary,kk_dip,2024-10-01,26,0.02/1.25/15
+V1 primary,kk_dip,2025-01-01,26,0.02/1.25/15
+V1 primary,kk_dip,2025-04-01,26,0.02/1.25/15
+V1 primary,kk_dip,2025-07-01,25,0.02/1.25/10
+V1 primary,kk_dip,2025-10-01,25,0.02/1.25/10
+V1 primary,kk_dip,2026-01-01,25,0.02/1.25/10
+V1 primary,kk_dip,2026-04-01,25,0.02/1.25/10
+V1 primary,kk_dip,2026-07-01,25,0.02/1.25/10
+V1 primary,kk_dip,2026-10-01,25,0.02/1.25/10
+V2 no neighbourhood avg,strong_trend,2021-01-01,1,1.5/3/60
+V2 no neighbourhood avg,strong_trend,2021-04-01,4,1.5/4/60
+V2 no neighbourhood avg,strong_trend,2021-07-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2021-10-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2022-01-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2022-04-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2022-07-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2022-10-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2023-01-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2023-04-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2023-07-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2023-10-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2024-01-01,8,1.5/5/90
+V2 no neighbourhood avg,strong_trend,2024-04-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2024-07-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2024-10-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2025-01-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2025-04-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2025-07-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2025-10-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2026-01-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2026-04-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2026-07-01,26,3/5/90
+V2 no neighbourhood avg,strong_trend,2026-10-01,26,3/5/90
+V2 no neighbourhood avg,sma_trend,2021-01-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2021-04-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2021-07-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2021-10-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2022-01-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2022-04-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2022-07-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2022-10-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2023-01-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2023-04-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2023-07-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2023-10-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2024-01-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2024-04-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2024-07-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2024-10-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2025-01-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2025-04-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2025-07-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2025-10-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2026-01-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2026-04-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2026-07-01,26,0.8/5/90
+V2 no neighbourhood avg,sma_trend,2026-10-01,26,0.8/5/90
+V2 no neighbourhood avg,rsi_dip,2021-01-01,9,10/0.75/5
+V2 no neighbourhood avg,rsi_dip,2021-04-01,9,10/0.75/5
+V2 no neighbourhood avg,rsi_dip,2021-07-01,9,10/0.75/5
+V2 no neighbourhood avg,rsi_dip,2021-10-01,3,5/1/5
+V2 no neighbourhood avg,rsi_dip,2022-01-01,3,5/1/5
+V2 no neighbourhood avg,rsi_dip,2022-04-01,3,5/1/5
+V2 no neighbourhood avg,rsi_dip,2022-07-01,3,5/1/5
+V2 no neighbourhood avg,rsi_dip,2022-10-01,3,5/1/5
+V2 no neighbourhood avg,rsi_dip,2023-01-01,6,5/1.25/5
+V2 no neighbourhood avg,rsi_dip,2023-04-01,8,5/1.25/15
+V2 no neighbourhood avg,rsi_dip,2023-07-01,8,5/1.25/15
+V2 no neighbourhood avg,rsi_dip,2023-10-01,8,5/1.25/15
+V2 no neighbourhood avg,rsi_dip,2024-01-01,8,5/1.25/15
+V2 no neighbourhood avg,rsi_dip,2024-04-01,8,5/1.25/15
+V2 no neighbourhood avg,rsi_dip,2024-07-01,8,5/1.25/15
+V2 no neighbourhood avg,rsi_dip,2024-10-01,8,5/1.25/15
+V2 no neighbourhood avg,rsi_dip,2025-01-01,7,5/1.25/10
+V2 no neighbourhood avg,rsi_dip,2025-04-01,7,5/1.25/10
+V2 no neighbourhood avg,rsi_dip,2025-07-01,7,5/1.25/10
+V2 no neighbourhood avg,rsi_dip,2025-10-01,7,5/1.25/10
+V2 no neighbourhood avg,rsi_dip,2026-01-01,7,5/1.25/10
+V2 no neighbourhood avg,rsi_dip,2026-04-01,16,10/1.25/10
+V2 no neighbourhood avg,rsi_dip,2026-07-01,16,10/1.25/10
+V2 no neighbourhood avg,rsi_dip,2026-10-01,16,10/1.25/10
+V2 no neighbourhood avg,kk_dip,2021-01-01,9,0.01/0.75/5
+V2 no neighbourhood avg,kk_dip,2021-04-01,0,0.005/0.75/5
+V2 no neighbourhood avg,kk_dip,2021-07-01,0,0.005/0.75/5
+V2 no neighbourhood avg,kk_dip,2021-10-01,9,0.01/0.75/5
+V2 no neighbourhood avg,kk_dip,2022-01-01,9,0.01/0.75/5
+V2 no neighbourhood avg,kk_dip,2022-04-01,9,0.01/0.75/5
+V2 no neighbourhood avg,kk_dip,2022-07-01,9,0.01/0.75/5
+V2 no neighbourhood avg,kk_dip,2022-10-01,9,0.01/0.75/5
+V2 no neighbourhood avg,kk_dip,2023-01-01,18,0.02/0.75/5
+V2 no neighbourhood avg,kk_dip,2023-04-01,26,0.02/1.25/15
+V2 no neighbourhood avg,kk_dip,2023-07-01,26,0.02/1.25/15
+V2 no neighbourhood avg,kk_dip,2023-10-01,26,0.02/1.25/15
+V2 no neighbourhood avg,kk_dip,2024-01-01,26,0.02/1.25/15
+V2 no neighbourhood avg,kk_dip,2024-04-01,26,0.02/1.25/15
+V2 no neighbourhood avg,kk_dip,2024-07-01,26,0.02/1.25/15
+V2 no neighbourhood avg,kk_dip,2024-10-01,26,0.02/1.25/15
+V2 no neighbourhood avg,kk_dip,2025-01-01,25,0.02/1.25/10
+V2 no neighbourhood avg,kk_dip,2025-04-01,25,0.02/1.25/10
+V2 no neighbourhood avg,kk_dip,2025-07-01,25,0.02/1.25/10
+V2 no neighbourhood avg,kk_dip,2025-10-01,25,0.02/1.25/10
+V2 no neighbourhood avg,kk_dip,2026-01-01,25,0.02/1.25/10
+V2 no neighbourhood avg,kk_dip,2026-04-01,25,0.02/1.25/10
+V2 no neighbourhood avg,kk_dip,2026-07-01,25,0.02/1.25/10
+V2 no neighbourhood avg,kk_dip,2026-10-01,25,0.02/1.25/10
+V3 objective sum,strong_trend,2021-01-01,22,3/4/60
+V3 objective sum,strong_trend,2021-04-01,4,1.5/4/60
+V3 objective sum,strong_trend,2021-07-01,8,1.5/5/90
+V3 objective sum,strong_trend,2021-10-01,8,1.5/5/90
+V3 objective sum,strong_trend,2022-01-01,8,1.5/5/90
+V3 objective sum,strong_trend,2022-04-01,8,1.5/5/90
+V3 objective sum,strong_trend,2022-07-01,8,1.5/5/90
+V3 objective sum,strong_trend,2022-10-01,8,1.5/5/90
+V3 objective sum,strong_trend,2023-01-01,8,1.5/5/90
+V3 objective sum,strong_trend,2023-04-01,8,1.5/5/90
+V3 objective sum,strong_trend,2023-07-01,8,1.5/5/90
+V3 objective sum,strong_trend,2023-10-01,7,1.5/5/60
+V3 objective sum,strong_trend,2024-01-01,8,1.5/5/90
+V3 objective sum,strong_trend,2024-04-01,8,1.5/5/90
+V3 objective sum,strong_trend,2024-07-01,8,1.5/5/90
+V3 objective sum,strong_trend,2024-10-01,8,1.5/5/90
+V3 objective sum,strong_trend,2025-01-01,8,1.5/5/90
+V3 objective sum,strong_trend,2025-04-01,8,1.5/5/90
+V3 objective sum,strong_trend,2025-07-01,8,1.5/5/90
+V3 objective sum,strong_trend,2025-10-01,8,1.5/5/90
+V3 objective sum,strong_trend,2026-01-01,8,1.5/5/90
+V3 objective sum,strong_trend,2026-04-01,8,1.5/5/90
+V3 objective sum,strong_trend,2026-07-01,8,1.5/5/90
+V3 objective sum,strong_trend,2026-10-01,8,1.5/5/90
+V3 objective sum,sma_trend,2021-01-01,5,0.6/4/90
+V3 objective sum,sma_trend,2021-04-01,5,0.6/4/90
+V3 objective sum,sma_trend,2021-07-01,5,0.6/4/90
+V3 objective sum,sma_trend,2021-10-01,5,0.6/4/90
+V3 objective sum,sma_trend,2022-01-01,5,0.6/4/90
+V3 objective sum,sma_trend,2022-04-01,5,0.6/4/90
+V3 objective sum,sma_trend,2022-07-01,5,0.6/4/90
+V3 objective sum,sma_trend,2022-10-01,5,0.6/4/90
+V3 objective sum,sma_trend,2023-01-01,5,0.6/4/90
+V3 objective sum,sma_trend,2023-04-01,5,0.6/4/90
+V3 objective sum,sma_trend,2023-07-01,5,0.6/4/90
+V3 objective sum,sma_trend,2023-10-01,5,0.6/4/90
+V3 objective sum,sma_trend,2024-01-01,5,0.6/4/90
+V3 objective sum,sma_trend,2024-04-01,5,0.6/4/90
+V3 objective sum,sma_trend,2024-07-01,5,0.6/4/90
+V3 objective sum,sma_trend,2024-10-01,5,0.6/4/90
+V3 objective sum,sma_trend,2025-01-01,8,0.6/5/90
+V3 objective sum,sma_trend,2025-04-01,5,0.6/4/90
+V3 objective sum,sma_trend,2025-07-01,8,0.6/5/90
+V3 objective sum,sma_trend,2025-10-01,8,0.6/5/90
+V3 objective sum,sma_trend,2026-01-01,8,0.6/5/90
+V3 objective sum,sma_trend,2026-04-01,8,0.6/5/90
+V3 objective sum,sma_trend,2026-07-01,7,0.6/5/60
+V3 objective sum,sma_trend,2026-10-01,8,0.6/5/90
+V3 objective sum,rsi_dip,2021-01-01,9,10/0.75/5
+V3 objective sum,rsi_dip,2021-04-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2021-07-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2021-10-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2022-01-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2022-04-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2022-07-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2022-10-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2023-01-01,18,15/0.75/5
+V3 objective sum,rsi_dip,2023-04-01,20,15/0.75/15
+V3 objective sum,rsi_dip,2023-07-01,20,15/0.75/15
+V3 objective sum,rsi_dip,2023-10-01,20,15/0.75/15
+V3 objective sum,rsi_dip,2024-01-01,20,15/0.75/15
+V3 objective sum,rsi_dip,2024-04-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2024-07-01,23,15/1/15
+V3 objective sum,rsi_dip,2024-10-01,23,15/1/15
+V3 objective sum,rsi_dip,2025-01-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2025-04-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2025-07-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2025-10-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2026-01-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2026-04-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2026-07-01,26,15/1.25/15
+V3 objective sum,rsi_dip,2026-10-01,26,15/1.25/15
+V3 objective sum,kk_dip,2021-01-01,15,0.01/1.25/5
+V3 objective sum,kk_dip,2021-04-01,15,0.01/1.25/5
+V3 objective sum,kk_dip,2021-07-01,15,0.01/1.25/5
+V3 objective sum,kk_dip,2021-10-01,9,0.01/0.75/5
+V3 objective sum,kk_dip,2022-01-01,9,0.01/0.75/5
+V3 objective sum,kk_dip,2022-04-01,9,0.01/0.75/5
+V3 objective sum,kk_dip,2022-07-01,9,0.01/0.75/5
+V3 objective sum,kk_dip,2022-10-01,9,0.01/0.75/5
+V3 objective sum,kk_dip,2023-01-01,9,0.01/0.75/5
+V3 objective sum,kk_dip,2023-04-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2023-07-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2023-10-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2024-01-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2024-04-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2024-07-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2024-10-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2025-01-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2025-04-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2025-07-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2025-10-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2026-01-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2026-04-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2026-07-01,2,0.005/0.75/15
+V3 objective sum,kk_dip,2026-10-01,2,0.005/0.75/15
+V4 objective made%,strong_trend,2021-01-01,13,2/4/60
+V4 objective made%,strong_trend,2021-04-01,6,1.5/5/40
+V4 objective made%,strong_trend,2021-07-01,7,1.5/5/60
+V4 objective made%,strong_trend,2021-10-01,7,1.5/5/60
+V4 objective made%,strong_trend,2022-01-01,8,1.5/5/90
+V4 objective made%,strong_trend,2022-04-01,8,1.5/5/90
+V4 objective made%,strong_trend,2022-07-01,8,1.5/5/90
+V4 objective made%,strong_trend,2022-10-01,8,1.5/5/90
+V4 objective made%,strong_trend,2023-01-01,7,1.5/5/60
+V4 objective made%,strong_trend,2023-04-01,17,2/5/90
+V4 objective made%,strong_trend,2023-07-01,17,2/5/90
+V4 objective made%,strong_trend,2023-10-01,7,1.5/5/60
+V4 objective made%,strong_trend,2024-01-01,8,1.5/5/90
+V4 objective made%,strong_trend,2024-04-01,6,1.5/5/40
+V4 objective made%,strong_trend,2024-07-01,15,2/5/40
+V4 objective made%,strong_trend,2024-10-01,16,2/5/60
+V4 objective made%,strong_trend,2025-01-01,17,2/5/90
+V4 objective made%,strong_trend,2025-04-01,24,3/5/40
+V4 objective made%,strong_trend,2025-07-01,24,3/5/40
+V4 objective made%,strong_trend,2025-10-01,7,1.5/5/60
+V4 objective made%,strong_trend,2026-01-01,7,1.5/5/60
+V4 objective made%,strong_trend,2026-04-01,24,3/5/40
+V4 objective made%,strong_trend,2026-07-01,24,3/5/40
+V4 objective made%,strong_trend,2026-10-01,24,3/5/40
+V4 objective made%,sma_trend,2021-01-01,26,0.8/5/90
+V4 objective made%,sma_trend,2021-04-01,26,0.8/5/90
+V4 objective made%,sma_trend,2021-07-01,26,0.8/5/90
+V4 objective made%,sma_trend,2021-10-01,26,0.8/5/90
+V4 objective made%,sma_trend,2022-01-01,26,0.8/5/90
+V4 objective made%,sma_trend,2022-04-01,26,0.8/5/90
+V4 objective made%,sma_trend,2022-07-01,26,0.8/5/90
+V4 objective made%,sma_trend,2022-10-01,24,0.8/5/40
+V4 objective made%,sma_trend,2023-01-01,24,0.8/5/40
+V4 objective made%,sma_trend,2023-04-01,25,0.8/5/60
+V4 objective made%,sma_trend,2023-07-01,6,0.6/5/40
+V4 objective made%,sma_trend,2023-10-01,7,0.6/5/60
+V4 objective made%,sma_trend,2024-01-01,7,0.6/5/60
+V4 objective made%,sma_trend,2024-04-01,7,0.6/5/60
+V4 objective made%,sma_trend,2024-07-01,6,0.6/5/40
+V4 objective made%,sma_trend,2024-10-01,25,0.8/5/60
+V4 objective made%,sma_trend,2025-01-01,25,0.8/5/60
+V4 objective made%,sma_trend,2025-04-01,7,0.6/5/60
+V4 objective made%,sma_trend,2025-07-01,6,0.6/5/40
+V4 objective made%,sma_trend,2025-10-01,26,0.8/5/90
+V4 objective made%,sma_trend,2026-01-01,25,0.8/5/60
+V4 objective made%,sma_trend,2026-04-01,25,0.8/5/60
+V4 objective made%,sma_trend,2026-07-01,25,0.8/5/60
+V4 objective made%,sma_trend,2026-10-01,25,0.8/5/60
+V4 objective made%,rsi_dip,2021-01-01,9,10/0.75/5
+V4 objective made%,rsi_dip,2021-04-01,14,10/1/15
+V4 objective made%,rsi_dip,2021-07-01,5,5/1/15
+V4 objective made%,rsi_dip,2021-10-01,5,5/1/15
+V4 objective made%,rsi_dip,2022-01-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2022-04-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2022-07-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2022-10-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2023-01-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2023-04-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2023-07-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2023-10-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2024-01-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2024-04-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2024-07-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2024-10-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2025-01-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2025-04-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2025-07-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2025-10-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2026-01-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2026-04-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2026-07-01,8,5/1.25/15
+V4 objective made%,rsi_dip,2026-10-01,8,5/1.25/15
+V4 objective made%,kk_dip,2021-01-01,13,0.01/1/10
+V4 objective made%,kk_dip,2021-04-01,13,0.01/1/10
+V4 objective made%,kk_dip,2021-07-01,13,0.01/1/10
+V4 objective made%,kk_dip,2021-10-01,13,0.01/1/10
+V4 objective made%,kk_dip,2022-01-01,13,0.01/1/10
+V4 objective made%,kk_dip,2022-04-01,13,0.01/1/10
+V4 objective made%,kk_dip,2022-07-01,13,0.01/1/10
+V4 objective made%,kk_dip,2022-10-01,13,0.01/1/10
+V4 objective made%,kk_dip,2023-01-01,9,0.01/0.75/5
+V4 objective made%,kk_dip,2023-04-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2023-07-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2023-10-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2024-01-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2024-04-01,23,0.02/1/15
+V4 objective made%,kk_dip,2024-07-01,23,0.02/1/15
+V4 objective made%,kk_dip,2024-10-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2025-01-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2025-04-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2025-07-01,23,0.02/1/15
+V4 objective made%,kk_dip,2025-10-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2026-01-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2026-04-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2026-07-01,26,0.02/1.25/15
+V4 objective made%,kk_dip,2026-10-01,26,0.02/1.25/15
+V5 objective t-stat,strong_trend,2021-01-01,4,1.5/4/60
+V5 objective t-stat,strong_trend,2021-04-01,4,1.5/4/60
+V5 objective t-stat,strong_trend,2021-07-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2021-10-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2022-01-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2022-04-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2022-07-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2022-10-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2023-01-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2023-04-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2023-07-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2023-10-01,7,1.5/5/60
+V5 objective t-stat,strong_trend,2024-01-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2024-04-01,7,1.5/5/60
+V5 objective t-stat,strong_trend,2024-07-01,7,1.5/5/60
+V5 objective t-stat,strong_trend,2024-10-01,7,1.5/5/60
+V5 objective t-stat,strong_trend,2025-01-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2025-04-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2025-07-01,7,1.5/5/60
+V5 objective t-stat,strong_trend,2025-10-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2026-01-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2026-04-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2026-07-01,8,1.5/5/90
+V5 objective t-stat,strong_trend,2026-10-01,7,1.5/5/60
+V5 objective t-stat,sma_trend,2021-01-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2021-04-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2021-07-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2021-10-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2022-01-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2022-04-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2022-07-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2022-10-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2023-01-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2023-04-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2023-07-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2023-10-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2024-01-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2024-04-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2024-07-01,5,0.6/4/90
+V5 objective t-stat,sma_trend,2024-10-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2025-01-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2025-04-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2025-07-01,7,0.6/5/60
+V5 objective t-stat,sma_trend,2025-10-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2026-01-01,8,0.6/5/90
+V5 objective t-stat,sma_trend,2026-04-01,7,0.6/5/60
+V5 objective t-stat,sma_trend,2026-07-01,7,0.6/5/60
+V5 objective t-stat,sma_trend,2026-10-01,7,0.6/5/60
+V5 objective t-stat,rsi_dip,2021-01-01,9,10/0.75/5
+V5 objective t-stat,rsi_dip,2021-04-01,18,15/0.75/5
+V5 objective t-stat,rsi_dip,2021-07-01,18,15/0.75/5
+V5 objective t-stat,rsi_dip,2021-10-01,18,15/0.75/5
+V5 objective t-stat,rsi_dip,2022-01-01,9,10/0.75/5
+V5 objective t-stat,rsi_dip,2022-04-01,9,10/0.75/5
+V5 objective t-stat,rsi_dip,2022-07-01,9,10/0.75/5
+V5 objective t-stat,rsi_dip,2022-10-01,9,10/0.75/5
+V5 objective t-stat,rsi_dip,2023-01-01,9,10/0.75/5
+V5 objective t-stat,rsi_dip,2023-04-01,14,10/1/15
+V5 objective t-stat,rsi_dip,2023-07-01,23,15/1/15
+V5 objective t-stat,rsi_dip,2023-10-01,23,15/1/15
+V5 objective t-stat,rsi_dip,2024-01-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2024-04-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2024-07-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2024-10-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2025-01-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2025-04-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2025-07-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2025-10-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2026-01-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2026-04-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2026-07-01,26,15/1.25/15
+V5 objective t-stat,rsi_dip,2026-10-01,26,15/1.25/15
+V5 objective t-stat,kk_dip,2021-01-01,15,0.01/1.25/5
+V5 objective t-stat,kk_dip,2021-04-01,15,0.01/1.25/5
+V5 objective t-stat,kk_dip,2021-07-01,9,0.01/0.75/5
+V5 objective t-stat,kk_dip,2021-10-01,9,0.01/0.75/5
+V5 objective t-stat,kk_dip,2022-01-01,9,0.01/0.75/5
+V5 objective t-stat,kk_dip,2022-04-01,9,0.01/0.75/5
+V5 objective t-stat,kk_dip,2022-07-01,9,0.01/0.75/5
+V5 objective t-stat,kk_dip,2022-10-01,9,0.01/0.75/5
+V5 objective t-stat,kk_dip,2023-01-01,9,0.01/0.75/5
+V5 objective t-stat,kk_dip,2023-04-01,11,0.01/0.75/15
+V5 objective t-stat,kk_dip,2023-07-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2023-10-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2024-01-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2024-04-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2024-07-01,11,0.01/0.75/15
+V5 objective t-stat,kk_dip,2024-10-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2025-01-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2025-04-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2025-07-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2025-10-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2026-01-01,2,0.005/0.75/15
+V5 objective t-stat,kk_dip,2026-04-01,19,0.02/0.75/10
+V5 objective t-stat,kk_dip,2026-07-01,19,0.02/0.75/10
+V5 objective t-stat,kk_dip,2026-10-01,19,0.02/0.75/10
+V6 2-year window,strong_trend,2021-01-01,1,1.5/3/60
+V6 2-year window,strong_trend,2021-04-01,4,1.5/4/60
+V6 2-year window,strong_trend,2021-07-01,8,1.5/5/90
+V6 2-year window,strong_trend,2021-10-01,8,1.5/5/90
+V6 2-year window,strong_trend,2022-01-01,8,1.5/5/90
+V6 2-year window,strong_trend,2022-04-01,8,1.5/5/90
+V6 2-year window,strong_trend,2022-07-01,8,1.5/5/90
+V6 2-year window,strong_trend,2022-10-01,8,1.5/5/90
+V6 2-year window,strong_trend,2023-01-01,17,2/5/90
+V6 2-year window,strong_trend,2023-04-01,26,3/5/90
+V6 2-year window,strong_trend,2023-07-01,24,3/5/40
+V6 2-year window,strong_trend,2023-10-01,24,3/5/40
+V6 2-year window,strong_trend,2024-01-01,26,3/5/90
+V6 2-year window,strong_trend,2024-04-01,26,3/5/90
+V6 2-year window,strong_trend,2024-07-01,26,3/5/90
+V6 2-year window,strong_trend,2024-10-01,26,3/5/90
+V6 2-year window,strong_trend,2025-01-01,26,3/5/90
+V6 2-year window,strong_trend,2025-04-01,26,3/5/90
+V6 2-year window,strong_trend,2025-07-01,26,3/5/90
+V6 2-year window,strong_trend,2025-10-01,26,3/5/90
+V6 2-year window,strong_trend,2026-01-01,26,3/5/90
+V6 2-year window,strong_trend,2026-04-01,24,3/5/40
+V6 2-year window,strong_trend,2026-07-01,21,3/4/40
+V6 2-year window,strong_trend,2026-10-01,2,1.5/3/90
+V6 2-year window,sma_trend,2021-01-01,26,0.8/5/90
+V6 2-year window,sma_trend,2021-04-01,26,0.8/5/90
+V6 2-year window,sma_trend,2021-07-01,26,0.8/5/90
+V6 2-year window,sma_trend,2021-10-01,26,0.8/5/90
+V6 2-year window,sma_trend,2022-01-01,26,0.8/5/90
+V6 2-year window,sma_trend,2022-04-01,26,0.8/5/90
+V6 2-year window,sma_trend,2022-07-01,26,0.8/5/90
+V6 2-year window,sma_trend,2022-10-01,26,0.8/5/90
+V6 2-year window,sma_trend,2023-01-01,26,0.8/5/90
+V6 2-year window,sma_trend,2023-04-01,20,0.8/3/90
+V6 2-year window,sma_trend,2023-07-01,25,0.8/5/60
+V6 2-year window,sma_trend,2023-10-01,26,0.8/5/90
+V6 2-year window,sma_trend,2024-01-01,26,0.8/5/90
+V6 2-year window,sma_trend,2024-04-01,26,0.8/5/90
+V6 2-year window,sma_trend,2024-07-01,26,0.8/5/90
+V6 2-year window,sma_trend,2024-10-01,26,0.8/5/90
+V6 2-year window,sma_trend,2025-01-01,26,0.8/5/90
+V6 2-year window,sma_trend,2025-04-01,26,0.8/5/90
+V6 2-year window,sma_trend,2025-07-01,25,0.8/5/60
+V6 2-year window,sma_trend,2025-10-01,25,0.8/5/60
+V6 2-year window,sma_trend,2026-01-01,25,0.8/5/60
+V6 2-year window,sma_trend,2026-04-01,25,0.8/5/60
+V6 2-year window,sma_trend,2026-07-01,25,0.8/5/60
+V6 2-year window,sma_trend,2026-10-01,26,0.8/5/90
+V6 2-year window,rsi_dip,2021-01-01,9,10/0.75/5
+V6 2-year window,rsi_dip,2021-04-01,9,10/0.75/5
+V6 2-year window,rsi_dip,2021-07-01,0,5/0.75/5
+V6 2-year window,rsi_dip,2021-10-01,0,5/0.75/5
+V6 2-year window,rsi_dip,2022-01-01,3,5/1/5
+V6 2-year window,rsi_dip,2022-04-01,7,5/1.25/10
+V6 2-year window,rsi_dip,2022-07-01,7,5/1.25/10
+V6 2-year window,rsi_dip,2022-10-01,7,5/1.25/10
+V6 2-year window,rsi_dip,2023-01-01,7,5/1.25/10
+V6 2-year window,rsi_dip,2023-04-01,7,5/1.25/10
+V6 2-year window,rsi_dip,2023-07-01,7,5/1.25/10
+V6 2-year window,rsi_dip,2023-10-01,7,5/1.25/10
+V6 2-year window,rsi_dip,2024-01-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2024-04-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2024-07-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2024-10-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2025-01-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2025-04-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2025-07-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2025-10-01,17,10/1.25/15
+V6 2-year window,rsi_dip,2026-01-01,8,5/1.25/15
+V6 2-year window,rsi_dip,2026-04-01,25,15/1.25/10
+V6 2-year window,rsi_dip,2026-07-01,25,15/1.25/10
+V6 2-year window,rsi_dip,2026-10-01,24,15/1.25/5
+V6 2-year window,kk_dip,2021-01-01,0,0.005/0.75/5
+V6 2-year window,kk_dip,2021-04-01,0,0.005/0.75/5
+V6 2-year window,kk_dip,2021-07-01,0,0.005/0.75/5
+V6 2-year window,kk_dip,2021-10-01,0,0.005/0.75/5
+V6 2-year window,kk_dip,2022-01-01,0,0.005/0.75/5
+V6 2-year window,kk_dip,2022-04-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2022-07-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2022-10-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2023-01-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2023-04-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2023-07-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2023-10-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2024-01-01,26,0.02/1.25/15
+V6 2-year window,kk_dip,2024-04-01,26,0.02/1.25/15
+V6 2-year window,kk_dip,2024-07-01,26,0.02/1.25/15
+V6 2-year window,kk_dip,2024-10-01,26,0.02/1.25/15
+V6 2-year window,kk_dip,2025-01-01,26,0.02/1.25/15
+V6 2-year window,kk_dip,2025-04-01,22,0.02/1/10
+V6 2-year window,kk_dip,2025-07-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2025-10-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2026-01-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2026-04-01,22,0.02/1/10
+V6 2-year window,kk_dip,2026-07-01,25,0.02/1.25/10
+V6 2-year window,kk_dip,2026-10-01,25,0.02/1.25/10
+V7 expanding window,strong_trend,2021-01-01,1,1.5/3/60
+V7 expanding window,strong_trend,2021-04-01,4,1.5/4/60
+V7 expanding window,strong_trend,2021-07-01,8,1.5/5/90
+V7 expanding window,strong_trend,2021-10-01,8,1.5/5/90
+V7 expanding window,strong_trend,2022-01-01,8,1.5/5/90
+V7 expanding window,strong_trend,2022-04-01,8,1.5/5/90
+V7 expanding window,strong_trend,2022-07-01,8,1.5/5/90
+V7 expanding window,strong_trend,2022-10-01,8,1.5/5/90
+V7 expanding window,strong_trend,2023-01-01,8,1.5/5/90
+V7 expanding window,strong_trend,2023-04-01,8,1.5/5/90
+V7 expanding window,strong_trend,2023-07-01,8,1.5/5/90
+V7 expanding window,strong_trend,2023-10-01,8,1.5/5/90
+V7 expanding window,strong_trend,2024-01-01,8,1.5/5/90
+V7 expanding window,strong_trend,2024-04-01,17,2/5/90
+V7 expanding window,strong_trend,2024-07-01,17,2/5/90
+V7 expanding window,strong_trend,2024-10-01,17,2/5/90
+V7 expanding window,strong_trend,2025-01-01,17,2/5/90
+V7 expanding window,strong_trend,2025-04-01,17,2/5/90
+V7 expanding window,strong_trend,2025-07-01,17,2/5/90
+V7 expanding window,strong_trend,2025-10-01,17,2/5/90
+V7 expanding window,strong_trend,2026-01-01,17,2/5/90
+V7 expanding window,strong_trend,2026-04-01,17,2/5/90
+V7 expanding window,strong_trend,2026-07-01,17,2/5/90
+V7 expanding window,strong_trend,2026-10-01,17,2/5/90
+V7 expanding window,sma_trend,2021-01-01,26,0.8/5/90
+V7 expanding window,sma_trend,2021-04-01,26,0.8/5/90
+V7 expanding window,sma_trend,2021-07-01,26,0.8/5/90
+V7 expanding window,sma_trend,2021-10-01,26,0.8/5/90
+V7 expanding window,sma_trend,2022-01-01,26,0.8/5/90
+V7 expanding window,sma_trend,2022-04-01,26,0.8/5/90
+V7 expanding window,sma_trend,2022-07-01,26,0.8/5/90
+V7 expanding window,sma_trend,2022-10-01,26,0.8/5/90
+V7 expanding window,sma_trend,2023-01-01,26,0.8/5/90
+V7 expanding window,sma_trend,2023-04-01,26,0.8/5/90
+V7 expanding window,sma_trend,2023-07-01,26,0.8/5/90
+V7 expanding window,sma_trend,2023-10-01,26,0.8/5/90
+V7 expanding window,sma_trend,2024-01-01,26,0.8/5/90
+V7 expanding window,sma_trend,2024-04-01,26,0.8/5/90
+V7 expanding window,sma_trend,2024-07-01,26,0.8/5/90
+V7 expanding window,sma_trend,2024-10-01,26,0.8/5/90
+V7 expanding window,sma_trend,2025-01-01,26,0.8/5/90
+V7 expanding window,sma_trend,2025-04-01,26,0.8/5/90
+V7 expanding window,sma_trend,2025-07-01,26,0.8/5/90
+V7 expanding window,sma_trend,2025-10-01,26,0.8/5/90
+V7 expanding window,sma_trend,2026-01-01,26,0.8/5/90
+V7 expanding window,sma_trend,2026-04-01,26,0.8/5/90
+V7 expanding window,sma_trend,2026-07-01,26,0.8/5/90
+V7 expanding window,sma_trend,2026-10-01,26,0.8/5/90
+V7 expanding window,rsi_dip,2021-01-01,9,10/0.75/5
+V7 expanding window,rsi_dip,2021-04-01,9,10/0.75/5
+V7 expanding window,rsi_dip,2021-07-01,0,5/0.75/5
+V7 expanding window,rsi_dip,2021-10-01,0,5/0.75/5
+V7 expanding window,rsi_dip,2022-01-01,3,5/1/5
+V7 expanding window,rsi_dip,2022-04-01,3,5/1/5
+V7 expanding window,rsi_dip,2022-07-01,6,5/1.25/5
+V7 expanding window,rsi_dip,2022-10-01,6,5/1.25/5
+V7 expanding window,rsi_dip,2023-01-01,6,5/1.25/5
+V7 expanding window,rsi_dip,2023-04-01,6,5/1.25/5
+V7 expanding window,rsi_dip,2023-07-01,6,5/1.25/5
+V7 expanding window,rsi_dip,2023-10-01,6,5/1.25/5
+V7 expanding window,rsi_dip,2024-01-01,6,5/1.25/5
+V7 expanding window,rsi_dip,2024-04-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2024-07-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2024-10-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2025-01-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2025-04-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2025-07-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2025-10-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2026-01-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2026-04-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2026-07-01,7,5/1.25/10
+V7 expanding window,rsi_dip,2026-10-01,7,5/1.25/10
+V7 expanding window,kk_dip,2021-01-01,0,0.005/0.75/5
+V7 expanding window,kk_dip,2021-04-01,0,0.005/0.75/5
+V7 expanding window,kk_dip,2021-07-01,0,0.005/0.75/5
+V7 expanding window,kk_dip,2021-10-01,0,0.005/0.75/5
+V7 expanding window,kk_dip,2022-01-01,0,0.005/0.75/5
+V7 expanding window,kk_dip,2022-04-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2022-07-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2022-10-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2023-01-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2023-04-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2023-07-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2023-10-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2024-01-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2024-04-01,9,0.01/0.75/5
+V7 expanding window,kk_dip,2024-07-01,18,0.02/0.75/5
+V7 expanding window,kk_dip,2024-10-01,18,0.02/0.75/5
+V7 expanding window,kk_dip,2025-01-01,18,0.02/0.75/5
+V7 expanding window,kk_dip,2025-04-01,18,0.02/0.75/5
+V7 expanding window,kk_dip,2025-07-01,18,0.02/0.75/5
+V7 expanding window,kk_dip,2025-10-01,19,0.02/0.75/10
+V7 expanding window,kk_dip,2026-01-01,19,0.02/0.75/10
+V7 expanding window,kk_dip,2026-04-01,19,0.02/0.75/10
+V7 expanding window,kk_dip,2026-07-01,19,0.02/0.75/10
+V7 expanding window,kk_dip,2026-10-01,19,0.02/0.75/10
+V8 half-yearly,strong_trend,2021-01-01,1,1.5/3/60
+V8 half-yearly,strong_trend,2021-07-01,8,1.5/5/90
+V8 half-yearly,strong_trend,2022-01-01,8,1.5/5/90
+V8 half-yearly,strong_trend,2022-07-01,8,1.5/5/90
+V8 half-yearly,strong_trend,2023-01-01,8,1.5/5/90
+V8 half-yearly,strong_trend,2023-07-01,8,1.5/5/90
+V8 half-yearly,strong_trend,2024-01-01,17,2/5/90
+V8 half-yearly,strong_trend,2024-07-01,17,2/5/90
+V8 half-yearly,strong_trend,2025-01-01,26,3/5/90
+V8 half-yearly,strong_trend,2025-07-01,26,3/5/90
+V8 half-yearly,strong_trend,2026-01-01,26,3/5/90
+V8 half-yearly,strong_trend,2026-07-01,26,3/5/90
+V8 half-yearly,sma_trend,2021-01-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2021-07-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2022-01-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2022-07-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2023-01-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2023-07-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2024-01-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2024-07-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2025-01-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2025-07-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2026-01-01,26,0.8/5/90
+V8 half-yearly,sma_trend,2026-07-01,26,0.8/5/90
+V8 half-yearly,rsi_dip,2021-01-01,9,10/0.75/5
+V8 half-yearly,rsi_dip,2021-07-01,0,5/0.75/5
+V8 half-yearly,rsi_dip,2022-01-01,3,5/1/5
+V8 half-yearly,rsi_dip,2022-07-01,6,5/1.25/5
+V8 half-yearly,rsi_dip,2023-01-01,6,5/1.25/5
+V8 half-yearly,rsi_dip,2023-07-01,7,5/1.25/10
+V8 half-yearly,rsi_dip,2024-01-01,7,5/1.25/10
+V8 half-yearly,rsi_dip,2024-07-01,8,5/1.25/15
+V8 half-yearly,rsi_dip,2025-01-01,8,5/1.25/15
+V8 half-yearly,rsi_dip,2025-07-01,8,5/1.25/15
+V8 half-yearly,rsi_dip,2026-01-01,8,5/1.25/15
+V8 half-yearly,rsi_dip,2026-07-01,17,10/1.25/15
+V8 half-yearly,kk_dip,2021-01-01,0,0.005/0.75/5
+V8 half-yearly,kk_dip,2021-07-01,0,0.005/0.75/5
+V8 half-yearly,kk_dip,2022-01-01,0,0.005/0.75/5
+V8 half-yearly,kk_dip,2022-07-01,9,0.01/0.75/5
+V8 half-yearly,kk_dip,2023-01-01,9,0.01/0.75/5
+V8 half-yearly,kk_dip,2023-07-01,25,0.02/1.25/10
+V8 half-yearly,kk_dip,2024-01-01,26,0.02/1.25/15
+V8 half-yearly,kk_dip,2024-07-01,26,0.02/1.25/15
+V8 half-yearly,kk_dip,2025-01-01,26,0.02/1.25/15
+V8 half-yearly,kk_dip,2025-07-01,25,0.02/1.25/10
+V8 half-yearly,kk_dip,2026-01-01,25,0.02/1.25/10
+V8 half-yearly,kk_dip,2026-07-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,strong_trend,2021-01-01,13,2/4/60
+V9 hysteresis 1 SE,strong_trend,2021-04-01,13,2/4/60
+V9 hysteresis 1 SE,strong_trend,2021-07-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2021-10-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2022-01-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2022-04-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2022-07-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2022-10-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2023-01-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2023-04-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2023-07-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2023-10-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2024-01-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2024-04-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2024-07-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2024-10-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2025-01-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2025-04-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2025-07-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2025-10-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2026-01-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2026-04-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2026-07-01,8,1.5/5/90
+V9 hysteresis 1 SE,strong_trend,2026-10-01,8,1.5/5/90
+V9 hysteresis 1 SE,sma_trend,2021-01-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2021-04-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2021-07-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2021-10-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2022-01-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2022-04-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2022-07-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2022-10-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2023-01-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2023-04-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2023-07-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2023-10-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2024-01-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2024-04-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2024-07-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2024-10-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2025-01-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2025-04-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2025-07-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2025-10-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2026-01-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2026-04-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2026-07-01,26,0.8/5/90
+V9 hysteresis 1 SE,sma_trend,2026-10-01,26,0.8/5/90
+V9 hysteresis 1 SE,rsi_dip,2021-01-01,9,10/0.75/5
+V9 hysteresis 1 SE,rsi_dip,2021-04-01,9,10/0.75/5
+V9 hysteresis 1 SE,rsi_dip,2021-07-01,9,10/0.75/5
+V9 hysteresis 1 SE,rsi_dip,2021-10-01,9,10/0.75/5
+V9 hysteresis 1 SE,rsi_dip,2022-01-01,9,10/0.75/5
+V9 hysteresis 1 SE,rsi_dip,2022-04-01,9,10/0.75/5
+V9 hysteresis 1 SE,rsi_dip,2022-07-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2022-10-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2023-01-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2023-04-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2023-07-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2023-10-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2024-01-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2024-04-01,6,5/1.25/5
+V9 hysteresis 1 SE,rsi_dip,2024-07-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2024-10-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2025-01-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2025-04-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2025-07-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2025-10-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2026-01-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2026-04-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2026-07-01,8,5/1.25/15
+V9 hysteresis 1 SE,rsi_dip,2026-10-01,8,5/1.25/15
+V9 hysteresis 1 SE,kk_dip,2021-01-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2021-04-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2021-07-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2021-10-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2022-01-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2022-04-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2022-07-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2022-10-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2023-01-01,0,0.005/0.75/5
+V9 hysteresis 1 SE,kk_dip,2023-04-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2023-07-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2023-10-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2024-01-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2024-04-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2024-07-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2024-10-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2025-01-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2025-04-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2025-07-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2025-10-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2026-01-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2026-04-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2026-07-01,25,0.02/1.25/10
+V9 hysteresis 1 SE,kk_dip,2026-10-01,25,0.02/1.25/10
+"V10 choose once, freeze",strong_trend,2021-01-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2021-04-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2021-07-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2021-10-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2022-01-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2022-04-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2022-07-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2022-10-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2023-01-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2023-04-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2023-07-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2023-10-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2024-01-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2024-04-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2024-07-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2024-10-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2025-01-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2025-04-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2025-07-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2025-10-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2026-01-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2026-04-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2026-07-01,1,1.5/3/60
+"V10 choose once, freeze",strong_trend,2026-10-01,1,1.5/3/60
+"V10 choose once, freeze",sma_trend,2021-01-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2021-04-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2021-07-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2021-10-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2022-01-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2022-04-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2022-07-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2022-10-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2023-01-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2023-04-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2023-07-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2023-10-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2024-01-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2024-04-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2024-07-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2024-10-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2025-01-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2025-04-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2025-07-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2025-10-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2026-01-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2026-04-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2026-07-01,26,0.8/5/90
+"V10 choose once, freeze",sma_trend,2026-10-01,26,0.8/5/90
+"V10 choose once, freeze",rsi_dip,2021-01-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2021-04-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2021-07-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2021-10-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2022-01-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2022-04-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2022-07-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2022-10-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2023-01-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2023-04-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2023-07-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2023-10-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2024-01-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2024-04-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2024-07-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2024-10-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2025-01-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2025-04-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2025-07-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2025-10-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2026-01-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2026-04-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2026-07-01,9,10/0.75/5
+"V10 choose once, freeze",rsi_dip,2026-10-01,9,10/0.75/5
+"V10 choose once, freeze",kk_dip,2021-01-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2021-04-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2021-07-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2021-10-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2022-01-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2022-04-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2022-07-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2022-10-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2023-01-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2023-04-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2023-07-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2023-10-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2024-01-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2024-04-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2024-07-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2024-10-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2025-01-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2025-04-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2025-07-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2025-10-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2026-01-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2026-04-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2026-07-01,0,0.005/0.75/5
+"V10 choose once, freeze",kk_dip,2026-10-01,0,0.005/0.75/5
+S1 min trades 25,strong_trend,2021-01-01,1,1.5/3/60
+S1 min trades 25,strong_trend,2021-04-01,4,1.5/4/60
+S1 min trades 25,strong_trend,2021-07-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2021-10-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2022-01-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2022-04-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2022-07-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2022-10-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2023-01-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2023-04-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2023-07-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2023-10-01,8,1.5/5/90
+S1 min trades 25,strong_trend,2024-01-01,17,2/5/90
+S1 min trades 25,strong_trend,2024-04-01,17,2/5/90
+S1 min trades 25,strong_trend,2024-07-01,17,2/5/90
+S1 min trades 25,strong_trend,2024-10-01,26,3/5/90
+S1 min trades 25,strong_trend,2025-01-01,26,3/5/90
+S1 min trades 25,strong_trend,2025-04-01,26,3/5/90
+S1 min trades 25,strong_trend,2025-07-01,26,3/5/90
+S1 min trades 25,strong_trend,2025-10-01,26,3/5/90
+S1 min trades 25,strong_trend,2026-01-01,26,3/5/90
+S1 min trades 25,strong_trend,2026-04-01,26,3/5/90
+S1 min trades 25,strong_trend,2026-07-01,26,3/5/90
+S1 min trades 25,strong_trend,2026-10-01,26,3/5/90
+S1 min trades 25,sma_trend,2021-01-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2021-04-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2021-07-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2021-10-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2022-01-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2022-04-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2022-07-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2022-10-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2023-01-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2023-04-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2023-07-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2023-10-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2024-01-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2024-04-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2024-07-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2024-10-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2025-01-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2025-04-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2025-07-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2025-10-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2026-01-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2026-04-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2026-07-01,26,0.8/5/90
+S1 min trades 25,sma_trend,2026-10-01,26,0.8/5/90
+S1 min trades 25,rsi_dip,2021-01-01,9,10/0.75/5
+S1 min trades 25,rsi_dip,2021-04-01,9,10/0.75/5
+S1 min trades 25,rsi_dip,2021-07-01,0,5/0.75/5
+S1 min trades 25,rsi_dip,2021-10-01,0,5/0.75/5
+S1 min trades 25,rsi_dip,2022-01-01,3,5/1/5
+S1 min trades 25,rsi_dip,2022-04-01,3,5/1/5
+S1 min trades 25,rsi_dip,2022-07-01,6,5/1.25/5
+S1 min trades 25,rsi_dip,2022-10-01,6,5/1.25/5
+S1 min trades 25,rsi_dip,2023-01-01,6,5/1.25/5
+S1 min trades 25,rsi_dip,2023-04-01,7,5/1.25/10
+S1 min trades 25,rsi_dip,2023-07-01,7,5/1.25/10
+S1 min trades 25,rsi_dip,2023-10-01,7,5/1.25/10
+S1 min trades 25,rsi_dip,2024-01-01,7,5/1.25/10
+S1 min trades 25,rsi_dip,2024-04-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2024-07-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2024-10-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2025-01-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2025-04-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2025-07-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2025-10-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2026-01-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2026-04-01,8,5/1.25/15
+S1 min trades 25,rsi_dip,2026-07-01,17,10/1.25/15
+S1 min trades 25,rsi_dip,2026-10-01,17,10/1.25/15
+S1 min trades 25,kk_dip,2021-01-01,0,0.005/0.75/5
+S1 min trades 25,kk_dip,2021-04-01,0,0.005/0.75/5
+S1 min trades 25,kk_dip,2021-07-01,0,0.005/0.75/5
+S1 min trades 25,kk_dip,2021-10-01,0,0.005/0.75/5
+S1 min trades 25,kk_dip,2022-01-01,0,0.005/0.75/5
+S1 min trades 25,kk_dip,2022-04-01,9,0.01/0.75/5
+S1 min trades 25,kk_dip,2022-07-01,9,0.01/0.75/5
+S1 min trades 25,kk_dip,2022-10-01,9,0.01/0.75/5
+S1 min trades 25,kk_dip,2023-01-01,9,0.01/0.75/5
+S1 min trades 25,kk_dip,2023-04-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2023-07-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2023-10-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2024-01-01,26,0.02/1.25/15
+S1 min trades 25,kk_dip,2024-04-01,26,0.02/1.25/15
+S1 min trades 25,kk_dip,2024-07-01,26,0.02/1.25/15
+S1 min trades 25,kk_dip,2024-10-01,26,0.02/1.25/15
+S1 min trades 25,kk_dip,2025-01-01,26,0.02/1.25/15
+S1 min trades 25,kk_dip,2025-04-01,26,0.02/1.25/15
+S1 min trades 25,kk_dip,2025-07-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2025-10-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2026-01-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2026-04-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2026-07-01,25,0.02/1.25/10
+S1 min trades 25,kk_dip,2026-10-01,25,0.02/1.25/10
+S2 min trades 100,strong_trend,2021-01-01,1,1.5/3/60
+S2 min trades 100,strong_trend,2021-04-01,4,1.5/4/60
+S2 min trades 100,strong_trend,2021-07-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2021-10-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2022-01-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2022-04-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2022-07-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2022-10-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2023-01-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2023-04-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2023-07-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2023-10-01,8,1.5/5/90
+S2 min trades 100,strong_trend,2024-01-01,17,2/5/90
+S2 min trades 100,strong_trend,2024-04-01,17,2/5/90
+S2 min trades 100,strong_trend,2024-07-01,17,2/5/90
+S2 min trades 100,strong_trend,2024-10-01,26,3/5/90
+S2 min trades 100,strong_trend,2025-01-01,26,3/5/90
+S2 min trades 100,strong_trend,2025-04-01,26,3/5/90
+S2 min trades 100,strong_trend,2025-07-01,26,3/5/90
+S2 min trades 100,strong_trend,2025-10-01,26,3/5/90
+S2 min trades 100,strong_trend,2026-01-01,26,3/5/90
+S2 min trades 100,strong_trend,2026-04-01,26,3/5/90
+S2 min trades 100,strong_trend,2026-07-01,26,3/5/90
+S2 min trades 100,strong_trend,2026-10-01,26,3/5/90
+S2 min trades 100,sma_trend,2021-01-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2021-04-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2021-07-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2021-10-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2022-01-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2022-04-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2022-07-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2022-10-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2023-01-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2023-04-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2023-07-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2023-10-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2024-01-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2024-04-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2024-07-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2024-10-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2025-01-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2025-04-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2025-07-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2025-10-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2026-01-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2026-04-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2026-07-01,26,0.8/5/90
+S2 min trades 100,sma_trend,2026-10-01,26,0.8/5/90
+S2 min trades 100,rsi_dip,2021-01-01,9,10/0.75/5
+S2 min trades 100,rsi_dip,2021-04-01,9,10/0.75/5
+S2 min trades 100,rsi_dip,2021-07-01,0,5/0.75/5
+S2 min trades 100,rsi_dip,2021-10-01,0,5/0.75/5
+S2 min trades 100,rsi_dip,2022-01-01,3,5/1/5
+S2 min trades 100,rsi_dip,2022-04-01,3,5/1/5
+S2 min trades 100,rsi_dip,2022-07-01,6,5/1.25/5
+S2 min trades 100,rsi_dip,2022-10-01,6,5/1.25/5
+S2 min trades 100,rsi_dip,2023-01-01,6,5/1.25/5
+S2 min trades 100,rsi_dip,2023-04-01,7,5/1.25/10
+S2 min trades 100,rsi_dip,2023-07-01,7,5/1.25/10
+S2 min trades 100,rsi_dip,2023-10-01,7,5/1.25/10
+S2 min trades 100,rsi_dip,2024-01-01,7,5/1.25/10
+S2 min trades 100,rsi_dip,2024-04-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2024-07-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2024-10-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2025-01-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2025-04-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2025-07-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2025-10-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2026-01-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2026-04-01,8,5/1.25/15
+S2 min trades 100,rsi_dip,2026-07-01,17,10/1.25/15
+S2 min trades 100,rsi_dip,2026-10-01,17,10/1.25/15
+S2 min trades 100,kk_dip,2021-01-01,0,0.005/0.75/5
+S2 min trades 100,kk_dip,2021-04-01,0,0.005/0.75/5
+S2 min trades 100,kk_dip,2021-07-01,0,0.005/0.75/5
+S2 min trades 100,kk_dip,2021-10-01,0,0.005/0.75/5
+S2 min trades 100,kk_dip,2022-01-01,0,0.005/0.75/5
+S2 min trades 100,kk_dip,2022-04-01,9,0.01/0.75/5
+S2 min trades 100,kk_dip,2022-07-01,9,0.01/0.75/5
+S2 min trades 100,kk_dip,2022-10-01,9,0.01/0.75/5
+S2 min trades 100,kk_dip,2023-01-01,9,0.01/0.75/5
+S2 min trades 100,kk_dip,2023-04-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2023-07-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2023-10-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2024-01-01,26,0.02/1.25/15
+S2 min trades 100,kk_dip,2024-04-01,26,0.02/1.25/15
+S2 min trades 100,kk_dip,2024-07-01,26,0.02/1.25/15
+S2 min trades 100,kk_dip,2024-10-01,26,0.02/1.25/15
+S2 min trades 100,kk_dip,2025-01-01,26,0.02/1.25/15
+S2 min trades 100,kk_dip,2025-04-01,26,0.02/1.25/15
+S2 min trades 100,kk_dip,2025-07-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2025-10-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2026-01-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2026-04-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2026-07-01,25,0.02/1.25/10
+S2 min trades 100,kk_dip,2026-10-01,25,0.02/1.25/10

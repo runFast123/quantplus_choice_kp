@@ -20,6 +20,8 @@ import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/c
 import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { DIP_EXIT, isDipRule } from "@/lib/dip-rules";
 import { isTrendRule, reviewDate } from "@/lib/strong-trend";
+import { checkKey, signalDayOf } from "@/lib/signal-checks";
+import { CheckTag } from "@/components/market/check-tag";
 import { PRICE_SOURCE } from "@/lib/market";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
@@ -52,7 +54,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const db = s.supabase;
 
   // Everything the page needs in one round trip (none of these depend on each other).
-  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes, [note], news, aiKeysRes, aiConsentRes] = await Promise.all([
+  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes, [note], news, aiKeysRes, aiConsentRes, checkRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     getCandles(db, symbol),
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(200),
@@ -64,6 +66,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     getNews(db, { symbols: [symbol], limit: 12 }),
     can(s, "ai_byok") ? db.from("ai_provider_keys").select("id").eq("status", "active").neq("provider", "other").limit(1) : Promise.resolve({ data: [] }),
     db.from("user_consents").select("id").eq("purpose", "ai_processing").is("withdrawn_at", null).limit(1),
+    db.from("signal_checks").select("strategy, signal_day").eq("symbol", symbol).eq("tagged", true).limit(200),
   ]);
   if (!quoteRes.data) {
     const retired = (await getRetired(db, [symbol])).get(symbol);
@@ -87,6 +90,8 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     .map((rule) => signals.find((s) => s.strategy === rule))
     .filter((s): s is Signal => s?.signal_type === "buy");
   const watches = watchRes.data ?? [];
+  // Signal checks (ADR-038): which of this stock's open signals and dip-buy levels carry a tag.
+  const tagged = new Set((checkRes.data ?? []).map((c) => checkKey(c.strategy, symbol, c.signal_day)));
   const signalEntry = latestBuySignal ? Number(latestBuySignal.payload.close) : null;
   const signalStop = latestBuySignal?.payload.stop ? Number(latestBuySignal.payload.stop) : null;
 
@@ -235,8 +240,11 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
         >
           {openTrends.map((t) => (
             <div key={t.id} className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
-              <p className="font-medium">
+              <p className="flex flex-wrap items-center gap-2 font-medium">
                 Open {strategyLabel[t.strategy]} signal from {date(t.generated_at)}
+                {t.strategy === "strong_trend" && tagged.has(checkKey(t.strategy, symbol, signalDayOf(t))) ? (
+                  <CheckTag rule="strong_trend" />
+                ) : null}
               </p>
               <p className="mt-1 text-muted-foreground">
                 Closed at ₹{price(Number(t.payload.close))}
@@ -249,8 +257,11 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           ))}
           {openDips.map((d) => (
             <div key={d.id} className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
-              <p className="font-medium">
+              <p className="flex flex-wrap items-center gap-2 font-medium">
                 Open {strategyLabel[d.strategy]} trade from {date(d.generated_at)}
+                {d.strategy === "rsi_dip" && tagged.has(checkKey(d.strategy, symbol, signalDayOf(d))) ? (
+                  <CheckTag rule="rsi_dip" />
+                ) : null}
               </p>
               <p className="mt-1 text-muted-foreground">
                 Bought at ₹{price(Number(d.payload.fill))} on a dip in a rising stock. {DIP_EXIT}; safety stop{" "}
@@ -260,9 +271,14 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           ))}
           {watches.map((w) => (
             <div key={w.strategy} className="mb-4 rounded-md border border-border p-3 text-[13px] leading-5">
-              <p className="font-medium">
-                {strategyLabel[w.strategy]} level for the next session: buy only at or under{" "}
-                <span className="num">₹{price(Number(w.limit_price))}</span>
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+                <span>
+                  {strategyLabel[w.strategy]} level for the next session: buy only at or under{" "}
+                  <span className="num">₹{price(Number(w.limit_price))}</span>
+                </span>
+                {w.strategy === "rsi_dip" && tagged.has(checkKey(w.strategy, symbol, w.signal_day)) ? (
+                  <CheckTag rule="rsi_dip" />
+                ) : null}
               </p>
               <p className="mt-1 text-muted-foreground">
                 From the close of {date(w.signal_day)}. If the price trades down there in the next session the rule buys;

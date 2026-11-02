@@ -1,0 +1,5 @@
+training rows 3058 (2019-11-05 .. 2026-10-23); own row is a setup: 100.0 %; hr quarters 30 (2 NaN); pit rows 2400
+fit(csv, asof=2026-11-01) vs rsi_dip_tier_model.json: max |diff| over coef, intercept, median... = 3.6e-14; n_train 3021, platt_a 0.376785, cut-offs 0.604018 / 0.651486
+fit(csv, asof=2026-10-01) vs models_by_quarter[2026-10-01]: max |diff| over coef, intercept, median... = 1.5e-14; n_train 2968, platt_a 0.417328, cut-offs 0.600863 / 0.651931
+fit(csv, asof=2025-07-01) vs models_by_quarter[2025-07-01]: max |diff| over coef, intercept, median... = 1.4e-15; n_train 2546, platt_a 0.354733, cut-offs 0.612401 / 0.660989
+fit(asof=2026-10-01) vs rsi_dip_tier_model.json: max |diff| 5.3e+01 (different training cut-off)

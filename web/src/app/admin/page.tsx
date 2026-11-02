@@ -18,10 +18,12 @@ import { inputClass } from "@/components/ui/field";
 import { Empty, PageHeader, Panel, TableWrap, td, th, tr } from "@/components/ui/layout";
 import { date, dateTime, paiseToRupees, relative } from "@/lib/format";
 import { nseSession } from "@/lib/market";
+import { quarterStartIST } from "@/lib/signal-checks";
 import {
   getDatabaseInventory,
   getRecentAuditLogs,
   getRecentPayments,
+  getSignalCheckReview,
   isPlatformAdmin,
   platformStats,
   searchUsers,
@@ -47,14 +49,16 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     ? sp.tab
     : "overview";
 
-  const [stats, users, feeds, dbInventory, payments, auditLogs] = await Promise.all([
+  const [stats, users, feeds, dbInventory, payments, auditLogs, checks] = await Promise.all([
     platformStats(s.userId),
     searchUsers(s.userId, q),
     newsSourceHealth(),
     getDatabaseInventory(s.userId),
     getRecentPayments(s.userId, 30),
     getRecentAuditLogs(s.userId, 30),
+    getSignalCheckReview(s.userId),
   ]);
+  const refitMissing = !checks.models.some((m) => m.valid_from === quarterStartIST());
 
   const session = nseSession();
 
@@ -281,6 +285,53 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                   </tbody>
                 </table>
               </TableWrap>
+            </Panel>
+
+            <Panel
+              title="Signal checks review"
+              meta="Quarterly: the RSI dip models in force and the last 90 days' labels (ADR-038)"
+              actions={refitMissing ? <Badge tone="loss">This quarter&apos;s refit has not run</Badge> : <Badge>Refit current</Badge>}
+            >
+              <TableWrap label="RSI dip check models">
+                <table className="w-full min-w-[720px]">
+                  <thead>
+                    <tr>
+                      <th className={th}>Quarter from</th>
+                      <th className={th}>Version</th>
+                      <th className={th}>Learned from</th>
+                      <th className={th}>Up to</th>
+                      <th className={th}>In force</th>
+                      <th className={th}>Calibration slope</th>
+                      <th className={th}>Self-test AUC</th>
+                      <th className={th}>Recent hit rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {checks.models.map((m) => (
+                      <tr key={m.valid_from} className={tr}>
+                        <td className={td + " num"}>{date(m.valid_from)}</td>
+                        <td className={td + " num text-muted-foreground"}>{m.version}</td>
+                        <td className={td + " num"}>{m.n_train?.toLocaleString("en-IN") ?? "—"} trades</td>
+                        <td className={td + " num"}>{m.trained_through ? date(m.trained_through) : "—"}</td>
+                        <td className={td}>{m.shown ? <Badge tone="gain">Yes</Badge> : <Badge>No: tags nothing</Badge>}</td>
+                        <td className={td + " num"}>{m.slope == null ? "—" : m.slope.toFixed(3)}</td>
+                        <td className={td + " num"}>{m.auc == null ? "—" : m.auc.toFixed(3)}</td>
+                        <td className={td + " num"}>{m.hr_rule == null ? "—" : `${Math.round(m.hr_rule * 100)}%`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+              <p className="mt-3 text-[12.5px] leading-5 text-muted-foreground">
+                Training set: {checks.training.research.toLocaleString("en-IN")} research trades and{" "}
+                {checks.training.live.toLocaleString("en-IN")} live ones closed since. Last 90 days:{" "}
+                {checks.recent.length
+                  ? checks.recent.map((r) => `${r.strategy} ${r.label} ${r.signals}`).join(" · ")
+                  : "no checks"}
+                . The refit runs at each quarter start (GitHub workflow &ldquo;Signal checks refit&rdquo;); a quarter that
+                is not in force tags nothing. Re-tests of the rules themselves (the 27-setting grid, the KK dip and SMA
+                trend self-tests) are research jobs: PLAYBOOK §S.
+              </p>
             </Panel>
 
             <Panel title="System Architecture & Database Facts" meta="Core constraints and operational specifications">

@@ -145,6 +145,21 @@ delete from private.platform_admins where user_id = '<id>';
 - **Check accuracy:** `python pipelines/eod/audit.py` — must report 0 failures (also runs after every scheduled load).
   Splits/bonuses are handled automatically (full re-fetch of that stock); a demerger needs `HISTORY_FROM`.
 
+## S. Signal checks (quarterly review, ADR-038)
+
+- **Daily:** nothing to do. `svc_refresh_signal_checks` runs after the analytics (EOD pipeline, Vercel route, admin
+  button, cron backstop) and writes a frozen check for every new Strong trend buy and RSI dip setup.
+- **Each quarter start:** the workflow *Signal checks refit* stores the quarter's RSI dip model (07:00 IST on 1 Jan / Apr /
+  Jul / Oct). Admin → *Signal checks review* shows a red badge when this quarter's model is missing: run the workflow
+  (manual run, optional `quarter`) or `cd pipelines/eod && python checks_refit.py [--dry-run]`. A model that cannot rank
+  its own past is stored with `shown = false` and tags nothing that quarter — that is the check working, not a bug.
+- **Review (research, quarterly):** the live record by label (`signal_check_record`, the Signals page panel); the
+  27-setting shadow grid and the KK dip / SMA trend self-tests (`research/strategies/team/params/`, `metalabel/`). A rule
+  change, or turning a tag into a filter, needs a new pre-registered test, an ADR and a migration.
+- **Rebuild the reference seed** after re-running the team's scripts: `cd research/strategies/team && python
+  export_seed.py`, then `cd supabase/scripts && npm run seed:ref` (idempotent). Cross-check on a live copy first:
+  `python ../dump_live.py ../../..`, `node check_live.mjs ../../..`, `python check_live.py`.
+
 ## O. End-to-end tests (Playwright)
 
 ```bash
