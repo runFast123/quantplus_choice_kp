@@ -5,6 +5,24 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — the nightly price audit fails only on real errors
+- **Why:** `Market EOD` had failed every run since at least 13 Oct 2026 (92–1,227 failed checks a night), so a real data
+  error would have gone unnoticed. Almost all were Yahoo, not the database: some tickers' newest bar is published late and
+  Yahoo's copy flips between two downloads minutes apart; thinly traded funds lose past days on Yahoo (HFTSEINDIA's
+  16–27 Oct); NSE sector indices (`^CNXFIN`, `^CNXMEDIA`, `NIFTY_MIDCAP_100.NS`, `^CNXSC`) return only the live bar since
+  about 1 Oct, leaving a 1–7 Oct hole; three retired RSI reversal signals were written before Yahoo revised a price.
+- **What** (`pipelines/eod/audit.py`): those cases are listed as REVIEW (printed, not failing): the newest session missing
+  on either side, a stock one session behind (two or more still fails), the newest session's volume revised after the
+  close, a past day missing for a fund outside the indices and top 100, an index with no Yahoo history (not
+  cross-checked), the reviewed 1–7 Oct sector-index gap (`REVIEWED_GAPS`), a retired-rule signal whose stored RSI no longer
+  matches today's prices, a SIP ledger computed before the nightly trim. Everything else still fails — and so does a
+  lag shared by more than a tenth of the symbols (`widespread`), because then the site is a day old. Helpers
+  `vendor_has_history`, `split_extra`, `sessions_behind`, `widespread`, `revised_since`; tests `pipelines/eod/test_audit.py`
+  (in CI). Checked on live: 0 failures, the review lines as above, until the market-wide gap below.
+- **Found while fixing it:** only 642 of ~3,600 symbols had 2 Nov 2026 stored — both evening loads (20:51, 22:50 IST)
+  ran before Yahoo had published most stocks' bar. `market-eod.yml` gets an 08:30 IST Tue–Sat catch-up run (same
+  10-day re-fetch, idempotent) so late Yahoo bars are in before the market opens.
+
 ### Added — 200-day trend, the fifth signal rule (ADR-040)
 - **The rule** (`supabase/migrations/20261001000041_ma200_trend.sql`, `private.refresh_ma200_trend`): the first session
   a stock among the 500 largest closes above its 200-day average while the least-squares line through the last 100 values

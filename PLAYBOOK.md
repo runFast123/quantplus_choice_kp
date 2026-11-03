@@ -143,6 +143,9 @@ delete from private.platform_admins where user_id = '<id>';
   the notifier may have referenced, except in a deliberate rebuild.
 - **Replace the vendor:** only `fetch()` in `eod.py` returns vendor frames; keep `to_candles()` validation.
 - **Check accuracy:** `python pipelines/eod/audit.py` — must report 0 failures (also runs after every scheduled load).
+  REVIEW lines are Yahoo's own lags and gaps (see the module docstring); read them, but they don't fail the run. A REVIEW
+  that repeats for days (a stock still one session behind, an index with no Yahoo history) needs a look at the vendor ticker.
+  Run it after a load: between 15:45 IST and the evening load every symbol lacks today's session and the run fails.
   Splits/bonuses are handled automatically (full re-fetch of that stock); a demerger needs `HISTORY_FROM`.
 
 ## S. Signal checks and rule health (quarterly review, ADR-038, ADR-039)

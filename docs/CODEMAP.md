@@ -258,7 +258,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `pipelines/eod/universe.py` | `fetch_universe()` (screener + sectors + curated `INDICES`/`ETFS`), `merge(fresh, existing)`, `retire_allowed`, `split_ticker`, `clean_name` |
 | `pipelines/eod/test_universe.py` | unit tests |
 | `pipelines/eod/checks_refit.py` | quarterly refit of the RSI dip check: reads `svc_signal_check_training`, fits `tier_model.fit` on complete cohorts, stores via `svc_put_signal_check_model`; `--quarter`, `--dry-run`. `tier_model.py` = byte copy of `research/strategies/team/metalabel/tier_model.py`; tests `test_checks_refit.py` |
-| `pipelines/eod/audit.py` | read-only accuracy audit: DB vs fresh Yahoo, sanity, independent recomputation of snapshot/RSI/signals/backtests (`--symbols`, `--days`); exit 1 on any mismatch |
+| `pipelines/eod/audit.py` | read-only accuracy audit: DB vs fresh Yahoo, sanity, independent recomputation of snapshot/RSI/signals/backtests (`--symbols`, `--days`); exit 1 on any mismatch; Yahoo's own lags and gaps are REVIEW lines (`vendor_has_history`, `split_extra`, `sessions_behind`, `revised_since`, `REVIEWED_GAPS`; tests `test_audit.py`) |
 | `pipelines/eod/test_eod.py` | unit tests (`python -m unittest test_eod`, no network) |
 | `.github/workflows/ci.yml`, `news-ingest.yml`, `market-eod.yml`, `signal-checks-refit.yml` | CI, scheduled news, scheduled EOD prices, the quarterly refit of the RSI dip check |
 

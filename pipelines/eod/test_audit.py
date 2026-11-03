@@ -1,0 +1,72 @@
+"""python -m unittest test_audit   (no network, no database): what the accuracy audit fails on and what it lists for review."""
+
+import unittest
+from datetime import date
+
+from audit import REVIEWED_GAPS, revised_since, sessions_behind, split_extra, vendor_has_history, widespread
+
+D = date
+
+
+class VendorHistory(unittest.TestCase):
+    def test_an_index_yahoo_serves_only_the_live_bar_for_is_not_cross_checked(self):
+        self.assertFalse(vendor_has_history(fresh_days=0, stored_days=20))
+        self.assertFalse(vendor_has_history(fresh_days=1, stored_days=20))
+
+    def test_a_normal_or_thin_series_is_cross_checked(self):
+        self.assertTrue(vendor_has_history(fresh_days=20, stored_days=20))
+        self.assertTrue(vendor_has_history(fresh_days=3, stored_days=10))   # a thin fund Yahoo dropped days for
+        self.assertTrue(vendor_has_history(fresh_days=0, stored_days=0))
+
+
+class ExtraDays(unittest.TestCase):
+    def test_the_newest_session_not_on_yahoo_yet_is_for_review(self):
+        self.assertEqual(split_extra([D(2026, 11, 2)], D(2026, 11, 2), strict=True), ([], [D(2026, 11, 2)]))
+
+    def test_a_past_day_missing_on_yahoo_fails_for_a_blue_chip(self):
+        self.assertEqual(split_extra([D(2026, 10, 29), D(2026, 11, 2)], D(2026, 11, 2), strict=True),
+                         ([D(2026, 10, 29)], [D(2026, 11, 2)]))
+
+    def test_a_thin_fund_losing_past_days_on_yahoo_is_for_review(self):
+        self.assertEqual(split_extra([D(2026, 10, 16), D(2026, 10, 19)], D(2026, 10, 30), strict=False),
+                         ([], [D(2026, 10, 16), D(2026, 10, 19)]))
+
+
+class Staleness(unittest.TestCase):
+    cal = [D(2026, 10, 29), D(2026, 10, 30), D(2026, 11, 2)]
+
+    def test_counts_trading_sessions_not_calendar_days(self):
+        self.assertEqual(sessions_behind(D(2026, 10, 30), D(2026, 11, 2), self.cal), 1)   # over a weekend: one session
+        self.assertEqual(sessions_behind(D(2026, 10, 29), D(2026, 11, 2), self.cal), 2)
+        self.assertEqual(sessions_behind(D(2026, 11, 2), D(2026, 11, 2), self.cal), 0)
+        self.assertGreater(sessions_behind(None, D(2026, 11, 2), self.cal), 2)
+
+
+class Widespread(unittest.TestCase):
+    def test_a_few_late_tickers_are_for_review_most_of_the_market_fails(self):
+        self.assertFalse(widespread(3, 617))
+        self.assertFalse(widespread(61, 617))
+        self.assertTrue(widespread(560, 617))      # 2-3 Nov 2026: most stocks lacked 2 Nov
+        self.assertFalse(widespread(5, 20))        # a small --symbols run: a handful is still a handful
+
+
+class RevisedSignals(unittest.TestCase):
+    def test_a_signal_whose_own_rsi_no_longer_matches_was_written_before_a_revision(self):
+        # MAFANG 14 Oct 2026: stored with RSI 66.17; today's prices give 65.94
+        self.assertTrue(revised_since(66.17, 65.94))
+
+    def test_a_matching_rsi_or_a_missing_value_is_not_excused(self):
+        self.assertFalse(revised_since(66.17, 66.17))
+        self.assertFalse(revised_since(66.17, 66.175))
+        self.assertFalse(revised_since(None, 65.94))
+        self.assertFalse(revised_since(66.17, None))
+
+
+class ReviewedGaps(unittest.TestCase):
+    def test_only_the_sector_indices_vendor_hole_is_excused(self):
+        self.assertIn(("NIFTYFINSERV", "2026-10-08"), REVIEWED_GAPS)
+        self.assertNotIn(("NIFTY", "2026-10-08"), REVIEWED_GAPS)
+
+
+if __name__ == "__main__":
+    unittest.main()

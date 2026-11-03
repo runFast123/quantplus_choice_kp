@@ -14,6 +14,13 @@
    checked by their own cross-checks in research/strategies/), 
    backtest_ledgers (monthly SIP).
 Writes nothing. Exit code 1 if any check fails.
+
+FAIL is a wrong number in the database. REVIEW is Yahoo being Yahoo, listed but not failing the run (each case was
+seen on live data, Oct-Nov 2026): the newest session missing on one side (Yahoo publishes some tickers' bar late and
+its copy flips between runs; the next run re-fetches ten days) — unless more than a tenth of the symbols lack it,
+which fails: the site is a day old, a thinly traded fund's past day that Yahoo later
+dropped, the newest session's volume revised after the close, an index Yahoo serves no daily history for, a
+retired rule's signal computed on prices Yahoo revised afterwards, a SIP ledger computed before the nightly trim.
 """
 
 from __future__ import annotations
@@ -39,6 +46,9 @@ TOL_SIP = 0.05       # SIP value: numeric units × close in SQL vs float in pand
 WARMUP = 120
 # Signal rules this audit recomputes from the candles; the others have their own cross-checks.
 RECOMPUTED = ("sma_20_50_cross", "rsi_reversal")
+# Gaps checked by hand: the vendor has no bars for these days (the dates the gap ends on; see the note).
+_SECTOR_GAP = "Yahoo stopped serving daily history for NSE sector indices around 1 Oct 2026; 1-7 Oct are missing"
+REVIEWED_GAPS = {(s, "2026-10-08"): _SECTOR_GAP for s in ("NIFTYFINSERV", "NIFTYMEDIA", "NIFTYMIDCAP100", "NIFTYSMALLCAP100")}
 # Big one-day moves checked by hand and found real (the date's price is right; see the note).
 REVIEWED_MOVES = {
     ("IDEA", "2025-04-01"): "+19 % on the government's dues-to-equity conversion; Yahoo's volume for the day is wrong",
@@ -89,6 +99,41 @@ def exact_sma(closes: list[Decimal], n: int) -> list[Decimal]:
     return out
 
 
+def vendor_has_history(fresh_days: int, stored_days: int) -> bool:
+    """False when Yahoo returns (almost) nothing for a window the database has filled: no vendor copy to compare
+    with (NSE sector indices since Oct 2026 return only the live bar)."""
+    return fresh_days > 2 or stored_days <= 2 * fresh_days
+
+
+def split_extra(extra: list, newest_stored, strict: bool) -> tuple[list, list]:
+    """Stored days Yahoo's fresh copy lacks -> (fail, review). The newest stored session is often not on Yahoo yet
+    (it publishes some tickers late and its copy flips between runs); thinly traded funds lose past days on Yahoo.
+    A past day missing for an index or a top-100 company is a real difference."""
+    if not strict:
+        return [], list(extra)
+    return [d for d in extra if d != newest_stored], [d for d in extra if d == newest_stored]
+
+
+def sessions_behind(day, newest, calendar: list) -> int:
+    """How many trading sessions after `day`, up to and including `newest`, the calendar has."""
+    if day is None:
+        return 10**6
+    return sum(1 for d in calendar if day < d <= newest)
+
+
+def widespread(n: int, of: int) -> bool:
+    """More than a tenth (and more than a handful) of the symbols share a vendor lag: a stale site, not one late ticker."""
+    return n > max(5, of // 10)
+
+
+def revised_since(stored_rsi, recomputed_rsi) -> bool:
+    """A stored signal's own RSI no longer matches today's prices: they were revised after it was written."""
+    try:
+        return abs(float(stored_rsi) - float(recomputed_rsi)) > TOL_RSI
+    except (TypeError, ValueError):
+        return False
+
+
 def get(db: Rest, table: str, query: str) -> pd.DataFrame:
     return pd.DataFrame(db.call("GET", f"{table}?{query}"))
 
@@ -124,6 +169,7 @@ def main(argv=None) -> int:
     calendar = sessions({c.day for c in to_candles(CALENDAR_SYMBOL, frames.get(CALENDAR_SYMBOL), settled)[0]},
                         {x: {c.day for c in to_candles(x, frames.get(x), settled)[0] if c.volume > 0} for x in CALENDAR_STOCKS})
     latest_dates = {}
+    late = []                                           # Yahoo has a newer session than the DB
     for s in symbols:
         fresh, _ = to_candles(s, frames.get(s), settled)
         if calendar:
@@ -134,24 +180,50 @@ def main(argv=None) -> int:
         stored = get(db, "market_candles", f"select=ts,open,high,low,close,volume&symbol=eq.{q}&exchange=eq.NSE&interval=eq.1d"
                                            f"&ts=gte.{(settled - timedelta(days=args.days)).isoformat()}&order=ts")
         st = {pd.Timestamp(x["ts"]).tz_convert(IST).date(): x for x in stored.to_dict("records")} if len(stored) else {}
+        latest_dates[s] = max(st) if st else None
+        fresh_days = {c.day for c in fresh}
+        if not vendor_has_history(len(fresh_days), len(st)):
+            r.warn(False, f"{s}: Yahoo returns {len(fresh_days)} bar(s) for the last {args.days} days, the DB has {len(st)}; not cross-checked")
+            continue
         for c in fresh:
             row = st.get(c.day)
             if row is None:
-                r.check(False, f"{s} {c.day}: on Yahoo, missing in DB")
+                # Yahoo has a newer session than the DB: published after the load; the next run stores it.
+                newer = bool(st) and c.day > max(st)
+                if newer:
+                    late.append(s)
+                (r.warn if newer else r.check)(False, f"{s} {c.day}: on Yahoo, missing in DB")
                 continue
-            same = all(abs(float(row[k]) - getattr(c, k)) <= TOL_PRICE for k in ("open", "high", "low", "close")) and int(row["volume"]) == c.volume
-            r.check(same, f"{s} {c.day}: DB {row['open']}/{row['high']}/{row['low']}/{row['close']} v{row['volume']} "
-                          f"!= Yahoo {c.open}/{c.high}/{c.low}/{c.close} v{c.volume}")
-        extra = set(st) - {c.day for c in fresh}
-        r.check(not extra, f"{s}: DB has days Yahoo doesn't: {sorted(extra)}")
-        latest_dates[s] = max(st) if st else None
+            ohlc = all(abs(float(row[k]) - getattr(c, k)) <= TOL_PRICE for k in ("open", "high", "low", "close"))
+            label = (f"{s} {c.day}: DB {row['open']}/{row['high']}/{row['low']}/{row['close']} v{row['volume']} "
+                     f"!= Yahoo {c.open}/{c.high}/{c.low}/{c.close} v{c.volume}")
+            if ohlc and int(row["volume"]) != c.volume and c.day == max(st):
+                r.warn(False, label + " (the newest session's volume, revised by Yahoo after the close)")
+            else:
+                r.check(ohlc and int(row["volume"]) == c.volume, label)
+        hard, soft = split_extra(sorted(set(st) - fresh_days), latest_dates[s], s in strict)
+        r.check(not hard, f"{s}: DB has days Yahoo doesn't: {hard}")
+        r.warn(not soft, f"{s}: DB has days Yahoo's copy lacks today (not published yet, or dropped for a thin day): {soft}")
 
     # Illiquid names legitimately skip sessions (Yahoo has no bar either — checked above);
     # the core list must all be on the latest session.
     newest = max(d for d in latest_dates.values() if d)
+    cal = sorted(calendar | {newest})
+    one_behind = []
     for s, d in latest_dates.items():
         if s in strict:
-            r.check(d == newest, f"{s}: latest candle {d}, others have {newest} (stale)")
+            behind = sessions_behind(d, newest, cal)
+            # One session behind: Yahoo had not published it at load time (the next run re-fetches ten days).
+            if behind == 1:
+                one_behind.append(s)
+            (r.warn if behind == 1 else r.check)(behind == 0, f"{s}: latest candle {d}, others have {newest} ({behind} session(s) behind)")
+    # A few late tickers are Yahoo's lag; most of the market a session old is a stale site (2 Nov 2026: 2,928 symbols).
+    late = sorted(set(late))
+    r.check(not widespread(len(late), len(symbols)),
+            f"{len(late)} of {len(symbols)} symbols lack a session Yahoo now has (the site shows older prices): {late[:8]}")
+    strict_here = [s for s in latest_dates if s in strict]
+    r.check(not widespread(len(one_behind), len(strict_here)),
+            f"{len(one_behind)} of {len(strict_here)} indices and large companies are a session behind: {one_behind[:8]}")
 
     # Both rules were retired (ADR-036, ADR-037): stored signals are history up to each rule's last day, none after.
     def last_day(strategy):
@@ -199,7 +271,8 @@ def main(argv=None) -> int:
             (r.check if hard else r.warn)(not days, f"{s}: one-day moves > {limit:.0%} on {days}")
         if s in strict:
             gaps = c.index.to_series().diff().dt.days
-            r.check((gaps > 6).sum() == 0, f"{s}: gaps over 6 days at {[str(t.date()) for t in gaps[gaps > 6].index]}")
+            ends = [str(t.date()) for t in gaps[gaps > 6].index]
+            r.check(not [d for d in ends if (s, d) not in REVIEWED_GAPS], f"{s}: gaps over 6 days at {ends}")
         if s in HISTORY_FROM:
             r.check(c.index.min().tz_convert(IST).date() >= HISTORY_FROM[s], f"{s}: history before {HISTORY_FROM[s]}")
 
@@ -246,13 +319,19 @@ def main(argv=None) -> int:
         for t in c.index[((prsi < 30) & (rsi >= 30)) | ((prsi > 70) & (rsi <= 70))]:
             if rsi_until and t.date() <= rsi_until:          # the rule stopped producing signals after this day
                 exp.add(("rsi_reversal", "buy" if prsi[t] < 30 else "exit", t.date()))
-        sg = get(db, "trading_signals", f"select=strategy,signal_type,generated_at&symbol=eq.{q}&exchange=eq.NSE")
+        sg = get(db, "trading_signals", f"select=strategy,signal_type,generated_at,payload&symbol=eq.{q}&exchange=eq.NSE")
         sg = sg[sg.strategy.isin(RECOMPUTED)] if len(sg) else sg
-        got = {(x["strategy"], x["signal_type"], pd.Timestamp(x["generated_at"]).tz_convert("UTC").date()) for x in sg.to_dict("records")} if len(sg) else set()
+        key = lambda x: (x["strategy"], x["signal_type"], pd.Timestamp(x["generated_at"]).tz_convert("UTC").date())
+        stored_rsi = {key(x): (x.get("payload") or {}).get("rsi") for x in sg.to_dict("records")} if len(sg) else {}
+        got = set(stored_rsi)
         settled_from = c.index[min(WARMUP, len(c) - 1)].date()
         exp = {x for x in exp if x[2] >= settled_from}
         got = {x for x in got if x[2] >= settled_from}
-        r.check(got == exp, f"{s}: signals differ — missing {sorted(exp - got)[:3]}, unexpected {sorted(got - exp)[:3]}")
+        # The retired rules never rewrite a stored signal; one written before Yahoo revised a price stays as history.
+        rsi_on = {t.date(): v for t, v in rsi.items()}
+        revised = {x for x in got - exp if x[0] == "rsi_reversal" and revised_since(stored_rsi[x], rsi_on.get(x[2]))}
+        r.check(exp <= got and not (got - exp - revised), f"{s}: signals differ — missing {sorted(exp - got)[:3]}, unexpected {sorted(got - exp - revised)[:3]}")
+        r.warn(not revised, f"{s}: retired-rule signals written before Yahoo revised a price (kept as history): {sorted(revised)[:3]}")
 
         # ---- 3d. SIP backtest
         led = get(db, "backtest_ledgers", f"select=ledger,roi_pct&symbol=eq.{q}&exchange=eq.NSE")
@@ -264,9 +343,14 @@ def main(argv=None) -> int:
             final = round(units.sum() * c.close.iloc[-1], 2)
             roi = round((units.sum() * c.close.iloc[-1] - invested) / invested * 100, 4)
             L = led.iloc[0]
-            r.check(int(L.ledger["invested"]) == invested and abs(float(L.ledger["final_value"]) - final) <= TOL_SIP
-                    and abs(float(L.roi_pct) - roi) <= 0.0002,
-                    f"{s}: backtest invested/final/roi {L.ledger['invested']}/{L.ledger['final_value']}/{L.roi_pct} != {invested}/{final}/{roi}")
+            ok = (int(L.ledger["invested"]) == invested and abs(float(L.ledger["final_value"]) - final) <= TOL_SIP
+                  and abs(float(L.roi_pct) - roi) <= 0.0002)
+            label = f"{s}: backtest invested/final/roi {L.ledger['invested']}/{L.ledger['final_value']}/{L.roi_pct} != {invested}/{final}/{roi}"
+            # The nightly retention job trims the oldest candles after the evening's analytics: until the next run the
+            # ledger still starts on a day no longer stored.
+            entries = L.ledger.get("entries") or []
+            trimmed = bool(entries) and entries[0]["date"] < str(c.index.min().tz_convert(IST).date())
+            (r.warn if trimmed and not ok else r.check)(ok, label + (" (computed before the nightly trim)" if trimmed else ""))
 
     print(f"audit: {len(symbols)} symbols, latest session {newest}; {r.passes} checks passed, {len(r.fails)} failed, {len(r.warns)} to review")
     for w in r.warns:
