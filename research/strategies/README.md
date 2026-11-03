@@ -30,6 +30,7 @@ for t in ("^NSEI", "^INDIAVIX"):
 | `record.py`, `stops.py` | the tested record of the exact Strong trend rule (numbers in `web/src/lib/strong-trend.ts`) and the stop comparison |
 | `improve.py`, `improve2.py`, `improve3.py` | fixing RSI reversal and KK: pre-registered variants, strict fills (0.2 % through a dip price), safety stops, year by year, overlap between the two fixes |
 | `improve_short.py`, `record_dip.py` | KK short variants (none made money after costs); the tested record of the two dip rules (numbers in `web/src/lib/dip-rules.ts`); `record_dip.py --live` writes the expected dip signals for the live cross-check |
+| `improve_lr.py`, `record_lr.py`, `pglite_ma200.mjs`, `report_ma200.py` | 200-day trend (ADR-040): 48 pre-written variants of the 200-day average + regression-line rule; the chosen rule's record, round-2 add-ons, a random day above the 200-day, years, weather, overlap; `record_lr.py --live` and `pglite_ma200.mjs` for the live cross-check; the owner report |
 | `improve_sma.py`, `record_sma.py` | SMA 20/50: 24 pre-written variants; the exact SMA 20/50 trend rule's record and one consistent before/after table for all four rules (`data/final_report.json`); `record_sma.py --live` for the live cross-check |
 | `dump_live.py`, `expect_live.py`, `pglite_live.mjs` | a read-only copy of the live candles, an independent Python version of migration 33, and the SQL run on PGlite: both must produce the same signals |
 

@@ -45,7 +45,7 @@ test("tested record: internally consistent", () => {
 test("SMA 20/50 trend: same plan as Strong trend, a leader's cross, better than the old cross", async () => {
   const { isTrendRule, SMA_TREND_TESTED } = await import("./strong-trend");
   const { strategyLabel } = await import("./format");
-  assert.ok(isTrendRule("sma_trend") && isTrendRule("strong_trend") && !isTrendRule("sma_20_50_cross"));
+  assert.ok(isTrendRule("sma_trend") && isTrendRule("strong_trend") && isTrendRule("ma200_trend") && !isTrendRule("sma_20_50_cross"));
   assert.equal(strategyLabel.sma_trend, "SMA 20/50 trend");
   assert.equal(strategyLabel.sma_20_50_cross, "SMA 20/50 cross (old rule)");
   assert.match(ruleSentence("sma_trend", "buy"), /market leader/);
@@ -53,4 +53,17 @@ test("SMA 20/50 trend: same plan as Strong trend, a leader's cross, better than 
   assert.equal(defaultHorizon("sma_trend"), 20);
   assert.ok(SMA_TREND_TESTED.madeMoneyPct > SMA_TREND_TESTED.before.madeMoneyPct);
   assert.ok(SMA_TREND_TESTED.recent.madeMoneyPct > SMA_TREND_TESTED.before.recentMadeMoneyPct);
+});
+
+test("200-day trend: same plan as the trend rules, its own sentence, and tested against random days", async () => {
+  const { MA200_TREND_TESTED: t } = await import("./strong-trend");
+  const { strategyLabel, signalDisplayName } = await import("./format");
+  assert.equal(strategyLabel.ma200_trend, "200-day trend");
+  assert.equal(signalDisplayName("ma200_trend", "exit"), "200-day trend exit");
+  assert.match(ruleSentence("ma200_trend", "buy"), /200-day average.*regression line.*flat or rising/);
+  assert.match(ruleSentence("ma200_trend", "exit", "STOP_HIT"), /safety stop/);
+  assert.equal(defaultHorizon("ma200_trend"), 20);
+  assert.ok(t.trades > 1000 && t.madeMoneyPct > 0 && t.madeMoneyPct < 100 && t.avgWinPct > 0 && t.avgLossPct < 0);
+  // the record says how it compares with buying on a random day: it must have done better in the years it was not chosen on
+  assert.ok(t.recent.madeMoneyPct > t.random.recentMadeMoneyPct && t.recent.avgTradePct > t.random.recentAvgTradePct);
 });

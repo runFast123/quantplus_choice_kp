@@ -1,27 +1,27 @@
 import { expect, test } from "./helpers/fixtures";
 
 /**
- * Signals page (ADR-035, ADR-039): today's market, fresh buys and next-session levels first; the full list, the four
+ * Signals page (ADR-035, ADR-039): today's market, fresh buys and next-session levels first; the full list, the five
  * rules with their health, and the track record one tab at a time. Copy stays research, never advice.
  */
 test.describe("signals @mobile", () => {
-  test("today first, then the four rules and the track record in their own tabs", async ({ proPage }, info) => {
+  test("today first, then the five rules and the track record in their own tabs", async ({ proPage }, info) => {
     await proPage.goto("/app/signals?scope=all");
     await expect(proPage.getByRole("region", { name: "Market weather" })).toContainText(/Market weather: (Sunny|Mixed|Stormy|Unknown)/);
     await expect(proPage.getByText("Signals are research prompts, not advice.", { exact: false })).toBeVisible();
     const tabs = proPage.getByRole("tablist", { name: "Signals" });
     await expect(tabs.getByRole("tab", { name: "Today" })).toHaveAttribute("aria-selected", "true");
-    await expect(proPage.getByRole("heading", { name: "Fresh buys from the four rules" })).toBeVisible();
+    await expect(proPage.getByRole("heading", { name: "Fresh buys from the five rules" })).toBeVisible();
     await expect(proPage.getByRole("heading", { name: "Dip-buy levels for the next session" })).toBeVisible();
     await proPage.screenshot({ path: info.outputPath("signals.png"), fullPage: true });
 
-    await tabs.getByRole("tab", { name: "The four rules" }).click();
+    await tabs.getByRole("tab", { name: "The five rules" }).click();
     await expect(proPage).toHaveURL(/#rules$/);
     const strong = proPage.getByRole("article", { name: "Strong trend" });
     await expect(strong).toContainText("52-week high");
     await strong.getByText("Tested record").click();
     await expect(strong).toContainText("made money after costs");
-    for (const rule of ["SMA 20/50 trend", "RSI dip", "KK dip"]) await expect(proPage.getByRole("article", { name: rule })).toBeVisible();
+    for (const rule of ["SMA 20/50 trend", "200-day trend", "RSI dip", "KK dip"]) await expect(proPage.getByRole("article", { name: rule })).toBeVisible();
 
     await tabs.getByRole("tab", { name: "Track record" }).click();
     await expect(proPage.getByRole("heading", { name: "Track record" })).toBeVisible();
@@ -36,7 +36,7 @@ test.describe("signals @mobile", () => {
     for (let i = 0; i < Math.min(n, 10); i++) await expect(rows.nth(i)).toContainText("Strong trend");
   });
 
-  test("the list shows the four rules unless the old rules are asked for", async ({ proPage }) => {
+  test("the list shows the five rules unless the old rules are asked for", async ({ proPage }) => {
     await proPage.goto("/app/signals?scope=all#all");
     const rows = proPage.locator("main").locator("tbody tr:visible, [data-testid=signal-cards] > li:visible");
     await expect(rows.first()).toBeVisible();

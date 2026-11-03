@@ -19,8 +19,8 @@ const row = (o: Partial<HealthRow>): HealthRow => ({
   ...o,
 });
 
-test("rule health: the four rules, words for every status, never advice", () => {
-  assert.ok(isHealthRule("kk_dip") && isHealthRule("strong_trend") && !isHealthRule("rsi_reversal"));
+test("rule health: the five rules, words for every status, never advice", () => {
+  assert.ok(isHealthRule("kk_dip") && isHealthRule("strong_trend") && isHealthRule("ma200_trend") && !isHealthRule("rsi_reversal"));
   assert.deepEqual(Object.keys(HEALTH_STATUS).sort(), ["above", "below", "too_few", "within"]);
   assert.match(HEALTH_STATUS.below.title, /not changed or switched off automatically/);
   assert.match(HEALTH_STATUS.above.title, /not a reason to expect more/);

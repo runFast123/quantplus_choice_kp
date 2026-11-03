@@ -87,7 +87,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const latestBuySignal = signals.find(
     (s) => s.signal_type === "buy" && !isTrendRule(s.strategy) && !isDipRule(s.strategy),
   );
-  const openTrends = (["strong_trend", "sma_trend"] as const)
+  const openTrends = (["strong_trend", "sma_trend", "ma200_trend"] as const)
     .map((rule) => signals.find((s) => s.strategy === rule))
     .filter((s): s is Signal => s?.signal_type === "buy");
   const openDips = (["rsi_dip", "kk_dip"] as const)
@@ -478,7 +478,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           ) : (
             <>
               <p className="text-[14px] font-medium">No open signal</p>
-              <p className="text-[11.5px] text-muted-foreground">None of the four rules is in a trade here</p>
+              <p className="text-[11.5px] text-muted-foreground">None of our rules is in a trade here</p>
             </>
           )}
         </Glance>

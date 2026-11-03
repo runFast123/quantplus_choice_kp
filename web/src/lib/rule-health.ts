@@ -4,7 +4,7 @@
  * words. Nothing here changes a rule or hides a signal: a rule outside its range goes to the quarterly review.
  */
 
-export const HEALTH_RULES = ["strong_trend", "sma_trend", "rsi_dip", "kk_dip"] as const;
+export const HEALTH_RULES = ["strong_trend", "sma_trend", "ma200_trend", "rsi_dip", "kk_dip"] as const;
 export type HealthRule = (typeof HEALTH_RULES)[number];
 export const isHealthRule = (s: string | null | undefined): s is HealthRule => HEALTH_RULES.includes(s as HealthRule);
 

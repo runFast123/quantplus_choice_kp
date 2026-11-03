@@ -69,8 +69,27 @@ export function strongTrendStatus(stop: number | null, last: number | null): { l
   return { label: "Open", tone: "neutral" };
 }
 
-/** The two trend rules share one plan: a safety stop 4 × ATR14 under the close and a review after 60 sessions. */
-export const isTrendRule = (s: string | null | undefined) => s === "strong_trend" || s === "sma_trend";
+/** The three trend rules share one plan: a safety stop 4 × ATR14 under the close and a review after 60 sessions. */
+export const isTrendRule = (s: string | null | undefined) => s === "strong_trend" || s === "sma_trend" || s === "ma200_trend";
+
+/**
+ * 200-day trend (migration 41, ADR-040), tested with the exact SQL rule: research/strategies/record_lr.py (chosen in
+ * improve_lr.py), Mar 2020 – Oct 2026 (the rule needs 300 sessions of history), each year's 300 most traded NSE stocks,
+ * 0.5 % round-trip cost. `random` = a random entry, same plan, on days the stock was above its 200-day average;
+ * `bare` = the close crossing above the 200-day average with no slope or straightness test. Update only by re-running
+ * those scripts.
+ */
+export const MA200_TREND_TESTED = {
+  period: "Mar 2020 – Oct 2026",
+  trades: 1906,
+  madeMoneyPct: 56,
+  avgTradePct: 5.9,
+  avgWinPct: 18,
+  avgLossPct: -10,
+  recent: { period: "2024 – Oct 2026", madeMoneyPct: 47, avgTradePct: 1.7 },
+  random: { recentMadeMoneyPct: 42, recentAvgTradePct: 0.75 },
+  bare: { recentMadeMoneyPct: 42 },
+} as const;
 
 /**
  * SMA 20/50 trend (migration 38, ADR-037), tested with the exact SQL rule: research/strategies/record_sma.py,

@@ -9,7 +9,7 @@ test.describe("rule health @mobile", () => {
   test("the Signals page shows each rule's recent record, its normal range and what its losses had in common", async ({ proPage }) => {
     await proPage.goto("/app/signals?scope=all#health");
     const cards = proPage.getByTestId("rule-health");
-    await expect(cards.getByRole("region")).toHaveCount(4);
+    await expect(cards.getByRole("region")).toHaveCount(5);
     for (const name of ["Strong trend", "RSI dip", "KK dip", "SMA 20/50 trend"]) {
       const card = cards.getByRole("region", { name: `${name} health` });
       await expect(card.locator("[data-health]")).toHaveCount(1);

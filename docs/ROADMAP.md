@@ -53,7 +53,7 @@ Requirement IDs refer to `docs/BRD.md`.
 
 ## Known limitations (by design for now)
 - Signal checks (ADR-038) only tag; they never skip a signal. Skipping Low RSI dips waits for two live quarters showing
-  the tags separate when each month is counted once. KK dip and SMA trend have no check; rule settings never change
+  the tags separate when each month is counted once. KK dip, SMA trend and 200-day trend have no check; rule settings never change
   automatically (a change needs a pre-registered re-test, PLAYBOOK §S). The Strong trend check's evidence is thin.
 - Rule health (ADR-039) flags drift and sorts losses by cause; it never pauses or changes a rule. Its range assumes
   trades are independent, which trades finishing on the same days are not, so it is a guide. Causes use the Nifty 500

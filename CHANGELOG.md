@@ -5,6 +5,25 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — 200-day trend, the fifth signal rule (ADR-040)
+- **The rule** (`supabase/migrations/20261001000041_ma200_trend.sql`, `private.refresh_ma200_trend`): the first session
+  a stock among the 500 largest closes above its 200-day average while the least-squares line through the last 100 values
+  of that average is flat or rising (slope × 20 ≥ −0.25 % of the average) and its last 100 closes lean up fairly straight
+  (Pearson's R ≥ 0.5). Same plan as the other trend rules: next-open entry, safety stop 4 × ATR14, review after 60
+  sessions. Runs in `svc_refresh_market_analytics` and the pg_cron backstop; all stored candles back-filled and graded.
+- **Why:** the owner's moving-average + linear-regression idea. Of 48 pre-written variants (`research/strategies/improve_lr.py`)
+  chosen on 2019–23, it made money on 56 of 100 of 1,906 trades (Mar 2020 – Oct 2026), +5.9 % a trade; 2024–26 47 in 100
+  vs 42 for a random day above the 200-day average (`record_lr.py`). SQL and an independent Python version give the
+  same 666 signals on the live-candle copy (`pglite_ma200.mjs`, `record_lr.py --live`). Report:
+  `reports/QuantsPulse-200-day-trend-report.pdf` (built by `report_ma200.py`; not in git).
+- **Self-checking:** `signal_trades` includes it and `rule_expectations` holds its tested rate (56), so rule health and the
+  mistake review cover it from day one (a year of weekly history back-filled).
+- **UI:** Signals shows five rules (headings count the rules; the cards sit three over two on wide screens, trend rules
+  first, the last odd card spans the row on tablets); `ruleSentence`, `strategyLabel` ("200-day trend"), `isTrendRule`,
+  `defaultHorizon`, `HEALTH_RULES`, the stock page's open-trend card, the chart tag "200D", a Dry Run filter
+  ("Long-term trend up"). Tests: `supabase/tests/15_ma200_trend.sql` (14 now counts the rules from `rule_expectations`),
+  unit tests in `strong-trend.test.mts` / `rule-health.test.mts`, e2e `signals`, `rule-health`, `extension-api`.
+
 ### Changed — Signals, Research and News: the answer first, details one step away
 - **Signals** (`app/app/signals/page.tsx`, ~11,900 px → ~2,000 px on desktop): a *Today* strip (market weather, fresh
   buys from the last 7 days, dip-buy levels for the next session, rules on track); then tabs *Today* (fresh buys as

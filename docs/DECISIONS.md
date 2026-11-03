@@ -354,6 +354,31 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-040 · 200-day trend: a fifth rule from a moving average and a linear-regression line
+**Date** 2026-11-03 · **Status** accepted (live after the owner's go-ahead)
+- **Context:** the owner asked for a rule that signals only when a stock closes above its 200-day average and the
+  linear regression of that average is flat, rising or about to rise (TradingView's Linear Regression Channel), and for
+  the rule count to be odd (five).
+- **Research:** 48 variants written down before running (`research/strategies/improve_lr.py`): crossing vs first day
+  all conditions hold; slope rising / flat (≥ −0.25 % per 20 sessions) / turning up; a 50- or 100-session line; with or
+  without Pearson's R ≥ 0.5 on the last 100 closes; the 60-session plan or a sell-when-the-trend-turns exit. Chosen on
+  2019–23 by the ADR-037 criterion (fewest losing trades, ≥ 150 a year, positive average). "About to rise" and "rising
+  only" were no better than "flat or rising"; the R test added about 5 points; the trend exit won big in 2020–23 and lost
+  since. A start-of-history artifact (a stock's first measurable day counting as a turn) was fixed before choosing.
+- **Decision (migration 41):** `ma200_trend` = the first session on which close > 200-day average, the 100-session
+  least-squares slope of that average × 20 ≥ −0.25 % of it, and corr(close, time) over 100 sessions ≥ 0.5, after a
+  measurable session on which they did not all hold; 500 largest companies; next-open entry, safety stop 4 × ATR14,
+  review after 60 sessions (shared with the other trend rules). Tested Mar 2020 – Oct 2026 (needs 300 sessions):
+  1,906 trades, 56 % made money, +5.9 % a trade; 2024–26 47 % (+1.7 %) vs 42 % (+0.75 %) for a random entry on days above
+  the 200-day average and 42 % for the bare 200-day cross. Only 11 % of its buys fall within a week of a Strong trend or
+  SMA trend buy in the same stock. It joins rule health with its tested rate; it has no signal check.
+- **Checked:** the SQL and an independent Python version produce the same 666 signals on the live-candle copy.
+- **Not chosen:** adding the market-leader filter (better in 2024–26, ~50 %, worse in 2019–23, 60 %) — for the quarterly
+  review, not switched on after the fact.
+- **Limits:** the edge over a random day is small and was nil in the 2020, 2021 and 2024 rallies; about half of recent
+  trades lose; winners (~+18 %) carry it. In TradingView's script `trend = sign(start − end)` is negative when the line
+  rises; QuantsPulse uses the plain slope.
+
 ### ADR-039 · Rule health: each rule is checked daily against its tested record; drift is flagged, never auto-fixed
 **Date** 2026-11-02 · **Status** accepted
 - **Context:** the owner asked for the rules to "find their mistakes and improve day by day". ADR-038 showed that no

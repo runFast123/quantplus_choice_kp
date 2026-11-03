@@ -22,6 +22,7 @@ import { markerFromSignal, signalAction, tradeFor, type SignalAction } from "@/l
 import { DIP_EXIT, dipStatus, dipTestedSentence, isDipRule } from "@/lib/dip-rules";
 import {
   isTrendRule,
+  MA200_TREND_TESTED as MA200,
   reviewDate,
   SMA_TREND_TESTED as SMA,
   STRONG_TREND_TESTED as TESTED,
@@ -71,6 +72,20 @@ const STRATEGIES: { key: string; title: string; rule: string; reads: string; tes
     tested: `Tested on past prices (${TESTED.period}, ${TESTED.trades.toLocaleString("en-IN")} trades): ${TESTED.madeMoneyPct} in 100 made money after costs, the average trade ${TESTED.avgTradePct > 0 ? "+" : ""}${TESTED.avgTradePct}% (winners about +${TESTED.avgWinPct}%, losers about ${TESTED.avgLossPct}%). ${TESTED.recent.period}: ${TESTED.recent.madeMoneyPct} in 100, +${TESTED.recent.avgTradePct}%.`,
   },
   {
+    key: "sma_trend",
+    title: "SMA 20/50 trend",
+    rule: "Buy when the 20-day average price rises above the 50-day average in a market leader: a stock whose 6-month return is in the top 30% of the 500 largest companies.",
+    reads: "Follows a turn up in a strong stock. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions.",
+    tested: `Tested on past prices (${SMA.period}, ${SMA.trades.toLocaleString("en-IN")} trades): ${SMA.madeMoneyPct} in 100 made money after costs, the average trade +${SMA.avgTradePct}% (winners about +${SMA.avgWinPct}%, losers about ${SMA.avgLossPct}%). ${SMA.recent.period}: ${SMA.recent.madeMoneyPct} in 100, +${SMA.recent.avgTradePct}%. The old cross-in, cross-out rule: ${SMA.before.madeMoneyPct} in 100 (${SMA.before.recentMadeMoneyPct} in 2024–26).`,
+  },
+  {
+    key: "ma200_trend",
+    title: "200-day trend",
+    rule: "Buy when a stock is above its 200-day average, that average is flat or rising (measured with a straight regression line through its last 100 days), and the price has climbed fairly steadily over the last 100 days.",
+    reads: "Follows a stock whose long-term trend has turned up. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions.",
+    tested: `Tested on past prices (${MA200.period}, ${MA200.trades.toLocaleString("en-IN")} trades): ${MA200.madeMoneyPct} in 100 made money after costs, the average trade +${MA200.avgTradePct}% (winners about +${MA200.avgWinPct}%, losers about ${MA200.avgLossPct}%). ${MA200.recent.period}: ${MA200.recent.madeMoneyPct} in 100, +${MA200.recent.avgTradePct}%; buying on a random day above the 200-day average: ${MA200.random.recentMadeMoneyPct} in 100, +${MA200.random.recentAvgTradePct}%.`,
+  },
+  {
     key: "rsi_dip",
     title: "RSI dip",
     rule: "When a stock above its 200-day average drops sharply for a day or two (2-day RSI under 10), buy the next day only if it dips one normal day's move lower.",
@@ -84,14 +99,19 @@ const STRATEGIES: { key: string; title: string; rule: string; reads: string; tes
     reads: `Buys a deeper dip in a rising stock and ${DIP_EXIT.toLowerCase()}. Often fires with RSI dip on the same stock.`,
     tested: dipTestedSentence("kk_dip"),
   },
-  {
-    key: "sma_trend",
-    title: "SMA 20/50 trend",
-    rule: "Buy when the 20-day average price rises above the 50-day average in a market leader: a stock whose 6-month return is in the top 30% of the 500 largest companies.",
-    reads: "Follows a turn up in a strong stock. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions.",
-    tested: `Tested on past prices (${SMA.period}, ${SMA.trades.toLocaleString("en-IN")} trades): ${SMA.madeMoneyPct} in 100 made money after costs, the average trade +${SMA.avgTradePct}% (winners about +${SMA.avgWinPct}%, losers about ${SMA.avgLossPct}%). ${SMA.recent.period}: ${SMA.recent.madeMoneyPct} in 100, +${SMA.recent.avgTradePct}%. The old cross-in, cross-out rule: ${SMA.before.madeMoneyPct} in 100 (${SMA.before.recentMadeMoneyPct} in 2024–26).`,
-  },
 ];
+// How many rules are in use, in words for headings ("five").
+const COUNT = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight"][STRATEGIES.length] ?? String(STRATEGIES.length);
+const Count = COUNT[0].toUpperCase() + COUNT.slice(1);
+// The rule cards fill whole rows on wide screens: rows of three, and a short last row shares its row.
+const ruleSpan = (i: number, n: number) => {
+  const lastRow = n % 3;
+  const inLast = i >= n - lastRow;
+  return clsx(
+    i === n - 1 && n % 2 === 1 && "md:col-span-2",
+    inLast && lastRow === 2 ? "xl:col-span-3" : inLast && lastRow === 1 ? "xl:col-span-6" : "xl:col-span-2",
+  );
+};
 // Replaced by the dip rules and the SMA trend rule (ADR-036, ADR-037): their signals stay listed as history.
 const OLD_RULES = ["sma_20_50_cross", "rsi_reversal", "kk_breakout"];
 const ORDER = [...STRATEGIES.map((x) => x.key), ...OLD_RULES];
@@ -137,7 +157,7 @@ export default async function SignalsPage({
       ? sp.strategy
       : "";
   const statusFilter = typeof sp.status === "string" && ["open", "closed"].includes(sp.status) ? sp.status : "";
-  // Which rules the list shows: the four in use (default), the old ones they replaced, or both.
+  // Which rules the list shows: the ones in use (default), the old ones they replaced, or both.
   const rules = typeof sp.rules === "string" && ["old", "all"].includes(sp.rules) ? sp.rules : "";
   const more = sp.more === "1";
 
@@ -296,7 +316,7 @@ export default async function SignalsPage({
     return { ...base, evaluation: null };
   });
 
-  // The four rules in use; fresh = an open buy from the last 7 days.
+  // The rules in use; fresh = an open buy from the last 7 days.
   const current = new Set(STRATEGIES.map((x) => x.key));
   const weekAgo = isoDaysAgo(7);
   const fresh = evaluatedSignals.filter((x) => x.own && current.has(x.sg.strategy) && x.sg.generated_at >= weekAgo);
@@ -326,7 +346,7 @@ export default async function SignalsPage({
 
   const todayTab = (
     <div className="flex flex-col gap-5">
-      <Panel title="Fresh buys from the four rules" meta="Open, last 7 days">
+      <Panel title={`Fresh buys from the ${COUNT} rules`} meta="Open, last 7 days">
         {fresh.length === 0 ? (
           <Empty title={scope === "mine" ? "No fresh buys on your stocks." : "No fresh buys this week."}>
             {weather.state === "stormy" ? "In a stormy market the trend rules wait; the dip rules still fire on rising stocks. " : ""}
@@ -473,7 +493,7 @@ export default async function SignalsPage({
             </Link>
           ) : (
             filterGroup("Rules", "rules", rules, [
-              { key: "", label: "Four rules" },
+              { key: "", label: `${Count} rules` },
               { key: "old", label: "Old rules" },
               { key: "all", label: "Both" },
             ])
@@ -649,11 +669,11 @@ export default async function SignalsPage({
 
   const rulesTab = (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" data-testid="rule-health">
-        {STRATEGIES.map((st) => {
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6" data-testid="rule-health">
+        {STRATEGIES.map((st, i) => {
           const t = tradesBy.get(`${st.key}-long`);
           return (
-            <article key={st.key} aria-label={st.title} className="panel flex min-w-0 flex-col gap-3 p-4">
+            <article key={st.key} aria-label={st.title} className={clsx("panel flex min-w-0 flex-col gap-3 p-4", ruleSpan(i, STRATEGIES.length))}>
               <div>
                 <h3 className="display text-[20px]">{st.title}</h3>
                 <p className="mt-1 text-[13px] leading-5">{st.rule}</p>
@@ -683,7 +703,8 @@ export default async function SignalsPage({
         After every close, each rule&apos;s last 40 finished trades are compared with how it did in testing, and every losing trade is
         sorted by what went wrong. A rule that drifts outside its normal range is flagged for review; it is never changed or switched off
         on its own, because a short bad run is usually just noise. RSI dip, KK dip and SMA 20/50 trend replaced the old RSI reversal, KK
-        breakout and SMA 20/50 cross rules, which did worse in testing; their signals stay in the list under &ldquo;Old rules&rdquo;.
+        breakout and SMA 20/50 cross rules, which did worse in testing; their signals stay in the list under &ldquo;Old rules&rdquo;. The
+        200-day trend rule was added in November 2026; its record on this site starts with the stored prices.
       </p>
     </div>
   );
@@ -815,7 +836,7 @@ export default async function SignalsPage({
       <PageHeader
         eyebrow="Rule-based"
         title="Signals"
-        description="Four simple rules scan every NSE stock after each close. See what they found, what to watch in the next session, and how each rule is doing. Signals are research prompts, not advice."
+        description={`${Count} simple rules scan every NSE stock after each close. See what they found, what to watch in the next session, and how each rule is doing. Signals are research prompts, not advice.`}
         actions={
           <div role="group" aria-label="Stocks" className="flex rounded-md border border-border p-0.5 text-[12.5px]">
             {(["mine", "all"] as const).map((k) => (
@@ -861,7 +882,7 @@ export default async function SignalsPage({
           <span className="eyebrow">Rules lately</span>
           <span className="num text-[22px] leading-7">
             {onTrack}
-            <span className="text-[14px] text-muted-foreground">/4</span>
+            <span className="text-[14px] text-muted-foreground">/{STRATEGIES.length}</span>
             <span className="ml-1.5 font-sans text-[12px] text-muted-foreground">on track or better</span>
           </span>
           <span className="text-[11.5px] text-muted-foreground">{weaker.length ? `Weaker than usual: ${weaker.join(", ")}` : "None weaker than usual"}</span>
@@ -873,7 +894,7 @@ export default async function SignalsPage({
         tabs={[
           { id: "today", label: "Today", content: todayTab },
           { id: "all", label: "All signals", content: allTab },
-          { id: "rules", label: "The four rules", aliases: ["health"], content: rulesTab },
+          { id: "rules", label: `The ${COUNT} rules`, aliases: ["health"], content: rulesTab },
           { id: "record", label: "Track record", aliases: ["checks"], content: recordTab },
         ]}
       />

@@ -27,6 +27,7 @@ const steps = [
   ["refresh_market_weather", "select private.refresh_market_weather()"],
   ["refresh_strong_trend", "select private.refresh_strong_trend($1)"],
   ["refresh_sma_trend", "select private.refresh_sma_trend($1)"],
+  ["refresh_ma200_trend", "select private.refresh_ma200_trend($1)"],
   ["refresh_dip_rules", "select private.refresh_dip_rules($1)"],
   ["grade_signals", "select private.grade_signals($1)"],
 ];

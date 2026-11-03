@@ -118,6 +118,7 @@ export function signedInt(n: number): string {
 export const strategyLabel: Record<string, string> = {
   sma_20_50_cross: "SMA 20/50 cross (old rule)",
   sma_trend: "SMA 20/50 trend",
+  ma200_trend: "200-day trend",
   rsi_reversal: "RSI reversal (old rule)",
   kk_breakout: "KK breakout (old rule)",
   strong_trend: "Strong trend",
@@ -136,7 +137,7 @@ export function signalDisplayName(strategy: string, kind: "buy" | "exit"): strin
   if (strategy === "kk_breakout") {
     return kind === "buy" ? "KK 20d Breakout Buy" : "KK 20d Breakdown Sell";
   }
-  if (strategy === "strong_trend" || strategy === "sma_trend") {
+  if (strategy === "strong_trend" || strategy === "sma_trend" || strategy === "ma200_trend") {
     return `${strategyLabel[strategy]}${kind === "buy" ? "" : " exit"}`;
   }
   if (strategy === "rsi_dip" || strategy === "kk_dip") {

@@ -19,7 +19,7 @@ returns void language sql as $$
     (p_sym, 'NSE', p_rule, 'exit', jsonb_build_object('action', 'exit', 'result', p_result, 'pnl_pct', p_pnl), qp_t14.at(p_out))
 $$;
 
-delete from public.trading_signals where strategy in ('strong_trend', 'rsi_dip', 'kk_dip', 'sma_trend');
+delete from public.trading_signals where strategy in ('strong_trend', 'rsi_dip', 'kk_dip', 'sma_trend', 'ma200_trend');
 delete from public.rule_health;
 delete from public.market_candles where symbol = 'NIFTY500';
 -- the Nifty 500 at 100 until day 100, then 95
@@ -66,7 +66,7 @@ select qp_t14.check((select trades = 27 and made = 20 and status = 'within'
                        from public.rule_health where strategy = 'kk_dip' and day = qp_t14.d(30)),
                     'health: as of an earlier day, only the trades finished by then');
 select private.refresh_rule_health(current_date);
-select qp_t14.check((select count(*) = 4 from public.rule_health where day = current_date),
+select qp_t14.check((select count(*) = (select count(*) from public.rule_expectations) from public.rule_health where day = current_date),
                     'health: one row per rule per day, re-runs update it');
 
 select qp_t14.check(has_table_privilege('authenticated', 'public.rule_health', 'select')

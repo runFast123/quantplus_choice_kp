@@ -1211,7 +1211,9 @@ export function PriceChart({
                   <span className="rounded bg-muted/50 px-1 py-0.2 text-[9px] font-semibold text-foreground">
                     {isKk(sig.strategy)
                       ? "KK"
-                      : sig.strategy?.includes("sma")
+                      : sig.strategy === "ma200_trend"
+                        ? "200D"
+                        : sig.strategy?.includes("sma")
                         ? "SMA"
                         : sig.strategy?.includes("rsi")
                           ? "RSI"
