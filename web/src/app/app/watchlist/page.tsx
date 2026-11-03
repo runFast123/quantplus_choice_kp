@@ -4,9 +4,10 @@ import clsx from "clsx";
 import { TrashIcon } from "@phosphor-icons/react/ssr";
 import { AddSymbolForm } from "@/components/market/add-symbol-form";
 import { ConfirmButton } from "@/components/ui/confirm-button";
-import { Badge, Delta, Sparkline } from "@/components/ui/data";
+import { Delta, Sparkline } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price } from "@/lib/format";
+import { SignalBadge } from "@/components/market/signal-badge";
 import type { Watchlist, WatchlistItem } from "@/lib/types";
 import { QuantumAudit } from "@/components/market/quantum-audit";
 import { RetiredNote } from "@/components/market/retired-note";
@@ -173,7 +174,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
                       </td>
                       <td className={tdNum}>{q?.rsi != null ? q.rsi.toFixed(1) : "—"}</td>
                       <td className={td}>
-                        {q?.last_signal ? <Badge tone={q.last_signal === "buy" ? "gain" : "loss"}>{q.last_signal === "buy" ? "BUY" : "EXIT"}</Badge> : <span className="text-muted-foreground">—</span>}
+                        {q?.last_signal ? <SignalBadge signal={q.last_signal} strategy={q.last_signal_strategy} /> : <span className="text-muted-foreground">—</span>}
                         <SetupBadges tags={q?.setups} className="mt-1 flex flex-wrap gap-1" />
                       </td>
                       <td className={td + " num text-muted-foreground"}>{date(i.added_at)}</td>

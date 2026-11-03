@@ -5,6 +5,21 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — the 200-day trend shows everywhere a rule shows
+- **Stock chart** (`charts/price-chart.tsx`): a *200-day trend* button with its count beside Strong trend (choosing it turns on
+  the SMA 200 line); the other buttons are unchanged and keep each old rule's signals with its family. The SMA 20/50
+  button matched any label containing "ma"; it now takes the two SMA rules by name. Rules without a fixed target draw an
+  "Exit ±x%" line and the zone to the exit; a profitable review exit reads "★ EXIT +", not "TARGET". The chart heading no
+  longer lists only KK / SMA / RSI. On phones the timeline chips drop the long label.
+- **Stock page:** the open-trade card used the SMA rule's words for any trend rule other than Strong trend; each rule now
+  has its own (`lib/rules.ts`, the one list of rules). *Signal history* opens with *Each rule on this stock* (trades closed,
+  made money, average, open now; cards on phones; `signal_trades`).
+- **Latest signal** (migration 42): each quote's last signal was written before the five rules ran, so a new rule's signal
+  reached Markets, Market Radar, Overview and Dry Run a day late (200-day trend's not at all); `refresh_last_signal` now
+  runs after them. Lists show which rule fired (`SignalBadge`); research notes name it ("200-day trend", not "ma200
+  trend"); the AI prompt gets the rule's name. Tests: `supabase/tests/16_rule_names.sql`, `lib/rules.test.mts`, e2e
+  `strategy-plan` (200-day trend button, per-rule table).
+
 ### Fixed — the nightly price audit fails only on real errors
 - **Why:** `Market EOD` had failed every run since at least 13 Oct 2026 (92–1,227 failed checks a night), so a real data
   error would have gone unnoticed. Almost all were Yahoo, not the database: some tickers' newest bar is published late and

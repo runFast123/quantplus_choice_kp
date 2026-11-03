@@ -2,6 +2,7 @@ import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { AiProvider } from "@/lib/types";
+import { strategyLabel } from "@/lib/format";
 import { calculatePortfolioHealth, type HealthPosition, type PortfolioDiagnosticFocus } from "@/lib/portfolio-health";
 import { open } from "./crypto";
 import { assertMember, hasActiveConsent, planHasFeature, PrivilegedError } from "./guards";
@@ -290,7 +291,7 @@ export async function portfolioHealthReadWithMyKey(
   const topList = sorted.slice(0, 6).map((pos) => {
     const weightPct = healthReport.totalValue > 0 ? (pos.value / healthReport.totalValue) * 100 : 0;
     const q = quoteMap.get(pos.symbol);
-    const sig = q?.last_signal ? ` | Signal: ${q.last_signal.toUpperCase()} (${q.last_signal_strategy ?? "rule"})` : "";
+    const sig = q?.last_signal ? ` | Signal: ${q.last_signal.toUpperCase()} (${(q.last_signal_strategy && strategyLabel[q.last_signal_strategy]) || q.last_signal_strategy || "rule"})` : "";
     const pnlPct = pos.totalPct ?? 0;
     return `- ${pos.symbol} (${pos.sector}): ${weightPct.toFixed(1)}% of book (₹${pos.value.toFixed(0)}, P&L ${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%, RSI ${pos.rsi != null ? pos.rsi.toFixed(1) : "n/a"}${sig})`;
   });

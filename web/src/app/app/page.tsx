@@ -7,6 +7,7 @@ import { NewsList } from "@/components/news/news-list";
 import { Badge, Delta, Sparkline, Stat, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { daysUntil, date, isoDaysAgo, longDate, pct, price, qty, relative, rupeesCompact, strategyLabel } from "@/lib/format";
+import { SignalBadge } from "@/components/market/signal-badge";
 import { nseSession } from "@/lib/market";
 import type { Holding, Signal, WatchlistItem } from "@/lib/types";
 import { getBreadth, getQuotes, getSparks, positions, summarize } from "@/server/market-data";
@@ -226,7 +227,7 @@ export default async function OverviewPage() {
                         <td className={td}>
                           {q?.last_signal ? (
                             <span className="inline-flex items-center gap-2">
-                              <Badge tone={q.last_signal === "buy" ? "gain" : "loss"}>{q.last_signal === "buy" ? "BUY" : "EXIT"}</Badge>
+                              <SignalBadge signal={q.last_signal} strategy={q.last_signal_strategy} />
                               <span className="text-[11.5px] text-muted-foreground">{relative(q.last_signal_at)}</span>
                             </span>
                           ) : (

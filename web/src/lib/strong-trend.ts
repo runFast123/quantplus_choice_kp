@@ -3,6 +3,8 @@
  * The rule itself runs in SQL (private.refresh_strong_trend); this file only explains it.
  */
 
+import { ruleOf } from "./rules";
+
 export type Weather = "sunny" | "mixed" | "stormy";
 
 export interface WeatherView {
@@ -69,8 +71,8 @@ export function strongTrendStatus(stop: number | null, last: number | null): { l
   return { label: "Open", tone: "neutral" };
 }
 
-/** The three trend rules share one plan: a safety stop 4 × ATR14 under the close and a review after 60 sessions. */
-export const isTrendRule = (s: string | null | undefined) => s === "strong_trend" || s === "sma_trend" || s === "ma200_trend";
+/** The trend rules (lib/rules.ts) share one plan: a safety stop 4 × ATR14 under the close and a review after 60 sessions. */
+export const isTrendRule = (s: string | null | undefined) => ruleOf(s)?.kind === "trend";
 
 /**
  * 200-day trend (migration 41, ADR-040), tested with the exact SQL rule: research/strategies/record_lr.py (chosen in

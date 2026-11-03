@@ -29,7 +29,7 @@ import type { Candle } from "@/lib/types";
 import { TradeOdds } from "./trade-odds";
 
 export type ChartMarker = RawChartMarker;
-export type ChartStrategyFilter = "kk_breakout" | "sma_cross" | "rsi_reversal" | "strong_trend" | "all" | "none";
+export type ChartStrategyFilter = "kk_breakout" | "sma_cross" | "rsi_reversal" | "strong_trend" | "ma200_trend" | "all" | "none";
 
 // KK chip: the old imported KK trades (history) and the KK dip rule that replaced them (migration 35).
 const isKk = (s?: string | null) => s === "kk_breakout" || s === "kk_dip";
@@ -69,6 +69,10 @@ function computeSma(candles: Candle[], period: number) {
 }
 
 const markerKey = (m: ChartMarker) => `${m.ts}|${m.label}`;
+
+// A winning exit says "target" only for rules that have one (KK's targets); the trend and dip rules close in profit at
+// their review or bounce.
+const hitTarget = (m: ChartMarker) => (m.resultType ?? "").includes("TARGET");
 
 /** The visible bar a marker sits on: the last candle at or before it. */
 function barFor(visible: Candle[], ts: string): Candle | null {
@@ -129,7 +133,7 @@ type Overlay = {
 /**
  * Compact Institutional TradingView Chart:
  * Displays verified Indian equity candles, strategy-isolated Buy/Exit signals
- * (every stored rule: Strong trend, SMA 20/50, RSI and KK dips, and the old RSI / KK signals as history),
+ * (every stored rule: Strong trend, 200-day trend, SMA 20/50, RSI and KK dips, and the old SMA / RSI / KK signals as history),
  * SMA 20/50/200 overlays, and an interactive signals timeline ribbon.
  */
 export function PriceChart({
@@ -179,18 +183,15 @@ export function PriceChart({
   // 1. Isolate each strategy's markers: every rule's signals are stored (the old client-side KK rule is retired).
   const effectiveKkMarkers = useMemo(() => markers.filter((m) => isKk(m.strategy)), [markers]);
 
+  // SMA 20/50: the SMA 20/50 trend rule and the old 20/50 cross it replaced.
   const smaMarkers = useMemo(
-    () =>
-      markers.filter(
-        (m) =>
-          m.strategy?.includes("sma") ||
-          m.label.toLowerCase().includes("sma") ||
-          m.label.toLowerCase().includes("ma"),
-      ),
+    () => markers.filter((m) => m.strategy === "sma_trend" || m.strategy === "sma_20_50_cross"),
     [markers],
   );
 
   const strongMarkers = useMemo(() => markers.filter((m) => m.strategy === "strong_trend"), [markers]);
+
+  const ma200Markers = useMemo(() => markers.filter((m) => m.strategy === "ma200_trend"), [markers]);
 
   const rsiMarkers = useMemo(
     () =>
@@ -207,6 +208,7 @@ export function PriceChart({
   const smaCount = smaMarkers.length;
   const rsiCount = rsiMarkers.length;
   const strongCount = strongMarkers.length;
+  const ma200Count = ma200Markers.length;
   const totalCount = allPlanMarkers.length;
 
   // Strategy Mode Filter (Isolates strategies to eliminate multi-plan signal confusion)
@@ -244,11 +246,13 @@ export function PriceChart({
         return rsiMarkers;
       case "strong_trend":
         return strongMarkers;
+      case "ma200_trend":
+        return ma200Markers;
       case "all":
       default:
         return allPlanMarkers;
     }
-  }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, strongMarkers, allPlanMarkers]);
+  }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, strongMarkers, ma200Markers, allPlanMarkers]);
 
   const rawBuyCount = useMemo(
     () => rawStrategyMarkers.filter((m) => m.kind === "buy").length,
@@ -440,7 +444,7 @@ export function PriceChart({
           let textLabel: string | undefined = undefined;
           if (showLabels) {
             if (isBuyEntry) {
-              textLabel = isKk(m.strategy) ? "KK BUY" : "BUY";
+              textLabel = isKk(m.strategy) ? "KK BUY" : m.strategy === "ma200_trend" ? "200D BUY" : "BUY";
             } else if (isSellEntry) {
               textLabel = m.strategy === "kk_breakout" ? "KK SELL" : "SELL";
             } else if (isCover) {
@@ -556,6 +560,11 @@ export function PriceChart({
       add(trade.entryPrice, cssVar("--foreground"), "Entry", LineStyle.Solid);
       if (trade.stop != null) add(trade.stop, cssVar("--loss"), "Stop −1R", LineStyle.Dashed);
       for (const t of trade.targets) add(t.price, cssVar("--gain"), t.label, LineStyle.Dashed);
+      // Rules without a fixed target (the trend and dip rules): show where the trade closed and how it did.
+      if (!trade.targets.length && trade.exit?.price) {
+        const pct = ((trade.exit.price - trade.entryPrice) / trade.entryPrice) * 100 * (trade.direction === "long" ? 1 : -1);
+        add(trade.exit.price, cssVar(pct >= 0 ? "--gain" : "--loss"), `Exit ${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%`, LineStyle.Dotted);
+      }
     }
     linesRef.current = { series, trade, lines };
   }, [trade, layoutTick]);
@@ -592,7 +601,10 @@ export function PriceChart({
           zones.push({ kind, left, width, top: Math.min(yEntry, yp), height: Math.abs(yEntry - yp) });
         };
         band("risk", trade.stop);
-        band("reward", trade.targets[trade.targets.length - 1]?.price);
+        const far = trade.targets[trade.targets.length - 1]?.price;
+        // No fixed target: a closed winner's zone runs to where it was sold.
+        const won = trade.exit?.price != null && (trade.direction === "long" ? trade.exit.price > trade.entryPrice : trade.exit.price < trade.entryPrice);
+        band("reward", far ?? (won ? trade.exit!.price : null));
         if (yEntry != null) label = { left: left + 4, top: Math.max(0, Math.min(...zones.map((z) => z.top), yEntry) - 22) };
       }
 
@@ -855,6 +867,26 @@ export function PriceChart({
             <button
               type="button"
               role="radio"
+              aria-checked={strategyFilter === "ma200_trend"}
+              onClick={() => {
+                setStrategyFilter("ma200_trend");
+                setShowSma200(true); // the rule reads the 200-day average
+              }}
+              className={clsx(
+                "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors flex items-center gap-1",
+                strategyFilter === "ma200_trend"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Show only 200-day trend signals: above a flat or rising 200-day average after a steady climb, with a safety stop and a 60-session review"
+            >
+              <span>200-day trend</span>
+              <span className="num text-[9.5px]">({ma200Count})</span>
+            </button>
+
+            <button
+              type="button"
+              role="radio"
               aria-checked={strategyFilter === "all"}
               onClick={() => setStrategyFilter("all")}
               className={clsx(
@@ -1000,7 +1032,7 @@ export function PriceChart({
                 : isCover
                   ? "▲ COVER"
                   : isWin
-                    ? "★ TARGET HIT"
+                    ? hitTarget(activeSignal) ? "★ TARGET HIT" : "★ EXIT +"
                     : "▼ EXIT";
 
           const isGainTone = isBuyEntry || isWin;
@@ -1158,7 +1190,7 @@ export function PriceChart({
             <span className="font-medium text-foreground flex items-center gap-1.5">
               <span>Signals Timeline</span>
               <span className="num text-muted-foreground font-normal">
-                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK" : strategyFilter === "sma_cross" ? "SMA" : strategyFilter === "strong_trend" ? "Strong trend" : "RSI"} in {range})
+                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK" : strategyFilter === "sma_cross" ? "SMA" : strategyFilter === "strong_trend" ? "Strong trend" : strategyFilter === "ma200_trend" ? "200-day trend" : "RSI"} in {range})
               </span>
             </span>
             <span className="text-[10px] text-muted-foreground">Click chip to focus candle</span>
@@ -1184,7 +1216,7 @@ export function PriceChart({
                     : isCover
                       ? "▲ COVER"
                       : isWin
-                        ? "★ TARGET"
+                        ? hitTarget(sig) ? "★ TARGET" : "★ EXIT +"
                         : "▼ EXIT";
 
               const isGainTone = isBuyEntry || isWin;
@@ -1230,7 +1262,7 @@ export function PriceChart({
                       {sig.realizedR >= 0 ? "+" : ""}{sig.realizedR.toFixed(2)}R
                     </span>
                   ) : null}
-                  <span className="text-muted-foreground text-[10px]">({sig.label})</span>
+                  <span className="hidden text-[10px] text-muted-foreground sm:inline">({sig.label})</span>
                 </button>
               );
             })}

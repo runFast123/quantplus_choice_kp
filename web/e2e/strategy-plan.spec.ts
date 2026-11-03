@@ -12,12 +12,14 @@ test.describe("Strategy-Isolated Signals Chart & KK Breakout Plan", () => {
     const kkRadio = strategyGroup.getByRole("radio", { name: /^KK \(/ });
     const smaRadio = strategyGroup.getByRole("radio", { name: /SMA 20\/50/i });
     const rsiRadio = strategyGroup.getByRole("radio", { name: /^RSI \(/ });
+    const ma200Radio = strategyGroup.getByRole("radio", { name: /^200-day trend \(/ });
     const allRadio = strategyGroup.getByRole("radio", { name: /All Plans/i });
     const cleanRadio = strategyGroup.getByRole("radio", { name: /Clean \(Off\)/i });
 
     await expect(kkRadio).toBeVisible();
     await expect(smaRadio).toBeVisible();
     await expect(rsiRadio).toBeVisible();
+    await expect(ma200Radio).toBeVisible();
     await expect(allRadio).toBeVisible();
     await expect(cleanRadio).toBeVisible();
 
@@ -50,6 +52,23 @@ test.describe("Strategy-Isolated Signals Chart & KK Breakout Plan", () => {
     await allRadio.click();
     await expect(allRadio).toHaveAttribute("aria-checked", "true");
     await expect(timeline).toBeVisible();
+  });
+
+  test("the 200-day trend button isolates that rule and turns on the 200-day average", async ({ proPage }) => {
+    await proPage.goto("/app/markets/TCS");
+    await proPage.waitForLoadState("networkidle");
+    const ma200 = proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" }).getByRole("radio", { name: /^200-day trend \(/ });
+    await ma200.click();
+    await expect(ma200).toHaveAttribute("aria-checked", "true");
+    await expect(proPage.getByRole("button", { name: "SMA 200" })).toHaveClass(/font-semibold/);
+  });
+
+  test("the history tab shows how each rule in use has done on this stock", async ({ proPage }, info) => {
+    await proPage.goto("/app/markets/TCS#history");
+    const view = (info.project.name === "mobile" ? proPage.getByTestId("rules-on-stock-cards") : proPage.getByTestId("rules-on-stock"));
+    await expect(view).toBeVisible();
+    await expect(view).toContainText("200-day trend");
+    await expect(view).toContainText("KK dip");
   });
 
   test("BacktestLab validates mathematical accuracy of KK Breakout calculations & milestones", async ({ proPage }) => {

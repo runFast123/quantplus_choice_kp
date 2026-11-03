@@ -4,9 +4,10 @@ import { FilterBar } from "@/components/market/filter-bar";
 import { SectorPulse } from "@/components/market/sector-pulse";
 import { RadarToggle } from "@/components/market/radar-toggle";
 import { SetupBadges } from "@/components/market/setup-badges";
-import { Badge, Delta, RangeBar } from "@/components/ui/data";
+import { Delta, RangeBar } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, volume } from "@/lib/format";
+import { SignalBadge } from "@/components/market/signal-badge";
 import { PRICE_SOURCE } from "@/lib/market";
 import { isSetupKey, SETUPS } from "@/lib/setups";
 import { Pager, pageParam } from "@/components/ui/pager";
@@ -182,7 +183,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
                     <td className={tdNum}>{r.rsi != null ? r.rsi.toFixed(1) : "—"}</td>
                     <td className={td}>
                       {r.last_signal ? (
-                        <Badge tone={r.last_signal === "buy" ? "gain" : "loss"}>{r.last_signal === "buy" ? "BUY" : "EXIT"}</Badge>
+                        <SignalBadge signal={r.last_signal} strategy={r.last_signal_strategy} />
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}

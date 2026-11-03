@@ -20,6 +20,7 @@ import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/d
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { DIP_EXIT, isDipRule } from "@/lib/dip-rules";
+import { RULE_KEYS, RULES, ruleOf } from "@/lib/rules";
 import { isTrendRule, reviewDate } from "@/lib/strong-trend";
 import { checkKey, signalDayOf } from "@/lib/signal-checks";
 import { CheckTag } from "@/components/market/check-tag";
@@ -57,7 +58,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const db = s.supabase;
 
   // Everything the page needs in one round trip (none of these depend on each other).
-  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes, [note], news, aiKeysRes, aiConsentRes, checkRes, health] = await Promise.all([
+  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes, [note], news, aiKeysRes, aiConsentRes, checkRes, health, tradesRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     getCandles(db, symbol),
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(200),
@@ -71,6 +72,8 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     db.from("user_consents").select("id").eq("purpose", "ai_processing").is("withdrawn_at", null).limit(1),
     db.from("signal_checks").select("strategy, signal_day").eq("symbol", symbol).eq("tagged", true).limit(200),
     getRuleHealth(db),
+    // Every trade of the rules in use on this stock (one row per buy; result once it closed).
+    db.from("signal_trades").select("strategy, signal_day, result_pct").eq("symbol", symbol).in("strategy", [...RULE_KEYS]).limit(2000),
   ]);
   if (!quoteRes.data) {
     const retired = (await getRetired(db, [symbol])).get(symbol);
@@ -87,12 +90,13 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const latestBuySignal = signals.find(
     (s) => s.signal_type === "buy" && !isTrendRule(s.strategy) && !isDipRule(s.strategy),
   );
-  const openTrends = (["strong_trend", "sma_trend", "ma200_trend"] as const)
-    .map((rule) => signals.find((s) => s.strategy === rule))
-    .filter((s): s is Signal => s?.signal_type === "buy");
-  const openDips = (["rsi_dip", "kk_dip"] as const)
-    .map((rule) => signals.find((s) => s.strategy === rule))
-    .filter((s): s is Signal => s?.signal_type === "buy");
+  // Each rule's latest signal on this stock, when it is a buy that has not closed yet (lib/rules.ts, in display order).
+  const openOf = (kind: "trend" | "dip") =>
+    RULES.filter((r) => r.kind === kind)
+      .map((r) => signals.find((s) => s.strategy === r.key))
+      .filter((s): s is Signal => s?.signal_type === "buy");
+  const openTrends = openOf("trend");
+  const openDips = openOf("dip");
   const watches = watchRes.data ?? [];
   // Signal checks (ADR-038): which of this stock's open signals and dip-buy levels carry a tag.
   const tagged = new Set((checkRes.data ?? []).map((c) => checkKey(c.strategy, symbol, c.signal_day)));
@@ -138,7 +142,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           </p>
           <p className="mt-1 text-muted-foreground">
             Closed at ₹{price(Number(t.payload.close))}
-            {t.strategy === "strong_trend" ? ", a new 52-week high on heavy volume" : ", the 20-day average turning above the 50-day in a market leader"}
+            {ruleOf(t.strategy) ? `, ${ruleOf(t.strategy)!.why}` : ""}
             . Safety stop <span className="num text-loss">₹{price(Number(t.payload.stop))}</span>; review around{" "}
             {date(reviewDate(t.generated_at).toISOString())} (60 trading sessions). No fixed target: in testing, holding to
             the review did better than taking profit early.
@@ -328,7 +332,94 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     </div>
   );
 
+  // How each rule has done on this stock: closed trades, how many made money, the average, and an open trade now.
+  const trades = (tradesRes.data ?? []) as { strategy: string; signal_day: string; result_pct: number | null }[];
+  const perRule = RULES.map((r) => {
+    const mine = trades.filter((t) => t.strategy === r.key);
+    const closed = mine.filter((t) => t.result_pct != null).map((t) => Number(t.result_pct));
+    const open = mine.filter((t) => t.result_pct == null).sort((a, b) => b.signal_day.localeCompare(a.signal_day))[0];
+    return {
+      rule: r,
+      closed: closed.length,
+      made: closed.filter((x) => x > 0).length,
+      avg: closed.length ? closed.reduce((a, b) => a + b, 0) / closed.length : null,
+      open,
+    };
+  });
+
   const historyTab = (
+    <div className="flex flex-col gap-5">
+    <Panel title={`Each rule on ${q.symbol}`} meta="Before costs">
+      {/* Phones: one card per rule */}
+      <ul className="flex flex-col divide-y divide-border sm:hidden" data-testid="rules-on-stock-cards">
+        {perRule.map(({ rule, closed, made, avg, open }) => (
+          <li key={rule.key} className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium">{rule.name}</p>
+              <p className="text-[11.5px] leading-4 text-muted-foreground">{rule.why}</p>
+              {open ? (
+                <a href="#plan" className="mt-1 inline-block text-[12px] hover:underline">
+                  Open since {date(open.signal_day)}
+                </a>
+              ) : null}
+            </div>
+            <div className="shrink-0 text-right">
+              {closed ? (
+                <>
+                  <p className="num text-[12.5px]">
+                    {made} of {closed}
+                  </p>
+                  {avg != null ? <Delta value={avg} /> : null}
+                </>
+              ) : (
+                <p className="text-[12px] text-muted-foreground">No trades yet</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden sm:block">
+      <TableWrap>
+        <table className="w-full min-w-[520px]" data-testid="rules-on-stock">
+          <thead>
+            <tr>
+              <th className={th}>Rule</th>
+              <th className={thNum}>Trades closed</th>
+              <th className={thNum}>Made money</th>
+              <th className={thNum}>Average trade</th>
+              <th className={th}>Now</th>
+            </tr>
+          </thead>
+          <tbody>
+            {perRule.map(({ rule, closed, made, avg, open }) => (
+              <tr key={rule.key} className={tr}>
+                <td className={td}>
+                  <span className="font-medium">{rule.name}</span>
+                  <span className="block text-[11.5px] text-muted-foreground">{rule.why}</span>
+                </td>
+                <td className={tdNum}>{closed || "—"}</td>
+                <td className={tdNum}>{closed ? `${made} of ${closed}` : "—"}</td>
+                <td className={tdNum}>{avg != null ? <Delta value={avg} /> : "—"}</td>
+                <td className={td}>
+                  {open ? (
+                    <a href="#plan" className="whitespace-nowrap text-[12.5px] hover:underline">
+                      Open since {date(open.signal_day)}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableWrap>
+      </div>
+      <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+        Every trade each rule took on this stock in the prices we hold, closed the way the rule closes it. A handful of trades on
+        one stock says little about a rule; its full record is on the Signals page.
+      </p>
+    </Panel>
     <Panel title="Signal history" meta={`${signals.length} most recent`}>
       {signals.length === 0 ? (
         <Empty title="No signals yet.">Rules haven&apos;t fired on {q.symbol} in the history we hold.</Empty>
@@ -378,6 +469,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
         </p>
       ) : null}
     </Panel>
+    </div>
   );
 
   const backtestTab = (
