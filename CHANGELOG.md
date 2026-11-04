@@ -5,6 +5,35 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — the nightly jobs keep the record right and finish on time; the chart shows every past signal (ADR-042, ADR-043)
+- **The 200-day trend rule is unchanged** (the SMA version live since ADR-040; an EMA version was tested and not adopted —
+  `research/strategies/compare_200dma.py`, `compare_sources.py`, `record_ema.py`).
+- **Rules continue their record** (migration 45, `private.rule_resume`): the five rules rebuilt their one-trade-per-stock
+  chain from the oldest stored candle each night, and the nightly trim moves that candle, so the chain could start again
+  on another day and write a second trade over a stored one (PGlite on the live-candle copy, 150 days trimmed: 68 such
+  rows for 200-day trend, 159 for Strong trend, 10 for SMA 20/50). Each rule now starts after the stock's last stored
+  signal (an open buy is followed to its exit) and writes only later rows. Nightly runs = one full run (3,822 signals,
+  none missing or extra); on live all five rules wrote 0 rows for all 500 stocks. Test 19.
+- **Analytics within the 8 s limit** (migration 46): `refresh_leaders` re-ranked the 500 largest over 270 days in every
+  batch whenever only part of the market had the latest session (4 Nov: the 17:00 cron's 33 benchmarks) — 3–6 s a batch,
+  and the 4 Nov pipeline timed out. It now ranks only while a ranked stock lacks the latest session's rank (4.2 s → 0.16 s;
+  a 20-stock batch 2.8 s). `eod.py` `run_analytics` splits a batch that still times out (`test_eod.Analytics`).
+- **RSI crossings rebuilt** (migration 47) for the 500 largest on their 1,250-day history: rows from the Sep 2024 cold
+  start were never replaced (the audit: up to 15 RSI points off).
+- **Price audit** (`audit.py`): the SIP check rounds like SQL (STARHEALTH was 5 paise off on float rounding); the retired
+  rules are compared from their first day plus the warm-up (they never ran on the history added by ADR-041).
+- **On-time full load:** the Market EOD schedules moved off :00/:30 (GitHub ran them 5–8 h late); with
+  `GITHUB_DISPATCH_TOKEN` + `GITHUB_REPO` set in Vercel the 17:00 / 20:00 IST crons start the workflow
+  (`server/github-dispatch.ts`, `?dispatch=full` in `vercel.json`).
+- **Chart:** the stock page loads every stored candle (`getCandles` 730 → 1,300 days; 2,356 of the rules' signals were
+  older than 2 years and could not show). Choosing 200-day trend turns on the SMA 200, draws its 100-session regression
+  line ("Trend line ±x.xx%", the rule's own measure) and widens the range to the rule's latest signal; toggles carry
+  `aria-pressed`.
+- **Speed** (migration 44): the Signals page reads kept records (`strategy_trade_summary`, `strategy_scorecard_summary`,
+  refreshed each evening) instead of views that took up to 2.6 s cold; `research_latest` reads one stock for one stock;
+  `retention_derived` deletes RSI crossings, leader ranks and rule health nothing can show. Test 18.
+- Admin facts panel: the candle-table sentence was wrong (no symbol partitions; 760 days) — corrected.
+
 ### Added — the five rules' past signals (ADR-041)
 - **Why:** stock charts showed few or no past signals from the five rules, most of all Strong trend and 200-day trend:
   two years of candles were stored and each rule spent the first year warming up (200-day trend needs 300 sessions),

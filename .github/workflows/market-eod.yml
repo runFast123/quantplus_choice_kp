@@ -5,9 +5,11 @@ name: Market EOD
 # Repository secrets: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 on:
   schedule:
-    - cron: "30 11 * * 1-5"   # 17:00 IST, Mon–Fri (session settles 15:45 IST)
-    - cron: "30 14 * * 1-5"   # 20:00 IST retry; idempotent, picks up late Yahoo updates
-    - cron: "0 3 * * 2-6"     # 08:30 IST Tue–Sat catch-up: Yahoo published most of 2 Nov 2026 only after 23:00 IST
+    # Off the :00 / :30 minutes, which GitHub delays most (these ran 5–8 h late in Oct–Nov 2026). With
+    # GITHUB_DISPATCH_TOKEN set in Vercel, the app's 17:00 and 20:00 IST crons start this workflow on time (ADR-043).
+    - cron: "41 11 * * 1-5"   # 17:11 IST, Mon–Fri (session settles 15:45 IST)
+    - cron: "47 14 * * 1-5"   # 20:17 IST retry; idempotent, picks up late Yahoo updates
+    - cron: "23 3 * * 2-6"    # 08:53 IST Tue–Sat catch-up: Yahoo published most of 2 Nov 2026 only after 23:00 IST
   workflow_dispatch:
     inputs:
       days:

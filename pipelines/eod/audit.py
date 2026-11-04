@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import argparse
 import random
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 import sys
 import urllib.parse
 from datetime import datetime, timedelta, timezone
@@ -226,10 +226,13 @@ def main(argv=None) -> int:
             f"{len(one_behind)} of {len(strict_here)} indices and large companies are a session behind: {one_behind[:8]}")
 
     # Both rules were retired (ADR-036, ADR-037): stored signals are history up to each rule's last day, none after.
-    def last_day(strategy):
-        last = get(db, "trading_signals", f"select=generated_at&strategy=eq.{strategy}&order=generated_at.desc&limit=1")
+    def last_day(strategy, order="desc"):
+        last = get(db, "trading_signals", f"select=generated_at&strategy=eq.{strategy}&order=generated_at.{order}&limit=1")
         return pd.Timestamp(last.generated_at.iloc[0]).tz_convert("UTC").date() if len(last) else None
     rsi_until, sma_until = last_day("rsi_reversal"), last_day("sma_20_50_cross")
+    # ...and from the first day they ran: the history the 500 largest gained afterwards (ADR-041, back to mid 2023)
+    # never had them. RSI reversals also skip the warm-up after that day (the history then began a few days earlier).
+    rsi_first, sma_first = last_day("rsi_reversal", "asc"), last_day("sma_20_50_cross", "asc")
 
     snap = pd.concat([
         get(db, "market_snapshot", f"select=*&symbol=in.({urllib.parse.quote(','.join(f'\"{x}\"' for x in part))})")
@@ -325,8 +328,13 @@ def main(argv=None) -> int:
         stored_rsi = {key(x): (x.get("payload") or {}).get("rsi") for x in sg.to_dict("records")} if len(sg) else {}
         got = set(stored_rsi)
         settled_from = c.index[min(WARMUP, len(c) - 1)].date()
-        exp = {x for x in exp if x[2] >= settled_from}
-        got = {x for x in got if x[2] >= settled_from}
+        days = [t.date() for t in c.index]
+        # A retired rule is compared from WARMUP sessions after its first stored signal: the history it ran on then
+        # began a little earlier (RSI needs the warm-up; SMA 50 needs 50 sessions, which the warm-up covers).
+        after = lambda first: max(settled_from, days[min(sum(d < first for d in days) + WARMUP, len(days) - 1)]) if first else settled_from
+        ran_from = {"sma_20_50_cross": after(sma_first), "rsi_reversal": after(rsi_first)}
+        exp = {x for x in exp if x[2] >= ran_from[x[0]]}
+        got = {x for x in got if x[2] >= ran_from[x[0]]}
         # The retired rules never rewrite a stored signal; one written before Yahoo revised a price stays as history.
         rsi_on = {t.date(): v for t, v in rsi.items()}
         revised = {x for x in got - exp if x[0] == "rsi_reversal" and revised_since(stored_rsi[x], rsi_on.get(x[2]))}
@@ -338,10 +346,13 @@ def main(argv=None) -> int:
         if len(led):
             month = c.index.tz_convert(IST).tz_localize(None).to_period("M")
             firsts = c.groupby(month).head(1)
-            units = (10000 / firsts.close).round(4)
+            # Exact decimals rounded half away from zero, as SQL's numeric round() does (floats rounded half to even
+            # once put STARHEALTH's value 5 paise off, 3 Nov 2026).
+            units = sum((Decimal(10000) / Decimal(str(x))).quantize(Decimal("0.0001"), ROUND_HALF_UP) for x in firsts.close)
+            last = Decimal(str(c.close.iloc[-1]))
             invested = 10000 * len(firsts)
-            final = round(units.sum() * c.close.iloc[-1], 2)
-            roi = round((units.sum() * c.close.iloc[-1] - invested) / invested * 100, 4)
+            final = float((units * last).quantize(Decimal("0.01"), ROUND_HALF_UP))
+            roi = float(((units * last - invested) / invested * 100).quantize(Decimal("0.0001"), ROUND_HALF_UP))
             L = led.iloc[0]
             ok = (int(L.ledger["invested"]) == invested and abs(float(L.ledger["final_value"]) - final) <= TOL_SIP
                   and abs(float(L.roi_pct) - roi) <= 0.0002)

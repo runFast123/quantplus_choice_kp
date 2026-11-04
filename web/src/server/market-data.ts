@@ -132,7 +132,11 @@ export async function getRuleHealth(db: SupabaseClient): Promise<{ latest: Map<s
   return { latest, history };
 }
 
-export async function getCandles(db: SupabaseClient, symbol: string, exchange = "NSE", days = 730): Promise<Candle[]> {
+/**
+ * Daily candles, oldest → newest. The default covers everything stored (history_days is at most 1,250 for the 500
+ * largest, ADR-041: about 860 sessions, under the 1,000-row cap), so the chart's ALL range holds every past signal.
+ */
+export async function getCandles(db: SupabaseClient, symbol: string, exchange = "NSE", days = 1300): Promise<Candle[]> {
   const since = new Date(Date.now() - days * 86400000).toISOString();
   const { data } = await db
     .from("market_candles")

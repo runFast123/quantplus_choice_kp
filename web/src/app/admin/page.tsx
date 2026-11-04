@@ -371,9 +371,10 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             <Panel title="System Architecture & Database Facts" meta="Core constraints and operational specifications">
               <div className="grid gap-4 sm:grid-cols-3 text-[12.5px]">
                 <div className="rounded-lg border border-border p-3.5 bg-card/30">
-                  <h4 className="font-semibold text-foreground mb-1">EOD Candles Partitioning</h4>
+                  <h4 className="font-semibold text-foreground mb-1">Daily candles</h4>
                   <p className="text-muted-foreground text-[12px]">
-                    <code className="num">market_candles</code> is partitioned by symbol for fast queries across 760 daily candles without sequential table scans.
+                    <code className="num">market_candles</code> is keyed by symbol, exchange and day; it keeps 1,250 days for the 500
+                    largest companies and the indices, and 760 for the rest. Older candles are deleted nightly.
                   </p>
                 </div>
                 <div className="rounded-lg border border-border p-3.5 bg-card/30">

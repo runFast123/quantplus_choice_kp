@@ -205,11 +205,11 @@ export default async function SignalsPage({
       .limit(1)
       .maybeSingle(),
     db
-      .from("strategy_scorecard")
+      .from("strategy_scorecard_summary")
       .select("strategy, side, graded_20, up_20_pct, beat_index_20_pct, vs_index_20_pts, stop_hit_20_pct, first_day")
       .eq("period", "all"),
     db.from("signal_watch").select("symbol, strategy, signal_day, limit_price, stop, payload").order("symbol"),
-    db.from("strategy_trade_results").select("strategy, side, trades, made_money_pct, avg_result_pct"),
+    db.from("strategy_trade_summary").select("strategy, side, trades, made_money_pct, avg_result_pct"),
     db.from("signal_check_record").select("strategy, month, label, signals, trades, made_money"),
     db
       .from("signal_check_models")

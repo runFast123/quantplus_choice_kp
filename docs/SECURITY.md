@@ -11,6 +11,7 @@ How QuantsPulse keeps database credentials, keys and user data from leaking — 
 | Database password / URL | `supabase/.env` → `SUPABASE_DB_URL` | `supabase/scripts/apply.mjs` (migrations, tests) | The web app (it doesn't need it), CI logs |
 | Secrets encryption key(s) | `web/.env.local` → `QP_SECRETS_KEY_V<n>`, `QP_SECRETS_KEY_CURRENT` | `server/privileged/crypto.ts` | The database (that's the point) |
 | Cron secret | `web/.env.local` → `CRON_SECRET` | `/api/cron/*` callers (Vercel Cron, GitHub Actions) | Query strings |
+| GitHub dispatch token (optional) | Vercel env → `GITHUB_DISPATCH_TOKEN` (fine-grained, Actions: write, this repo only) | `server/github-dispatch.ts` (starts the Market EOD workflow) | Logs, responses, the browser |
 | 21st.dev key | `.mcp.json` | Claude Code MCP | — |
 | `DB_confi` | project root, owner's notes | nobody at runtime | — consider deleting it now that values are in the env files |
 

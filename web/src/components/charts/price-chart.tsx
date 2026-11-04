@@ -68,6 +68,31 @@ function computeSma(candles: Candle[], period: number) {
   return result;
 }
 
+/**
+ * The least-squares line through the last 100 values of the 200-day average up to `time`: the regression line the
+ * 200-day trend rule reads (migration 41: `regr_slope(sma200, k)` over 100 sessions).
+ */
+function regressionLine(sma: { time: UTCTimestamp; value: number }[], time: UTCTimestamp | null) {
+  let end = sma.length - 1;
+  if (time != null) while (end >= 0 && sma[end].time > time) end--;
+  if (end < 99) return null;
+  const ys = sma.slice(end - 99, end + 1).map((p) => p.value);
+  const mean = ys.reduce((s, y) => s + y, 0) / 100;
+  let num = 0;
+  let den = 0;
+  ys.forEach((y, i) => {
+    num += (i - 49.5) * (y - mean);
+    den += (i - 49.5) * (i - 49.5);
+  });
+  const slope = num / den;
+  return {
+    // one point per session, so the part on screen still draws when the range starts inside the 100 days
+    points: sma.slice(end - 99, end + 1).map((p, i) => ({ time: p.time, value: mean + (i - 49.5) * slope })),
+    // the rule's measure: the line's change over 20 sessions, in % of the 200-day average (flat or rising = -0.25 or more)
+    pct: (2000 * slope) / sma[end].value,
+  };
+}
+
 const markerKey = (m: ChartMarker) => `${m.ts}|${m.label}`;
 
 // A winning exit says "target" only for rules that have one (KK's targets); the trend and dip rules close in profit at
@@ -254,6 +279,29 @@ export function PriceChart({
     }
   }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, strongMarkers, ma200Markers, allPlanMarkers]);
 
+  // Choosing a rule shows its indicators and, when its latest signal is older than the range on screen, the shortest
+  // range that holds it (SUZLON's last 200-day trend trade was 16 months back: 1Y showed only the average's line).
+  const markersFor = (k: ChartStrategyFilter) =>
+    k === "kk_breakout" ? effectiveKkMarkers
+      : k === "sma_cross" ? smaMarkers
+        : k === "rsi_reversal" ? rsiMarkers
+          : k === "strong_trend" ? strongMarkers
+            : k === "ma200_trend" ? ma200Markers
+              : k === "all" ? allPlanMarkers
+                : [];
+  const chooseRule = (k: ChartStrategyFilter) => {
+    setStrategyFilter(k);
+    setSelectedSignal(null);
+    if (k === "ma200_trend") setShowSma200(true); // the rule reads the 200-day average and its regression line
+    const list = markersFor(k);
+    if (!list.length || !candles.length) return;
+    const last = new Date(candles[candles.length - 1].ts).getTime();
+    const newest = Math.max(...list.map((m) => new Date(m.ts).getTime()));
+    if (newest >= last - RANGES.find((r) => r.key === range)!.days * 86400000) return;
+    const fit = RANGES.find((r) => newest >= last - r.days * 86400000);
+    if (fit) setRange(fit.key);
+  };
+
   const rawBuyCount = useMemo(
     () => rawStrategyMarkers.filter((m) => m.kind === "buy").length,
     [rawStrategyMarkers],
@@ -262,6 +310,14 @@ export function PriceChart({
     () => rawStrategyMarkers.filter((m) => m.kind === "exit").length,
     [rawStrategyMarkers],
   );
+
+  // The 200-day trend's regression line: through the 100 values of the 200-day average up to the selected signal, or up
+  // to the latest day.
+  const lrLine = useMemo(() => {
+    if (strategyFilter !== "ma200_trend" || !showSma200) return null;
+    const at = selectedSignal?.strategy === "ma200_trend" ? toTime(selectedSignal.ts) : null;
+    return regressionLine(fullSma200, at);
+  }, [strategyFilter, showSma200, selectedSignal, fullSma200]);
 
   // Filtered and deduplicated markers
   const activeMarkers = useMemo(() => {
@@ -409,6 +465,19 @@ export function PriceChart({
       sma200.setData(fullSma200.filter((p) => p.time >= firstTime && p.time <= lastTime));
     }
 
+    if (lrLine) {
+      const line = chart.addSeries(LineSeries, {
+        color: cssVar("--foreground"),
+        lineWidth: 2,
+        lineStyle: LineStyle.Dashed,
+        title: `Trend line ${lrLine.pct >= 0 ? "+" : "−"}${Math.abs(lrLine.pct).toFixed(2)}%`,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      line.setData(lrLine.points.filter((p) => p.time >= firstTime && p.time <= lastTime));
+    }
+
     // Volume histogram
     if (showVolume) {
       const vol = chart.addSeries(HistogramSeries, {
@@ -530,6 +599,7 @@ export function PriceChart({
     showSma20,
     showSma50,
     showSma200,
+    lrLine,
     showVolume,
     showLabels,
     fullSma20,
@@ -695,6 +765,7 @@ export function PriceChart({
           <button
             type="button"
             onClick={() => setShowSma20((v) => !v)}
+            aria-pressed={showSma20}
             className={clsx(
               "num inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10.5px] transition-colors",
               showSma20 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
@@ -707,6 +778,7 @@ export function PriceChart({
           <button
             type="button"
             onClick={() => setShowSma50((v) => !v)}
+            aria-pressed={showSma50}
             className={clsx(
               "num inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10.5px] transition-colors",
               showSma50 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
@@ -719,6 +791,8 @@ export function PriceChart({
           <button
             type="button"
             onClick={() => setShowSma200((v) => !v)}
+            aria-pressed={showSma200}
+            title="The 200-day average the 200-day trend rule reads; with that rule chosen, also its trend line over the last 100 days"
             className={clsx(
               "num inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10.5px] transition-colors",
               showSma200 ? "border-foreground/30 bg-muted/40 text-foreground font-semibold" : "border-border text-muted-foreground hover:text-foreground",
@@ -731,6 +805,7 @@ export function PriceChart({
           <button
             type="button"
             onClick={() => setShowVolume((v) => !v)}
+            aria-pressed={showVolume}
             className={clsx(
               "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
               showVolume ? "border-primary/40 bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:text-foreground",
@@ -799,7 +874,7 @@ export function PriceChart({
               type="button"
               role="radio"
               aria-checked={strategyFilter === "kk_breakout"}
-              onClick={() => setStrategyFilter("kk_breakout")}
+              onClick={() => chooseRule("kk_breakout")}
               className={clsx(
                 "rounded px-2 py-0.5 text-[10.5px] font-semibold transition-colors flex items-center gap-1",
                 strategyFilter === "kk_breakout"
@@ -817,7 +892,7 @@ export function PriceChart({
               type="button"
               role="radio"
               aria-checked={strategyFilter === "sma_cross"}
-              onClick={() => setStrategyFilter("sma_cross")}
+              onClick={() => chooseRule("sma_cross")}
               className={clsx(
                 "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors flex items-center gap-1",
                 strategyFilter === "sma_cross"
@@ -834,7 +909,7 @@ export function PriceChart({
               type="button"
               role="radio"
               aria-checked={strategyFilter === "rsi_reversal"}
-              onClick={() => setStrategyFilter("rsi_reversal")}
+              onClick={() => chooseRule("rsi_reversal")}
               className={clsx(
                 "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors flex items-center gap-1",
                 strategyFilter === "rsi_reversal"
@@ -851,7 +926,7 @@ export function PriceChart({
               type="button"
               role="radio"
               aria-checked={strategyFilter === "strong_trend"}
-              onClick={() => setStrategyFilter("strong_trend")}
+              onClick={() => chooseRule("strong_trend")}
               className={clsx(
                 "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors flex items-center gap-1",
                 strategyFilter === "strong_trend"
@@ -868,10 +943,7 @@ export function PriceChart({
               type="button"
               role="radio"
               aria-checked={strategyFilter === "ma200_trend"}
-              onClick={() => {
-                setStrategyFilter("ma200_trend");
-                setShowSma200(true); // the rule reads the 200-day average
-              }}
+              onClick={() => chooseRule("ma200_trend")}
               className={clsx(
                 "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors flex items-center gap-1",
                 strategyFilter === "ma200_trend"
@@ -888,7 +960,7 @@ export function PriceChart({
               type="button"
               role="radio"
               aria-checked={strategyFilter === "all"}
-              onClick={() => setStrategyFilter("all")}
+              onClick={() => chooseRule("all")}
               className={clsx(
                 "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors",
                 strategyFilter === "all"
@@ -904,7 +976,7 @@ export function PriceChart({
               type="button"
               role="radio"
               aria-checked={strategyFilter === "none"}
-              onClick={() => setStrategyFilter("none")}
+              onClick={() => chooseRule("none")}
               className={clsx(
                 "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors",
                 strategyFilter === "none"
@@ -972,6 +1044,7 @@ export function PriceChart({
             <button
               type="button"
               onClick={() => setShowLabels((v) => !v)}
+              aria-pressed={showLabels}
               className={clsx(
                 "rounded border px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
                 showLabels ? "border-primary bg-primary/10 text-primary font-semibold" : "border-border text-muted-foreground hover:text-foreground",

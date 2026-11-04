@@ -354,6 +354,38 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-043 · Nightly reliability: rules continue their record, leaders ranked once, an on-time trigger
+**Date** 2026-11-04 · **Status** accepted
+- **Context:** a system review after ADR-040/041 found: (1) every busy-based rule rebuilt its trade chain from the oldest
+  stored candle, which the nightly trim moves, so trades could be written again over stored ones (reproduced on the
+  live-candle copy); (2) the 4 Nov pipeline timed out because `refresh_leaders` re-ranked the market in every batch on a
+  partly loaded day; (3) RSI crossings from the Sep 2024 cold start survived ADR-041's longer history; (4) GitHub ran
+  the Market EOD schedule 5–8 hours late every day from 28 Oct.
+- **Decision:** migration 45 — each rule resumes after the stock's last stored signal (`private.rule_resume`; an open buy
+  is followed to its exit) and writes only later rows; the record is append-only and what a rule buys and sells is
+  unchanged (`rebuild_rule_signals` deletes first, so a rebuild still runs on everything). Migration 46 — leaders are
+  ranked only while a ranked stock lacks the latest session's rank. Migration 47 — crossings of the 500 largest rebuilt.
+  `eod.py` splits a batch that hits the statement limit. The schedule left :00/:30, and the app's Vercel crons can start
+  the workflow through GitHub's dispatch API (optional token, Actions: write on this repository only).
+- **Limits:** a candle revised by Yahoo inside an open trade can make the rerun miss that buy (then the next buy after it
+  is written); the price audit and rule health would show it. Without the dispatch token the GitHub schedule (late) is
+  still the only full load; the 17:00 cron loads the 33 benchmarks.
+
+### ADR-042 · Fast reads: kept records, a one-stock research lookup, nightly clean-up
+**Date** 2026-11-04 · **Status** accepted
+- **Context:** the owner found pages slow. Measured on production: Signals 2.5–3.6 s, the stock page 2.6–3.8 s, Dry Run
+  1.0–3.3 s, the rest under 0.9 s. The database answered from memory 99.7 % of the time, but two record views scanned
+  every stored signal's JSON on each view (135–150 ms warm, 2.6 s cold) and research_latest probed all 3,627 symbols for
+  one stock (955 ms cold).
+- **Decision (migration 44):** the records are kept in `strategy_trade_summary` / `strategy_scorecard_summary`, refreshed
+  once an evening by `svc_refresh_signal_checks` (the views stay live for the refresh and the tests); `research_latest`
+  returns the symbol from `market_symbols` so a filter reaches the index; `private.retention_derived()` (02:55 UTC daily)
+  deletes RSI crossings older than the stock's stored candles, leader ranks older than 1,260 days and rule health older
+  than two years. Signals are never deleted: they are the record.
+- **Not adopted:** an EMA version of 200-day trend with the stop counted on the close (tested 4 Nov 2026: 2024–26 41 in
+  100 made money, +0.1 %, below a random day above the EMA; the SMA version 49 in 100, +2.3 %). The owner kept the live
+  SMA rule (ADR-040) unchanged.
+
 ### ADR-041 · ~3.4 years of history for the 500 largest, and the five rules rebuilt on it
 **Date** 2026-11-04 · **Status** accepted (live after the owner's go-ahead)
 - **Context:** the owner saw stock charts with few or no past signals from the five rules (Strong trend and 200-day

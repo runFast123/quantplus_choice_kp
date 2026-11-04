@@ -271,6 +271,23 @@ def chunks(xs: list, n: int):
         yield xs[i:i + n]
 
 
+def run_analytics(db, part: list, days: int, totals: dict) -> None:
+    """One analytics RPC. A batch that hits the 8 s statement limit (SQLSTATE 57014; the call is one transaction, so
+    nothing of it was kept) is split in half and run again, down to one symbol, which raises."""
+    try:
+        out = db.rpc("svc_refresh_market_analytics", {"p_days": days, "p_symbols": part}) or {}
+    except RuntimeError as e:
+        if "57014" not in str(e) or len(part) <= 1:
+            raise
+        print(f"eod: an analytics batch of {len(part)} hit the statement limit; running it in two halves")
+        half = len(part) // 2
+        run_analytics(db, part[:half], days, totals)
+        run_analytics(db, part[half:], days, totals)
+        return
+    for k, v in out.items():
+        totals[k] = totals.get(k, 0) + v
+
+
 # ---------------------------------------------------------------- Supabase
 def load_env() -> tuple[str, str]:
     env = dict(os.environ)
@@ -487,8 +504,7 @@ def main(argv: list[str] | None = None) -> int:
     totals: dict[str, int] = {}
     for group, days in (([s for s in touched if s not in full], args.days + 5), ([s for s in touched if s in full], FULL_HISTORY_DAYS)):
         for part in chunks(group, ANALYTICS_CHUNK if days < 100 else ANALYTICS_CHUNK // 2):
-            for k, v in (db.rpc("svc_refresh_market_analytics", {"p_days": days, "p_symbols": part}) or {}).items():
-                totals[k] = totals.get(k, 0) + v
+            run_analytics(db, part, days, totals)
     print("eod: analytics", totals)
     # After every batch: the checks need the whole day's signals (ADR-038). Not fatal: the 17:55 IST cron backstop
     # runs them again, and research notes and alerts must not wait on them.

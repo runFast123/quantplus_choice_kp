@@ -5,8 +5,8 @@
   ],
   "crons": [
     { "path": "/api/cron/news", "schedule": "30 4 * * *" },
-    { "path": "/api/cron/market-eod", "schedule": "30 11 * * 1-5" },
-    { "path": "/api/cron/market-eod", "schedule": "30 14 * * 1-5" },
+    { "path": "/api/cron/market-eod?dispatch=full", "schedule": "30 11 * * 1-5" },
+    { "path": "/api/cron/market-eod?dispatch=full", "schedule": "30 14 * * 1-5" },
     { "path": "/api/cron/push", "schedule": "45 12 * * 1-5" }
   ]
 }

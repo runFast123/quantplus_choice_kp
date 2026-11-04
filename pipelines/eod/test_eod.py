@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 
 import pandas as pd
 
-from eod import Candle, has_break, last_settled_day, on_trading_days, repair_series, sessions, split_symbols, to_candles, yahoo_ticker
+from eod import Candle, has_break, last_settled_day, on_trading_days, repair_series, run_analytics, sessions, split_symbols, to_candles, yahoo_ticker
 
 
 def frame(rows):
@@ -158,6 +158,34 @@ class Rows(unittest.TestCase):
     def test_yahoo_ticker(self):
         self.assertEqual(yahoo_ticker("M&M"), "M&M.NS")
         self.assertEqual(yahoo_ticker("BAJAJ-AUTO"), "BAJAJ-AUTO.NS")
+
+
+class Analytics(unittest.TestCase):
+    class Db:
+        """Times out on any batch larger than `limit`, like the 8 s statement limit."""
+        def __init__(self, limit, other_error=False):
+            self.limit, self.other_error, self.calls = limit, other_error, []
+
+        def rpc(self, fn, args):
+            part = args["p_symbols"]
+            self.calls.append(len(part))
+            if len(part) > self.limit:
+                if self.other_error:
+                    raise RuntimeError("POST rpc/svc_refresh_market_analytics -> 400: bad input")
+                raise RuntimeError('POST rpc/svc_refresh_market_analytics -> 500: {"code":"57014"}')
+            return {"quotes": len(part)}
+
+    def test_a_batch_over_the_limit_is_split_until_it_fits(self):
+        db, totals = self.Db(limit=5), {}
+        run_analytics(db, [f"S{i}" for i in range(20)], 15, totals)
+        self.assertEqual(totals, {"quotes": 20})               # every symbol ran once
+        self.assertEqual(db.calls, [20, 10, 5, 5, 10, 5, 5])
+
+    def test_other_errors_and_single_symbols_raise(self):
+        with self.assertRaises(RuntimeError):
+            run_analytics(self.Db(limit=5, other_error=True), [f"S{i}" for i in range(20)], 15, {})
+        with self.assertRaises(RuntimeError):
+            run_analytics(self.Db(limit=0), ["S0"], 15, {})
 
 
 if __name__ == "__main__":
