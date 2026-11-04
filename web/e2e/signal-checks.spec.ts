@@ -25,7 +25,8 @@ test.describe("signal checks @mobile", () => {
 
   test("every tag says what it means and that it is not advice", async ({ proPage }) => {
     await proPage.goto("/app/signals?scope=all#record");
-    const tags = proPage.locator("[data-check]");
+    // Visible tags only: the Today tab, mounted first, can hold tagged fresh buys too.
+    const tags = proPage.locator("[data-check]:visible");
     await expect(tags.first()).toBeVisible();          // the panel shows one of each
     const n = await tags.count();
     for (let i = 0; i < Math.min(n, 12); i++) {
