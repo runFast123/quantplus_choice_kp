@@ -46,7 +46,7 @@ CANDLE_UTC = time(10, 0)                # 15:30 IST
 BATCH = 1000                            # candle rows per upsert
 FETCH_CHUNK = 100                       # tickers per Yahoo download
 ANALYTICS_CHUNK = 20                    # symbols per analytics RPC (8 s statement limit: 50 took ~12 s once the top 500 kept 1,250 days, ADR-041)
-RESEARCH_CHUNK = 300                    # symbols per research RPC
+RESEARCH_CHUNK = 100                    # symbols per research RPC (300 took 6.5 s on a cold cache, 4 Nov 2026)
 ROOT = Path(__file__).resolve().parents[2]
 
 # Ignore Yahoo history before these dates. Yahoo files pre-demerger Tata Motors
@@ -271,21 +271,29 @@ def chunks(xs: list, n: int):
         yield xs[i:i + n]
 
 
-def run_analytics(db, part: list, days: int, totals: dict) -> None:
-    """One analytics RPC. A batch that hits the 8 s statement limit (SQLSTATE 57014; the call is one transaction, so
-    nothing of it was kept) is split in half and run again, down to one symbol, which raises."""
+def run_split(db, fn: str, part: list, extra: dict, add) -> None:
+    """One batched RPC over `part`, its result passed to `add`. A batch that hits the 8 s statement limit (SQLSTATE
+    57014; the call is one transaction, so nothing of it was kept) is split in half and run again, down to one symbol,
+    which raises."""
     try:
-        out = db.rpc("svc_refresh_market_analytics", {"p_days": days, "p_symbols": part}) or {}
+        out = db.rpc(fn, {**extra, "p_symbols": part})
     except RuntimeError as e:
         if "57014" not in str(e) or len(part) <= 1:
             raise
-        print(f"eod: an analytics batch of {len(part)} hit the statement limit; running it in two halves")
+        print(f"eod: a {fn} batch of {len(part)} hit the statement limit; running it in two halves")
         half = len(part) // 2
-        run_analytics(db, part[:half], days, totals)
-        run_analytics(db, part[half:], days, totals)
+        run_split(db, fn, part[:half], extra, add)
+        run_split(db, fn, part[half:], extra, add)
         return
-    for k, v in out.items():
-        totals[k] = totals.get(k, 0) + v
+    add(out)
+
+
+def run_analytics(db, part: list, days: int, totals: dict) -> None:
+    """The analytics for a batch of symbols, totals summed into `totals`."""
+    def add(out):
+        for k, v in (out or {}).items():
+            totals[k] = totals.get(k, 0) + v
+    run_split(db, "svc_refresh_market_analytics", part, {"p_days": days}, add)
 
 
 # ---------------------------------------------------------------- Supabase
@@ -508,14 +516,20 @@ def main(argv: list[str] | None = None) -> int:
         for part in chunks(group, ANALYTICS_CHUNK if days < 100 else ANALYTICS_CHUNK // 2):
             run_analytics(db, part, days, totals)
     print("eod: analytics", totals)
-    # After every batch: the checks need the whole day's signals (ADR-038). Not fatal: the 17:55 IST cron backstop
-    # runs them again, and research notes and alerts must not wait on them.
+    # After every batch: the checks need the whole day's signals (ADR-038). Not fatal: the database cron runs them
+    # after every load (migration 49; they outgrew the API's 8 s limit), and research notes and alerts must not wait.
     try:
         print("eod: signal checks", db.rpc("svc_refresh_signal_checks"))
     except RuntimeError as e:
-        print("eod: signal checks failed (the cron backstop retries):", e)
-    notes = sum(db.rpc("svc_refresh_research", {"p_symbols": part}) or 0 for part in chunks(touched, RESEARCH_CHUNK))
-    print("eod: research notes", notes)
+        print("eod: signal checks failed (the database cron runs them):", e)
+    # Not fatal either: a failed research batch stopped the run before the alerts (4 Nov 2026); the cron rebuilds notes.
+    notes: list[int] = []
+    try:
+        for part in chunks(touched, RESEARCH_CHUNK):
+            run_split(db, "svc_refresh_research", part, {}, lambda n: notes.append(n or 0))
+        print("eod: research notes", sum(notes))
+    except RuntimeError as e:
+        print(f"eod: research notes stopped after {sum(notes)} (the database cron rebuilds them):", e)
     print("eod: notifier", db.rpc("svc_run_eod_notifier"))
     # A handful of suspended / illiquid names always come back empty; flag the run only
     # when more than 2 % of previously covered symbols are missing.

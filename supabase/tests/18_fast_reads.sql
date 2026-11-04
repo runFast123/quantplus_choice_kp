@@ -13,7 +13,12 @@ select private.refresh_record_summaries();
 select qp_t18.check((select count(*) from public.strategy_trade_summary) = (select count(*) from public.strategy_trade_results)
                     and (select count(*) from public.strategy_scorecard_summary) = (select count(*) from public.strategy_scorecard),
                     'summaries: the kept records have the live views'' rows');
-select qp_t18.check((public.svc_refresh_signal_checks() ? 'summaries'), 'summaries: refreshed with the evening checks');
+-- migration 49: the kept records refresh in the database's cron after the checks (the API's 8 s limit is too short)
+select qp_t18.check(not (public.svc_refresh_signal_checks() ? 'summaries')
+                    and (select count(*) = 3 from cron.job
+                          where jobname in ('market-analytics', 'evening-checks', 'morning-checks')
+                            and command like '%svc_refresh_signal_checks()%refresh_record_summaries()%'),
+                    'summaries: refreshed by the cron after each run of the checks, not inside the API call');
 select qp_t18.check(has_table_privilege('authenticated', 'public.strategy_trade_summary', 'select')
                     and not has_table_privilege('authenticated', 'public.strategy_trade_summary', 'insert')
                     and not has_table_privilege('anon', 'public.strategy_scorecard_summary', 'select'),

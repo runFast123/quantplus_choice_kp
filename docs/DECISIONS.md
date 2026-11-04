@@ -365,6 +365,8 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   is followed to its exit) and writes only later rows; the record is append-only and what a rule buys and sells is
   unchanged (`rebuild_rule_signals` deletes first, so a rebuild still runs on everything). Migration 46 — leaders are
   ranked only while a ranked stock lacks the latest session's rank. Migration 47 — crossings of the 500 largest rebuilt.
+  Migration 49 — the evening checks, kept records and research notes also run in the database cron after the late
+  loads (they outgrew the API's 8 s limit on a cold cache); the pipeline's research step is batched and non-fatal.
   Migration 48 — no bare DELETE in a function (API sessions run `safeupdate`; test 18 checks every function). `eod.py`
   repairs every series a long backfill fetches (ADR-041's load had stored 7 stocks' unadjusted prices; repaired and
   rebuilt) and splits a batch that hits the statement limit. The schedule left :00/:30, and the app's Vercel crons can start

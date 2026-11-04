@@ -23,6 +23,12 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
 - **Kept records refresh from the pipeline** (migration 48): API sessions load `safeupdate`, which refused migration
   44's bare `DELETE`, so `svc_refresh_signal_checks` failed over the API (the cron backstop still ran). `where true`;
   test 18 now fails on any function with a DELETE lacking a WHERE.
+- **Evening checks in the database cron** (migration 49): with 1,250 days stored, the checks outgrew the API's 8 s
+  limit on a cold cache (breadth 33.7 s, rule health 6.5 s, kept records 7.3 s); the kept records left
+  `svc_refresh_signal_checks`, and cron jobs `evening-checks` (21:40, 00:40, 03:40 IST) and `morning-checks`
+  (09:40 IST) run the checks, the kept records and the research notes after GitHub's late loads. `eod.py`: research
+  in batches of 100 split on a timeout (`run_split`), and a research failure no longer stops the alerts (4 Nov: it
+  did).
 - **Prices repaired** for CGCL, GPIL, MOTILALOFS (splits, 1 Jan 2024), TRENT (1:2 bonus, 1 Jan 2026), DIACABS, SWANDEF
   and VEDL (breaks: history now starts at the break) with `eod.py --repair`, then `rebuild-rules.mjs` for them. ADR-041's
   1,300-day load had stored Yahoo's unadjusted series: a long backfill skipped `repair_series`; it now runs it.
