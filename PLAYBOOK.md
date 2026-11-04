@@ -127,7 +127,12 @@ delete from private.platform_admins where user_id = '<id>';
 
 - **Source:** Yahoo Finance via yfinance (`pipelines/eod/eod.py`, ADR-026). Ticker = `SYMBOL.NS` unless listed in
   `YAHOO_OVERRIDES`. Candles stamped 10:00 UTC (15:30 IST); split-adjusted close.
-- **Run now:** `python pipelines/eod/eod.py` (last 10 days; reads `web/.env.local`). Backfill: `--days 760`.
+- **Run now:** `python pipelines/eod/eod.py` (last 10 days; reads `web/.env.local`). Backfill: `--days 1250` (the 500 largest
+  keep ~3.4 years, ADR-041; others 400 days).
+- **After a longer history** (a back-fill, or `history_days` raised): rebuild the five rules on everything stored, so their
+  warm-up comes before the chart and their one-trade-per-stock plans line up: `cd supabase/scripts && node rebuild-rules.mjs
+  --dry-run` (one batch, rolled back), then `npm run rebuild:rules` (leaders, weather, analytics + rules per 20 stocks,
+  signal checks, a year of rule health). Signals written again keep their ids, so no notification is sent twice.
   Check without writing: `--dry-run`. One symbol: `--symbols TCS`.
 - **Schedule:** `.github/workflows/market-eod.yml` (17:00 + 20:00 IST weekdays; manual run takes `days`). Repo secrets:
   `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. pg_cron re-runs analytics/notifier/research at 17:55–18:05 IST.

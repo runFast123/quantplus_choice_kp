@@ -45,7 +45,7 @@ SESSION_SETTLED = time(15, 45)          # IST; after the 15:30 close + closing a
 CANDLE_UTC = time(10, 0)                # 15:30 IST
 BATCH = 1000                            # candle rows per upsert
 FETCH_CHUNK = 100                       # tickers per Yahoo download
-ANALYTICS_CHUNK = 50                    # symbols per analytics RPC (8 s statement limit; 100 neared it once weather, Strong trend and grading joined, migration 34)
+ANALYTICS_CHUNK = 20                    # symbols per analytics RPC (8 s statement limit: 50 took ~12 s once the top 500 kept 1,250 days, ADR-041)
 RESEARCH_CHUNK = 300                    # symbols per research RPC
 ROOT = Path(__file__).resolve().parents[2]
 

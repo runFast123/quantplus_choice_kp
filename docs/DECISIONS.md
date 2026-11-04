@@ -354,6 +354,25 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-041 · ~3.4 years of history for the 500 largest, and the five rules rebuilt on it
+**Date** 2026-11-04 · **Status** accepted (live after the owner's go-ahead)
+- **Context:** the owner saw stock charts with few or no past signals from the five rules (Strong trend and 200-day
+  trend most of all) and asked for the past record to be shown, as evidence of how well the rules read the market. Two
+  years were stored (ADR-034) and the rules spent the first of them warming up (200-day trend needs 300 sessions, Strong
+  trend 252, the dips a 200-day average), so 200-day trend's first possible signal was January 2026, Strong trend's
+  October 2025.
+- **Decision (migration 43):** keep 1,250 days for the 500 largest companies and NIFTY, NIFTY500 and INDIAVIX (the trigger
+  raises newcomers too; the cap on `history_days` goes from 1,000 to 2,000), back-fill once from Yahoo, and rebuild the
+  five rules on everything stored (`private.rebuild_rule_signals` per 20 stocks via `supabase/scripts/rebuild-rules.mjs`):
+  delete their signals, run every rule again, give rows written again their old ids (no second exit notification),
+  grade, then the signal checks and a year of rule health. The old rules' signals are not touched.
+- **Checked:** on PGlite with the live-candle copy the rebuild reproduces exactly the signals of a normal run (no row
+  lost or added) in 51 s for 511 stocks; tests `09_history_top500`, `17_rule_history`.
+- **Cost:** about +55 MB (candles, leaders, signals) on the free tier, 330 MB before. All seven years would not fit.
+- **Alternatives rejected:** importing the research signals (2019–26) as stored signals — the chart can't draw a signal
+  without its candles, and it would mix a research record with the stored-price one; seven years of candles — over the
+  free tier.
+
 ### ADR-040 · 200-day trend: a fifth rule from a moving average and a linear-regression line
 **Date** 2026-11-03 · **Status** accepted (live after the owner's go-ahead)
 - **Context:** the owner asked for a rule that signals only when a stock closes above its 200-day average and the

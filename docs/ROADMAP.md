@@ -55,6 +55,9 @@ Requirement IDs refer to `docs/BRD.md`.
 - Signal checks (ADR-038) only tag; they never skip a signal. Skipping Low RSI dips waits for two live quarters showing
   the tags separate when each month is counted once. KK dip, SMA trend and 200-day trend have no check; rule settings never change
   automatically (a change needs a pre-registered re-test, PLAYBOOK §S). The Strong trend check's evidence is thin.
+- Past signals start where the stored history allows (ADR-041): ~3.4 years kept for the 500 largest, minus each rule's
+  warm-up (up to 300 sessions), so the charts show about two years of the five rules. The tested record (2019–26) is on the
+  Signals page and in the research reports, not on the per-stock charts.
 - Rule health (ADR-039) flags drift and sorts losses by cause; it never pauses or changes a rule. Its range assumes
   trades are independent, which trades finishing on the same days are not, so it is a guide. Causes use the Nifty 500
   only (no sector move yet).

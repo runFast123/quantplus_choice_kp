@@ -8,7 +8,8 @@
     "seed:ref": "node apply.mjs seed ref",
     "seed:dev": "node apply.mjs seed dev",
     "test:remote": "node apply.mjs test",
-    "status": "node apply.mjs status"
+    "status": "node apply.mjs status",
+    "rebuild:rules": "node rebuild-rules.mjs"
   },
   "dependencies": { "pg": "^8.13.0" }
 }

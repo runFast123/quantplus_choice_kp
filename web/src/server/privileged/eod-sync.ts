@@ -310,7 +310,7 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
 
   if (triggerDownstream && touchedSymbols.length > 0) {
     // A. Recalculate Wilder RSI and SMAs
-    const ANALYTICS_CHUNK = 50;
+    const ANALYTICS_CHUNK = 20; // the 8 s statement limit: 50 took ~12 s once the top 500 kept 1,250 days (ADR-041)
     for (let m = 0; m < touchedSymbols.length; m += ANALYTICS_CHUNK) {
       const part = touchedSymbols.slice(m, m + ANALYTICS_CHUNK);
       try {

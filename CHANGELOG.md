@@ -5,6 +5,19 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — the five rules' past signals (ADR-041)
+- **Why:** stock charts showed few or no past signals from the five rules, most of all Strong trend and 200-day trend:
+  two years of candles were stored and each rule spent the first year warming up (200-day trend needs 300 sessions),
+  so its first possible signal was January 2026.
+- **What:** migration 43 keeps ~3.4 years (1,250 days) for the 500 largest companies and the indices the rules read, and
+  adds `private.rebuild_rule_signals`; `supabase/scripts/rebuild-rules.mjs` (`npm run rebuild:rules`, `--dry-run`) rebuilds
+  the five rules on everything stored after the one-time back-fill (`eod.py --days 1250`), keeping the ids of signals
+  written again. The old rules' signals are untouched. `universe.py` gives a new top-500 company the same history.
+  Tests: `supabase/tests/17_rule_history.sql`, `09_history_top500.sql`, `test_universe.py`. PLAYBOOK §R has the steps.
+- **Live (4 Nov 2026):** history from 2 Jun 2023; the five rules' signals on the 500 largest went from 3,812 to 8,527
+  (Strong trend 364 → 1,350, first June 2024; 200-day trend 660 → 1,552, first August 2024); 400 MB of 500. The evening
+  analytics batch drops from 50 to 20 stocks (`eod.py`, `eod-sync.ts`): 50 took ~12 s on the longer history, over the 8 s limit.
+
 ### Fixed — the 200-day trend shows everywhere a rule shows
 - **Stock chart** (`charts/price-chart.tsx`): a *200-day trend* button with its count beside Strong trend (choosing it turns on
   the SMA 200 line); the other buttons are unchanged and keep each old rule's signals with its family. The SMA 20/50
