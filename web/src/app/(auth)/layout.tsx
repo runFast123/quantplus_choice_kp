@@ -19,8 +19,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <br />A signal is the moment one of them gets answered.
           </blockquote>
           <figcaption className="mt-6 text-[13px] text-muted-foreground">
-            QuantsPulse watches NSE and BSE on rules you can read — moving-average crosses, RSI reversals, price levels — and tells
-            you when they trigger.
+            QuantsPulse watches every NSE stock on five rules you can read — three that follow a rising trend, two that buy a
+            sharp dip — and your own price levels, and tells you when they trigger.
           </figcaption>
         </figure>
 
@@ -41,7 +41,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <line x1="250" x2="250" y1="20" y2="140" className="stroke-coral" strokeWidth="1" strokeDasharray="3 3" />
           <circle cx="250" cy="58" r="5" className="fill-coral" />
           <text x="258" y="18" className="fill-muted-foreground font-mono" fontSize="10">
-            SMA 20 ↑ 50 · BUY
+            SMA 20/50 TREND · BUY
           </text>
         </svg>
       </aside>

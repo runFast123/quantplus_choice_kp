@@ -64,8 +64,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               you can <em className="relative whitespace-nowrap">read<Underline /></em>.
             </h1>
             <p className="mt-6 max-w-[34rem] text-[17px] leading-8 text-muted-foreground">
-              Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against simple, published rules after every close — moving-average crosses,
-              RSI rebounds, 20-day breakouts, the price levels you set — and can show the signals right on your broker&apos;s chart with our Chrome extension.
+              Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against five published rules after every close — three that follow
+              a rising trend, two that buy a sharp dip in a rising stock — plus the price levels you set, and can show the signals right on your broker&apos;s chart
+              with our Chrome extension.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href={signedIn ? "/app" : "/signup"} size="lg">
@@ -110,28 +111,25 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <h2 className="display max-w-[22ch] text-[36px] leading-[1.1] md:text-[44px]">A short list, a few rules, and a nudge when they agree.</h2>
           </div>
 
-          <ol className="mt-14 grid gap-y-14 md:grid-cols-12 md:gap-x-10">
+          <ol className="mt-14 grid gap-8 lg:grid-cols-3">
             <Step
               n="01"
               title="Build or import your Market Radar"
-              className="md:col-span-5"
               body="Pick the stocks you'd actually buy, or upload your holdings file from Zerodha, Groww, Angel One, ICICI Direct or Upstox. Each row shows its last close, where it sits in its 52-week range, its RSI and what our rules say now."
             >
               <RadarSketch />
             </Step>
             <Step
               n="02"
-              title="Three simple rules, in plain words"
-              className="md:col-span-7 md:pt-24"
-              body="A trend rule (the 20-day average crossing the 50-day), a rebound rule (RSI coming back from 30 or 70) and a 20-day breakout rule, each written out on the Signals page. Every buy comes with a stop-loss and three price targets, and a one-word read of how stretched the price is, from Beaten down to Very stretched."
+              title="Five simple rules, in plain words"
+              body="Three trend rules (a new 52-week high on heavy volume, the 20-day average turning above the 50-day in a market leader, a close above a flat or rising 200-day average) and two dip rules (a sharp drop in a rising stock), each written out on the Signals page with its tested record. Every buy comes with a safety stop and a plan for when to sell, and a one-word read of how stretched the price is, from Beaten down to Very stretched."
             >
               <RuleSketch />
             </Step>
             <Step
               n="03"
               title="See it on your broker's chart"
-              className="md:col-span-6 md:col-start-4"
-              body="Our Chrome extension shows the signal, stop and targets right on your broker's chart (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan and more). Or open any stock here for an interactive TradingView chart. You place any order yourself, with your broker."
+              body="Our Chrome extension shows the signal, its safety stop and its plan right on your broker's chart (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan and more). Or open any stock here for an interactive TradingView chart. You place any order yourself, with your broker."
             >
               <AllocationSketch />
             </Step>
@@ -160,7 +158,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   <h3 className="text-[15px] font-semibold">A signal bar on the chart</h3>
                 </div>
                 <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                  A small bar on your broker&apos;s chart shows the stock&apos;s latest signal (buy or exit), the price it fired at, its stop-loss and its price targets, from the last end-of-day close.
+                  A small bar on your broker&apos;s chart shows the stock&apos;s latest signal (buy or exit), the price it fired at, its safety stop and its plan, from the last end-of-day close.
                 </p>
               </div>
 
@@ -351,7 +349,7 @@ const FAQ: [string, string][] = [
   ],
   [
     "How does the Chrome extension work with my broker?",
-    "It runs in your own browser and works on TradingView and 20+ Indian broker sites, including Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan and Fyers. It spots the stock on your chart and shows its latest signal, stop-loss and price targets in a small bar, plus a side panel with more detail. It only reads the page: it never sees your broker password and never places orders.",
+    "It runs in your own browser and works on TradingView and 20+ Indian broker sites, including Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan and Fyers. It spots the stock on your chart and shows its latest signal, safety stop and plan in a small bar, plus a side panel with more detail. It only reads the page: it never sees your broker password and never places orders.",
   ],
   [
     "Can I view TradingView charts directly in QuantsPulse?",
@@ -413,21 +411,21 @@ function Specimen() {
         <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-[12px]">
           <div>
             <dt className="eyebrow">Rule</dt>
-            <dd className="mt-1">SMA 20 ↑ 50</dd>
+            <dd className="mt-1">SMA 20/50 trend</dd>
           </div>
           <div>
             <dt className="eyebrow">Fired at</dt>
             <dd className="num mt-1">₹1,642.30</dd>
           </div>
           <div>
-            <dt className="eyebrow">Stop / target</dt>
-            <dd className="num mt-1">1,527 / 1,839</dd>
+            <dt className="eyebrow">Stop / review</dt>
+            <dd className="num mt-1">1,527 · 60 days</dd>
           </div>
         </dl>
       </div>
       <figcaption className="mt-5 flex items-start gap-3 pl-2 text-[12.5px] leading-5 text-muted-foreground">
         <span className="mt-2 h-px w-8 shrink-0 bg-coral" aria-hidden />
-        Illustrative. The coral mark is where the 20-day average (dashed) crossed the 50-day (dotted) — the whole rule, visible on the chart.
+        Illustrative. The coral mark is where the 20-day average (dashed) turned above the 50-day (dotted) — the rule&apos;s signal, visible on the chart.
       </figcaption>
     </figure>
   );

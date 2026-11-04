@@ -20,19 +20,34 @@ building something; it may already exist (then check `docs/CODEMAP.md`).
   a 20-stock batch 2.8 s). `eod.py` `run_analytics` splits a batch that still times out (`test_eod.Analytics`).
 - **RSI crossings rebuilt** (migration 47) for the 500 largest on their 1,250-day history: rows from the Sep 2024 cold
   start were never replaced (the audit: up to 15 RSI points off).
+- **Kept records refresh from the pipeline** (migration 48): API sessions load `safeupdate`, which refused migration
+  44's bare `DELETE`, so `svc_refresh_signal_checks` failed over the API (the cron backstop still ran). `where true`;
+  test 18 now fails on any function with a DELETE lacking a WHERE.
+- **Prices repaired** for CGCL, GPIL, MOTILALOFS (splits, 1 Jan 2024), TRENT (1:2 bonus, 1 Jan 2026), DIACABS, SWANDEF
+  and VEDL (breaks: history now starts at the break) with `eod.py --repair`, then `rebuild-rules.mjs` for them. ADR-041's
+  1,300-day load had stored Yahoo's unadjusted series: a long backfill skipped `repair_series`; it now runs it.
 - **Price audit** (`audit.py`): the SIP check rounds like SQL (STARHEALTH was 5 paise off on float rounding); the retired
-  rules are compared from their first day plus the warm-up (they never ran on the history added by ADR-041).
+  rules are compared from each stock's first stored signal plus the warm-up (they never ran on the history added by
+  ADR-041), not at all after a repair deleted them; IDEA 19 Sep 2024 and PAYTM 1 Feb 2024 are reviewed real moves.
 - **On-time full load:** the Market EOD schedules moved off :00/:30 (GitHub ran them 5–8 h late); with
   `GITHUB_DISPATCH_TOKEN` + `GITHUB_REPO` set in Vercel the 17:00 / 20:00 IST crons start the workflow
   (`server/github-dispatch.ts`, `?dispatch=full` in `vercel.json`).
 - **Chart:** the stock page loads every stored candle (`getCandles` 730 → 1,300 days; 2,356 of the rules' signals were
-  older than 2 years and could not show). Choosing 200-day trend turns on the SMA 200, draws its 100-session regression
+  older than 2 years and could not show; Dry Run keeps its two years). Choosing 200-day trend turns on the SMA 200, draws its 100-session regression
   line ("Trend line ±x.xx%", the rule's own measure) and widens the range to the rule's latest signal; toggles carry
   `aria-pressed`.
 - **Speed** (migration 44): the Signals page reads kept records (`strategy_trade_summary`, `strategy_scorecard_summary`,
   refreshed each evening) instead of views that took up to 2.6 s cold; `research_latest` reads one stock for one stock;
   `retention_derived` deletes RSI crossings, leader ranks and rule health nothing can show. Test 18.
 - Admin facts panel: the candle-table sentence was wrong (no symbol partitions; 760 days) — corrected.
+- **UI audit** (18 pages × 375 / 768 / 1440 × light / dark, no sideways scroll anywhere): the landing page, sign-in
+  page, site description and Integrations page described the retired rules (crosses, RSI reversals, breakouts, three
+  price targets, "NSE and BSE") — now the five rules with a safety stop and a plan; "How it works" is three even
+  columns (one card sat alone under two). `Panel` headers let their actions wrap instead of squeezing the title (the
+  breadth panel read "Market …" on a phone). Markets lists price and move right after the name (a phone showed the
+  sector first). The Signals weather sentence is shown whole (it was cut at three lines). The stock page's targets
+  calculator follows a retired rule's buy only within 30 days, otherwise today's price ("BREACHED" plans from months
+  back read as live).
 
 ### Added — the five rules' past signals (ADR-041)
 - **Why:** stock charts showed few or no past signals from the five rules, most of all Strong trend and 200-day trend:

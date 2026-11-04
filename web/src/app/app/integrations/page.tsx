@@ -50,7 +50,7 @@ export default async function IntegrationsPage() {
         <Panel title="Signals on your broker's chart">
           <div className="flex flex-col gap-5 text-[13.5px]">
             <p className="leading-6 text-muted-foreground">
-              The extension spots which stock or index you have open on your broker or TradingView and shows its latest signal, stop and targets in a small bar on the chart, with more detail in a side panel.
+              The extension spots which stock or index you have open on your broker or TradingView and shows its latest signal, safety stop and plan in a small bar on the chart, with more detail in a side panel.
             </p>
 
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-card/60 p-4">
@@ -92,9 +92,9 @@ export default async function IntegrationsPage() {
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">
                 <p className="eyebrow text-[11px]">On the chart</p>
-                <p className="mt-1 text-[13px] font-medium text-foreground">Signal, stop and targets</p>
+                <p className="mt-1 text-[13px] font-medium text-foreground">Signal, stop and plan</p>
                 <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  The last signal&apos;s price, its stop-loss and its price targets, from the latest end-of-day close.
+                  The last signal&apos;s price, its safety stop and its plan, from the latest end-of-day close.
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-background p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-muted-foreground/40 hover:shadow-sm">

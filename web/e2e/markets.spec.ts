@@ -7,7 +7,7 @@ test.describe("markets screener", () => {
     await proPage.goto("/app/markets");
     await proPage.getByRole("group", { name: "Sector" }).getByRole("button", { name: "Technology" }).click();
     await expect(proPage).toHaveURL(/sector=Technology/);
-    const sectors = await proPage.locator("tbody tr td:nth-child(2)").allTextContents();
+    const sectors = await proPage.locator("tbody tr td:nth-child(4)").allTextContents();
     expect(sectors.length).toBeGreaterThan(0);
     for (const s of sectors) expect(s).toBe("Technology");
   });
@@ -20,7 +20,7 @@ test.describe("markets screener", () => {
 
   test("top losers sort puts the weakest first", async ({ proPage }) => {
     await proPage.goto("/app/markets?sort=laggards");
-    const first = await proPage.locator("tbody tr").first().locator("td:nth-child(4)").innerText();
+    const first = await proPage.locator("tbody tr").first().locator("td:nth-child(3)").innerText();
     expect(first).toMatch(/−|0\.00/);
   });
 

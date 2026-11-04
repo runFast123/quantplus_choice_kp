@@ -450,7 +450,9 @@ def main(argv: list[str] | None = None) -> int:
     for s in meta:
         candles, issues = to_candles(s, frames.get(s), settled)
         problems += [p for p in issues if not p.endswith("no rows")]
-        if s in full and meta[s]["segment"] != "index":
+        # A long backfill re-fetches every series too: repair it like a full re-fetch, or Yahoo's unadjusted prices
+        # overwrite a repaired history (ADR-041's 1,300-day load did that to TRENT, CGCL, GPIL, MOTILALOFS: ADR-043).
+        if (s in full or args.days >= FULL_HISTORY_DAYS) and meta[s]["segment"] != "index":
             candles, notes = repair_series(candles)
             problems += [f"{s} {n}" for n in notes]
             if s in have and (notes or args.repair):     # --repair restores the full re-fetched series

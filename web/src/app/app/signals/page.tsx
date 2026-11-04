@@ -863,7 +863,8 @@ export default async function SignalsPage({
           <WeatherIcon size={22} weight="duotone" aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />
           <div className="min-w-0">
             <p className="text-[13px] font-medium">Market weather: {weather.label}</p>
-            <p className="mt-0.5 line-clamp-3 text-[12px] leading-5 text-muted-foreground" title={weather.sentence}>
+            {/* The whole sentence: it names the reason the trend rules pause (cut at three lines, the reason was lost). */}
+            <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
               {weather.sentence}
             </p>
           </div>

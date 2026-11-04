@@ -144,10 +144,11 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
             <table className="w-full min-w-[1040px]">
               <thead>
                 <tr>
+                  {/* Price and move next to the name: on a phone they are what shows before the table scrolls. */}
                   <th className={th}>Symbol</th>
-                  <th className={th}>Sector</th>
                   <th className={thNum}>Last</th>
                   <th className={thNum}>Chg</th>
+                  <th className={th}>Sector</th>
                   <th className={thNum}>Volume</th>
                   <th className={th + " w-[150px]"}>52-week range</th>
                   <th className={thNum}>RSI</th>
@@ -167,11 +168,11 @@ export default async function MarketsPage({ searchParams }: PageProps<"/app/mark
                         <span className="block max-w-[200px] truncate text-[11.5px] text-muted-foreground">{r.name}</span>
                       </Link>
                     </td>
-                    <td className={td + " max-w-[150px] truncate text-muted-foreground"} title={r.sector ?? undefined}>{r.sector ?? "—"}</td>
                     <td className={tdNum}>{price(r.last_price)}</td>
                     <td className={tdNum}>
                       <Delta value={r.change_pct} />
                     </td>
+                    <td className={td + " max-w-[150px] truncate text-muted-foreground"} title={r.sector ?? undefined}>{r.sector ?? "—"}</td>
                     <td className={tdNum + " text-muted-foreground"}>{r.segment === "index" ? "—" : volume(r.volume)}</td>
                     <td className={td}>
                       <RangeBar low={r.low_52w} high={r.high_52w} value={r.last_price} />

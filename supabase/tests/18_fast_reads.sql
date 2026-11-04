@@ -38,4 +38,11 @@ select qp_t18.check(not has_function_privilege('authenticated', 'private.retenti
 -- research_latest: a filter on the symbol reads that symbol
 select qp_t18.check((select count(*) <= 1 from public.research_latest where symbol = 'QPFR1'), 'research: one stock, at most one note');
 
+-- API sessions load safeupdate (a DELETE needs a WHERE, even inside a function): migration 44 shipped one without it
+select qp_t18.check(not exists (
+                      select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                      where n.nspname in ('public', 'private') and p.prokind = 'f'
+                        and pg_get_functiondef(p.oid) ~* 'delete\s+from\s+[a-z_.]+\s*;'),
+                    'safeupdate: no function deletes without a WHERE clause');
+
 rollback;

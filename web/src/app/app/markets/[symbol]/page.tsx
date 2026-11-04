@@ -86,9 +86,14 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const markers: ChartMarker[] = signals.map(markerFromSignal);
 
   // The targets calculator follows the last buy of a rule with targets. Strong trend (a safety stop and a 60-session
-  // review) and the dip rules (a safety stop and a bounce exit) were tested with their own plans instead.
+  // review) and the dip rules (a safety stop and a bounce exit) were tested with their own plans instead. Only the old
+  // rules carry targets, so it follows one of theirs only from the last 30 days; otherwise it starts from today's price
+  // (a months-old retired-rule buy with a breached stop read as a live plan next to "No open signal").
+  const lastDay = candles.length ? new Date(candles[candles.length - 1].ts).getTime() : 0;
   const latestBuySignal = signals.find(
-    (s) => s.signal_type === "buy" && !isTrendRule(s.strategy) && !isDipRule(s.strategy),
+    (s) =>
+      s.signal_type === "buy" && !isTrendRule(s.strategy) && !isDipRule(s.strategy) &&
+      lastDay - new Date(s.generated_at).getTime() < 30 * 86400000,
   );
   // Each rule's latest signal on this stock, when it is a buy that has not closed yet (lib/rules.ts, in display order).
   const openOf = (kind: "trend" | "dip") =>
@@ -187,7 +192,11 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
         {q.last_price ? (
           <Panel
             title="Trade plan & targets"
-            meta={latestBuySignal ? `From the last ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} buy signal` : "A stop and three price targets"}
+            meta={
+              latestBuySignal
+                ? `From the last ${strategyLabel[latestBuySignal.strategy] ?? latestBuySignal.strategy} buy signal`
+                : "From today's price: a stop and three targets for your own plan"
+            }
           >
             <TradePlan
               key={q.symbol}

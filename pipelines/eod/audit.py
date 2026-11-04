@@ -30,7 +30,7 @@ import random
 from decimal import ROUND_HALF_UP, Decimal
 import sys
 import urllib.parse
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -52,6 +52,9 @@ REVIEWED_GAPS = {(s, "2026-10-08"): _SECTOR_GAP for s in ("NIFTYFINSERV", "NIFTY
 # Big one-day moves checked by hand and found real (the date's price is right; see the note).
 REVIEWED_MOVES = {
     ("IDEA", "2025-04-01"): "+19 % on the government's dues-to-equity conversion; Yahoo's volume for the day is wrong",
+    # History the 500 largest gained in ADR-041 (checked 5 Nov 2026 against Yahoo's bars):
+    ("IDEA", "2024-09-19"): "-19.5 % in the session (opened 12.99 on 12.90) after the Supreme Court dismissed the AGR plea",
+    ("PAYTM", "2024-02-01"): "-20 % lower circuit at the open, the day after the RBI's curbs on Paytm Payments Bank",
 }
 
 
@@ -332,7 +335,11 @@ def main(argv=None) -> int:
         # A retired rule is compared from WARMUP sessions after its first stored signal: the history it ran on then
         # began a little earlier (RSI needs the warm-up; SMA 50 needs 50 sessions, which the warm-up covers).
         after = lambda first: max(settled_from, days[min(sum(d < first for d in days) + WARMUP, len(days) - 1)]) if first else settled_from
-        ran_from = {"sma_20_50_cross": after(sma_first), "rsi_reversal": after(rsi_first)}
+        # ...from this stock's own first stored signal of the rule (many of the 500 largest got their history later),
+        # and not at all when none is stored (a price repair deletes a retired rule's signals: they can't be rebuilt).
+        own = {k: min((x[2] for x in got if x[0] == k), default=None) for k in RECOMPUTED}
+        start = {"sma_20_50_cross": sma_first, "rsi_reversal": rsi_first}
+        ran_from = {k: after(max(d for d in (start[k], own[k]) if d)) if own[k] else date.max for k in RECOMPUTED}
         exp = {x for x in exp if x[2] >= ran_from[x[0]]}
         got = {x for x in got if x[2] >= ran_from[x[0]]}
         # The retired rules never rewrite a stored signal; one written before Yahoo revised a price stays as history.

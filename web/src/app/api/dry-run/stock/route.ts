@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const db = s.supabase;
   const [quoteRes, candles, signalsRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
-    getCandles(db, symbol),
+    getCandles(db, symbol, "NSE", 730), // Dry Run replays exactly two years (lib/dry-run.ts)
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(200),
   ]);
   if (!quoteRes.data) return NextResponse.json({ error: "not found" }, { status: 404 });

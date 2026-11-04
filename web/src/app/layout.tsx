@@ -15,7 +15,7 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrai
 export const metadata: Metadata = {
   title: { default: "QuantsPulse — quant research for Indian equities", template: "%s · QuantsPulse" },
   description:
-    "Watchlists, portfolio tracking, price alerts and rule-based signals for NSE and BSE stocks. Your holdings stay private — even from your organisation.",
+    "Watchlists, portfolio tracking, price alerts and rule-based signals for NSE stocks. Your holdings stay private — even from your organisation.",
 };
 
 export const viewport: Viewport = {

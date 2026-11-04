@@ -49,7 +49,7 @@ export default async function DryRunPage() {
       .order("mcap_rank", { ascending: true })
       .limit(150),
     radarP,
-    getCandles(db, "NIFTY"),
+    getCandles(db, "NIFTY", "NSE", 730), // the benchmark over the same two years as the replay
     getRuleHealth(db),
     db
       .from("trading_signals")
