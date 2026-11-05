@@ -5,6 +5,7 @@
     python pipelines/eod/eod.py --days 760        # re-fetch ~2 years
     python pipelines/eod/eod.py --dry-run         # fetch + validate, write nothing
     python pipelines/eod/eod.py --symbols TCS,INFY
+    python pipelines/eod/eod.py --splits-history  # one-off: every split/bonus Yahoo has, into corporate_actions
 
 Covers every active row in public.market_symbols (~3,600: NSE main board +
 SME, major ETFs, NSE indices — see universe.py). Symbols with no data yet get
@@ -181,6 +182,35 @@ def split_events(frames: dict, settled: date | None = None) -> list[dict]:
 def split_symbols(frames: dict) -> list[str]:
     """Symbols whose frame shows a split or bonus."""
     return sorted({e["symbol"] for e in split_events(frames)})
+
+
+def split_history(tickers: dict[str, str], fetch_one=None, workers: int = 4) -> tuple[list[dict], list[str]]:
+    """Every split and bonus Yahoo has for each stock, as corporate_actions rows (one-off backfill: an imported
+    tradebook reaches back years, and the daily run only sees the last few days). `fetch_one(ticker)` returns Yahoo's
+    "Stock Splits" series; the default asks yfinance. Returns (rows, symbols that failed)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    if fetch_one is None:
+        import yfinance as yf
+
+        def fetch_one(t):  # one HTTP request per stock, a few at a time
+            return yf.Ticker(t).splits
+
+    def one(item):
+        s, t = item
+        try:
+            return s, fetch_one(t)
+        except Exception:  # a stock Yahoo has no page for: report it, keep going
+            return s, None
+
+    rows, failed = [], []
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for s, series in ex.map(one, tickers.items()):
+            if series is None:
+                failed.append(s)
+            elif len(series):
+                rows += split_events({s: series.to_frame("Stock Splits")})
+    return rows, sorted(failed)
 
 
 # NSE was open on a date if NIFTY 50 has a bar for it, or if at least two of these large
@@ -427,6 +457,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--sync-universe", action="store_true", help="refresh market_symbols from Yahoo's NSE screener first")
     ap.add_argument("--repair", action="store_true", help="re-fetch the full history of --symbols and repair price breaks")
     ap.add_argument("--live", action="store_true", help="include today's live/active trading bar even before session settlement")
+    ap.add_argument("--splits-history", action="store_true",
+                    help="store every split/bonus Yahoo has for each stock in corporate_actions (one-off backfill), then stop")
     args = ap.parse_args(argv)
 
     if args.repair and not args.symbols:
@@ -439,6 +471,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.symbols:
         meta = {s: meta[s] for s in args.symbols.split(",") if s in meta}
     tick = {s: yahoo_ticker(s, r.get("vendor_ticker")) for s, r in meta.items()}
+    if args.splits_history:
+        stocks = {s: tick[s] for s in meta if meta[s]["segment"] != "index"}
+        rows, failed = split_history(stocks)
+        print(f"eod: {len(rows)} split/bonus records for {len({r['symbol'] for r in rows})} of {len(stocks)} stocks"
+              f" ({len(failed)} had no Yahoo page{': ' + ', '.join(failed[:20]) if failed else ''})")
+        if rows and not args.dry_run:
+            db.upsert("corporate_actions", rows, "symbol,exchange,ex_date", ignore=True)
+            print("eod: stored (existing records kept); the evening job applies them to portfolios")
+        return 0
     have = db.quoted()
     now_utc = datetime.now(timezone.utc)
     settled = now_utc.astimezone(IST).date() if args.live else last_settled_day(now_utc)

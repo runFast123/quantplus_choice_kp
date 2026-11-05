@@ -63,8 +63,15 @@ Requirement IDs refer to `docs/BRD.md`.
   only (no sector move yet).
 - Holdings follow splits and bonus issues that Yahoo reports (ADR-045), within 30 days of the ex-date. Demergers, rights
   issues, dividends and the cash paid for fractional bonus shares are not recorded.
-- The portfolio ledger (ADR-046) has buys, sells and realized gains; broker tradebook import (step C), the comparison
-  with the rules' trades (step D) and a money-weighted growth view are not built yet.
+- The portfolio ledger (ADR-046) has buys, sells, realized gains and tradebook import (ADR-047); the comparison with
+  the rules' trades (step D) and a money-weighted growth view are not built yet.
+- Tradebook import reads columns by name. Only Zerodha's tradebook format is known; Groww, Upstox, Angel One and Choice
+  files are matched by column name and, failing that, by hand. Tradebooks rarely list charges, so imported gains are
+  before charges. Old binary .xls files must be saved as .xlsx or CSV. Stocks are matched by symbol or company name
+  (our list has no ISINs).
+- Splits and bonuses come from Yahoo, which can record part of an event: Bajaj Finance's 16 Jun 2025 bonus with a split
+  showed as x2 instead of x10 (corrected by hand, `source = 'manual'`). The import checks each stock's prices against the
+  market close on those days and warns when they are far apart; other gaps would show there or as a holding that looks off.
 - No derivatives (F&O), currency or commodity data — Yahoo has none for NSE; needs a licensed feed (ADR-027).
 - BSE-only listings aren't covered (NSE universe only).
 - Symbols outside the core keep ~13 months of candles (free-tier storage); upgrade the DB to keep more.

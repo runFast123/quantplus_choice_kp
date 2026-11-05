@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 
 import pandas as pd
 
-from eod import Candle, has_break, last_settled_day, on_trading_days, repair_series, run_analytics, sessions, split_events, split_symbols, to_candles, yahoo_ticker
+from eod import Candle, has_break, last_settled_day, on_trading_days, repair_series, run_analytics, sessions, split_events, split_history, split_symbols, to_candles, yahoo_ticker
 
 
 def frame(rows):
@@ -91,6 +91,23 @@ class Splits(unittest.TestCase):
         ])
         # a bar after the settled day (a live, unfinished session) is not stored
         self.assertEqual([e["symbol"] for e in split_events(frames, date(2026, 9, 30))], ["SPLIT"])
+
+
+    def test_split_history_backfill_rows_and_failures(self):
+        idx = pd.DatetimeIndex(["2018-03-01", "2024-07-10"], tz="Asia/Kolkata")
+        series = {"TCS.NS": pd.Series([2.0, 1.5], index=idx, name="Stock Splits"), "NONE.NS": pd.Series([], dtype=float)}
+
+        def fetch(t):
+            if t == "GONE.NS":
+                raise RuntimeError("404")
+            return series[t]
+
+        rows, failed = split_history({"TCS": "TCS.NS", "NONE": "NONE.NS", "GONE": "GONE.NS"}, fetch_one=fetch, workers=2)
+        self.assertEqual(rows, [
+            {"symbol": "TCS", "exchange": "NSE", "ex_date": "2018-03-01", "factor": 2.0},
+            {"symbol": "TCS", "exchange": "NSE", "ex_date": "2024-07-10", "factor": 1.5},
+        ])
+        self.assertEqual(failed, ["GONE"])
 
 
 class Calendar(unittest.TestCase):

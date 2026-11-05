@@ -22,7 +22,8 @@ test("portfolio: a split adjustment is shown in plain numbers and can be undone 
   await expect(row).toContainText("3,000.00");
   await row.getByRole("button", { name: `Remove ${FAKE}` }).click();
   await row.getByRole("button", { name: new RegExp(`Remove all its trades: Remove ${FAKE}`) }).click();
-  await expect(proPage.getByTestId("positions")).toHaveCount(0);
+  // Other spec files share this user and may hold stocks of their own: only this stock's row must go.
+  await expect(proPage.locator("tr", { hasText: FAKE })).toHaveCount(0);
 });
 
 test("settings: trend rules message you by default, and your choice is kept", async ({ proPage }) => {

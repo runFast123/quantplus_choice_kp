@@ -354,6 +354,26 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-047 · Tradebook import: read in the browser, matched by column name, checked by a dry run, saved in one go
+**Date** 2026-11-05 · **Status** accepted
+- **Context:** people already have years of trades at their broker; typing them in is not realistic, and the rule
+  comparison (step D) needs them. Only Zerodha's tradebook columns could be confirmed (date, buy/sell, quantity,
+  price, trade id in every version; their order has changed); Groww, Upstox, Angel One and Choice publish no format, and
+  guides disagree on where their reports live.
+- **Decision:** the file is read in the browser (CSV, or .xlsx with a small built-in reader; nothing is uploaded or
+  stored). Columns are matched by name against the names brokers use, the header row is found below any title rows,
+  and the person matches columns by hand only when a needed one is missing (remembered per broker on that device). The
+  server matches each stock again (symbol, broker spelling, company name, a single successor for a renamed stock) and
+  the database checks the whole file with a dry run that is rolled back, one stock at a time, so each stock's result
+  or problem is shown before anything is saved. The import is one call, all or nothing; references (the broker's trade
+  id, or a hash of the row with a count for identical fills) make a second import or an overlapping file add nothing.
+  An opening balance entered by hand is replaced by the tradebook only when chosen (pre-chosen when the tradebook gives
+  the same shares) and is kept on the import, so Undo restores it. Splits come from the stored history
+  (`--splits-history` backfill).
+- **Limits:** no ISINs in our list, so a file with only ISINs needs symbols or names; tradebooks rarely have charges;
+  intraday short sales (sell then buy back) work within a day; no derivatives. A broker that changes its column names
+  to ones we don't know falls back to matching by hand.
+
 ### ADR-046 · The portfolio ledger: dated trades, oldest-first lots, holdings worked out from them
 **Date** 2026-11-05 · **Status** accepted
 - **Context:** a holding was a quantity and an average price that five code paths overwrote, so the app could not

@@ -23,8 +23,11 @@ export interface ParseHoldingsResult {
   };
 }
 
-/** Split CSV text into rows, respecting quoted fields with commas or newlines */
-function splitCsvRecords(text: string, delimiter: string): string[][] {
+/**
+ * Split CSV text into rows, respecting quoted fields with commas or newlines. Blank lines are dropped unless
+ * keepEmpty (the tradebook reader keeps them so a row number is the file's line number).
+ */
+export function splitCsvRecords(text: string, delimiter: string, keepEmpty = false): string[][] {
   const records: string[][] = [];
   let currentRecord: string[] = [];
   let currentField = "";
@@ -50,7 +53,7 @@ function splitCsvRecords(text: string, delimiter: string): string[][] {
       if (char === "\r" && nextChar === "\n") i++;
       currentRecord.push(currentField.trim());
       currentField = "";
-      if (currentRecord.some((f) => f.length > 0)) {
+      if (keepEmpty || currentRecord.some((f) => f.length > 0)) {
         records.push(currentRecord);
       }
       currentRecord = [];
@@ -61,7 +64,7 @@ function splitCsvRecords(text: string, delimiter: string): string[][] {
 
   if (currentField || currentRecord.length > 0) {
     currentRecord.push(currentField.trim());
-    if (currentRecord.some((f) => f.length > 0)) {
+    if (keepEmpty || currentRecord.some((f) => f.length > 0)) {
       records.push(currentRecord);
     }
   }
@@ -70,7 +73,7 @@ function splitCsvRecords(text: string, delimiter: string): string[][] {
 }
 
 /** Detect delimiter from comma, tab, semicolon */
-function detectDelimiter(firstLines: string): string {
+export function detectDelimiter(firstLines: string): string {
   const commaCount = (firstLines.match(/,/g) || []).length;
   const tabCount = (firstLines.match(/\t/g) || []).length;
   const semicolonCount = (firstLines.match(/;/g) || []).length;

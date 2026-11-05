@@ -5,6 +5,32 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — import trades from a broker's tradebook (ADR-047; migration 53)
+- **Import trades** (Portfolio → Import trades, `/app/portfolio/import`): pick the broker, add one or more CSV or
+  Excel files (read in the browser, never uploaded; `lib/xlsx.ts` reads .xlsx with no new dependency), match columns
+  by hand only when they aren't recognised (remembered per broker), check every stock, import in one go, undo.
+- **The reader** (`lib/tradebook.ts`) finds the header row by name (title rows above it are skipped), matches columns
+  against the names brokers use, reads day-first dates, month names, ISO dates and Excel serials, takes a stock name
+  where there is no symbol, a trade value where there is no price, and leaves out futures and options, other
+  segments, cancelled or rejected orders and footer rows (each listed, downloadable). Only Zerodha's tradebook columns
+  are known for certain; Groww, Upstox, Angel One and Choice are read by column name (their formats aren't published).
+- **The check** (`preview_trades`, a dry run that stores nothing): per stock, the trades, the holding afterwards, the
+  gain on sales, what was imported before, trades you entered yourself on the same day, and what stops a stock (most
+  often a sale of shares bought before the file starts: add an earlier file). Stocks entered by hand as an opening
+  balance can use the tradebook instead (chosen automatically when it gives the same shares). Unknown stocks can be
+  matched to an NSE symbol; renamed stocks follow their new symbol.
+- **The import** (`import_trades`): all or nothing; a trade already stored (same broker trade id, or the same row of a
+  file without ids) is skipped, so overlapping files and a second import add nothing. **Undo** (`undo_import`) puts
+  back any opening balance the import replaced; refused while a later sale needs its shares.
+- **Split history**: `eod.py --splits-history` stores every split and bonus Yahoo has for each stock (a tradebook
+  reaches back years; the daily run only sees recent ones). Loaded on 5 Nov 2026: 1,453 records for 907 stocks (two
+  passes; Yahoo had no page for about 700 symbols, mostly exchange test symbols and new SME listings).
+- **A price check in the review**: each stock's prices are compared with the market close on those days after the
+  splits we know of; far apart means a split is missing from Yahoo's record or the file is wrong. It found Yahoo's
+  Bajaj Finance record of 16 Jun 2025 (a 4:1 bonus with a 1:2 split) as x2; corrected to x10.
+- Tests: `supabase/tests/22_trade_import.sql` (21 checks), `lib/tradebook.test.mts`, `lib/xlsx.test.mts`,
+  `test_eod.py` (`split_history`), `e2e/tradebook-import.spec.ts`.
+
 ### Added — the portfolio ledger: every buy and sell, gains after charges, a history per stock (ADR-046; migrations 51–52)
 - **Every buy and sell is a dated row** (`portfolio_transactions`), and holdings are worked out from them oldest first
   (FIFO, as Zerodha Console and Indian tax do): `portfolio_lots` (each purchase, still open in today's shares) and

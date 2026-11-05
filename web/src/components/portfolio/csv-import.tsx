@@ -298,7 +298,7 @@ export function CsvImportModal({ portfolios }: CsvImportModalProps) {
                 <InfoIcon size={15} className="mt-0.5 shrink-0 text-foreground" aria-hidden />
                 <span>
                   <strong>What you hold today:</strong> each new stock is saved as an opening balance dated today. A stock already in
-                  this portfolio is left as it is; open its history to change it. Past buys and sells can be recorded there one by one.
+                  this portfolio is left as it is; open its history to change it. To bring in every past buy and sell, use Import trades with your broker&apos;s tradebook.
                 </span>
               </div>
             </div>
