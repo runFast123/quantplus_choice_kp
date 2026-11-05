@@ -162,15 +162,25 @@ def _pick(data, ticker: str):
     return data[ticker].dropna(how="all") if has else None
 
 
-def split_symbols(frames: dict) -> list[str]:
-    """Symbols whose frame shows a split or bonus (Yahoo's "Stock Splits" ratio, 0 = none)."""
+def split_events(frames: dict, settled: date | None = None) -> list[dict]:
+    """Every split or bonus in the frames as a public.corporate_actions row (Yahoo's "Stock Splits" ratio is new shares
+    per old share: 2 for a 1:2 split or a 1:1 bonus, 1.5 for a 1:2 bonus, 0 = none). The notifier rescales holdings
+    entered before the ex-date with them (migration 50)."""
     out = []
     for s, f in frames.items():
-        if f is not None and "Stock Splits" in f.columns:
-            ratio = f["Stock Splits"].fillna(0)
-            if ((ratio > 0) & (ratio != 1)).any():
-                out.append(s)
+        if f is None or "Stock Splits" not in f.columns:
+            continue
+        ratio = f["Stock Splits"].fillna(0)
+        for ts, r in ratio[(ratio > 0) & (ratio != 1)].items():
+            day = ts.date() if hasattr(ts, "date") else ts
+            if settled is None or day <= settled:
+                out.append({"symbol": s, "exchange": "NSE", "ex_date": day.isoformat(), "factor": round(float(r), 6)})
     return out
+
+
+def split_symbols(frames: dict) -> list[str]:
+    """Symbols whose frame shows a split or bonus."""
+    return sorted({e["symbol"] for e in split_events(frames)})
 
 
 # NSE was open on a date if NIFTY 50 has a bar for it, or if at least two of these large
@@ -506,6 +516,11 @@ def main(argv: list[str] | None = None) -> int:
     if replaced:
         print(f"eod: replaced the history of {len(replaced)} repaired symbol(s)")
     db.upsert("market_candles", rows, "symbol,exchange,interval,ts")
+    # Before the notifier, which rescales holdings entered before a split or bonus (migration 50).
+    actions = [a for a in split_events(frames, settled) if a["symbol"] in meta and meta[a["symbol"]]["segment"] != "index"]
+    if actions:
+        db.upsert("corporate_actions", actions, "symbol,exchange,ex_date", ignore=True)
+        print(f"eod: {len(actions)} split/bonus record(s) stored")
     for s, day in HISTORY_FROM.items():
         if s in meta:
             db.prune_before(s, day)

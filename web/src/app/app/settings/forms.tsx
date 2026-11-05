@@ -4,7 +4,33 @@ import { useActionState, useOptimistic, useState, useTransition } from "react";
 import { useEchoAction } from "@/components/ui/use-echo-action";
 import { Field, FormMessage, Input } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { changePassword, deleteMyAccount, setConsent, updateProfile } from "./actions";
+import { RULES, type RuleKey } from "@/lib/rules";
+import { changePassword, deleteMyAccount, saveExitRules, setConsent, updateProfile } from "./actions";
+
+/** Tick the rules whose closed trades may message you about a stock you hold. */
+export function ExitRulesForm({ chosen }: { chosen: readonly RuleKey[] }) {
+  const [state, action] = useActionState(saveExitRules, undefined);
+  return (
+    <form action={action} className="flex flex-col gap-4" data-testid="exit-rules">
+      <fieldset className="flex flex-col divide-y divide-border/60">
+        <legend className="sr-only">Rules that may message you</legend>
+        {RULES.map((r) => (
+          <label key={r.key} className="flex cursor-pointer items-start gap-3 py-2.5 first:pt-0">
+            <input type="checkbox" name="rule" value={r.key} defaultChecked={chosen.includes(r.key)} className="mt-1 size-4 accent-primary" />
+            <span className="text-[13px]">
+              <span className="font-medium">{r.name}</span>
+              <span className="block text-[12px] leading-5 text-muted-foreground">
+                {r.kind === "trend" ? "Holds a trade for weeks or months." : "Trades last ten sessions at most, so it messages often. Off unless you turn it on."}
+              </span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      <FormMessage state={state} />
+      <SubmitButton className="w-fit">Save choices</SubmitButton>
+    </form>
+  );
+}
 
 export function ProfileForm({ fullName, phone, email }: { fullName: string; phone: string; email: string }) {
   const [state, action, , values] = useEchoAction(updateProfile);

@@ -28,6 +28,9 @@ export const OLD_RULES = [
 ] as const;
 
 export const RULE_KEYS: readonly RuleKey[] = RULES.map((r) => r.key);
+/** Rules that message someone about a stock they hold until they choose otherwise: the trend rules (the default of
+ * public.notification_prefs.exit_rules, migration 50). */
+export const DEFAULT_EXIT_RULES: readonly RuleKey[] = RULES.filter((r) => r.kind === "trend").map((r) => r.key);
 export const isRule = (s: string | null | undefined): s is RuleKey => RULE_KEYS.includes(s as RuleKey);
 export const isOldRule = (s: string | null | undefined) => OLD_RULES.some((r) => r.key === s);
 export const ruleOf = (s: string | null | undefined): Rule | undefined => RULES.find((r) => r.key === s);

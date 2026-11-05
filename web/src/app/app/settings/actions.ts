@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CONSENT_VERSION } from "@/lib/consents";
 import { friendlyDbError, type ActionState } from "@/lib/errors";
+import { RULE_KEYS, type RuleKey } from "@/lib/rules";
 import { applyConsentWithdrawal, deleteAccount } from "@/server/privileged/account";
 import { PrivilegedError } from "@/server/privileged/guards";
 import { sendTestPush } from "@/server/privileged/push";
@@ -108,4 +109,25 @@ export async function sendTestPushAction(): Promise<ActionState> {
   } catch (e) {
     return { error: e instanceof PrivilegedError ? e.message : "Couldn't send the test." };
   }
+}
+
+// ---------- Which rules message you about stocks you hold (migration 50) ----------
+
+/** Save the rules whose closed trades message you when you hold the stock. None ticked is allowed: no such messages. */
+export async function saveExitRules(_: ActionState, form: FormData): Promise<ActionState> {
+  const s = await requireSession();
+  const picked = form.getAll("rule").map(String);
+  if (!picked.every((k) => RULE_KEYS.includes(k as RuleKey))) return { error: "One of those rules doesn't exist." };
+  const exit_rules = RULE_KEYS.filter((k) => picked.includes(k));
+  const { data, error } = await s.supabase
+    .from("notification_prefs")
+    .upsert({ exit_rules }, { onConflict: "user_id,tenant_id" })
+    .select("exit_rules");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "We couldn't save that in this workspace." };
+  revalidatePath("/app/settings");
+  return {
+    ok: true,
+    message: exit_rules.length ? "Saved. Only the ticked rules will message you." : "Saved. No rule will message you about stocks you hold.",
+  };
 }

@@ -46,6 +46,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 36–37 | `trade_results`, `trade_results_fair` | view `strategy_trade_results` (per strategy × side: trades, made_money_pct, avg/win/loss %, first/last day; stored `pnl_pct` on exits, SMA exits paired with the previous buy, none for RSI reversal) |
 | 39 | `signal_checks` | `signal_checks` (strategy × symbol × signal day: label weak/ok/high/normal/low/none, `tagged`, score, `detail.features`; frozen); `market_breadth` (day: breadth50/200, `rsi_setups`), `market_sectors` (day × sector: r63, rank), `market_pit_top` (year × top 300 by traded value); `signal_check_models` (quarterly RSI dip models), `signal_check_training` (service only); `private.refresh_trend_checks()`, `refresh_rsi_checks()`, `refresh_market_breadth(p_full)`, `refresh_pit_top(year)`, `refresh_check_training()`, `rsi_check_features()`; views `signal_trades` (each buy with its exit's result), `signal_check_record` (month × label); `svc_refresh_signal_checks(p_full)`, `svc_signal_check_training(strategy)`, `svc_put_signal_check_model(...)`; cron backstop runs the checks |
 | 41 | `ma200_trend` | `private.refresh_ma200_trend(p_symbols)` (200-day trend: close > 200-day average, `regr_slope` of that average over 100 sessions × 20 ≥ −0.25 % of it, `corr(close, t)` over 100 ≥ 0.5; first session all hold after one that did not; 4 × ATR14 stop, 60-session review; payload `sma200`, `slope_pct`, `r_px`); `signal_trades` + `rule_expectations` include it; `svc_refresh_market_analytics` returns `ma200_trend` |
+| 50 | `holdings_trust` | `notification_prefs` (own rows; `exit_rules` ⊆ the five live rules, default the three trend rules), `corporate_actions` (symbol × ex_date × `factor` = new shares per old; read by members, written by the EOD pipeline), `holding_adjustments` (own rows, read only: before/after quantity and average, `undone_at`); `private.apply_corporate_actions()` (holdings last edited before the ex-date session, last 30 days; whole shares stay whole, cost kept; `holding_adjusted` notification), `private.fmt_qty`, `public.undo_holding_adjustment(p_id)`; `private.run_eod_notifier()` runs the adjustments first, and exit messages follow `notification_prefs` and name the rule (`rule_label`) with "Your holding is unchanged" |
 | 49 | `evening_checks_cron` | `svc_refresh_signal_checks` without the kept records; cron `market-analytics` + `evening-checks` (`10 16,19,22 * * 1-5`) + `morning-checks` (`10 4 * * 2-6`) run the checks, `refresh_record_summaries()` and (the last two) `refresh_research_notes()` |
 | 48 | `summaries_where` | `private.refresh_record_summaries()` with `delete … where true` (API sessions run `safeupdate`) |
 | 47 | `rsi_events_rebuilt` | one-off: RSI crossings of the stocks with `history_days >= 1250` deleted and written again by `refresh_market_analytics(1300, …)` |
@@ -66,6 +67,7 @@ Runner: `supabase/scripts/apply.mjs` — `npm run migrate | status | seed:ref | 
 
 | RPC | Caller | Purpose |
 |---|---|---|
+| `undo_holding_adjustment(p_id)` | user | puts a split/bonus adjusted holding back (owner, active workspace, only while it still has the adjusted numbers) |
 | `my_entitlements()` | user | plan, status, features, limits, slots used — active tenant |
 | `track_event(p_event_type)` | user | feature-usage event (regex `^[a-z_]{3,48}$`, no symbols) |
 | `export_my_data()` | user | JSON of the caller's rows (security invoker) |
@@ -83,7 +85,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 `market_snapshot` (latest quote), `symbol_news_stats`, `research_latest` — all `security_invoker`, authenticated only.
 
 ### Notification types
-`price_alert`, `exit_signal`, `plan_expiry`, `research_stance`. All are also pushed to the owner's browsers (`privileged/push.ts`) when they turned notifications on.
+`price_alert`, `exit_signal` (a rule closed its trade in a stock you hold; only the rules in `notification_prefs`), `holding_adjusted` (split/bonus; opens `/app/portfolio#adjustments`), `plan_expiry`, `research_stance`. All are also pushed to the owner's browsers (`privileged/push.ts`) when they turned notifications on.
 
 ### Error codes raised by the DB (mapped by `friendlyDbError`)
 `PLAN_LIMIT_REACHED`, `NO_ACTIVE_PLAN`, `NOT_AUTHORIZED`, `USER_NOT_IN_TENANT`, `INVALID_INPUT`, `INVALID_EVENT_TYPE`, RLS `row-level security`.
@@ -126,7 +128,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `dry-run.test.mts` | unit tests (`npm run test:unit`) |
 | `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
 | `news/display.ts` | `cleanTitle(title, source)` (drops a trailing publisher name), `summaryEchoes(summary, title)`, `dayLabel`, `groupByDay(items)` (IST days), `stocksInNews(items, limit)` → symbol, n, pos, neg |
-| `rules.ts` | `RULES` (the five rules in display order: key, name, tag, kind trend/dip, `why`), `OLD_RULES`, `RULE_KEYS`, `isRule`, `isOldRule`, `ruleOf`, `ruleTag` — the one list `HEALTH_RULES`, `isTrendRule` and the stock page read |
+| `rules.ts` | `RULES` (the five rules in display order: key, name, tag, kind trend/dip, `why`), `OLD_RULES`, `RULE_KEYS`, `DEFAULT_EXIT_RULES` (the trend rules; same as the SQL default), `isRule`, `isOldRule`, `ruleOf`, `ruleTag` — the one list `HEALTH_RULES`, `isTrendRule` and the stock page read |
 | `rule-health.ts` | `HEALTH_RULES`, `isHealthRule`, `HEALTH_STATUS` (label, tone, meaning per status), `CAUSE` (words per loss cause), `healthSentence(row)`, `mainCause`, `mistakeSentence(row)`, `pos`, types `HealthRow`, `HealthStatus`, `Cause` (ADR-039) |
 | `signal-checks.ts` | `isCheckRule`, `CHECK_TAG` (tag words + meaning), `checkKey`, `signalDayOf(sg)` (a dip's setup close), `quarterStartIST`, `daysAgoIST`, `CHECK_TESTED` (tested record by year, from `research/strategies/team`), `liveYears(rows, rule)`, `total`, `standingLine(rule, years)` (names the wrong years), `periodsSentence`, types `CheckRule`, `CheckYear`, `RecordRow` |
 | `dip-rules.ts` | `isDipRule`, `DIP_EXIT`, `dipStatus(stop, last)`, `DIP_TESTED` (tested record per rule, from `research/strategies/record_dip.py`), `dipTestedSentence(rule)`, type `DipRule` |
@@ -172,11 +174,11 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `app/app/shell-actions.ts` | `switchTenantAction`, `claimDeviceAction`, `markNotificationsRead`, `refreshClaimsAction` |
 | `app/app/welcome/actions.ts` | `completeOnboarding` (profile + consents) |
 | `app/app/watchlist/actions.ts` | `addToRadar`, `removeFromRadar`, `removeSymbolFromRadar`, `createWatchlist`, `deleteWatchlist` |
-| `app/app/portfolio/actions.ts` | `addHolding` (merges at weighted avg), `updateHolding`, `deleteHolding`, `createPortfolio` |
+| `app/app/portfolio/actions.ts` | `addHolding` (merges at weighted avg), `updateHolding`, `deleteHolding`, `undoHoldingAdjustment(id)`, `createPortfolio` |
 | `app/app/alerts/actions.ts` | `createAlert`, `setAlertStatus`, `deleteAlert` |
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
 | `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey`, `fetchProviderModelsAction` |
-| `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount`, `savePushSubscription`, `removePushSubscription`, `sendTestPushAction` |
+| `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount`, `savePushSubscription`, `removePushSubscription`, `sendTestPushAction`, `saveExitRules` (which rules message you about stocks you hold) |
 | `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow`, `refreshMarketAnalyticsAction`, `refreshResearchNotesAction`, `runEodNotifierAction`, `syncEodMarketPricesAction` |
 | `app/app/research/actions.ts` | `askMyAi` (BYOK research read; nothing stored) |
 | `app/invite/[token]/page.tsx` | inline `accept` action |
@@ -264,13 +266,13 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `signals` (@mobile too: four rules, market weather, track record), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
-| `web/e2e/helpers/` | `admin.ts` (disposable users via admin API), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
+| `web/e2e/*.spec.ts` | Playwright: `holdings-trust` (undo a split adjustment; rule choice for holders), `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `signals` (@mobile too: four rules, market weather, track record), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
+| `web/e2e/helpers/` | `admin.ts` (disposable users via admin API; `seedSplitAdjustment`), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |
 | `supabase/scripts/freshness.mjs` | `node freshness.mjs` — read-only report: latest candle per segment, stale quotes, latest signal and grade per rule, weather, research/news times, pg_cron jobs and their last runs |
 | `supabase/scripts/time-analytics.mjs` | `node time-analytics.mjs [batch] [offsets]` — times each step of the pipeline's analytics batch on the live DB inside a rolled-back transaction (keep each batch well under PostgREST's 8 s) |
-| `pipelines/eod/eod.py` | EOD candles from Yahoo (yfinance) → Supabase, then analytics/research/notifier RPCs; `--days N`, `--dry-run`, `--symbols A,B`. Pure helpers: `last_settled_day`, `to_candles`, `yahoo_ticker`, `split_symbols`, `run_split` / `run_analytics` (split a batch that hits the statement limit; research uses it too, non-fatal); config `YAHOO_OVERRIDES`, `HISTORY_FROM`, `FULL_HISTORY_DAYS` |
+| `pipelines/eod/eod.py` | EOD candles from Yahoo (yfinance) → Supabase, then analytics/research/notifier RPCs; `--days N`, `--dry-run`, `--symbols A,B`. Pure helpers: `last_settled_day`, `to_candles`, `yahoo_ticker`, `split_events` (Yahoo's splits/bonuses → `corporate_actions` rows, stored before the notifier), `split_symbols`, `run_split` / `run_analytics` (split a batch that hits the statement limit; research uses it too, non-fatal); config `YAHOO_OVERRIDES`, `HISTORY_FROM`, `FULL_HISTORY_DAYS` |
 | `pipelines/eod/universe.py` | `fetch_universe()` (screener + sectors + curated `INDICES`/`ETFS`), `merge(fresh, existing)`, `retire_allowed`, `split_ticker`, `clean_name` |
 | `pipelines/eod/test_universe.py` | unit tests |
 | `pipelines/eod/checks_refit.py` | quarterly refit of the RSI dip check: reads `svc_signal_check_training`, fits `tier_model.fit` on complete cohorts, stores via `svc_put_signal_check_model`; `--quarter`, `--dry-run`. `tier_model.py` = byte copy of `research/strategies/team/metalabel/tier_model.py`; tests `test_checks_refit.py` |

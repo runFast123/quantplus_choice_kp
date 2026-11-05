@@ -61,6 +61,9 @@ Requirement IDs refer to `docs/BRD.md`.
 - Rule health (ADR-039) flags drift and sorts losses by cause; it never pauses or changes a rule. Its range assumes
   trades are independent, which trades finishing on the same days are not, so it is a guide. Causes use the Nifty 500
   only (no sector move yet).
+- Holdings follow splits and bonus issues that Yahoo reports (ADR-045), within 30 days of the ex-date. Demergers, rights
+  issues, dividends and the cash paid for fractional bonus shares are not recorded; there is no buy/sell history yet, so
+  realized gains and a money-weighted return wait for the transaction record (portfolio plan, step 2).
 - No derivatives (F&O), currency or commodity data — Yahoo has none for NSE; needs a licensed feed (ADR-027).
 - BSE-only listings aren't covered (NSE universe only).
 - Symbols outside the core keep ~13 months of candles (free-tier storage); upgrade the DB to keep more.

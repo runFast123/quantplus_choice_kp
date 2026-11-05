@@ -21,6 +21,8 @@ export function notificationUrl(type: string, data: Record<string, unknown> | nu
     case "exit_signal":
     case "research_stance":
       return symbol ? `/app/markets/${encodeURIComponent(symbol)}` : "/app/signals";
+    case "holding_adjusted":
+      return "/app/portfolio#adjustments";
     case "plan_expiry":
       return "/app/billing";
     default:

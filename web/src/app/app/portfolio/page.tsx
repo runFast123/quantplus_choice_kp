@@ -8,12 +8,12 @@ import { QuantumAudit } from "@/components/market/quantum-audit";
 import { AiPortfolioDiagnostic } from "@/components/portfolio/ai-diagnostic";
 import { ContractNoteModal } from "@/components/portfolio/contract-note-modal";
 import { CsvImportModal } from "@/components/portfolio/csv-import";
-import { date, price, qty, rupees, rupeesCompact } from "@/lib/format";
+import { date, isoDaysAgo, price, qty, rupees, rupeesCompact } from "@/lib/format";
 import type { Holding, Portfolio } from "@/lib/types";
 import { getQuotes, positions, summarize } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
 import { deleteHolding } from "./actions";
-import { AddHoldingForm, EditHolding, NewPortfolioForm } from "./forms";
+import { AddHoldingForm, EditHolding, NewPortfolioForm, UndoAdjustment } from "./forms";
 
 export const metadata: Metadata = { title: "Portfolio" };
 
@@ -29,14 +29,31 @@ export default async function PortfolioPage() {
   }
 
   const db = s.supabase;
-  const [pfRes, hRes, aiKeysRes, aiConsentRes] = await Promise.all([
+  const [pfRes, hRes, aiKeysRes, aiConsentRes, adjRes] = await Promise.all([
     db.from("portfolios").select("id, name, source, created_at").order("created_at"),
     db.from("holdings").select("*"),
     can(s, "ai_byok")
       ? db.from("ai_provider_keys").select("id").eq("status", "active").neq("provider", "other").limit(1)
       : Promise.resolve({ data: [] }),
     db.from("user_consents").select("id").eq("purpose", "ai_processing").is("withdrawn_at", null).limit(1),
+    // Split and bonus changes of the last 30 days that can still be undone (migration 50).
+    db
+      .from("holding_adjustments")
+      .select("id, symbol, ex_date, factor, old_quantity, old_avg_price, new_quantity, new_avg_price")
+      .is("undone_at", null)
+      .gte("applied_at", isoDaysAgo(30))
+      .order("applied_at", { ascending: false }),
   ]);
+  const adjustments = (adjRes.data ?? []) as {
+    id: string;
+    symbol: string;
+    ex_date: string;
+    factor: number;
+    old_quantity: number;
+    old_avg_price: number;
+    new_quantity: number;
+    new_avg_price: number;
+  }[];
   const portfolios = (pfRes.data ?? []) as Portfolio[];
   const holdings = (hRes.data ?? []) as Holding[];
   const quotes = await getQuotes(db, [...new Set(holdings.map((h) => h.symbol))]);
@@ -105,6 +122,31 @@ export default async function PortfolioPage() {
         <Stat className="p-4" label="Day's P&L" value={<Delta value={sum.dayPnl} kind="inr" />} sub={<Delta value={sum.dayPct} />} />
         <Stat className="p-4" label="Overall P&L" value={<Delta value={sum.totalPnl} kind="inr" />} sub={<Delta value={sum.totalPct} />} />
       </section>
+
+      {adjustments.length ? (
+        <Panel title="Split and bonus changes" meta="last 30 days" id="adjustments">
+          <p className="mb-3 max-w-2xl text-[13px] leading-5 text-muted-foreground">
+            When a company splits its shares or gives bonus shares, we change your quantity and average price so your
+            gain or loss stays right. The money you put in stays the same. If your broker shows other numbers, undo it.
+          </p>
+          <ul className="divide-y divide-border/60">
+            {adjustments.map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-[13px]">
+                <span>
+                  <Link href={`/app/markets/${encodeURIComponent(a.symbol)}`} className="font-medium hover:underline">
+                    {a.symbol}
+                  </Link>
+                  <span className="text-muted-foreground"> · from {date(a.ex_date)}, each share became {qty(a.factor)} shares</span>
+                  <span className="num mt-0.5 block text-[12px] text-muted-foreground">
+                    {qty(a.old_quantity)} at {rupees(a.old_avg_price)} → {qty(a.new_quantity)} at {rupees(a.new_avg_price)}
+                  </span>
+                </span>
+                <UndoAdjustment id={a.id} symbol={a.symbol} />
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
 
       <Panel title="Add a holding">
         <AddHoldingForm portfolios={portfolios} />

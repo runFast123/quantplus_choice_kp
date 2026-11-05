@@ -8,7 +8,8 @@ import { PageHeader, Panel } from "@/components/ui/layout";
 import { CONSENT_COPY } from "@/lib/consents";
 import { date, dateTime, relative } from "@/lib/format";
 import { requireSession } from "@/server/session";
-import { ConsentSwitch, DeleteAccountForm, PasswordForm, ProfileForm } from "./forms";
+import { DEFAULT_EXIT_RULES, isRule } from "@/lib/rules";
+import { ConsentSwitch, DeleteAccountForm, ExitRulesForm, PasswordForm, ProfileForm } from "./forms";
 import { PushControls } from "./push-controls";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -118,8 +119,12 @@ async function PrivacyTab() {
 
 async function NotificationsTab() {
   const s = await requireSession();
-  const { data } = await s.supabase.from("push_subscriptions").select("id, user_agent, created_at, last_success_at").order("created_at");
+  const [{ data }, prefs] = await Promise.all([
+    s.supabase.from("push_subscriptions").select("id, user_agent, created_at, last_success_at").order("created_at"),
+    s.supabase.from("notification_prefs").select("exit_rules").maybeSingle(),
+  ]);
   const browsers = data ?? [];
+  const chosen = prefs.data ? (prefs.data.exit_rules as string[]).filter(isRule) : DEFAULT_EXIT_RULES;
   const name = (ua: string | null) => {
     const v = ua ?? "";
     const browser = /Edg\//.test(v) ? "Edge" : /Chrome\//.test(v) ? "Chrome" : /Firefox\//.test(v) ? "Firefox" : /Safari\//.test(v) ? "Safari" : "Browser";
@@ -147,6 +152,13 @@ async function NotificationsTab() {
         ) : (
           <p className="text-[13px] text-muted-foreground">No browsers yet. Turn notifications on here, in each browser where you want them.</p>
         )}
+      </Panel>
+      <Panel title="Stocks you hold" meta="which rules may message you" className="lg:col-span-2">
+        <p className="mb-4 max-w-2xl text-[13px] leading-5 text-muted-foreground">
+          Each rule keeps its own research record. When a rule closes its trade in a stock you hold, we can tell you. It
+          never changes your holding and it is not advice to sell.
+        </p>
+        <ExitRulesForm chosen={chosen} />
       </Panel>
     </div>
   );

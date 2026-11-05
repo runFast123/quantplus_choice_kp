@@ -12,6 +12,7 @@ describe("push payloads", () => {
 
   test("anything else lands somewhere sensible, never on a crafted path", () => {
     assert.equal(notificationUrl("plan_expiry", {}), "/app/billing");
+    assert.equal(notificationUrl("holding_adjusted", { symbol: "TCS" }), "/app/portfolio#adjustments");
     assert.equal(notificationUrl("price_alert", {}), "/app/alerts");
     assert.equal(notificationUrl("price_alert", { symbol: "../../evil" }), "/app/alerts");
     assert.equal(notificationUrl("something_new", null), "/app");

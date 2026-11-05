@@ -107,7 +107,7 @@ reset role;
 create temp table lc as
   select high, low, close, ts from public.market_candles where symbol = 'TCS' and interval = '1d' order by ts desc limit 1;
 insert into public.trading_signals (symbol, exchange, strategy, signal_type, payload, generated_at)
-values ('TCS', 'NSE', 'sma_20_50_cross', 'exit', '{"close": "n/a"}', now() - interval '1 hour');
+values ('TCS', 'NSE', 'sma_trend', 'exit', '{"close": "n/a"}', now() - interval '1 hour');
 -- 5. An alert set after the session's high must not fire on that high…
 insert into public.price_alerts (tenant_id, user_id, symbol, condition, trigger_price, created_at, updated_at)
 select default_tenant_id, user_id, 'TCS', 'above', (select high - 0.05 from lc), (select ts from lc) - interval '1 hour', (select ts from lc) - interval '1 hour'

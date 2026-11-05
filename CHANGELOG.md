@@ -5,6 +5,23 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — holdings you can trust: split and bonus adjustments, exit messages that say what they are (ADR-045)
+- **Splits and bonus issues adjust your holding** (migration 50). `pipelines/eod/eod.py` stores each split or bonus
+  Yahoo reports (`split_events` → `corporate_actions`); the evening notifier rescales holdings last edited before the
+  ex-date (`private.apply_corporate_actions`: quantity × ratio, whole shares stay whole, the money put in is kept),
+  records the before and after (`holding_adjustments`) and sends a `holding_adjusted` message. The portfolio shows
+  "Split and bonus changes" with **Undo** (`undo_holding_adjustment`, `undoHoldingAdjustment`). Before this, a split
+  showed as a large loss that never happened.
+- **Exit messages say what they are.** "Exit signal on X … You hold this stock" named only the retired rules and read
+  like advice; now: "SMA 20/50 trend closed its trade in TCS · Its safety stop was hit at ₹3,500.00. This is the rule's
+  own research trade, not advice. Your holding is unchanged."
+- **You choose which rules message you about stocks you hold** (Settings → Notifications, `notification_prefs`,
+  `saveExitRules`). The three trend rules are on by default; RSI dip and KK dip (trades of ten sessions at most) are off.
+- Tests: `supabase/tests/20_holdings_trust.sql` (25 checks: adjustment, edited holding left alone, bonus rounding,
+  second run, wording, defaults, choices, isolation, grants, undo once, edit wins); `test_eod.py`
+  (`split_events`); `rules.test.mts` (defaults match the SQL); `push-payload.test.mts`; `e2e/holdings-trust.spec.ts`.
+  Tests 02 and 04 use a live rule's exit (the notifier only messages about live rules now).
+
 ### Added — research notes (/blog) and a Pine script per rule (ADR-044)
 - **Copy Pine script follows the chosen rule.** The old button gave one script of the retired rules whatever the chart
   showed. `lib/pine-script.ts` now writes one Pine v6 script per live rule (KK dip, SMA 20/50 trend, RSI dip, Strong

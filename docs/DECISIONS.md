@@ -354,6 +354,25 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-045 · Holdings you can trust: split and bonus adjustments with undo, exit messages that say what they are
+**Date** 2026-11-05 · **Status** accepted
+- **Context:** the first step of making QuantsPulse a place to keep a portfolio. Three things broke trust. (1) When a
+  stock split or gave bonus shares, Yahoo's history was rescaled but the holding kept its old quantity and average, so
+  the portfolio showed a large loss that never happened. (2) An exit message said "Exit signal on X … You hold this
+  stock" and named only the retired rules (the live ones read "kk dip"); it read like an instruction to sell. (3) The
+  dip rules close trades within ten sessions, so a long-term holder was messaged far too often.
+- **Decision:** migration 50. The EOD pipeline stores every split or bonus Yahoo reports in `corporate_actions` (new
+  shares per old share); the notifier rescales holdings last edited before that ex-date's session opened (an edit after
+  it already has the new numbers), last 30 days only, keeping the money put in and whole shares whole, records the
+  before and after in `holding_adjustments` and messages the owner, who can undo it once from the portfolio while the
+  holding is unchanged. Exit messages name the rule and why its trade closed and end "This is the rule's own research
+  trade, not advice. Your holding is unchanged." `notification_prefs` lets each person pick the rules that message them
+  (Settings → Notifications); with no row, only the three trend rules do. Every plan gets this (no plan gate): it fixes
+  numbers the person already has.
+- **Limits:** only splits and bonuses Yahoo reports; a price break the pipeline repairs itself (ADR-043) is not applied
+  to holdings, and demergers, rights issues and the cash paid for fractional bonus shares are not recorded. A holding
+  entered after the ex-date with numbers from an old statement is not adjusted.
+
 ### ADR-044 · One Pine script per rule; research notes that test each rule against the usual way
 **Date** 2026-11-05 · **Status** accepted
 - **Context:** "Copy Pine script" on a stock page gave one script for the retired rules (golden cross + RSI 14 reversal,

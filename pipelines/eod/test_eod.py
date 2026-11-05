@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 
 import pandas as pd
 
-from eod import Candle, has_break, last_settled_day, on_trading_days, repair_series, run_analytics, sessions, split_symbols, to_candles, yahoo_ticker
+from eod import Candle, has_break, last_settled_day, on_trading_days, repair_series, run_analytics, sessions, split_events, split_symbols, to_candles, yahoo_ticker
 
 
 def frame(rows):
@@ -77,6 +77,20 @@ class Splits(unittest.TestCase):
             "EMPTY": None,
         }
         self.assertEqual(split_symbols(frames), ["SPLIT"])
+
+    def test_split_events_are_corporate_action_rows(self):
+        idx = pd.DatetimeIndex(["2026-09-29", "2026-09-30", "2026-10-01"])
+        frames = {
+            "SPLIT": pd.DataFrame({"Close": [100.0, 50.0, 50.0], "Stock Splits": [0.0, 2.0, 0.0]}, index=idx),
+            "BONUS": pd.DataFrame({"Close": [90.0, 90.0, 60.0], "Stock Splits": [0.0, None, 1.5]}, index=idx),
+            "ONE": pd.DataFrame({"Close": [1.0, 1.0, 1.0], "Stock Splits": [0.0, 1.0, 0.0]}, index=idx),
+        }
+        self.assertEqual(split_events(frames), [
+            {"symbol": "SPLIT", "exchange": "NSE", "ex_date": "2026-09-30", "factor": 2.0},
+            {"symbol": "BONUS", "exchange": "NSE", "ex_date": "2026-10-01", "factor": 1.5},
+        ])
+        # a bar after the settled day (a live, unfinished session) is not stored
+        self.assertEqual([e["symbol"] for e in split_events(frames, date(2026, 9, 30))], ["SPLIT"])
 
 
 class Calendar(unittest.TestCase):

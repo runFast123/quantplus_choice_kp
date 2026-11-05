@@ -1,13 +1,13 @@
 "use client";
 
 import { PencilSimpleIcon } from "@phosphor-icons/react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useEchoAction } from "@/components/ui/use-echo-action";
 import { FormMessage, Input, Select } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ActionState } from "@/lib/errors";
 import { useSymbolSearch } from "@/components/market/use-symbol-search";
-import { addHolding, createPortfolio, updateHolding } from "./actions";
+import { addHolding, createPortfolio, undoHoldingAdjustment, updateHolding } from "./actions";
 
 export function AddHoldingForm({ portfolios }: { portfolios: { id: string; name: string }[] }) {
   const [q, setQ] = useState("");
@@ -106,6 +106,30 @@ export function EditHolding({ id, quantity, avgPrice, symbol }: { id: string; qu
         </span>
       ) : null}
     </form>
+  );
+}
+
+/** Undo one split or bonus adjustment; says why when it can't. */
+export function UndoAdjustment({ id, symbol }: { id: string; symbol: string }) {
+  const [pending, start] = useTransition();
+  const [state, setState] = useState<ActionState>();
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-2">
+      {state?.error ? (
+        <span role="alert" className="text-[12px] text-loss">
+          {state.error}
+        </span>
+      ) : null}
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => start(async () => setState(await undoHoldingAdjustment(id)))}
+        aria-label={`Undo the change to ${symbol}`}
+        className="h-7 rounded-md border border-border px-2.5 text-[12px] hover:bg-foreground/[0.04] disabled:opacity-60"
+      >
+        {pending ? "Undoing…" : "Undo"}
+      </button>
+    </span>
   );
 }
 

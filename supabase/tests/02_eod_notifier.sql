@@ -35,7 +35,7 @@ from public.profiles p,
 where p.user_id = 'bbbbbbbb-0000-4000-8000-0000000000f9';
 
 insert into public.trading_signals (symbol, exchange, strategy, signal_type, payload, generated_at)
-values ('TCS', 'NSE', 'sma_20_50_cross', 'exit', '{"close": 3500}', now() - interval '2 hours');
+values ('TCS', 'NSE', 'sma_trend', 'exit', '{"close": 3500}', now() - interval '2 hours');
 
 select private.run_eod_notifier();
 

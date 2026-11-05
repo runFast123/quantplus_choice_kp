@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { strategyLabel } from "./format";
 import { HEALTH_RULES } from "./rule-health";
-import { OLD_RULES, RULES, isOldRule, isRule, ruleOf, ruleTag } from "./rules";
+import { DEFAULT_EXIT_RULES, OLD_RULES, RULES, isOldRule, isRule, ruleOf, ruleTag } from "./rules";
 import { ruleSentence } from "./signal-trade";
 import { isTrendRule } from "./strong-trend";
 import { defaultHorizon } from "./trade-odds";
@@ -33,4 +34,12 @@ test("old rules are history with their own tags; unknown keys never pass as a ru
   assert.equal(ruleTag("something_else"), "Signal");
   assert.equal(ruleOf("nope"), undefined);
   assert.ok(!isRule(null) && !isTrendRule(undefined));
+});
+
+test("holders hear from the trend rules by default, as notification_prefs does (migration 50)", () => {
+  assert.deepEqual([...DEFAULT_EXIT_RULES], ["strong_trend", "sma_trend", "ma200_trend"]);
+  const sql = readFileSync(new URL("../../../supabase/migrations/20261001000050_holdings_trust.sql", import.meta.url), "utf8");
+  assert.ok(sql.includes("default array['strong_trend', 'sma_trend', 'ma200_trend']"), "table default");
+  assert.ok(sql.includes("coalesce(p.exit_rules, array['strong_trend', 'sma_trend', 'ma200_trend'])"), "notifier default");
+  for (const r of RULES) assert.ok(sql.includes(`'${r.key}'`), `${r.key} can be chosen`);
 });

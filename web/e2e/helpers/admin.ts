@@ -72,3 +72,44 @@ export async function signInClaims(email: string, password: string) {
 
 export const supabaseUrl = URL_;
 export const anonKey = ANON;
+
+/**
+ * A holding that the evening job rescaled for a 1:2 split (migration 50): 10 at ₹3,000 became 20 at ₹1,500. Written
+ * directly so the test never runs the notifier, which would message real users.
+ */
+export async function seedSplitAdjustment(userId: string, symbol: string) {
+  const json = { ...svc, prefer: "return=representation" };
+  const prof = await (await fetch(`${URL_}/rest/v1/profiles?user_id=eq.${userId}&select=default_tenant_id`, { headers: svc })).json();
+  const tenant_id = prof[0]?.default_tenant_id as string;
+  let pf = await (await fetch(`${URL_}/rest/v1/portfolios?user_id=eq.${userId}&tenant_id=eq.${tenant_id}&select=id&limit=1`, { headers: svc })).json();
+  if (!pf.length) {
+    const r = await fetch(`${URL_}/rest/v1/portfolios`, { method: "POST", headers: json, body: JSON.stringify({ user_id: userId, tenant_id, name: "E2E" }) });
+    pf = await r.json();
+    if (!r.ok) throw new Error(`portfolio: ${r.status}`);
+  }
+  const h = await fetch(`${URL_}/rest/v1/holdings`, {
+    method: "POST",
+    headers: json,
+    body: JSON.stringify({ user_id: userId, tenant_id, portfolio_id: pf[0].id, symbol, quantity: 20, avg_price: 1500 }),
+  });
+  const holding = await h.json();
+  if (!h.ok) throw new Error(`holding: ${h.status}`);
+  const a = await fetch(`${URL_}/rest/v1/holding_adjustments`, {
+    method: "POST",
+    headers: svc,
+    body: JSON.stringify({
+      user_id: userId,
+      tenant_id,
+      holding_id: holding[0].id,
+      symbol,
+      exchange: "NSE",
+      ex_date: new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10),
+      factor: 2,
+      old_quantity: 10,
+      old_avg_price: 3000,
+      new_quantity: 20,
+      new_avg_price: 1500,
+    }),
+  });
+  if (!a.ok) throw new Error(`adjustment: ${a.status}`);
+}

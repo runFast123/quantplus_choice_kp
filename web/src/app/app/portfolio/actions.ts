@@ -120,6 +120,21 @@ export async function deleteHolding(id: string) {
   revalidatePath("/app", "layout");
 }
 
+/** Put a holding back as it was before a split or bonus adjustment. The RPC (migration 50) checks the owner, the
+ * workspace, and that the holding still has the adjusted numbers. */
+export async function undoHoldingAdjustment(id: string): Promise<ActionState> {
+  const s = await requireSession();
+  if (!z.uuid().safeParse(id).success) return { error: "We couldn't find that change." };
+  const { error } = await s.supabase.rpc("undo_holding_adjustment", { p_id: id });
+  if (error) {
+    if (error.message.includes("holding changed")) return { error: "You edited this holding after the change, so your edit stays." };
+    if (error.message.includes("not found")) return { error: "This change was already undone." };
+    return { error: friendlyDbError(error.message) };
+  }
+  revalidatePath("/app", "layout");
+  return { ok: true, message: "Undone. Your holding is back as you entered it." };
+}
+
 export async function createPortfolio(_: ActionState, form: FormData): Promise<ActionState> {
   const s = await requireSession();
   const name = String(form.get("name") ?? "").trim().slice(0, 80);
