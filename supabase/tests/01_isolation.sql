@@ -108,8 +108,9 @@ select qp_test.expect_rows(
 select qp_test.login('B');
 set local role authenticated;
 insert into public.portfolios (id, name) values ('bbbbbbbb-0000-4000-8000-0000000000b1', 'B main');
-insert into public.holdings (portfolio_id, symbol, quantity, avg_price)
-values ('bbbbbbbb-0000-4000-8000-0000000000b1', 'TCS', 10, 3500);
+-- [QP change, migration 52] holdings are written by the ledger: a client records the trade
+insert into public.portfolio_transactions (portfolio_id, symbol, kind, trade_date, quantity, price)
+values ('bbbbbbbb-0000-4000-8000-0000000000b1', 'TCS', 'buy', '2026-10-01', 10, 3500);
 insert into public.watchlists (id) values ('bbbbbbbb-0000-4000-8000-0000000000b2');
 insert into public.watchlist_items (watchlist_id, symbol) values ('bbbbbbbb-0000-4000-8000-0000000000b2', 'INFY');
 insert into public.price_alerts (symbol, condition, trigger_price) values ('TCS', 'above', 4000);
@@ -120,8 +121,8 @@ reset role;
 select qp_test.login('C', qp_test.uid('ORG'));
 set local role authenticated;
 insert into public.portfolios (id) values ('cccccccc-0000-4000-8000-0000000000c1');
-insert into public.holdings (portfolio_id, symbol, quantity, avg_price)
-values ('cccccccc-0000-4000-8000-0000000000c1', 'HDFCBANK', 5, 1600);
+insert into public.portfolio_transactions (portfolio_id, symbol, kind, trade_date, quantity, price)
+values ('cccccccc-0000-4000-8000-0000000000c1', 'HDFCBANK', 'buy', '2026-10-01', 5, 1600);
 reset role;
 
 -- ---------------------------------------------------------------------
@@ -135,14 +136,19 @@ select qp_test.expect_rows(format('select 1 from public.watchlist_items where us
 select qp_test.expect_rows(format('select 1 from public.price_alerts where user_id = %L', qp_test.uid('B')), 0, '1c A reads B alerts');
 
 select qp_test.expect_error(format(
-  $$insert into public.holdings (portfolio_id, symbol, quantity, avg_price, user_id, tenant_id)
-    values ('bbbbbbbb-0000-4000-8000-0000000000b1', 'TCS', 1, 100, %L, %L)$$,
+  $$insert into public.portfolio_transactions (portfolio_id, symbol, kind, trade_date, quantity, price, user_id, tenant_id)
+    values ('bbbbbbbb-0000-4000-8000-0000000000b1', 'TCS', 'buy', '2026-10-01', 1, 100, %L, %L)$$,
   qp_test.uid('B'), qp_test.tenant_of('B')), 'row-level security', '2 A inserts with B ids');
+
+select qp_test.expect_error(
+  $$insert into public.portfolio_transactions (portfolio_id, symbol, kind, trade_date, quantity, price)
+    values ('bbbbbbbb-0000-4000-8000-0000000000b1', 'TCS', 'buy', '2026-10-01', 1, 100)$$,
+  'foreign key', '3 A inserts into B portfolio');
 
 select qp_test.expect_error(
   $$insert into public.holdings (portfolio_id, symbol, quantity, avg_price)
     values ('bbbbbbbb-0000-4000-8000-0000000000b1', 'TCS', 1, 100)$$,
-  'foreign key', '3 A inserts into B portfolio');
+  'permission denied', '3b holdings are written by the ledger only');
 
 select qp_test.login('A', qp_test.tenant_of('B'));
 select qp_test.expect_rows('select 1 from public.holdings', 0, '4 A forges app_tenant_id = B');

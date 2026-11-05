@@ -15,6 +15,7 @@ import {
   parseContractNoteAi,
 } from "@/app/app/portfolio/actions";
 import { price } from "@/lib/format";
+import { istToday } from "@/lib/ledger";
 import type { ParsedTrade } from "@/server/privileged/ai";
 import type { Portfolio } from "@/lib/types";
 
@@ -37,6 +38,7 @@ export function ContractNoteModal({
   const [isParsing, setIsParsing] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [trades, setTrades] = useState<ParsedTrade[] | null>(null);
+  const [tradeDate, setTradeDate] = useState<string>(() => istToday());
   const [modelInfo, setModelInfo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applyResult, setApplyResult] = useState<{
@@ -73,6 +75,7 @@ export function ContractNoteModal({
         setError(res.error);
       } else if (res.trades) {
         setTrades(res.trades);
+        setTradeDate(res.tradeDate && res.tradeDate <= istToday() ? res.tradeDate : istToday());
         setModelInfo(res.model ?? "BYOK AI");
       }
     } catch (err: unknown) {
@@ -88,7 +91,7 @@ export function ContractNoteModal({
     setError(null);
 
     try {
-      const res = await applyParsedTrades(selectedPortfolioId, trades);
+      const res = await applyParsedTrades(selectedPortfolioId, trades, tradeDate);
       if (res.error) {
         setError(res.error);
       } else {
@@ -255,6 +258,18 @@ export function ContractNoteModal({
                         )}
                       </div>
 
+                      {trades.length ? (
+                        <label className="flex flex-wrap items-center gap-2 text-[12.5px]">
+                          <span className="text-muted-foreground">Trade date (check it matches the note)</span>
+                          <input
+                            type="date"
+                            value={tradeDate}
+                            max={istToday()}
+                            onChange={(e) => setTradeDate(e.target.value)}
+                            className="num h-8 rounded-md border border-input bg-card px-2 text-[12.5px]"
+                          />
+                        </label>
+                      ) : null}
                       {trades.length === 0 ? (
                         <p className="text-[12.5px] text-muted-foreground">
                           No equity trades found in this snippet. Make sure to paste the trade breakdown table.
@@ -308,8 +323,9 @@ export function ContractNoteModal({
                       <div className="flex items-center gap-1.5 font-medium">
                         <CheckIcon size={15} weight="bold" />
                         <span>
-                          Contract note applied: {applyResult.imported ?? 0} new positions added,{" "}
-                          {applyResult.updated ?? 0} positions updated/closed.
+                          Saved: {applyResult.imported ?? 0} buy{applyResult.imported === 1 ? "" : "s"} and {applyResult.updated ?? 0} sale
+                          {applyResult.updated === 1 ? "" : "s"}
+                          {applyResult.skipped ? `, ${applyResult.skipped} left out (stocks we don't cover)` : ""}.
                         </span>
                       </div>
                     </div>

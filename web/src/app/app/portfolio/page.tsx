@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TrashIcon } from "@phosphor-icons/react/ssr";
-import { ConfirmButton } from "@/components/ui/confirm-button";
+import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/ssr";
 import { Delta, Stat } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { QuantumAudit } from "@/components/market/quantum-audit";
@@ -9,16 +8,22 @@ import { AiPortfolioDiagnostic } from "@/components/portfolio/ai-diagnostic";
 import { ContractNoteModal } from "@/components/portfolio/contract-note-modal";
 import { CsvImportModal } from "@/components/portfolio/csv-import";
 import { date, isoDaysAgo, price, qty, rupees, rupeesCompact } from "@/lib/format";
+import { groupSales, heldFor, type RealizedPart } from "@/lib/ledger";
 import type { Holding, Portfolio } from "@/lib/types";
 import { getQuotes, positions, summarize } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
-import { deleteHolding } from "./actions";
-import { AddHoldingForm, EditHolding, NewPortfolioForm, UndoAdjustment } from "./forms";
+import { NewPortfolioForm, RecordTradeForm, RemoveHolding, UndoAdjustment } from "./forms";
 
 export const metadata: Metadata = { title: "Portfolio" };
 
-export default async function PortfolioPage() {
+/** A stock's history page; the portfolio is named only when there are several. */
+const historyHref = (symbol: string, portfolioId: string | null, portfolios: number) =>
+  `/app/portfolio/${encodeURIComponent(symbol)}${portfolioId && portfolios > 1 ? `?p=${portfolioId}` : ""}`;
+
+export default async function PortfolioPage({ searchParams }: PageProps<"/app/portfolio">) {
   const s = await requireSession();
+  const sp = await searchParams;
+  const sellSymbol = typeof sp.sell === "string" && /^[A-Z0-9&\-.]{1,20}$/.test(sp.sell) ? sp.sell : undefined;
   if (!can(s, "portfolio")) {
     return (
       <div className="flex flex-col gap-6">
@@ -29,7 +34,7 @@ export default async function PortfolioPage() {
   }
 
   const db = s.supabase;
-  const [pfRes, hRes, aiKeysRes, aiConsentRes, adjRes] = await Promise.all([
+  const [pfRes, hRes, aiKeysRes, aiConsentRes, adjRes, realizedRes] = await Promise.all([
     db.from("portfolios").select("id, name, source, created_at").order("created_at"),
     db.from("holdings").select("*"),
     can(s, "ai_byok")
@@ -43,7 +48,16 @@ export default async function PortfolioPage() {
       .is("undone_at", null)
       .gte("applied_at", isoDaysAgo(30))
       .order("applied_at", { ascending: false }),
+    // Every sale, worked out by the ledger oldest shares first (migration 51).
+    db
+      .from("portfolio_realized")
+      .select("sell_txn_id, symbol, buy_date, sell_date, quantity, buy_price, sell_price, cost, proceeds, gain, days_held")
+      .order("sell_date", { ascending: false })
+      .limit(5000),
   ]);
+  const sales = groupSales((realizedRes.data ?? []) as RealizedPart[]);
+  const realized = sales.reduce((a, x) => a + x.gain, 0);
+  const realizedCost = sales.reduce((a, x) => a + x.cost, 0);
   const adjustments = (adjRes.data ?? []) as {
     id: string;
     symbol: string;
@@ -116,11 +130,17 @@ export default async function PortfolioPage() {
         }
       />
 
-      <section className="panel grid grid-cols-2 md:grid-cols-4 md:divide-x md:divide-border">
+      <section className="panel grid grid-cols-2 md:grid-cols-5 md:divide-x md:divide-border" data-testid="portfolio-stats">
         <Stat className="p-4" label="Current value" value={rupeesCompact(sum.value)} sub={rupees(sum.value)} />
         <Stat className="p-4" label="Invested" value={rupeesCompact(sum.invested)} sub={`${ps.length} position${ps.length === 1 ? "" : "s"}`} />
         <Stat className="p-4" label="Day's P&L" value={<Delta value={sum.dayPnl} kind="inr" />} sub={<Delta value={sum.dayPct} />} />
-        <Stat className="p-4" label="Overall P&L" value={<Delta value={sum.totalPnl} kind="inr" />} sub={<Delta value={sum.totalPct} />} />
+        <Stat className="p-4" label="On shares you hold" value={<Delta value={sum.totalPnl} kind="inr" />} sub={<Delta value={sum.totalPct} />} />
+        <Stat
+          className="p-4"
+          label="Realized gain"
+          value={<Delta value={sales.length ? realized : null} kind="inr" />}
+          sub={sales.length ? <Delta value={realizedCost ? (realized / realizedCost) * 100 : null} /> : "nothing sold yet"}
+        />
       </section>
 
       {adjustments.length ? (
@@ -148,8 +168,12 @@ export default async function PortfolioPage() {
         </Panel>
       ) : null}
 
-      <Panel title="Add a holding">
-        <AddHoldingForm portfolios={portfolios} />
+      <Panel title="Record a trade">
+        <RecordTradeForm
+          portfolios={portfolios}
+          held={holdings.map((h) => ({ symbol: h.symbol, quantity: Number(h.quantity) }))}
+          initial={sellSymbol ? { kind: "sell", symbol: sellSymbol } : undefined}
+        />
       </Panel>
 
       {ps.length > 0 ? (
@@ -170,11 +194,11 @@ export default async function PortfolioPage() {
         <Panel title="Positions" meta={ps.length ? "sorted by value" : undefined}>
           {ps.length === 0 ? (
             <Empty title="No holdings yet.">
-              Add them by hand above. Prices are valued at the last close.
+              Record your first buy above, or import what you hold from your broker. Prices are valued at the last close.
             </Empty>
           ) : (
             <TableWrap>
-              <table className="w-full min-w-[900px]">
+              <table className="w-full min-w-[900px]" data-testid="positions">
                 <thead>
                   <tr>
                     <th className={th}>Symbol</th>
@@ -219,10 +243,24 @@ export default async function PortfolioPage() {
                         <td className={tdNum + " text-muted-foreground"}>{sum.value ? ((p.value / sum.value) * 100).toFixed(1) : "0.0"}%</td>
                         <td className={td + " text-right"}>
                           <span className="inline-flex items-center gap-1">
-                            <EditHolding id={p.holding.id} quantity={p.holding.quantity} avgPrice={p.holding.avg_price} symbol={p.holding.symbol} />
-                            <ConfirmButton label={`Remove ${p.holding.symbol}`} confirmLabel="Remove" onConfirm={deleteHolding.bind(null, p.holding.id)}>
-                              <TrashIcon size={15} aria-hidden />
-                            </ConfirmButton>
+                            <Link
+                              prefetch={false}
+                              href={historyHref(p.holding.symbol, p.holding.portfolio_id, portfolios.length)}
+                              aria-label={`History of ${p.holding.symbol}`}
+                              title={`Trades and gains for ${p.holding.symbol}`}
+                              className="inline-grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+                            >
+                              <ClockCounterClockwiseIcon size={15} aria-hidden />
+                            </Link>
+                            <Link
+                              prefetch={false}
+                              href={`/app/portfolio?sell=${encodeURIComponent(p.holding.symbol)}#record`}
+                              aria-label={`Sell ${p.holding.symbol}`}
+                              className="inline-flex h-7 items-center rounded-md px-2 text-[12px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+                            >
+                              Sell
+                            </Link>
+                            <RemoveHolding id={p.holding.id} symbol={p.holding.symbol} />
                           </span>
                         </td>
                       </tr>
@@ -276,6 +314,50 @@ export default async function PortfolioPage() {
           </Panel>
         </div>
       </div>
+
+      <Panel title="What you've sold" meta={sales.length ? `${sales.length} sale${sales.length === 1 ? "" : "s"} · oldest shares sold first` : undefined} id="sales">
+        {sales.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">When you record a sale, what it made after charges shows here.</p>
+        ) : (
+          <TableWrap>
+            <table className="w-full min-w-[760px]" data-testid="sales">
+              <thead>
+                <tr>
+                  <th className={th}>Sold</th>
+                  <th className={th}>Symbol</th>
+                  <th className={thNum}>Qty</th>
+                  <th className={thNum}>Bought at</th>
+                  <th className={thNum}>Sold at</th>
+                  <th className={thNum}>Gain after charges</th>
+                  <th className={th}>Held</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sales.slice(0, 25).map((x) => (
+                  <tr key={x.sellTxnId} className={tr}>
+                    <td className={td + " num text-muted-foreground"}>{date(x.sellDate)}</td>
+                    <td className={td}>
+                      <Link prefetch={false} href={historyHref(x.symbol, null, 1)} className="num font-medium hover:underline">
+                        {x.symbol}
+                      </Link>
+                    </td>
+                    <td className={tdNum}>{qty(x.quantity)}</td>
+                    <td className={tdNum}>{price(x.avgBuyPrice)}</td>
+                    <td className={tdNum}>{price(x.sellPrice)}</td>
+                    <td className={tdNum}>
+                      <Delta value={x.gain} kind="inr" />
+                      <span className="block text-[11px]">
+                        <Delta value={x.gainPct} />
+                      </span>
+                    </td>
+                    <td className={td + " text-[12px] text-muted-foreground"}>{heldFor(x)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
+        )}
+      </Panel>
 
       {quantumStocks.length > 0 ? (
         <Panel

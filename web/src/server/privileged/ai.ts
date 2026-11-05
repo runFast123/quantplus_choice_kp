@@ -374,22 +374,26 @@ export async function symbolResearchChatWithMyKey(
 
 const CONTRACT_NOTE_SYSTEM = `You are an expert Indian equities trade parser.
 Extract executed equity buy/sell transactions from the provided contract note text.
-Return ONLY valid JSON containing an array of trades:
-[
-  {
-    "symbol": "INFY",
-    "exchange": "NSE",
-    "action": "BUY",
-    "quantity": 50,
-    "price": 1420.50
-  }
-]
+Return ONLY valid JSON with the note's trade date and its trades:
+{
+  "trade_date": "2026-11-04",
+  "trades": [
+    {
+      "symbol": "INFY",
+      "exchange": "NSE",
+      "action": "BUY",
+      "quantity": 50,
+      "price": 1420.50
+    }
+  ]
+}
 Rules:
 1. Translate company/security names to standard NSE equity tickers (e.g., "TATA CONSULTANCY SERV" -> "TCS", "RELIANCE INDUSTRIES" -> "RELIANCE", "INFOSYS LTD" -> "INFY").
 2. Only include cash equities (stocks). Discard F&O / derivatives contracts.
 3. action must be "BUY" or "SELL".
 4. quantity and price must be positive numbers.
-5. Return ONLY the raw JSON array. No markdown code fences, no introductory or concluding text.`;
+5. trade_date is the note's trade date as YYYY-MM-DD; use null if the note does not show it.
+6. Return ONLY the raw JSON object. No markdown code fences, no introductory or concluding text.`;
 
 export type ParsedTrade = {
   symbol: string;
@@ -403,7 +407,7 @@ export async function parseContractNoteWithMyKey(
   userId: string,
   tenantId: string,
   noteText: string,
-): Promise<{ trades: ParsedTrade[]; provider: string; model: string }> {
+): Promise<{ trades: ParsedTrade[]; tradeDate?: string; provider: string; model: string }> {
   await assertMember(userId, tenantId);
   if (!(await planHasFeature(userId, tenantId, "ai_byok"))) throw new PrivilegedError("Contract note AI parsing is part of Pro and Pro Plus.");
   if (!(await hasActiveConsent(userId, "ai_processing"))) throw new PrivilegedError("Allow AI processing in Settings → Privacy first.");
@@ -420,9 +424,13 @@ export async function parseContractNoteWithMyKey(
   );
 
   let trades: ParsedTrade[] = [];
+  let tradeDate: string | undefined;
   try {
     const rawJson = r.text.replace(/```json|```/gi, "").trim();
-    const parsed = JSON.parse(rawJson);
+    const json = JSON.parse(rawJson);
+    // The note's date (the person checks it before saving); an older model may still answer with a bare array.
+    const parsed = Array.isArray(json) ? json : json?.trades;
+    if (typeof json?.trade_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(json.trade_date)) tradeDate = json.trade_date;
     if (Array.isArray(parsed)) {
       trades = parsed
         .filter((t) => t && typeof t.symbol === "string" && Number(t.quantity) > 0 && Number(t.price) > 0)
@@ -438,7 +446,7 @@ export async function parseContractNoteWithMyKey(
     throw new PrivilegedError("The AI model was unable to extract structured trades from this note. Please verify the text format.");
   }
 
-  return { trades, provider: r.provider, model: r.model };
+  return { trades, tradeDate, provider: r.provider, model: r.model };
 }
 
 

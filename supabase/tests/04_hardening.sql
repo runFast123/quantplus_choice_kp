@@ -45,10 +45,13 @@ reset role;
 select qp_t4.login('44444444-0000-4000-8000-000000000002');
 set local role authenticated;
 insert into public.portfolios (id) values ('44444444-0000-4000-8000-0000000000b1');
-insert into public.holdings (portfolio_id, symbol, quantity, avg_price) values ('44444444-0000-4000-8000-0000000000b1', 'TCS', 1, 100);
+insert into public.portfolio_transactions (portfolio_id, symbol, kind, trade_date, quantity, price)
+values ('44444444-0000-4000-8000-0000000000b1', 'TCS', 'buy', '2026-10-01', 1, 100);
 select qp_t4.expect_error($$update public.holdings set symbol = 'INFY'$$, 'permission denied', 'limit: holding symbol not updatable');
-update public.holdings set quantity = 2, avg_price = 150;
-select qp_t4.check((select quantity = 2 from public.holdings), 'limit: quantity/avg still editable');
+select qp_t4.expect_error($$update public.portfolio_transactions set symbol = 'INFY'$$, 'permission denied', 'limit: a trade''s symbol not updatable');
+-- Since migration 52 a holding changes only through its trades.
+update public.portfolio_transactions set quantity = 2, price = 150;
+select qp_t4.check((select quantity = 2 and avg_price = 150 from public.holdings), 'limit: quantity/avg still editable, through the trade');
 reset role;
 
 -- 7. my_entitlements prefers a live subscription over a later-ending dead one.

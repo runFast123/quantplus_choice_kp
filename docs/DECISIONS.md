@@ -354,6 +354,28 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-046 · The portfolio ledger: dated trades, oldest-first lots, holdings worked out from them
+**Date** 2026-11-05 · **Status** accepted
+- **Context:** a holding was a quantity and an average price that five code paths overwrote, so the app could not
+  say when someone bought, what they made on shares sold, or how their money grew; the contract note import deleted a
+  holding sold in full, with its profit. The planned features (tradebook import, closed positions, growth, and setting
+  each buy beside the rules' trades) all need dated buys and sells.
+- **Decision:** migration 51. `portfolio_transactions` holds every opening balance, buy and sell; a statement trigger
+  replays each touched position (`private.rebuild_position`) into `portfolio_lots`, `portfolio_realized` and the
+  `holdings` row, which everything else keeps reading. Lots are matched **oldest first** (FIFO), the method of
+  Zerodha Console's P&L and of Indian tax on demat shares, and the only one that gives each purchase its own result
+  (needed for the rule comparison); the average shown is the price paid without charges, as brokers show it, and
+  charges count in gains. Within a day: splits, opening balances, buys, sells (an intraday sell-then-buy-back is one
+  lot). Splits are read from `corporate_actions` during the replay, not stored as trades, so trades can be entered in
+  any order (a tradebook spanning a split imports at once); `private.corporate_action_ledger` records that a split was
+  seen (announced once, ADR-045's rules) or undone. A sell larger than the shares held fails the write. Existing
+  holdings become opening balances dated their last edit; an opening balance means "held as of that date" and the app
+  must date it the day it is entered. The symbol limit still counts held stocks only (a closed position has no holding).
+- **Limits:** splits only as Yahoo reports them (ADR-045); no dividends, rights issues or demergers; Pro still holds
+  15 stocks at a time, which a large tradebook import must explain (step C). Since migration 52 clients only read
+  holdings; the app records trades. A holdings CSV adds new stocks as opening balances and does not merge into a held
+  one (it cannot know whether the file repeats shares already recorded).
+
 ### ADR-045 · Holdings you can trust: split and bonus adjustments with undo, exit messages that say what they are
 **Date** 2026-11-05 · **Status** accepted
 - **Context:** the first step of making QuantsPulse a place to keep a portfolio. Three things broke trust. (1) When a

@@ -5,6 +5,30 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — the portfolio ledger: every buy and sell, gains after charges, a history per stock (ADR-046; migrations 51–52)
+- **Every buy and sell is a dated row** (`portfolio_transactions`), and holdings are worked out from them oldest first
+  (FIFO, as Zerodha Console and Indian tax do): `portfolio_lots` (each purchase, still open in today's shares) and
+  `portfolio_realized` (each sell's gain after charges, days held). `holdings` stays what the rest of the app reads.
+- **Splits and bonus issues apply by date, in any order**: the replay reads `corporate_actions` directly, so a
+  tradebook spanning a split imports in one go; a split a person lived through is still announced once with Undo
+  (`private.corporate_action_ledger` records seen / undone).
+- **Imports** (`portfolio_imports`) can be undone as a whole; the same broker trade is never stored twice.
+- **Existing holdings become opening balances** with the same numbers (`private.ensure_opening_balances`, also run by
+  the evening job). Sells larger than the shares held, and trades dated after today, are refused.
+- Why: realized gains, the growth view and the "your trades next to our rules" comparison all need dated buys and sells.
+- **The app records trades** (`portfolio/actions.ts`): "Record a trade" (buy or sell, date, quantity, price; charges,
+  note and a SIP tick under "Charges, note and SIP") replaces "Add a holding"; a sale says what it made after charges.
+  Each stock has a history page (`/app/portfolio/[symbol]`): every trade with edit and delete, the purchases still held
+  in today's shares, its sales, and any split in between. The portfolio adds "Realized gain" and "What you've sold";
+  "Overall P&L" is now "On shares you hold". Positions get History and Sell links; Remove deletes the stock's trades.
+- **Imports write trades too.** The holdings CSV adds new stocks as opening balances dated today and lists stocks
+  already in the portfolio instead of merging them; a contract note saves its dated trades as one import (all or
+  nothing; the note's date is read by the AI and shown to check).
+- **Holdings are read-only to clients** (migration 52), so no write can put a holding out of step with its trades.
+- Tests: `supabase/tests/21_portfolio_ledger.sql` (41 checks); tests 01, 04 and 20 now write through trades (01 also
+  checks a direct holding write is refused); `lib/ledger.test.mts`; `e2e/writes.spec.ts` (buy, buy, sell with its
+  gain, history edit and delete, remove); `e2e/holdings-trust.spec.ts` seeds through the ledger on a made-up stock.
+
 ### Added — holdings you can trust: split and bonus adjustments, exit messages that say what they are (ADR-045)
 - **Splits and bonus issues adjust your holding** (migration 50). `pipelines/eod/eod.py` stores each split or bonus
   Yahoo reports (`split_events` → `corporate_actions`); the evening notifier rescales holdings last edited before the

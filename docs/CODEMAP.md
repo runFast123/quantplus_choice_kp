@@ -46,6 +46,8 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 36–37 | `trade_results`, `trade_results_fair` | view `strategy_trade_results` (per strategy × side: trades, made_money_pct, avg/win/loss %, first/last day; stored `pnl_pct` on exits, SMA exits paired with the previous buy, none for RSI reversal) |
 | 39 | `signal_checks` | `signal_checks` (strategy × symbol × signal day: label weak/ok/high/normal/low/none, `tagged`, score, `detail.features`; frozen); `market_breadth` (day: breadth50/200, `rsi_setups`), `market_sectors` (day × sector: r63, rank), `market_pit_top` (year × top 300 by traded value); `signal_check_models` (quarterly RSI dip models), `signal_check_training` (service only); `private.refresh_trend_checks()`, `refresh_rsi_checks()`, `refresh_market_breadth(p_full)`, `refresh_pit_top(year)`, `refresh_check_training()`, `rsi_check_features()`; views `signal_trades` (each buy with its exit's result), `signal_check_record` (month × label); `svc_refresh_signal_checks(p_full)`, `svc_signal_check_training(strategy)`, `svc_put_signal_check_model(...)`; cron backstop runs the checks |
 | 41 | `ma200_trend` | `private.refresh_ma200_trend(p_symbols)` (200-day trend: close > 200-day average, `regr_slope` of that average over 100 sessions × 20 ≥ −0.25 % of it, `corr(close, t)` over 100 ≥ 0.5; first session all hold after one that did not; 4 × ATR14 stop, 60-session review; payload `sma200`, `slope_pct`, `r_px`); `signal_trades` + `rule_expectations` include it; `svc_refresh_market_analytics` returns `ma200_trend` |
+| 52 | `holdings_from_ledger` | clients may only read `holdings` (insert/update/delete revoked, policies dropped); `ensure_opening_balances()` once more |
+| 51 | `portfolio_ledger` | `portfolio_transactions` (own rows: opening/buy/sell, date, qty, price, charges, note, `sip`, source, `broker_ref` unique per portfolio × stock × day × side, `import_id`; stock/side not updatable; no future dates), `portfolio_imports` (own: broker, counts, date range; deleting one removes its trades), derived read-only `portfolio_lots` (per buy: as bought, still open in today's shares) and `portfolio_realized` (per sell × lot: cost and proceeds after charges, gain, days held); `private.position_events` (trades + stored splits not undone, replay order split → opening → buy → sell), `private.rebuild_position` (FIFO replay → lots, gains, `holdings`; `SELL_EXCEEDS_HOLDING`; symbol limit only on a new stock), statement triggers on trades, `private.held_before`, `private.ensure_opening_balances` (holdings without trades → one opening dated the last edit; step 1 adjustments → opening before the split), `private.corporate_action_ledger` (split seen / undone per portfolio × stock), `apply_corporate_actions` + `undo_holding_adjustment` rewritten on the ledger, `private.ledger_maintenance` (notifier), `export_my_data` + trades, imports, gains |
 | 50 | `holdings_trust` | `notification_prefs` (own rows; `exit_rules` ⊆ the five live rules, default the three trend rules), `corporate_actions` (symbol × ex_date × `factor` = new shares per old; read by members, written by the EOD pipeline), `holding_adjustments` (own rows, read only: before/after quantity and average, `undone_at`); `private.apply_corporate_actions()` (holdings last edited before the ex-date session, last 30 days; whole shares stay whole, cost kept; `holding_adjusted` notification), `private.fmt_qty`, `public.undo_holding_adjustment(p_id)`; `private.run_eod_notifier()` runs the adjustments first, and exit messages follow `notification_prefs` and name the rule (`rule_label`) with "Your holding is unchanged" |
 | 49 | `evening_checks_cron` | `svc_refresh_signal_checks` without the kept records; cron `market-analytics` + `evening-checks` (`10 16,19,22 * * 1-5`) + `morning-checks` (`10 4 * * 2-6`) run the checks, `refresh_record_summaries()` and (the last two) `refresh_research_notes()` |
 | 48 | `summaries_where` | `private.refresh_record_summaries()` with `delete … where true` (API sessions run `safeupdate`) |
@@ -88,7 +90,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 `price_alert`, `exit_signal` (a rule closed its trade in a stock you hold; only the rules in `notification_prefs`), `holding_adjusted` (split/bonus; opens `/app/portfolio#adjustments`), `plan_expiry`, `research_stance`. All are also pushed to the owner's browsers (`privileged/push.ts`) when they turned notifications on.
 
 ### Error codes raised by the DB (mapped by `friendlyDbError`)
-`PLAN_LIMIT_REACHED`, `NO_ACTIVE_PLAN`, `NOT_AUTHORIZED`, `USER_NOT_IN_TENANT`, `INVALID_INPUT`, `INVALID_EVENT_TYPE`, RLS `row-level security`.
+`PLAN_LIMIT_REACHED`, `NO_ACTIVE_PLAN`, `SELL_EXCEEDS_HOLDING`, `TRADE_IN_FUTURE` (ledger, 51; mapped by `ledgerError`), `NOT_AUTHORIZED`, `USER_NOT_IN_TENANT`, `INVALID_INPUT`, `INVALID_EVENT_TYPE`, RLS `row-level security`.
 
 ---
 
@@ -134,6 +136,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `dip-rules.ts` | `isDipRule`, `DIP_EXIT`, `dipStatus(stop, last)`, `DIP_TESTED` (tested record per rule, from `research/strategies/record_dip.py`), `dipTestedSentence(rule)`, type `DipRule` |
 | `strong-trend.ts` | `isTrendRule(s)` (Strong trend, SMA 20/50 trend, 200-day trend), `SMA_TREND_TESTED`, `MA200_TREND_TESTED` (incl. a random day above the 200-day), `weatherView({state, nifty, sma50, sma200, vix})` → `WeatherView` (names the actual reason), `reviewDate(signalAt)` (≈60 sessions), `strongTrendStatus(stop, last)`, `REVIEW_SESSIONS`, `STRONG_TREND_TESTED` (tested record, from `research/strategies/record.py`), type `Weather` |
 | `setups.test.mts` | unit tests (`npm run test:unit`) |
+| `ledger.ts` | `groupSales(realized rows)` → one row per sale, `heldFor`, `istToday`, `ledgerError` (SELL_EXCEEDS_HOLDING / TRADE_IN_FUTURE in plain words), `KIND_LABEL`, `SOURCE_LABEL`, types `Trade`, `RealizedPart`, `Sale` |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |
 | `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
@@ -174,7 +177,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `app/app/shell-actions.ts` | `switchTenantAction`, `claimDeviceAction`, `markNotificationsRead`, `refreshClaimsAction` |
 | `app/app/welcome/actions.ts` | `completeOnboarding` (profile + consents) |
 | `app/app/watchlist/actions.ts` | `addToRadar`, `removeFromRadar`, `removeSymbolFromRadar`, `createWatchlist`, `deleteWatchlist` |
-| `app/app/portfolio/actions.ts` | `addHolding` (merges at weighted avg), `updateHolding`, `deleteHolding`, `undoHoldingAdjustment(id)`, `createPortfolio` |
+| `app/app/portfolio/actions.ts` | `recordTrade` (buy/sell; a sale returns its gain), `updateTrade`, `deleteTrade(id)`, `deleteHolding(id)` (all of a stock's trades), `undoHoldingAdjustment(id)`, `createPortfolio`, `importHoldingsCsv` (new stocks → opening balances dated today), `applyParsedTrades(portfolio, trades, tradeDate)` (one `portfolio_imports` row, all or nothing) — every write goes to `portfolio_transactions` |
 | `app/app/alerts/actions.ts` | `createAlert`, `setAlertStatus`, `deleteAlert` |
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
 | `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey`, `fetchProviderModelsAction` |
@@ -199,7 +202,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/device` | single-device takeover screen (target of `requireSession` for displaced devices) |
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener (`?setup=` filter + Setups column); symbol page: header, *At a glance* strip (`data-testid="at-a-glance"`), chart, then tabs Plan & alerts / Research & news / Signal history / Backtest (`#plan`, `#research`, `#history`, `#backtest`), "Matched on the last close" setups |
-| `/app/watchlist` `/app/portfolio` `/app/alerts` | product pages |
+| `/app/watchlist` `/app/portfolio` `/app/alerts` | product pages (`/app/portfolio?sell=SYM#record` opens the form on a sale) |
+| `/app/portfolio/[symbol]` | one stock's trades (edit/delete), purchases still held, sales, splits in between (`?p=` one portfolio) |
 | `/app/signals` | Today strip, then tabs `#today` (fresh buys, dip-buy levels), `#all` (`?status=open|closed&rules=old|all&strategy=&more=1`), `#rules` (alias `#health`), `#record` (alias `#checks`) |
 | `/app/dry-run` | Dry Run (ADR-033): disclosure gate, then one screen — pick (fresh rule buys in the top 500 with stop, tag and rule health; *My radar*; any stock) beside a live plan panel → results tabs: replay vs NIFTY 50, bad days, guardrail checks |
 | `/app/workspace` `/app/integrations` `/app/billing` `/app/settings` | account pages (`settings?tab=profile|security|notifications|privacy|data`) |
@@ -216,6 +220,9 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/admin` | platform console (404 unless platform admin) |
 
 ## 6. Components (web/src/components)
+
+Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `DeleteTrade`, `RemoveHolding`, `UndoAdjustment`, `NewPortfolioForm`.
+
 
 | Folder | Components |
 |---|---|

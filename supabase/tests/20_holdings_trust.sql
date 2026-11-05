@@ -148,9 +148,12 @@ select qp_t20.check((select quantity = 10 and avg_price = 3000 from public.holdi
 select qp_t20.check((select undone_at is not null from public.holding_adjustments where symbol = 'TCS'), 'undo: recorded');
 select qp_t20.expect_error(format('select public.undo_holding_adjustment(%L)', (select id from public.holding_adjustments where symbol = 'TCS')),
                            'not found', 'undo: only once');
-update public.holdings set quantity = 12 where symbol = 'WIPRO';
+-- Since the ledger (migration 51): a later sell of 9 of the 10 post-split WIPRO shares only fits with the split.
+insert into public.portfolio_transactions (portfolio_id, symbol, kind, trade_date, quantity, price)
+select portfolio_id, 'WIPRO', 'sell', (now() at time zone 'Asia/Kolkata')::date, 9, 80 from public.holdings where symbol = 'WIPRO';
 select qp_t20.expect_error(format('select public.undo_holding_adjustment(%L)', (select id from public.holding_adjustments where symbol = 'WIPRO')),
-                           'holding changed', 'undo: an edit made after the adjustment wins');
+                           'SELL_EXCEEDS_HOLDING', 'undo: refused when a later sell needs the split''s shares');
+select qp_t20.check((select quantity = 1 from public.holdings where symbol = 'WIPRO'), 'undo: a refused undo changes nothing');
 reset role;
 select private.run_eod_notifier();
 select qp_t20.check((select quantity = 10 from public.holdings where user_id = '20202020-0000-4000-8000-00000000000a' and symbol = 'TCS'),

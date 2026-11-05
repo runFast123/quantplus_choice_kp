@@ -270,14 +270,18 @@ export function CsvImportModal({ portfolios }: CsvImportModalProps) {
                       <div className="flex items-center gap-1.5 font-medium">
                         <CheckIcon size={15} weight="bold" />
                         <span>
-                          Import complete: {importResult.imported ?? 0} positions added,{" "}
-                          {importResult.updated ?? 0} existing positions merged.
+                          Import complete: {importResult.imported ?? 0} stock{importResult.imported === 1 ? "" : "s"} added as opening balances.
                         </span>
                       </div>
                       {Boolean(importResult.skipped) && (
-                        <p className="text-[11.5px] text-muted-foreground">
-                          {importResult.skipped} positions were skipped (not in registry or inactive).
-                        </p>
+                        <div className="text-[11.5px] text-muted-foreground">
+                          <p>{importResult.skipped} left out:</p>
+                          <ul className="mt-0.5 list-disc pl-4">
+                            {(importResult.details ?? []).map((d) => (
+                              <li key={d}>{d}</li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -293,7 +297,8 @@ export function CsvImportModal({ portfolios }: CsvImportModalProps) {
               <div className="flex items-start gap-2 rounded border border-border/80 bg-background/50 p-2.5 text-[11.5px] text-muted-foreground">
                 <InfoIcon size={15} className="mt-0.5 shrink-0 text-foreground" aria-hidden />
                 <span>
-                  <strong>Weighted Average Merging:</strong> If you import a stock you already own, QuantPulse automatically blends the new quantity at the volume-weighted purchase price.
+                  <strong>What you hold today:</strong> each new stock is saved as an opening balance dated today. A stock already in
+                  this portfolio is left as it is; open its history to change it. Past buys and sells can be recorded there one by one.
                 </span>
               </div>
             </div>

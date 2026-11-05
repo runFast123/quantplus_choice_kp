@@ -73,9 +73,13 @@ export async function signInClaims(email: string, password: string) {
 export const supabaseUrl = URL_;
 export const anonKey = ANON;
 
+const dayAgo = (n: number) => new Date(Date.now() + 330 * 60_000 - n * 86_400_000).toISOString().slice(0, 10);
+
 /**
- * A holding that the evening job rescaled for a 1:2 split (migration 50): 10 at ₹3,000 became 20 at ₹1,500. Written
- * directly so the test never runs the notifier, which would message real users.
+ * A holding that the evening job rescaled for a 1:2 split (migrations 50–51): 10 at ₹3,000 became 20 at ₹1,500.
+ * `symbol` must be made up (no real person holds it): the split is a real corporate_actions row while the test runs,
+ * and the replay applies it to every holder. Written directly so the test never runs the notifier, which would
+ * message real users. Remove the split afterwards with removeSplit().
  */
 export async function seedSplitAdjustment(userId: string, symbol: string) {
   const json = { ...svc, prefer: "return=representation" };
@@ -87,13 +91,21 @@ export async function seedSplitAdjustment(userId: string, symbol: string) {
     pf = await r.json();
     if (!r.ok) throw new Error(`portfolio: ${r.status}`);
   }
-  const h = await fetch(`${URL_}/rest/v1/holdings`, {
+  const ca = await fetch(`${URL_}/rest/v1/corporate_actions?on_conflict=symbol,exchange,ex_date`, {
     method: "POST",
-    headers: json,
-    body: JSON.stringify({ user_id: userId, tenant_id, portfolio_id: pf[0].id, symbol, quantity: 20, avg_price: 1500 }),
+    headers: { ...svc, prefer: "resolution=ignore-duplicates" },
+    body: JSON.stringify({ symbol, exchange: "NSE", ex_date: dayAgo(2), factor: 2, source: "e2e" }),
   });
-  const holding = await h.json();
-  if (!h.ok) throw new Error(`holding: ${h.status}`);
+  if (!ca.ok) throw new Error(`split: ${ca.status}`);
+  // 10 at ₹3,000 held before the split: the ledger works the holding out as 20 at ₹1,500.
+  const t = await fetch(`${URL_}/rest/v1/portfolio_transactions`, {
+    method: "POST",
+    headers: svc,
+    body: JSON.stringify({ user_id: userId, tenant_id, portfolio_id: pf[0].id, symbol, kind: "opening", trade_date: dayAgo(5), quantity: 10, price: 3000, source: "opening" }),
+  });
+  if (!t.ok) throw new Error(`opening: ${t.status} ${await t.text()}`);
+  const holding = await (await fetch(`${URL_}/rest/v1/holdings?user_id=eq.${userId}&symbol=eq.${symbol}&select=id`, { headers: svc })).json();
+  if (!holding.length) throw new Error("holding: not worked out from the opening balance");
   const a = await fetch(`${URL_}/rest/v1/holding_adjustments`, {
     method: "POST",
     headers: svc,
@@ -103,7 +115,7 @@ export async function seedSplitAdjustment(userId: string, symbol: string) {
       holding_id: holding[0].id,
       symbol,
       exchange: "NSE",
-      ex_date: new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10),
+      ex_date: dayAgo(2),
       factor: 2,
       old_quantity: 10,
       old_avg_price: 3000,
@@ -112,4 +124,9 @@ export async function seedSplitAdjustment(userId: string, symbol: string) {
     }),
   });
   if (!a.ok) throw new Error(`adjustment: ${a.status}`);
+}
+
+/** Remove the made-up split seedSplitAdjustment stored. */
+export async function removeSplit(symbol: string) {
+  await fetch(`${URL_}/rest/v1/corporate_actions?symbol=eq.${symbol}&source=eq.e2e`, { method: "DELETE", headers: svc });
 }

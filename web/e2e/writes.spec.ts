@@ -56,27 +56,53 @@ test("radar: Basic plan stops at 10 distinct symbols", async ({ browser }) => {
   await ctx.close();
 });
 
-test("portfolio: Basic is gated; Pro adds, merges at weighted average, removes", async ({ basicPage, proPage }) => {
+test("portfolio: Basic is gated; Pro records buys and a sale, sees the gain, corrects a trade, removes", async ({ basicPage, proPage }) => {
   await basicPage.goto("/app/portfolio");
   await expect(basicPage.getByTestId("plan-gate")).toBeVisible();
 
   await proPage.goto("/app/portfolio");
-  const add = async (qty: string, px: string) => {
-    await proPage.getByLabel("Symbol", { exact: true }).fill("INFY");
-    await proPage.getByLabel("Quantity", { exact: true }).fill(qty);
-    await proPage.getByLabel("Avg price (₹)").fill(px);
-    await proPage.getByRole("button", { name: "Add holding" }).click();
+  const form = proPage.locator("#record");
+  const trade = async (side: "Buy" | "Sell", day: string, qty: string, px: string) => {
+    await form.locator("label", { hasText: new RegExp(`^${side}$`) }).click();
+    await form.getByLabel("Symbol", { exact: true }).fill("INFY");
+    await form.getByLabel("Date", { exact: true }).fill(day);
+    await form.getByLabel("Quantity", { exact: true }).fill(qty);
+    await form.getByLabel("Price per share (₹)").fill(px);
+    await form.getByRole("button", { name: side === "Buy" ? "Record buy" : "Record sell" }).click();
   };
-  await add("10", "1000");
-  await expect(proPage.locator("main").getByRole("status")).toContainText("INFY added");
-  await add("10", "2000");
-  await expect(proPage.locator("main").getByRole("status")).toContainText("Added to your INFY position");
-  const row = proPage.locator("tbody tr", { hasText: "INFY" });
-  await expect(row).toContainText("20");
-  await expect(row).toContainText("1,500.00");
+  const positions = proPage.getByTestId("positions");
+  await trade("Buy", "2026-01-05", "10", "1000");
+  await expect(form.getByRole("status")).toContainText("Recorded: bought 10 INFY at ₹1,000.00.");
+  await trade("Buy", "2026-02-05", "10", "2000");
+  await expect(positions.locator("tr", { hasText: "INFY" })).toContainText("1,500.00");
+
+  // Oldest shares first: the 5 sold came from the ₹1,000 buy.
+  await trade("Sell", "2026-03-05", "5", "1800");
+  await expect(form.getByRole("status")).toContainText("Sold 5 INFY: you made ₹4,000.00 after charges.");
+  await expect(positions.locator("tr", { hasText: "INFY" })).toContainText("15");
+  await expect(positions.locator("tr", { hasText: "INFY" })).toContainText("1,666.67");
+  await expect(proPage.getByTestId("sales")).toContainText("₹4,000.00");
+  await expect(proPage.getByTestId("portfolio-stats")).toContainText("Realized gain");
+
+  // The stock's history: correct the first buy, then delete the sale.
+  await positions.getByRole("link", { name: "History of INFY" }).click();
+  await expect(proPage).toHaveURL(/\/app\/portfolio\/INFY/);
+  const trades = proPage.getByTestId("trades");
+  await expect(trades.locator("tbody tr")).toHaveCount(3);
+  await trades.getByRole("button", { name: /^Edit buy of/ }).first().click();
+  await trades.getByLabel("Price per share").fill("1200");
+  await trades.getByRole("button", { name: "Save" }).click();
+  await expect(proPage.getByTestId("history-stats")).toContainText("₹3,000.00");
+  await trades.getByRole("button", { name: /^Delete sell of/ }).click();
+  await trades.getByRole("button", { name: /^Delete: Delete sell of/ }).click();
+  await expect(trades.locator("tbody tr")).toHaveCount(2);
+  await expect(proPage.getByTestId("history-stats")).toContainText("nothing sold yet");
+
+  await proPage.goto("/app/portfolio");
+  const row = positions.locator("tr", { hasText: "INFY" });
   await row.getByRole("button", { name: "Remove INFY" }).click();
-  await row.getByRole("button", { name: /Remove: Remove INFY/ }).click();
-  await expect(proPage.locator("tbody tr", { hasText: "INFY" })).toHaveCount(0);
+  await row.getByRole("button", { name: /Remove all its trades: Remove INFY/ }).click();
+  await expect(positions.locator("tr", { hasText: "INFY" })).toHaveCount(0);
 });
 
 test("alerts: rejects a level already crossed, accepts a valid one, deletes it", async ({ proPage }) => {
