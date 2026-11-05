@@ -6,6 +6,33 @@ import { expect, test } from "./helpers/fixtures";
  * marked once. Screenshots land in test-results/ for a visual check.
  */
 test.describe("price chart trade view @chart", () => {
+  test("Copy Pine script copies the chosen rule only", async ({ proPage, browserName }) => {
+    test.skip(browserName !== "chromium", "clipboard permissions");
+    await proPage.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await proPage.goto("/app/markets/TCS");
+    await proPage.waitForLoadState("networkidle");
+    const rules = proPage.getByRole("radiogroup", { name: "Strategy Signal Filter" });
+    const copy = proPage.getByTestId("copy-pine");
+    for (const [radio, label, marker] of [
+      [/^KK \(/, "KK dip", "low <= 0.99 * lo20"],
+      [/^SMA 20\/50/, "SMA 20/50 trend", "ta.crossover(sma20, sma50)"],
+      [/^RSI \(/, "RSI dip", "rsi2 < 10"],
+      [/^Strong trend/, "Strong trend", "volume >= 2 * vol50"],
+      [/^200-day trend/, "200-day trend", "ta.linreg(sma200, 100, 0)"],
+    ] as const) {
+      await rules.getByRole("radio", { name: radio }).click();
+      await expect(copy).toHaveText(`Copy ${label} Pine script`);
+      await copy.click();
+      const code = await proPage.evaluate(() => navigator.clipboard.readText());
+      expect(code).toContain(`indicator("QuantsPulse ${label} (TCS)"`);
+      expect(code).toContain(marker);
+    }
+    // With all plans showing, the button asks which rule.
+    await rules.getByRole("radio", { name: /^All Plans/ }).click();
+    await copy.click();
+    await expect(proPage.getByRole("menuitem")).toHaveCount(5);
+  });
+
   test("a selected entry draws its risk and reward, and explains the rule", async ({ proPage }, info) => {
     await proPage.goto("/app/markets/TCS");
     await proPage.waitForLoadState("networkidle");

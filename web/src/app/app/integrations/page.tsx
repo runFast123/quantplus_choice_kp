@@ -143,7 +143,7 @@ export default async function IntegrationsPage() {
           <CodeIcon size={20} className="text-coral-ink" aria-hidden />
           <h2 className="display text-[22px]">TradingView indicator</h2>
         </div>
-        <Panel title="Our signal rules as a TradingView script (Pine v5)">
+        <Panel title="Our signal rules as a TradingView script (Pine v6)">
           <PineScriptGeneratorPanel initialSymbol="NIFTY" />
         </Panel>
       </section>

@@ -9,7 +9,6 @@ import type { ChartMarker } from "@/components/charts/price-chart";
 import { AlertForm } from "@/components/market/alert-form";
 import { BacktestLab } from "@/components/market/backtest-lab";
 import { RememberSymbol } from "@/components/shell/recent-symbols";
-import { CopyPineButton } from "@/components/market/copy-pine-button";
 import { RadarToggle } from "@/components/market/radar-toggle";
 import { TradePlan } from "@/components/market/trade-plan";
 import { NewsList } from "@/components/news/news-list";
@@ -525,7 +524,6 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <CopyPineButton symbol={q.symbol} />
           <RadarToggle symbol={q.symbol} exchange={q.exchange} onRadar={Boolean(radarRes.data?.length)} size="md" />
         </div>
       </header>

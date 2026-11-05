@@ -5,6 +5,20 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — research notes (/blog) and a Pine script per rule (ADR-044)
+- **Copy Pine script follows the chosen rule.** The old button gave one script of the retired rules whatever the chart
+  showed. `lib/pine-script.ts` now writes one Pine v6 script per live rule (KK dip, SMA 20/50 trend, RSI dip, Strong
+  trend, 200-day trend) with the same entry, safety stop and exit as the SQL; the button moved into the chart's rule bar
+  (`CopyPineButton`, `pineRuleForChart`), and Integrations picks a rule. A Python port matched the research code on
+  150 stock-rule runs; all five scripts passed TradingView's editor checks. `e2e/chart-trade-view.spec.ts` copies each.
+- **Five research notes** at `/blog`, one per rule against the usual way of using its indicator, tested on each year's
+  300 most traded NSE stocks, July 2019 to October 2026, 0.5 % costs (`research/strategies/compare_blog.py` →
+  `blog_ts.py` → `lib/blog/data.ts`): interactive charts (period, year, result spread, one real stock picked by a fixed
+  rule), an illustration per rule, comparison table, takeaways, FAQ. No hyphens in the text (unit test). SEO/GEO:
+  short answer box, JSON-LD (BlogPosting, FAQPage, BreadcrumbList, Blog), canonical, OG images, `sitemap.xml`,
+  `robots.txt`, `metadataBase`; "Research" in the site menu and footer. New colour tokens `--series-usual` /
+  `--series-ours` (validated pair). `e2e/public.spec.ts` covers the pages (axe, overflow, structured data).
+
 ### Fixed — the nightly jobs keep the record right and finish on time; the chart shows every past signal (ADR-042, ADR-043)
 - **The 200-day trend rule is unchanged** (the SMA version live since ADR-040; an EMA version was tested and not adopted —
   `research/strategies/compare_200dma.py`, `compare_sources.py`, `record_ema.py`).

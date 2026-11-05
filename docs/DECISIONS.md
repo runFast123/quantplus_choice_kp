@@ -354,6 +354,28 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-044 · One Pine script per rule; research notes that test each rule against the usual way
+**Date** 2026-11-05 · **Status** accepted
+- **Context:** "Copy Pine script" on a stock page gave one script for the retired rules (golden cross + RSI 14 reversal,
+  with a "fast swing" mode), whatever rule the chart showed. The owner asked for the chosen rule's script only, and for
+  five plain-language blog posts that show why each rule is more reliable than the usual way of using its indicator.
+- **Decision:** `lib/pine-script.ts` writes one Pine v6 script per live rule that follows the SQL bar by bar (signal,
+  next-open or dip-limit entry, safety stop rounded to the paisa, 60-session / 10-session / bounce exit, one trade at a
+  time); the copy button sits in the chart's rule bar and copies the chosen rule (a menu for All / Clean). Checked: a
+  Python port of the scripts' state machines gave the same trades as the research code (= live SQL) on 150 stock-rule
+  runs, and all five passed TradingView's own editor checks (0 errors, 0 warnings, as a guest). Two parts cannot be
+  copied exactly and the scripts say so: market weather is read from NSE:NIFTY and NSE:INDIAVIX; the SMA 20/50 leader
+  rank (top 30 % of the 500 largest) becomes "6-month return beats the Nifty 50's by 15 points or more" (an input;
+  agreed with the rank on 90 % of crossover days, 2019–26). The blog (`/blog`) is static content in TS with every number
+  read from `compare_blog.py`'s output: the usual version of each indicator was chosen before seeing results (Strong
+  trend's second baseline, the common "sell under the 50-day" exit, was added after and the post says so), the same
+  universe and costs as ADR-035, and where the usual way wins on a measure (the average trade of both moving-average
+  rules, 2019–23) the post says it. SEO/GEO: a 40–90 word direct answer, H2 sections, comparison table, FAQ with
+  `FAQPage` JSON-LD, `BlogPosting` + `BreadcrumbList`, canonical, OG image per post, sitemap and robots.
+- **Limits:** a TradingView chart starts its history on another day, so the first signal or two can differ; the blog's
+  numbers are research on past prices (re-run `compare_blog.py` + `blog_ts.py` to refresh them). URL slugs keep
+  hyphens (search engines read them as word breaks); the reader-facing text has none (`posts.test.mts`).
+
 ### ADR-043 · Nightly reliability: rules continue their record, leaders ranked once, an on-time trigger
 **Date** 2026-11-04 · **Status** accepted
 - **Context:** a system review after ADR-040/041 found: (1) every busy-based rule rebuilt its trade chain from the oldest

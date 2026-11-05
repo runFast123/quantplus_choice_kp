@@ -19,6 +19,9 @@ export function SiteNav({ signedIn }: { signedIn: boolean }) {
         <Link href="/#faq" className="hover:text-foreground">
           Questions
         </Link>
+        <Link href="/blog" className="hover:text-foreground">
+          Research
+        </Link>
       </nav>
       <div className="flex items-center gap-2">
         {signedIn ? (
@@ -53,6 +56,9 @@ export function SiteFooter() {
           </p>
         </div>
         <nav aria-label="Legal" className="flex gap-6 text-[13px] text-muted-foreground md:flex-col md:gap-2">
+          <Link href="/blog" className="hover:text-foreground">
+            Research notes
+          </Link>
           <Link href="/legal/terms" className="hover:text-foreground">
             Terms
           </Link>

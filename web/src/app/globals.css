@@ -53,6 +53,9 @@
   /* Marks (candles, chart fills) — validated categorical pair. */
   --gain: #0F7B5C;
   --loss: #C2410C;
+  /* Blog comparison charts: "the usual way" vs "our rule" (validated pair, never gain/loss hues). */
+  --series-usual: #9A7414;
+  --series-ours: #2F62A3;
   /* Ink (text, badges, small fills) — darker so text clears 4.5:1 on linen. */
   --gain-ink: #0B6A4E;
   --loss-ink: #A8380B;
@@ -103,6 +106,8 @@
 
   --gain: #2BA383;
   --loss: #E0663F;
+  --series-usual: #A8842E;
+  --series-ours: #5B8FD0;
   --coral-ink: #F26A4B;
   --gain-ink: #4CC39C;
   --loss-ink: #F07E5C;
@@ -153,6 +158,8 @@
   --color-loss: var(--loss-ink);
   --color-gain-soft: var(--gain-soft);
   --color-loss-soft: var(--loss-soft);
+  --color-series-usual: var(--series-usual);
+  --color-series-ours: var(--series-ours);
   --color-sma-20: var(--sma-20);
   --color-sma-50: var(--sma-50);
   --color-sma-200: var(--sma-200);

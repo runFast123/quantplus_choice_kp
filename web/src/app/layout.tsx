@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import { cookies } from "next/headers";
+import { SITE_URL } from "@/lib/env";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -13,6 +14,7 @@ const playfair = Playfair_Display({
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: "QuantsPulse — quant research for Indian equities", template: "%s · QuantsPulse" },
   description:
     "Watchlists, portfolio tracking, price alerts and rule-based signals for NSE stocks. Your holdings stay private — even from your organisation.",

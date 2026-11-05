@@ -23,9 +23,11 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { price as fmtPrice, volume as fmtVolume } from "@/lib/format";
 import { toTradingViewSymbol } from "@/lib/market";
+import { pineRuleForChart } from "@/lib/pine-script";
 import { explainMarker, isWinningExit, signalAction, tradeFor, type TradeView } from "@/lib/signal-trade";
 import { deduplicateChartSignals, type RawChartMarker } from "@/lib/trade-plan";
 import type { Candle } from "@/lib/types";
+import { CopyPineButton } from "@/components/market/copy-pine-button";
 import { TradeOdds } from "./trade-odds";
 
 export type ChartMarker = RawChartMarker;
@@ -988,6 +990,7 @@ export function PriceChart({
               Clean (Off)
             </button>
           </div>
+          <CopyPineButton symbol={symbol} rule={pineRuleForChart(strategyFilter)} />
         </div>
 
         {/* Right: Direction Filter & Display density */}
