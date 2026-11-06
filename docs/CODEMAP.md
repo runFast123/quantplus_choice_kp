@@ -140,6 +140,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `setups.test.mts` | unit tests (`npm run test:unit`) |
 | `tradebook.ts` | `BROKERS` (guide per broker; `known` only for Zerodha), `csvRows`, `detectColumns` (header row by name), `mapHeader`, `missingFields`, `parseTradebook` → `TradebookRow[]` + `SkippedRow[]`, `mergeTrades` (each trade once across files), `parseTradeDate`, `parseSide`, `normName`, `hash53` (references for files without trade ids), `FIELD_LABEL`, `MAPPABLE` |
 | `xlsx.ts` | `readXlsx(bytes)` → first sheet's rows (zip + DecompressionStream, no dependency), `sheetRows`, `columnIndex`, `decodeXml`, `XlsxError` |
+| `chart-replay.ts` | `SPEEDS`, `STARTS`, `startIndex`, `daysBeforeEnd`, `barsDue` (frame pacing with carry, capped after a hidden tab), `revealedUpTo` / `revealedBetween` (signals by day), practice: `buy`, `sell`, `openResult`, `practiceSummary`, `rewindPractice`, `PRACTICE_BUDGET` |
 | `ledger.ts` | `groupSales(realized rows)` → one row per sale, `heldFor`, `istToday`, `ledgerError` (SELL_EXCEEDS_HOLDING / TRADE_IN_FUTURE in plain words), `KIND_LABEL`, `SOURCE_LABEL`, types `Trade`, `RealizedPart`, `Sale` |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |
@@ -226,6 +227,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 
 ## 6. Components (web/src/components)
 
+`charts/chart-replay.tsx` — `ChartReplay` (setup → replay; incremental `update`/`pop`, rAF playback, keys, practice), shown by `PriceChart` in place of its chart when Replay is on (`data-testid="replay-toggle"`).
+
 `portfolio/tradebook-import.tsx` — `TradebookImport` (broker → files → columns → check → done), `UndoImport`. Server actions: `app/app/portfolio/import/actions.ts` — `previewTradebook`, `importTradebook`, `undoImport` (stock matching by symbol, broker spelling, company name, successor).
 
 Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `DeleteTrade`, `RemoveHolding`, `UndoAdjustment`, `NewPortfolioForm`.
@@ -280,7 +283,7 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `tradebook-import` (check, import, re-import, undo; columns by hand), `holdings-trust` (undo a split adjustment; rule choice for holders), `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `signals` (@mobile too: four rules, market weather, track record), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `chart-replay` (start, step, keys, practice, play/pause with a frame-time check, exit), `tradebook-import` (check, import, re-import, undo; columns by hand), `holdings-trust` (undo a split adjustment; rule choice for holders), `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `signals` (@mobile too: four rules, market weather, track record), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API; `seedSplitAdjustment`), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |

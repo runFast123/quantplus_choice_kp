@@ -28,6 +28,8 @@ import { explainMarker, isWinningExit, signalAction, tradeFor, type TradeView } 
 import { deduplicateChartSignals, type RawChartMarker } from "@/lib/trade-plan";
 import type { Candle } from "@/lib/types";
 import { CopyPineButton } from "@/components/market/copy-pine-button";
+import { PlayCircleIcon } from "@phosphor-icons/react";
+import { ChartReplay } from "./chart-replay";
 import { TradeOdds } from "./trade-odds";
 
 export type ChartMarker = RawChartMarker;
@@ -206,6 +208,10 @@ export function PriceChart({
   const [showSma50, setShowSma50] = useState(true);
   const [showSma200, setShowSma200] = useState(false);
   const [showVolume, setShowVolume] = useState(true);
+
+  // Chart replay (ADR-048): the stock's past played forward a day at a time, in place of this chart.
+  const [replaying, setReplaying] = useState(false);
+  const exitReplay = useCallback(() => setReplaying(false), []);
 
   // 1. Isolate each strategy's markers: every rule's signals are stored (the old client-side KK rule is retired).
   const effectiveKkMarkers = useMemo(() => markers.filter((m) => isKk(m.strategy)), [markers]);
@@ -608,6 +614,8 @@ export function PriceChart({
     fullSma50,
     fullSma200,
     bump,
+    // Leaving the replay mounts the chart's element again: build it again.
+    replaying,
   ]);
 
   // Smoothly pan to the selected signal's round trip (or back to the whole range when cleared).
@@ -817,10 +825,27 @@ export function PriceChart({
           </button>
         </div>
 
-        {/* Right: Range, Table & External Link */}
+        {/* Right: Replay, Range, Table & External Link */}
         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedSignal(null);
+              setReplaying((v) => !v);
+            }}
+            aria-pressed={replaying}
+            data-testid="replay-toggle"
+            title="Play this stock's past forward one trading day at a time, see the rules' signals as they happened, and practise trades"
+            className={clsx(
+              "num inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] font-medium transition-colors",
+              replaying ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground hover:bg-foreground/[0.04]",
+            )}
+          >
+            <PlayCircleIcon size={13} weight={replaying ? "fill" : "regular"} aria-hidden />
+            Replay
+          </button>
           {/* Range Selector */}
-          <div role="tablist" aria-label="Chart range" className="flex rounded border border-border p-0.5 bg-muted/20">
+          <div role="tablist" aria-label="Chart range" className={clsx("flex rounded border border-border p-0.5 bg-muted/20", replaying && "hidden")}>
             {RANGES.map((r) => (
               <button
                 key={r.key}
@@ -844,6 +869,7 @@ export function PriceChart({
             onClick={() => setShowDataTable((v) => !v)}
             className={clsx(
               "num inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[10.5px] transition-colors",
+              replaying && "hidden",
               showDataTable
                 ? "border-primary bg-primary text-primary-foreground font-medium"
                 : "border-border text-muted-foreground hover:text-foreground",
@@ -1060,6 +1086,20 @@ export function PriceChart({
         )}
       </div>
 
+      {replaying ? (
+        <ChartReplay
+          symbol={symbol}
+          candles={candles}
+          markers={activeMarkers}
+          chartType={chartType}
+          showSma20={showSma20}
+          showSma50={showSma50}
+          showSma200={showSma200}
+          showVolume={showVolume}
+          onExit={exitReplay}
+        />
+      ) : (
+      <>
       {/* Floating Crosshair OHLC + Active Signal HUD (Unified Compact Row) */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11.5px] min-h-[26px]">
         <dl className="num flex flex-wrap gap-x-3.5 gap-y-0.5 text-[11.5px]">
@@ -1344,6 +1384,8 @@ export function PriceChart({
             })}
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

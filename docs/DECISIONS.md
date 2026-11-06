@@ -354,6 +354,20 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-048 · Chart replay: a separate chart that adds bars one at a time, with the rules' signals and practice trades
+**Date** 2026-11-06 · **Status** accepted
+- **Context:** the owner asked for a replay like TradingView's on the stock page, simple and smooth: see how a stock and
+  the rules' trades unfolded, and practise.
+- **Decision:** `ChartReplay` replaces the price chart while Replay is on (the main chart's many overlays stay as they
+  are). It builds its own lightweight-charts instance and moves through time with `series.update` (forward),
+  `series.pop` (back) and `setData` only for jumps over 40 bars; playback is paced by `requestAnimationFrame` with the
+  leftover time carried (`barsDue`), capped at one second's bars after a hidden tab. Moving averages are computed once
+  over the whole history (`computeSma`, one value per bar) and revealed with the bars, so no value uses a later day;
+  rule markers come from the chart's rule bar and appear on their bar. Practice trades are long only, one at a time,
+  whole shares of ₹1 lakh at the day's close, in memory only. Speeds are trading days a second (1, 2, 5, 10, 20).
+- **Limits:** daily bars only (no intraday replay; we have no intraday data, ADR-026); no drawing tools, short selling or
+  saved practice sessions; the 200-day trend's regression line and the main chart's trade view are not drawn in replay.
+
 ### ADR-047 · Tradebook import: read in the browser, matched by column name, checked by a dry run, saved in one go
 **Date** 2026-11-05 · **Status** accepted
 - **Context:** people already have years of trades at their broker; typing them in is not realistic, and the rule

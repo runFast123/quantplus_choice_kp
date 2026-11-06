@@ -5,6 +5,22 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — chart replay on the stock page (ADR-048)
+- **Replay** in the chart's toolbar plays the stock's past one trading day at a time. Pick where it starts (3 months, 6
+  months, 1 or 2 years back, a date, or a click on the chart; the hidden part is shaded), then Play / Pause, a day
+  back or forward, a scrubber, and 1× to 20× (trading days a second). Keys: Space, ← and → (Shift: ten days), Esc.
+- **The rules' signals appear on the day they happened** (the rule chosen in the chart's rule bar), named in a line
+  above the chart; "Pause at each rule signal" (on by default) stops there. Moving averages and volume grow with the
+  bars: nothing after the day on screen is shown.
+- **Practise**: Buy and Sell with a practice ₹1,00,000, filled at the day's close (whole shares, one position at a
+  time); the open position's result, the trades and their total, marked on the chart. Stepping back before a practice
+  sale undoes it. Nothing is saved.
+- **Smooth**: each new bar is added with `series.update` (no redraw), a step back with `series.pop`; playback runs on
+  animation frames with the remainder carried, so the pace is even at 60 or 120 Hz; only the small readout re-renders.
+  Measured at 20×: 16.7 ms median frame, none over 50 ms. On a phone, fewer bars and arrows without words.
+- Files: `lib/chart-replay.ts` (+ test), `components/charts/chart-replay.tsx`, `components/charts/price-chart.tsx`
+  (Replay button), `e2e/chart-replay.spec.ts`.
+
 ### Added — import trades from a broker's tradebook (ADR-047; migration 53)
 - **Import trades** (Portfolio → Import trades, `/app/portfolio/import`): pick the broker, add one or more CSV or
   Excel files (read in the browser, never uploaded; `lib/xlsx.ts` reads .xlsx with no new dependency), match columns
