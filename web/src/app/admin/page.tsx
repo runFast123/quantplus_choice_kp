@@ -54,18 +54,22 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     ? sp.tab
     : "overview";
 
+  // Only the open tab's data is read (each tab is its own page load); the header's EOD badge and the stats are cheap
+  // and shown on every tab.
+  const on = (tab: string) => currentTab === tab;
+  const none = <T,>(v: T) => Promise.resolve(v);
   const [stats, users, feeds, dbInventory, payments, auditLogs, checks, health, prices] = await Promise.all([
     platformStats(s.userId),
-    searchUsers(s.userId, q),
-    newsSourceHealth(),
+    on("accounts") ? searchUsers(s.userId, q) : none([] as Awaited<ReturnType<typeof searchUsers>>),
+    on("overview") || on("news") ? newsSourceHealth() : none([] as Awaited<ReturnType<typeof newsSourceHealth>>),
     getDatabaseInventory(s.userId),
-    getRecentPayments(s.userId, 30),
-    getRecentAuditLogs(s.userId, 30),
-    getSignalCheckReview(s.userId),
-    getRuleHealth(s.supabase),
-    getPriceChecks(s.userId),
+    on("billing") ? getRecentPayments(s.userId, 30) : none([] as Awaited<ReturnType<typeof getRecentPayments>>),
+    on("audit") ? getRecentAuditLogs(s.userId, 30) : none([] as Awaited<ReturnType<typeof getRecentAuditLogs>>),
+    on("database") ? getSignalCheckReview(s.userId) : none(null),
+    on("database") ? getRuleHealth(s.supabase) : none(null),
+    on("database") ? getPriceChecks(s.userId) : none(null),
   ]);
-  const refitMissing = !checks.models.some((m) => m.valid_from === quarterStartIST());
+  const refitMissing = checks ? !checks.models.some((m) => m.valid_from === quarterStartIST()) : false;
 
   const session = nseSession();
 
@@ -116,9 +120,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             { id: "overview", label: "Overview & Operations", icon: SquaresFourIcon },
             { id: "database", label: "Database & Pipelines", icon: DatabaseIcon, count: dbInventory.tables.length },
             { id: "accounts", label: "Accounts & Plans", icon: UsersThreeIcon, count: stats.users },
-            { id: "billing", label: "Financial Ledger", icon: CreditCardIcon, count: payments.length },
-            { id: "news", label: "News Feeds", icon: NewspaperIcon, count: feeds.length },
-            { id: "audit", label: "Audit & Security", icon: ShieldCheckIcon, count: auditLogs.length },
+            { id: "billing", label: "Financial Ledger", icon: CreditCardIcon },
+            { id: "news", label: "News Feeds", icon: NewspaperIcon },
+            { id: "audit", label: "Audit & Security", icon: ShieldCheckIcon },
           ].map((tabItem) => {
             const Icon = tabItem.icon;
             const isActive = currentTab === tabItem.id;
@@ -244,7 +248,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         {/* =========================================================================
             TAB 2: DATABASE STORAGE INVENTORY
            ========================================================================= */}
-        {currentTab === "database" && (
+        {currentTab === "database" && checks && health && prices && (
           <div className="flex flex-col gap-6">
             <Panel
               title="Postgres Database Inventory & Schema Tables"

@@ -1,5 +1,6 @@
--- Price guard, market-wide days (migration 58): when 3 or more of the 500 largest companies are flagged on the same day
--- it was the market (4 Jun 2024, 7 Apr 2025), and the rules read those prices as real. Rolled back.
+-- Price guard, market-wide days (migrations 58-59): when 3 or more of the 500 largest companies are flagged on the same
+-- day AND the NIFTY 50's low is at least 3 % under its close before, it was the market (4 Jun 2024, 7 Apr 2025), and the
+-- rules read those prices as real. Rolled back.
 begin;
 
 create schema qp_t27;
@@ -38,9 +39,17 @@ select qp_t27.load('QPMD4', 80);
 select qp_t27.check(qp_t27.status('QPMD4') = 'suspect' and qp_t27.status('QPMD1') = 'suspect',
                     'a small company does not count toward the three');
 select qp_t27.load('QPMD3', 80);
+select qp_t27.check(qp_t27.status('QPMD1') = 'suspect' and qp_t27.status('QPMD3') = 'suspect',
+                    'three large companies, but the index did not fall: still suspect (a glitch across a few stocks)');
+insert into public.market_symbols (symbol, exchange, name, is_active, segment) values ('NIFTY', 'NSE', 'Nifty 50', true, 'index')
+on conflict do nothing;
+delete from public.market_candles where symbol = 'NIFTY' and ts in (qp_t27.ts(1), qp_t27.ts(2));
+insert into public.market_candles (symbol, exchange, interval, ts, open, high, low, close, volume) values
+  ('NIFTY', 'NSE', '1d', qp_t27.ts(1), 100, 101, 99, 100, 0),
+  ('NIFTY', 'NSE', '1d', qp_t27.ts(2), 99, 99.5, 96.5, 97, 0);
 select qp_t27.check(qp_t27.status('QPMD1') = 'market' and qp_t27.status('QPMD2') = 'market'
                     and qp_t27.status('QPMD3') = 'market' and qp_t27.status('QPMD4') = 'market',
-                    'a third large company: the market fell, every flag of that day counts as real');
+                    'and the NIFTY fell 3.5 % that day: the market fell, every flag of that day counts as real');
 select qp_t27.check((select low = 80 from private.trusted_candles where symbol = 'QPMD1' and ts = qp_t27.ts(2)),
                     'the rules read a market day''s prices as stored');
 

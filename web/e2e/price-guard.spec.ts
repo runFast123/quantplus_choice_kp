@@ -4,7 +4,7 @@ import { expect, expectNoHorizontalOverflow, state, test } from "./helpers/fixtu
 
 /**
  * The price guard (ADR-053): a stock with a day whose price was set aside says so under its chart, in plain words, with
- * the prices from public.candle_checks (read when the test runs: the newest flagged day of a top-500 company).
+ * the prices from public.candle_checks_review (read when the test runs: the newest flagged day of a top-500 company).
  */
 type Check = { symbol: string; day: string; prev_close: string; close: string; status: string };
 let flagged: Check | undefined;
@@ -17,7 +17,7 @@ test.beforeAll(async () => {
     (await fetch(`${supabaseUrl}/rest/v1/${path}`, { headers: { apikey: anonKey, authorization: `Bearer ${token}` } })).json();
   const top: { symbol: string }[] = await get("market_symbols?select=symbol&mcap_rank=lte.500&order=mcap_rank&limit=500");
   const names = new Set(top.map((t) => t.symbol));
-  const checks: Check[] = await get("candle_checks?select=symbol,day,prev_close,close,status&status=in.(suspect,bad)&exchange=eq.NSE&order=day.desc&limit=200");
+  const checks: Check[] = await get("candle_checks_review?select=symbol,day,prev_close,close,status&status=in.(suspect,bad)&exchange=eq.NSE&order=day.desc&limit=200");
   flagged = checks.find((c) => names.has(c.symbol));
   const withFlag = new Set(checks.map((c) => c.symbol));
   clean = top.map((t) => t.symbol).find((s) => !withFlag.has(s));

@@ -106,6 +106,10 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
   if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
   const db = serviceRole();
 
+  // The big tables are counted with the planner's estimate: an exact count of the ~1M candle rows alone took 3-5 s
+  // and held up the whole console. Small tables and the segment split stay exact.
+  const segmentCount = (segment: string) =>
+    db.from("market_symbols").select("symbol", { count: "exact", head: true }).eq("segment", segment);
   const [
     snapRes,
     symbolsRes,
@@ -118,18 +122,26 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
     auditRes,
     paymentsRes,
     devicesRes,
+    equityRes,
+    etfRes,
+    indexRes,
+    smeRes,
   ] = await Promise.all([
     db.from("market_snapshot").select("as_of", { count: "exact" }).order("as_of", { ascending: false }).limit(1),
-    db.from("market_symbols").select("segment", { count: "exact" }),
-    db.from("market_candles").select("ts", { count: "exact", head: true }),
-    db.from("trading_signals").select("generated_at", { count: "exact" }).order("generated_at", { ascending: false }).limit(1),
-    db.from("rsi_events").select("ts", { count: "exact", head: true }),
-    db.from("news_articles").select("published_at", { count: "exact" }).order("published_at", { ascending: false }).limit(1),
+    db.from("market_symbols").select("symbol", { count: "exact", head: true }),
+    db.from("market_candles").select("ts", { count: "estimated", head: true }),
+    db.from("trading_signals").select("generated_at", { count: "estimated" }).order("generated_at", { ascending: false }).limit(1),
+    db.from("rsi_events").select("ts", { count: "estimated", head: true }),
+    db.from("news_articles").select("published_at", { count: "estimated" }).order("published_at", { ascending: false }).limit(1),
     db.from("news_sources").select("id, is_active", { count: "exact" }),
-    db.from("research_notes").select("created_at", { count: "exact" }).order("created_at", { ascending: false }).limit(1),
-    db.from("audit_log").select("created_at", { count: "exact" }).order("created_at", { ascending: false }).limit(1),
+    db.from("research_notes").select("generated_at", { count: "estimated" }).order("generated_at", { ascending: false }).limit(1),
+    db.from("audit_log").select("created_at", { count: "estimated" }).order("created_at", { ascending: false }).limit(1),
     db.from("payments").select("created_at", { count: "exact" }).order("created_at", { ascending: false }).limit(1),
     db.from("user_devices").select("id", { count: "exact", head: true }),
+    segmentCount("equity"),
+    segmentCount("etf"),
+    segmentCount("index"),
+    segmentCount("sme"),
   ]);
 
   const latestEodDate = snapRes.data?.[0]?.as_of ?? null;
@@ -141,16 +153,15 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
     isEodFresh = daysAgo <= 3.5;
   }
 
-  // Count segments
-  const segments = { equity: 0, etf: 0, index: 0, sme: 0, other: 0 };
-  for (const s of symbolsRes.data ?? []) {
-    const seg = (s.segment ?? "").toLowerCase();
-    if (seg === "equity") segments.equity++;
-    else if (seg === "etf") segments.etf++;
-    else if (seg === "index") segments.index++;
-    else if (seg === "sme") segments.sme++;
-    else segments.other++;
-  }
+  // Counted in the database: reading the rows returned at most 1,000 of the ~3,700 symbols.
+  const segments = {
+    equity: equityRes.count ?? 0,
+    etf: etfRes.count ?? 0,
+    index: indexRes.count ?? 0,
+    sme: smeRes.count ?? 0,
+    other: 0,
+  };
+  segments.other = Math.max(0, (symbolsRes.count ?? 0) - segments.equity - segments.etf - segments.index - segments.sme);
 
   const activeFeeds = (newsSourcesRes.data ?? []).filter((s) => s.is_active).length;
 
@@ -177,7 +188,7 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
       count: candlesRes.count ?? 0,
       latestDate: latestEodDate,
       status: "healthy",
-      description: "Partitioned historical daily OHLCV candlestick records from verified NSE sources.",
+      description: "Daily OHLCV candles for NSE symbols, end of day from Yahoo Finance (count is an estimate).",
     },
     {
       name: "trading_signals",
@@ -185,7 +196,7 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
       count: signalsRes.count ?? 0,
       latestDate: signalsRes.data?.[0]?.generated_at ?? null,
       status: "healthy",
-      description: "Quantitative rule-based strategies: SMA Cross, RSI Oversold Bounce, Asymmetric Targets.",
+      description: "Buys and exits of the six rules (and the retired ones' history); count is an estimate.",
     },
     {
       name: "rsi_events",
@@ -209,13 +220,13 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
       count: newsSourcesRes.count ?? 0,
       latestDate: null,
       status: activeFeeds > 0 ? "healthy" : "warning",
-      description: `${activeFeeds} active syndication feeds configured (Moneycontrol, Business Standard, Corporate).`,
+      description: `${activeFeeds} active syndication RSS feeds (Economic Times, Moneycontrol, Mint, Business Standard, BusinessLine, NDTV Profit, NSE announcements, Google News).`,
     },
     {
       name: "research_notes",
       category: "content",
       count: researchRes.count ?? 0,
-      latestDate: researchRes.data?.[0]?.created_at ?? null,
+      latestDate: researchRes.data?.[0]?.generated_at ?? null,
       status: "healthy",
       description: "Synthesized multi-factor stance: Momentum, Value, Sector, and Risk classification.",
     },
@@ -225,7 +236,7 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
       count: paymentsRes.count ?? 0,
       latestDate: paymentsRes.data?.[0]?.created_at ?? null,
       status: "healthy",
-      description: "Captured subscription transactions with GST/tax compliance record preservation.",
+      description: "Subscription payments recorded by an admin when activating a plan.",
     },
     {
       name: "audit_log",
@@ -233,7 +244,7 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
       count: auditRes.count ?? 0,
       latestDate: auditRes.data?.[0]?.created_at ?? null,
       status: "healthy",
-      description: "Cryptographically append-only immutable security ledger for platform operations.",
+      description: "Append-only log of security and admin actions (no updates or deletes allowed).",
     },
     {
       name: "user_devices",
@@ -395,20 +406,19 @@ export async function getPriceChecks(actorId: string): Promise<PriceCheckReview>
   if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
   const db = serviceRole();
   const cols = "symbol, exchange, day, prev_close, open, high, low, close, bad_open, bad_high, bad_low, status, found_at, reviewed_at";
-  const { data: top, error: topError } = await db.from("market_symbols").select("symbol").lte("mcap_rank", 500).limit(1000);
-  if (topError) throw new PrivilegedError(topError.message);
-  const topSymbols = (top ?? []).map((r) => r.symbol as string);
+  // candle_checks_review (migration 59): the 500 largest companies' flags on days still stored, filtered in the
+  // database (passing 500 symbols in the URL could pass a proxy's length limit).
   const count = (status: string) =>
-    db.from("candle_checks").select("symbol", { count: "exact", head: true }).eq("status", status).in("symbol", topSymbols);
+    db.from("candle_checks_review").select("symbol", { count: "exact", head: true }).eq("status", status);
   const [openRes, reviewedRes, suspect, real, bad, market, saved, buys] = await Promise.all([
-    db.from("candle_checks").select(cols).eq("status", "suspect").in("symbol", topSymbols).order("day", { ascending: false }).limit(60),
-    db.from("candle_checks").select(cols).in("status", ["real", "bad"]).order("reviewed_at", { ascending: false }).limit(20),
+    db.from("candle_checks_review").select(cols).eq("status", "suspect").order("day", { ascending: false }).limit(60),
+    db.from("candle_checks_review").select(cols).in("status", ["real", "bad"]).order("reviewed_at", { ascending: false }).limit(20),
     count("suspect"),
     count("real"),
     count("bad"),
     count("market"),
     db.from("signal_conditions").select("symbol", { count: "exact", head: true }),
-    db.from("signal_trades").select("symbol", { count: "exact", head: true }).in("strategy", [...RULE_KEYS]),
+    db.from("trading_signals").select("id", { count: "exact", head: true }).eq("signal_type", "buy").in("strategy", [...RULE_KEYS]),
   ]);
   for (const r of [openRes, reviewedRes, suspect, real, bad, market, saved, buys]) if (r.error) throw new PrivilegedError(r.error.message);
   return {
@@ -435,7 +445,12 @@ export async function reviewPriceCheck(
   if (error) throw new PrivilegedError(error.message);
   const rebuilt = (data as { rebuilt?: boolean } | null)?.rebuilt === true;
   // No symbol in the audit metadata (AGENTS.md rule 6): the verdict and whether rules were rebuilt only.
-  await audit({ tenantId: null, actorUserId: actorId, action: "market.price_review", metadata: { status: input.status, rebuilt } });
+  // The review is saved by now: a failed audit write is logged, not reported as a failed review.
+  try {
+    await audit({ tenantId: null, actorUserId: actorId, action: "market.price_review", metadata: { status: input.status, rebuilt } });
+  } catch (e) {
+    console.error("audit write failed for market.price_review:", (e as Error).message);
+  }
   return { rebuilt };
 }
 

@@ -52,7 +52,7 @@ export async function activatePlanAction(_: ActionState, form: FormData): Promis
 const priceReview = z.object({
   symbol: z.string().trim().min(1).max(40),
   exchange: z.enum(["NSE", "BSE"]),
-  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  day: z.iso.date(),
   status: z.enum(["real", "bad", "suspect"]),
 });
 

@@ -5,6 +5,32 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — system audit, 9 Nov 2026 (migration 59)
+- **Admin console 5–7 s → about 1 s.** Every tab read every tab's data, and the inventory counted the big tables exactly
+  (the ~1M candle rows alone took 3–5 s). Now only the open tab's data is read, and the candle, signal, RSI, news, notes
+  and audit counts are the planner's estimate (marked as estimates).
+- **Admin inventory was wrong in three places:** segment counts came from the first 1,000 of ~3,700 symbols (now counted
+  in the database: 2,748 equity, 577 SME, 325 ETF, 21 index); the research-notes read asked for a column that does not
+  exist and showed 0 (now `generated_at`); four descriptions were untrue (prices "from verified NSE sources" — they are
+  Yahoo end of day; signals named the retired rules; a "cryptographic" audit log; "GST compliance" for payments).
+- **Signal lists:** `trading_signals` had indexes by stock only, so the Signals page's newest-200 reads sorted the whole
+  table: 0.7–0.8 s when it is not cached (up to 7.7 s under load). Migration 59 adds `(strategy, generated_at desc)` and
+  `(generated_at desc)` (about 2 MB each).
+- **Independent reviews of migrations 57–58 (database) and the admin changes (security)** found no critical issue; fixed
+  what they found:
+  - a market-wide day now also needs the NIFTY 50's low at least 3 % under its close before (5 of 842 stored sessions);
+    before, any 3 flagged large companies switched the guard off, so a vendor glitch across a few stocks would have passed.
+    23 Jan 2024 (NIFTY −2.0 %) is no longer market-wide: its 4 flags wait for review and those stocks' rules were rebuilt;
+  - an admin review now also rewrites that stock's signal conditions (they belonged to the rebuilt buys);
+  - market days are worked out one writer at a time (two overlapping price loads could each miss the third flag), and
+    flags whose day is no longer stored are not counted;
+  - `candle_checks_review` (the 500 largest, stored days only) feeds the admin panel, which no longer passes 500 symbols in
+    the URL, and the stock page, whose note is now shown only where the rules run and an admin can review;
+  - the review action checks the date properly (`z.iso.date()`), and a failed audit write no longer reports a saved
+    review as failed.
+- Files: `web/src/app/admin/{page,actions}.tsx`, `web/src/server/privileged/admin.ts`, `web/src/app/app/markets/[symbol]/page.tsx`,
+  `web/e2e/price-guard.spec.ts`, `supabase/migrations/…59_audit_fixes.sql`, `supabase/tests/{27_price_guard_market_days,28_audit_fixes}.sql`.
+
 ### Added — price guard and signal conditions (ADR-053; migration 57)
 - **Price guard.** Yahoo sometimes serves a day's open, low or high far from the closes around it (6 Nov 2026: CLEANMAX
   "opened" at ₹1,021.20 between closes of ₹1,276.50 and ₹1,259.70, and the SMA 20/50 trend trade there was stopped out

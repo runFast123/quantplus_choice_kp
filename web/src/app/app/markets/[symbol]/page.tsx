@@ -74,8 +74,9 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     getRuleHealth(db),
     // Every trade of the rules in use on this stock (one row per buy; result once it closed).
     db.from("signal_trades").select("strategy, signal_day, result_pct").eq("symbol", symbol).in("strategy", [...RULE_KEYS]).limit(2000),
-    // Days whose price looked wrong and the rules set aside (ADR-053), newest first.
-    db.from("candle_checks")
+    // Days whose price looked wrong and the rules set aside (ADR-053), newest first; the 500 largest only (the rules'
+    // stocks, which an admin can review).
+    db.from("candle_checks_review")
       .select("symbol, exchange, day, prev_close, open, high, low, close, bad_open, bad_high, bad_low, status")
       .eq("symbol", symbol)
       .eq("exchange", "NSE")

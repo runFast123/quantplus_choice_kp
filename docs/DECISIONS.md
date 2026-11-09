@@ -372,6 +372,9 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   largest flagged; 7 Apr 2025: 32). A bad price is one stock's, so a day with 3 or more of the 500 largest flagged is a
   market-wide move: its flags get status `market` and count as real. Chosen from those dates and the count of flags per
   day, not from any rule's result.
+- **Amended again after the database review (migration 59):** a market-wide day also needs the NIFTY 50's low at least
+  3 % under its close before (5 of 842 stored sessions), so a vendor glitch across a few stocks can't pass as the market;
+  23 Jan 2024 (NIFTY −2.0 %) went back under the guard and its stocks were rebuilt.
 - **Limits:** 12 % is a judgement, not a test result: a genuine intraday swing of more than 12 % that closes back near
   the day before is treated as suspect until reviewed (1,284 days are flagged across all stored history, 108 among the
   500 largest). The migration does not rewrite past signals; rebuilding the 33 stocks whose trades had a flagged day is
