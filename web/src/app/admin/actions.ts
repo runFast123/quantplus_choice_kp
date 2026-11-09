@@ -6,6 +6,7 @@ import type { ActionState } from "@/lib/errors";
 import {
   activatePlan,
   isPlatformAdmin,
+  reviewPriceCheck,
   triggerMarketAnalytics,
   triggerResearchRefresh,
   triggerEodNotifier,
@@ -45,6 +46,29 @@ export async function activatePlanAction(_: ActionState, form: FormData): Promis
   } catch (e) {
     const m = e instanceof PrivilegedError ? e.message : "";
     return { error: m.includes("NOT_AUTHORIZED") ? "Not a platform admin." : m.includes("USER_NOT_IN_TENANT") ? "User isn't in that workspace." : m.includes("INVALID_INPUT") ? "Months must be 1–24." : "Activation failed." };
+  }
+}
+
+const priceReview = z.object({
+  symbol: z.string().trim().min(1).max(40),
+  exchange: z.enum(["NSE", "BSE"]),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  status: z.enum(["real", "bad", "suspect"]),
+});
+
+/** An admin's verdict on a day whose price looked wrong (ADR-053). */
+export async function reviewPriceAction(_: ActionState, form: FormData): Promise<ActionState> {
+  const s = await requireSession();
+  const parsed = priceReview.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  try {
+    const r = await reviewPriceCheck(s.userId, parsed.data);
+    revalidatePath("/admin");
+    const verdict = parsed.data.status === "real" ? "Marked real" : parsed.data.status === "bad" ? "Set aside" : "Back to waiting";
+    return { ok: true, message: r.rebuilt ? `${verdict}; the rules on this stock were worked out again.` : `${verdict}.` };
+  } catch (e) {
+    const m = e instanceof PrivilegedError ? e.message : "";
+    return { error: m.includes("NOT_AUTHORIZED") ? "Not a platform admin." : m.includes("NOT_FOUND") ? "That day is no longer flagged." : "The review didn't save." };
   }
 }
 

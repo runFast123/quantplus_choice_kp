@@ -3,9 +3,32 @@
 import unittest
 from datetime import date
 
-from audit import REVIEWED_GAPS, repeats_side, revised_since, sessions_behind, split_extra, vendor_has_history, widespread
+import pandas as pd
+
+from audit import REVIEWED_GAPS, repeats_side, revised_since, sessions_behind, spike_days, split_extra, vendor_has_history, widespread
 
 D = date
+
+
+class PriceGuard(unittest.TestCase):
+    """The same rule as private.check_candle_days (migration 57): a day 12 % away from both closes around it."""
+
+    def frame(self, rows):
+        idx = pd.to_datetime([f"2026-11-0{i + 3}T10:00:00Z" for i in range(len(rows))], utc=True)
+        return pd.DataFrame(rows, columns=["open", "high", "low", "close"], index=idx, dtype=float)
+
+    def test_the_cleanmax_day_is_flagged(self):
+        c = self.frame([(1270, 1290, 1260, 1276.5), (1021.2, 1314.7, 1021.2, 1259.7), (1260, 1270, 1250, 1265)])
+        self.assertEqual(spike_days(c), ["2026-11-04"])
+
+    def test_a_real_fall_that_closes_low_is_not_flagged(self):
+        c = self.frame([(100, 101, 99, 100), (85, 86, 79, 80), (80, 81, 79, 80)])
+        self.assertEqual(spike_days(c), [])
+
+    def test_the_first_day_has_no_close_before_it(self):
+        c = self.frame([(50, 200, 10, 100)])
+        self.assertEqual(spike_days(c), [])
+
 
 
 class VendorHistory(unittest.TestCase):

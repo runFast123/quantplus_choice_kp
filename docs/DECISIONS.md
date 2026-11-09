@@ -354,6 +354,30 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-053 · Price guard: a day that looks wrong counts only at its close until reviewed; every buy keeps its conditions
+**Date** 2026-11-09 · **Status** accepted
+- **Context:** the improvement review found trades ended by Yahoo prices that were almost certainly wrong (CLEANMAX
+  6 Nov 2026: open and low ₹1,021.20 between closes of ₹1,276.50 and ₹1,259.70, an SMA 20/50 trend trade out at −29 %).
+  The audit compares stored prices with Yahoo, so it cannot catch Yahoo's own errors, and NSE's archives block automated
+  readers (ADR-014). Separately, learning which conditions a rule works in needs the conditions at each signal, and only
+  the RSI dip check stored them.
+- **Decision:** the rule, fixed before looking at any rule's result: a day whose open, low or high is more than 12 % away
+  from both the close before and its own close is suspect (a real crash that closes low is not: its close is one of the
+  two). Prices stay as Yahoo sent them; `candle_checks` flags them as they are written, and everything that decides a
+  trade, a grade or an alert reads `private.trusted_candles`, where an unreviewed suspect day counts at its close only.
+  An admin marks a day real (the stored price counts) or bad; either rebuilds that stock's rules when it changes what
+  they read. A revision by Yahoo re-checks the day, and the next session, and resets an old review. Every live buy keeps
+  `signal_conditions`, frozen, point in time.
+- **Amended the same day (migration 58):** the rebuild preview showed real crashes set aside (4 Jun 2024: 9 of the 500
+  largest flagged; 7 Apr 2025: 32). A bad price is one stock's, so a day with 3 or more of the 500 largest flagged is a
+  market-wide move: its flags get status `market` and count as real. Chosen from those dates and the count of flags per
+  day, not from any rule's result.
+- **Limits:** 12 % is a judgement, not a test result: a genuine intraday swing of more than 12 % that closes back near
+  the day before is treated as suspect until reviewed (1,284 days are flagged across all stored history, 108 among the
+  500 largest). The migration does not rewrite past signals; rebuilding the 33 stocks whose trades had a flagged day is
+  a separate step. The chart, replay and Dry Run still draw the stored price. Conditions use today's 500 largest for
+  breadth, as `market_breadth` does.
+
 ### ADR-052 · The Research list is kept in a small table, in step through triggers
 **Date** 2026-11-09 · **Status** accepted
 - **Context:** the health check found the Research page failing under load ("The notes didn't load"). Its six reads

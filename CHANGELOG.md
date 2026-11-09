@@ -5,6 +5,36 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — price guard and signal conditions (ADR-053; migration 57)
+- **Price guard.** Yahoo sometimes serves a day's open, low or high far from the closes around it (6 Nov 2026: CLEANMAX
+  "opened" at ₹1,021.20 between closes of ₹1,276.50 and ₹1,259.70, and the SMA 20/50 trend trade there was stopped out
+  at −29 %). A day more than 12 % away from both the close before and its own close is now flagged as it is written
+  (statement triggers on `market_candles`; 1,284 stored days, 108 among the 500 largest). Until an admin calls the price
+  real, the six rules, the grades, the RSI dip check and price alerts read it through `private.trusted_candles`, where
+  only the close counts for that day. Stored prices are not changed; the chart still shows what Yahoo sent.
+- **Review.** Admin → Database & Pipelines → "Prices to check": each flagged day with the close before, what looked
+  wrong, and "Bad price" / "Real price" (`svc_review_candle`; when that changes what the rules read, the stock's rule
+  history is worked out again). Audit log: the verdict only, no symbol.
+- **Stock page.** Under the chart, a plain note when a day's price was set aside and what the rules used instead.
+- **Audit and pipeline.** `audit.py` fails if the database's flags differ from the rule and lists days waiting for a
+  review; `eod.py` prints the recent ones after loading prices.
+- **Signal conditions.** Every buy of the six rules now keeps the market and the stock as they were at its close
+  (`signal_conditions`: the RSI dip check's 23 numbers, such as distance from the 50- and 200-day averages, RSI, ATR,
+  volume, relative strength, sector rank, Nifty trend, VIX, weather and market breadth, plus how crowded the rule was:
+  buys that day, trades still open, and open in the same sector). Point in time; frozen once written; back-filled for
+  every stored buy and written nightly after the breadth. It is what research needs to learn which conditions each rule
+  works in; nothing in the app changes on it yet.
+- **Market-wide days count as real (migration 58).** The rebuild preview showed the guard setting aside two real crashes:
+  4 Jun 2024 (election results, 9 of the 500 largest flagged) and 7 Apr 2025 (tariffs, 32 flagged), and with them real
+  dip-rule and Strong trend wins. A bad Yahoo price is one stock's (56 of the other flagged days among the 500 largest
+  have one company), so when 3 or more of the 500 largest are flagged on the same day every flag of that day gets status
+  `market`, read like `real`. Conditions near those days were written again.
+- Not done here: past trades are not rewritten by the migration. 48 trades in 33 stocks had a flagged day while open;
+  rebuilding those stocks (`supabase/scripts/rebuild-rules.mjs --symbols …`) is a separate step.
+- Files: `supabase/migrations/…57_price_guard.sql`, `supabase/tests/26_price_guard.sql`, `web/src/lib/price-checks.ts`
+  (+ test), `web/src/server/privileged/admin.ts`, `web/src/app/admin/{page,actions,price-review-form}.tsx`,
+  `web/src/app/app/markets/[symbol]/page.tsx`, `pipelines/eod/{audit,test_audit,eod}.py`.
+
 ### Fixed — the Research list no longer times out under load (ADR-052; migration 56)
 - The list, its three stance counts and the two "turned" lists read `public.research_list`, one row per stock with only
   the list's columns (2,878 rows, about 1 MB), instead of the `research_latest` view, which walks every stock's notes

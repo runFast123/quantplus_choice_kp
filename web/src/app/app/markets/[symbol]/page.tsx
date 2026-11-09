@@ -26,6 +26,7 @@ import { CheckTag } from "@/components/market/check-tag";
 import { HealthChip } from "@/components/market/rule-health";
 import { SectionTabs } from "@/components/ui/section-tabs";
 import { PRICE_SOURCE } from "@/lib/market";
+import { setAsideSentence, type CandleCheck } from "@/lib/price-checks";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
 import { setupsOf } from "@/lib/setups";
@@ -57,7 +58,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const db = s.supabase;
 
   // Everything the page needs in one round trip (none of these depend on each other).
-  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes, [note], news, aiKeysRes, aiConsentRes, checkRes, health, tradesRes] = await Promise.all([
+  const [quoteRes, candles, signalsRes, radarRes, holdingsRes, rsiRes, watchRes, [note], news, aiKeysRes, aiConsentRes, checkRes, health, tradesRes, priceChecksRes] = await Promise.all([
     db.from("market_snapshot").select("*").eq("symbol", symbol).eq("exchange", "NSE").maybeSingle(),
     getCandles(db, symbol),
     db.from("trading_signals").select("*").eq("symbol", symbol).order("generated_at", { ascending: false }).limit(200),
@@ -73,6 +74,14 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     getRuleHealth(db),
     // Every trade of the rules in use on this stock (one row per buy; result once it closed).
     db.from("signal_trades").select("strategy, signal_day, result_pct").eq("symbol", symbol).in("strategy", [...RULE_KEYS]).limit(2000),
+    // Days whose price looked wrong and the rules set aside (ADR-053), newest first.
+    db.from("candle_checks")
+      .select("symbol, exchange, day, prev_close, open, high, low, close, bad_open, bad_high, bad_low, status")
+      .eq("symbol", symbol)
+      .eq("exchange", "NSE")
+      .in("status", ["suspect", "bad"])
+      .order("day", { ascending: false })
+      .limit(3),
   ]);
   if (!quoteRes.data) {
     const retired = (await getRetired(db, [symbol])).get(symbol);
@@ -598,6 +607,16 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
 
       <div id="chart" className="scroll-mt-28">
         <MarketChartView candles={candles} markers={markers} symbol={q.symbol} exchange={q.exchange} />
+        {(priceChecksRes.data ?? []).length > 0 && (
+          <div className="mt-2 rounded-md border border-border bg-card px-3 py-2 text-[12.5px] text-muted-foreground" data-testid="price-set-aside">
+            <p className="font-medium text-foreground">A price we set aside</p>
+            {((priceChecksRes.data ?? []) as CandleCheck[]).map((k) => (
+              <p key={k.day} className="mt-0.5">
+                {setAsideSentence(k)}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
       <SectionTabs

@@ -557,6 +557,16 @@ def main(argv: list[str] | None = None) -> int:
     if replaced:
         print(f"eod: replaced the history of {len(replaced)} repaired symbol(s)")
     db.upsert("market_candles", rows, "symbol,exchange,interval,ts")
+    # The price guard (migration 57, ADR-053) flags days that look wrong as the candles are written; list the recent
+    # ones still waiting for a review, so the run log shows them.
+    try:
+        since = (settled - timedelta(days=args.days + 5)).isoformat()
+        waiting = db.call("GET", f"candle_checks?select=symbol,day&status=eq.suspect&day=gte.{since}&order=day.desc&limit=50") or []
+        if waiting:
+            print(f"eod: {len(waiting)} recent price(s) set aside until reviewed (the rules use the close): "
+                  + ", ".join(f"{x['symbol']} {x['day']}" for x in waiting[:15]))
+    except Exception as e:                # noqa: BLE001 — a log line only
+        print("eod: price guard not readable:", str(e)[:120])
     # Before the notifier, which rescales holdings entered before a split or bonus (migration 50).
     actions = [a for a in split_events(frames, settled) if a["symbol"] in meta and meta[a["symbol"]]["segment"] != "index"]
     if actions:

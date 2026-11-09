@@ -1,7 +1,10 @@
 import "server-only";
 
+import type { CandleCheck } from "@/lib/price-checks";
+import { RULE_KEYS } from "@/lib/rules";
 import { daysAgoIST } from "@/lib/signal-checks";
 import type { PlanCode, SubscriptionStatus, TenantType } from "@/lib/types";
+import { audit } from "./audit";
 import { PrivilegedError } from "./guards";
 import { serviceRole } from "./service-role";
 
@@ -376,6 +379,64 @@ export async function getSignalCheckReview(actorId: string): Promise<SignalCheck
       .map(([k, signals]) => ({ strategy: k.split("|")[0], label: k.split("|")[1], signals }))
       .sort((x, y) => x.strategy.localeCompare(y.strategy) || y.signals - x.signals),
   };
+}
+
+export interface PriceCheckReview {
+  open: CandleCheck[];
+  reviewed: CandleCheck[];
+  counts: { suspect: number; real: number; bad: number; market: number };
+  conditions: { saved: number; buys: number };
+}
+
+/** Days whose price looked wrong (ADR-053), the newest first: those waiting for a review among the 500 largest
+ *  companies (the rules' stocks), and the latest reviews. Plus how many live buys have their conditions saved.
+ *  Market data only; no user data. */
+export async function getPriceChecks(actorId: string): Promise<PriceCheckReview> {
+  if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
+  const db = serviceRole();
+  const cols = "symbol, exchange, day, prev_close, open, high, low, close, bad_open, bad_high, bad_low, status, found_at, reviewed_at";
+  const { data: top, error: topError } = await db.from("market_symbols").select("symbol").lte("mcap_rank", 500).limit(1000);
+  if (topError) throw new PrivilegedError(topError.message);
+  const topSymbols = (top ?? []).map((r) => r.symbol as string);
+  const count = (status: string) =>
+    db.from("candle_checks").select("symbol", { count: "exact", head: true }).eq("status", status).in("symbol", topSymbols);
+  const [openRes, reviewedRes, suspect, real, bad, market, saved, buys] = await Promise.all([
+    db.from("candle_checks").select(cols).eq("status", "suspect").in("symbol", topSymbols).order("day", { ascending: false }).limit(60),
+    db.from("candle_checks").select(cols).in("status", ["real", "bad"]).order("reviewed_at", { ascending: false }).limit(20),
+    count("suspect"),
+    count("real"),
+    count("bad"),
+    count("market"),
+    db.from("signal_conditions").select("symbol", { count: "exact", head: true }),
+    db.from("signal_trades").select("symbol", { count: "exact", head: true }).in("strategy", [...RULE_KEYS]),
+  ]);
+  for (const r of [openRes, reviewedRes, suspect, real, bad, market, saved, buys]) if (r.error) throw new PrivilegedError(r.error.message);
+  return {
+    open: (openRes.data ?? []) as CandleCheck[],
+    reviewed: (reviewedRes.data ?? []) as CandleCheck[],
+    counts: { suspect: suspect.count ?? 0, real: real.count ?? 0, bad: bad.count ?? 0, market: market.count ?? 0 },
+    conditions: { saved: saved.count ?? 0, buys: buys.count ?? 0 },
+  };
+}
+
+/** An admin's verdict on a flagged day. "real" puts the price back into the rules and "bad" keeps it set aside; when
+ *  that changes what the rules read, the database works out that stock's rule history again. */
+export async function reviewPriceCheck(
+  actorId: string,
+  input: { symbol: string; exchange: string; day: string; status: "real" | "bad" | "suspect" },
+): Promise<{ rebuilt: boolean }> {
+  if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
+  const { data, error } = await serviceRole().rpc("svc_review_candle", {
+    p_symbol: input.symbol,
+    p_exchange: input.exchange,
+    p_day: input.day,
+    p_status: input.status,
+  });
+  if (error) throw new PrivilegedError(error.message);
+  const rebuilt = (data as { rebuilt?: boolean } | null)?.rebuilt === true;
+  // No symbol in the audit metadata (AGENTS.md rule 6): the verdict and whether rules were rebuilt only.
+  await audit({ tenantId: null, actorUserId: actorId, action: "market.price_review", metadata: { status: input.status, rebuilt } });
+  return { rebuilt };
 }
 
 export async function triggerMarketAnalytics(actorId: string, days = 10) {

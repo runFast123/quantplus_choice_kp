@@ -145,6 +145,19 @@ def repeats_side(signal: tuple, stored: set) -> bool:
     return bool(before) and max(before, key=lambda s: s[2])[1] == signal[1]
 
 
+SPIKE = 0.12
+
+
+def spike_days(c: pd.DataFrame) -> list[str]:
+    """The price guard's rule (migration 57, ADR-053): a day whose open, low or high is more than 12 % away from both
+    the close before and its own close. `c` is indexed by timestamp with float open/high/low/close; IST days."""
+    pc = c.close.shift()
+    lo = pd.concat([pc, c.close], axis=1).min(axis=1) * (1 - SPIKE)
+    hi = pd.concat([pc, c.close], axis=1).max(axis=1) * (1 + SPIKE)
+    bad = pc.notna() & (pc > 0) & ((c.open < lo) | (c.open > hi) | (c.high > hi) | (c.low < lo))
+    return [str(t.tz_convert(IST).date()) for t in c.index[bad]]
+
+
 def get(db: Rest, table: str, query: str) -> pd.DataFrame:
     return pd.DataFrame(db.call("GET", f"{table}?{query}"))
 
@@ -249,6 +262,16 @@ def main(argv=None) -> int:
         get(db, "market_snapshot", f"select=*&symbol=in.({urllib.parse.quote(','.join(f'\"{x}\"' for x in part))})")
         for part in chunks(symbols, 100)
     ]).set_index("symbol")
+    # The price guard's flags (ADR-053), checked against the rule below; a missing table means migration 57 isn't applied.
+    flagged: dict[str, dict[str, str]] | None = {}
+    try:
+        for part in chunks(symbols, 100):
+            names = urllib.parse.quote(",".join(f'"{x}"' for x in part))
+            for x in get(db, "candle_checks", f"select=symbol,day,status&exchange=eq.NSE&symbol=in.({names})").to_dict("records"):
+                flagged.setdefault(x["symbol"], {})[x["day"]] = x["status"]
+    except Exception as e:                              # noqa: BLE001 — reported, not fatal
+        flagged = None
+        r.warn(False, f"price guard: candle_checks not readable ({str(e)[:80]})")
 
     for s in symbols:
         q = urllib.parse.quote(s)
@@ -289,6 +312,13 @@ def main(argv=None) -> int:
             r.check(not [d for d in ends if (s, d) not in REVIEWED_GAPS], f"{s}: gaps over 6 days at {ends}")
         if s in HISTORY_FROM:
             r.check(c.index.min().tz_convert(IST).date() >= HISTORY_FROM[s], f"{s}: history before {HISTORY_FROM[s]}")
+        # The database flags exactly the days the guard's rule finds; days nobody has reviewed are listed.
+        if flagged is not None:
+            want, got = set(spike_days(c)), flagged.get(s, {})
+            r.check(want == set(got), f"{s}: price flags differ from the rule — missing {sorted(want - set(got))[:3]}, "
+                                      f"unexpected {sorted(set(got) - want)[:3]}")
+            waiting = sorted(d for d, st in got.items() if st == "suspect")
+            r.warn(not waiting, f"{s}: price set aside, waiting for a review on {waiting}")
 
         # ---- 3a. snapshot
         if len(c) < 2:

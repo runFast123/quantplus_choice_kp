@@ -16,12 +16,13 @@ import { Logo } from "@/components/brand/logo";
 import { Badge, Stat } from "@/components/ui/data";
 import { inputClass } from "@/components/ui/field";
 import { Empty, PageHeader, Panel, TableWrap, td, th, tr } from "@/components/ui/layout";
-import { date, dateTime, paiseToRupees, relative } from "@/lib/format";
+import { date, dateTime, paiseToRupees, price, relative } from "@/lib/format";
 import { nseSession } from "@/lib/market";
 import { HEALTH_RULES, HEALTH_STATUS, mistakeSentence } from "@/lib/rule-health";
 import { quarterStartIST } from "@/lib/signal-checks";
 import {
   getDatabaseInventory,
+  getPriceChecks,
   getRecentAuditLogs,
   getRecentPayments,
   getSignalCheckReview,
@@ -35,6 +36,8 @@ import { requireSession } from "@/server/session";
 import { ActivateForm } from "./activate-form";
 import { MaintenanceOperations } from "./maintenance-panel";
 import { FetchNewsButton } from "./news-button";
+import { PriceReviewForm } from "./price-review-form";
+import { wrongParts } from "@/lib/price-checks";
 
 export const metadata: Metadata = { title: "Platform admin" };
 // The maintenance panel refreshes analytics for every symbol in batches (~2.5 min): allow the full 300 s.
@@ -51,7 +54,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     ? sp.tab
     : "overview";
 
-  const [stats, users, feeds, dbInventory, payments, auditLogs, checks, health] = await Promise.all([
+  const [stats, users, feeds, dbInventory, payments, auditLogs, checks, health, prices] = await Promise.all([
     platformStats(s.userId),
     searchUsers(s.userId, q),
     newsSourceHealth(),
@@ -60,6 +63,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     getRecentAuditLogs(s.userId, 30),
     getSignalCheckReview(s.userId),
     getRuleHealth(s.supabase),
+    getPriceChecks(s.userId),
   ]);
   const refitMissing = !checks.models.some((m) => m.valid_from === quarterStartIST());
 
@@ -288,6 +292,94 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                   </tbody>
                 </table>
               </TableWrap>
+            </Panel>
+
+            <Panel
+              title="Prices to check"
+              meta={`${prices.counts.suspect} waiting · ${prices.counts.bad} set aside · ${prices.counts.real} real · ${prices.counts.market} on market-wide days, counted as real (500 largest) · conditions saved for ${prices.conditions.saved.toLocaleString("en-IN")} of ${prices.conditions.buys.toLocaleString("en-IN")} rule buys`}
+              actions={prices.counts.suspect ? <Badge tone="coral">{prices.counts.suspect} to review</Badge> : <Badge tone="gain">All reviewed</Badge>}
+            >
+              <p className="mb-3 max-w-[78ch] text-[12.5px] text-muted-foreground">
+                A day is flagged when Yahoo&apos;s open, low or high is more than 12% away from both the close before and
+                that day&apos;s close. Until you mark it real, the rules, grades and price alerts use the close for that
+                day. When 3 or more of the 500 largest are flagged on the same day, it was the market (as on 4 Jun 2024
+                and 7 Apr 2025) and those prices count as real without a review. Marking it real or bad works that stock&apos;s rule history out again. Check the day on the NSE
+                website or a broker&apos;s chart before you decide.
+              </p>
+              {prices.open.length === 0 ? (
+                <Empty title="Nothing waiting for a review." />
+              ) : (
+                <TableWrap label="Prices waiting for a review">
+                  <table className="w-full min-w-[900px]">
+                    <thead>
+                      <tr>
+                        <th className={th}>Stock</th>
+                        <th className={th}>Day</th>
+                        <th className={th + " text-right"}>Close before</th>
+                        <th className={th + " text-right"}>Open</th>
+                        <th className={th + " text-right"}>Low</th>
+                        <th className={th + " text-right"}>High</th>
+                        <th className={th + " text-right"}>Close</th>
+                        <th className={th}>Looked wrong</th>
+                        <th className={th}>Your review</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prices.open.map((k) => (
+                        <tr key={k.symbol + k.day} className={tr + " align-top"}>
+                          <td className={td + " font-medium"}>
+                            <Link href={`/app/markets/${encodeURIComponent(k.symbol)}#chart`} className="underline-offset-4 hover:underline">
+                              {k.symbol}
+                            </Link>
+                          </td>
+                          <td className={td + " num"}>{date(k.day)}</td>
+                          <td className={td + " num text-right"}>{price(Number(k.prev_close))}</td>
+                          <td className={td + " num text-right" + (k.bad_open ? " font-semibold text-coral-ink" : "")}>{price(Number(k.open))}</td>
+                          <td className={td + " num text-right" + (k.bad_low ? " font-semibold text-coral-ink" : "")}>{price(Number(k.low))}</td>
+                          <td className={td + " num text-right" + (k.bad_high ? " font-semibold text-coral-ink" : "")}>{price(Number(k.high))}</td>
+                          <td className={td + " num text-right"}>{price(Number(k.close))}</td>
+                          <td className={td + " whitespace-normal text-[12px] text-muted-foreground"}>{wrongParts(k)}</td>
+                          <td className={td}>
+                            <PriceReviewForm symbol={k.symbol} exchange={k.exchange} day={k.day} status={k.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </TableWrap>
+              )}
+              {prices.reviewed.length > 0 && (
+                <TableWrap label="Latest reviews">
+                  <table className="mt-4 w-full min-w-[640px]">
+                    <thead>
+                      <tr>
+                        <th className={th}>Stock</th>
+                        <th className={th}>Day</th>
+                        <th className={th}>Looked wrong</th>
+                        <th className={th}>Verdict</th>
+                        <th className={th}>Reviewed</th>
+                        <th className={th}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prices.reviewed.map((k) => (
+                        <tr key={k.symbol + k.day} className={tr + " align-top"}>
+                          <td className={td + " font-medium"}>{k.symbol}</td>
+                          <td className={td + " num"}>{date(k.day)}</td>
+                          <td className={td + " whitespace-normal text-[12px] text-muted-foreground"}>{wrongParts(k)}</td>
+                          <td className={td}>
+                            <Badge tone={k.status === "real" ? "ink" : "neutral"}>{k.status === "real" ? "Real price" : "Bad price"}</Badge>
+                          </td>
+                          <td className={td + " text-muted-foreground"}>{relative(k.reviewed_at ?? null)}</td>
+                          <td className={td}>
+                            <PriceReviewForm symbol={k.symbol} exchange={k.exchange} day={k.day} status={k.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </TableWrap>
+              )}
             </Panel>
 
             <Panel

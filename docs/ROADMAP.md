@@ -79,5 +79,8 @@ Requirement IDs refer to `docs/BRD.md`.
 - BSE-only listings aren't covered (NSE universe only).
 - Symbols outside the core keep ~13 months of candles (free-tier storage); upgrade the DB to keep more.
 - Invite links are shown to the inviter to copy; nothing is emailed.
+- Price guard (ADR-053): a flagged day counts at its close for the rules until an admin reviews it; there is no second
+  price source to settle it automatically. The chart, replay and Dry Run draw the stored price.
+- Signal conditions (ADR-053) are stored for every live buy; no research or app feature uses them yet.
 - Prices are end-of-day only; Yahoo can be late or revise a bar (the 20:00 IST re-run picks that up). Signals already
   issued are not rewritten.
