@@ -66,6 +66,7 @@ Requirement IDs refer to `docs/BRD.md`.
 - The portfolio ledger (ADR-046) has buys, sells, realized gains and tradebook import (ADR-047); the comparison with
   the rules' trades (step D) and a money-weighted growth view are not built yet.
 - Chart replay (ADR-048) is daily bars only; practice trades are long only and not saved; no drawing tools in replay.
+- Trades next to the rules (ADR-050) cover the rules' records only (from December 2023, the 500 largest companies); each card shows a holding-period strip, not a price chart.
 - Tradebook import reads columns by name. Only Zerodha's tradebook format is known; Groww, Upstox, Angel One and Choice
   files are matched by column name and, failing that, by hand. Tradebooks rarely list charges, so imported gains are
   before charges. Old binary .xls files must be saved as .xlsx or CSV. Stocks are matched by symbol or company name

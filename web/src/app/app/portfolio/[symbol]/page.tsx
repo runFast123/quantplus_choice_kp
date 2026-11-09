@@ -10,6 +10,9 @@ import { groupSales, heldFor, KIND_LABEL, SOURCE_LABEL, type RealizedPart, type 
 import { getQuotes } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
 import { DeleteTrade, EditTrade } from "../forms";
+import { BuyCard, SaleCard } from "@/components/portfolio/compare-cards";
+import { istToday } from "@/lib/ledger";
+import { loadComparison } from "@/server/rule-compare";
 import { throwIfFailed } from "@/lib/errors";
 
 const SYMBOL = /^[A-Z0-9&\-.]{1,20}$/;
@@ -70,6 +73,7 @@ export default async function StockHistoryPage({ params, searchParams }: PagePro
     db.from("holding_adjustments").select("ex_date, undone_at").eq("symbol", symbol).not("undone_at", "is", null),
     getQuotes(db, [symbol]),
   ]);
+  const comparison = await loadComparison(db, { symbol, portfolioId: only });
   throwIfFailed(pfRes, txRes, lotRes, relRes, metaRes, caRes, adjRes); // a failed read shows the error screen, never "none"
   const portfolios = pfRes.data ?? [];
   const trades = (txRes.data ?? []) as Trade[];
@@ -284,6 +288,33 @@ export default async function StockHistoryPage({ params, searchParams }: PagePro
           </TableWrap>
         </Panel>
       ) : null}
+
+      <Panel
+        title="Next to the rules"
+        meta="what our rules did in this stock around your trades"
+        actions={
+          <Link href={`/app/portfolio/compare?stock=${encodeURIComponent(symbol)}`} className="text-[12px] text-muted-foreground hover:text-foreground hover:underline">
+            All your trades next to the rules
+          </Link>
+        }
+      >
+        {comparison.buys.length || comparison.sales.length ? (
+          <div className="flex flex-col gap-3" data-testid="stock-compare">
+            {comparison.buys.map((m) => (
+              <BuyCard key={m.id} m={m} today={istToday()} showSymbol={false} />
+            ))}
+            {comparison.sales.map((m) => (
+              <SaleCard key={m.id} m={m} showSymbol={false} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-[13px] leading-5 text-muted-foreground" data-testid="stock-compare-none">
+            None of our rules traded {symbol} around your trades
+            {comparison.summary.recordsFrom ? ` (their records start ${date(comparison.summary.recordsFrom)})` : ""}. Opening
+            balances aren&apos;t compared, as they have no buy date or price.
+          </p>
+        )}
+      </Panel>
 
       {sales.length ? (
         <Panel title="Sales" meta="after charges, oldest shares sold first">

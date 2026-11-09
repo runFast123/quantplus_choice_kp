@@ -322,7 +322,10 @@ export function TradebookImport({ portfolios, holdingsUsed }: { portfolios: { id
             {outcome.importId ? "You can undo this import from the list below." : ""}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Link href="/app/portfolio" className={buttonClass("primary", "md")}>
+            <Link href="/app/portfolio/compare" className={buttonClass("primary", "md")}>
+              See your trades next to our rules
+            </Link>
+            <Link href="/app/portfolio" className={buttonClass("secondary", "md")}>
               See your portfolio
             </Link>
             <button type="button" className={buttonClass("secondary", "md")} onClick={startOver}>

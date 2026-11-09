@@ -5,6 +5,25 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — your trades next to the rules' trades (Step D, ADR-050; migration 54)
+- **Portfolio → Next to the rules** (`/app/portfolio/compare`, Pro): each of your buys next to every live rule that was
+  in the stock at the time (its trade open on your buy date, or it bought within the next 10 trading sessions), and each
+  sale next to a rule that was holding that day. Every match is shown, better or worse; nothing is picked after the fact.
+- **The two "would have" lines, on the rule's whole trade**: "You would have paid ₹200 a share less (₹2,000 on your 10
+  shares)" and "You would have made ₹2,522 more": your same money through the rule's trade to its sale (or the last
+  close while open), less the same charges as yours, against what that purchase of yours made (oldest shares sold
+  first). Sales: "Selling with the rule, you would have made ₹1,500 more". Splits between the dates are allowed for.
+- A summary (how many of your buys a rule was in, buys from before the records start, opening balances not compared),
+  a table by rule, filters (rule, stock, buys or sales, the rule did better or worse), pages of 20, Export CSV, and
+  "How we match". Each stock's history page shows its own comparison; the import result links to the page.
+- `public.rule_trades` (migration 54): the five live rules' trades, the graded entry paired with the next exit before the
+  next buy; market data only, signed-in users read it. Checked on the live data: 4,320 trades, every exit's own entry
+  equal to the graded one.
+- Files: `supabase/migrations/…54_rule_trades.sql`, `supabase/tests/23_rule_trades.sql`, `lib/rule-compare.ts`
+  (+ test), `server/rule-compare.ts`, `components/portfolio/compare-cards.tsx`, `compare-export.tsx`,
+  `app/app/portfolio/compare/page.tsx`, `app/app/portfolio/{page,[symbol]/page}.tsx`, `portfolio/tradebook-import.tsx`,
+  `e2e/compare.spec.ts`, `e2e/a11y.spec.ts`, `e2e/helpers/admin.ts` (`seedTrades`, `removeTrades`).
+
 ### Fixed — system health check (2026-11-08)
 - **Exact half paisa**: prices are rounded to paise from their decimal digits (`toPaise`), and averages of prices are
   summed exactly in ten-thousandths (`priceMean`). TCS's 20-day average on 7 Nov 2026 was exactly 2430.025 and the stock

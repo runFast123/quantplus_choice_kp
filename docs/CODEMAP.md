@@ -46,6 +46,7 @@ anything listed here, update this file in the same commit. Paths are relative to
 | 36–37 | `trade_results`, `trade_results_fair` | view `strategy_trade_results` (per strategy × side: trades, made_money_pct, avg/win/loss %, first/last day; stored `pnl_pct` on exits, SMA exits paired with the previous buy, none for RSI reversal) |
 | 39 | `signal_checks` | `signal_checks` (strategy × symbol × signal day: label weak/ok/high/normal/low/none, `tagged`, score, `detail.features`; frozen); `market_breadth` (day: breadth50/200, `rsi_setups`), `market_sectors` (day × sector: r63, rank), `market_pit_top` (year × top 300 by traded value); `signal_check_models` (quarterly RSI dip models), `signal_check_training` (service only); `private.refresh_trend_checks()`, `refresh_rsi_checks()`, `refresh_market_breadth(p_full)`, `refresh_pit_top(year)`, `refresh_check_training()`, `rsi_check_features()`; views `signal_trades` (each buy with its exit's result), `signal_check_record` (month × label); `svc_refresh_signal_checks(p_full)`, `svc_signal_check_training(strategy)`, `svc_put_signal_check_model(...)`; cron backstop runs the checks |
 | 41 | `ma200_trend` | `private.refresh_ma200_trend(p_symbols)` (200-day trend: close > 200-day average, `regr_slope` of that average over 100 sessions × 20 ≥ −0.25 % of it, `corr(close, t)` over 100 ≥ 0.5; first session all hold after one that did not; 4 × ATR14 stop, 60-session review; payload `sma200`, `slope_pct`, `r_px`); `signal_trades` + `rule_expectations` include it; `svc_refresh_market_analytics` returns `ma200_trend` |
+| 54 | `rule_trades` | view `public.rule_trades` (security_invoker; the five live rules' trades: `signal_outcomes` entry + the next exit row before the next buy; `exit_entry_fill` = the entry in the exit day's shares); authenticated only |
 | 53 | `trade_import` | `portfolio_imports.replaced_openings`; `preview_trades(portfolio, rows, replace)` (dry run per stock, rolled back), `import_trades(portfolio, broker, rows, replace, skipped)` (one import, `on conflict do nothing`, replaced opening balances kept), `undo_import(id)`; `private.can_write_portfolio`, `private.valid_trade_rows` |
 | 52 | `holdings_from_ledger` | clients may only read `holdings` (insert/update/delete revoked, policies dropped); `ensure_opening_balances()` once more |
 | 51 | `portfolio_ledger` | `portfolio_transactions` (own rows: opening/buy/sell, date, qty, price, charges, note, `sip`, source, `broker_ref` unique per portfolio × stock × day × side, `import_id`; stock/side not updatable; no future dates), `portfolio_imports` (own: broker, counts, date range; deleting one removes its trades), derived read-only `portfolio_lots` (per buy: as bought, still open in today's shares) and `portfolio_realized` (per sell × lot: cost and proceeds after charges, gain, days held); `private.position_events` (trades + stored splits not undone, replay order split → opening → buy → sell), `private.rebuild_position` (FIFO replay → lots, gains, `holdings`; `SELL_EXCEEDS_HOLDING`; symbol limit only on a new stock), statement triggers on trades, `private.held_before`, `private.ensure_opening_balances` (holdings without trades → one opening dated the last edit; step 1 adjustments → opening before the split), `private.corporate_action_ledger` (split seen / undone per portfolio × stock), `apply_corporate_actions` + `undo_holding_adjustment` rewritten on the ledger, `private.ledger_maintenance` (notifier), `export_my_data` + trades, imports, gains |
@@ -86,7 +87,7 @@ Runner: `supabase/scripts/apply.mjs` — `npm run migrate | status | seed:ref | 
 pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-notes` (12:35 UTC), Mon–Fri.
 
 ### Views
-`market_snapshot` (latest quote), `symbol_news_stats`, `research_latest` — all `security_invoker`, authenticated only.
+`market_snapshot` (latest quote), `symbol_news_stats`, `research_latest`, `rule_trades` (migration 54) — all `security_invoker`, authenticated only.
 
 ### Notification types
 `price_alert`, `exit_signal` (a rule closed its trade in a stock you hold; only the rules in `notification_prefs`), `holding_adjusted` (split/bonus; opens `/app/portfolio#adjustments`), `plan_expiry`, `research_stance`. All are also pushed to the owner's browsers (`privileged/push.ts`) when they turned notifications on.
@@ -107,6 +108,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `privileged/service-role.ts` | `serviceRole()` | **Only importable inside `privileged/`** |
 | `privileged/guards.ts` | `membershipRole`, `assertMember`, `planHasFeature`, `hasActiveConsent`, `PrivilegedError` | Re-establish what RLS would enforce |
 | `privileged/crypto.ts` | `seal(plaintext, aad)`, `open(sealed, aad)`, type `Sealed` | AES-256-GCM, `QP_SECRETS_KEY_V<n>` |
+| `rule-compare.ts` | `loadComparison(db, {symbol?, portfolioId?})` → `Comparison` (your lots and sales, `rule_trades` for those stocks, splits, NIFTY sessions, last closes; paged past 1,000 rows; a failed read throws) | Step D |
 | `privileged/audit.ts` | `audit({...})` | Append to `audit_log` with hashed IP |
 | `privileged/tenants.ts` | `switchTenant`, `createOrganization`, `createInvitation`, `previewInvitation`, `acceptInvitation`, `changeMemberRole` | Role-escalation rules live here |
 | `privileged/secrets.ts` | `saveAiKey` | Plan + consent checks, encryption, `svc_put_ai_key_secret` |
@@ -141,6 +143,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `tradebook.ts` | `BROKERS` (guide per broker; `known` only for Zerodha), `csvRows`, `detectColumns` (header row by name), `mapHeader`, `missingFields`, `parseTradebook` → `TradebookRow[]` + `SkippedRow[]`, `mergeTrades` (each trade once across files), `parseTradeDate`, `parseSide`, `normName`, `hash53` (references for files without trade ids), `FIELD_LABEL`, `MAPPABLE` |
 | `xlsx.ts` | `readXlsx(bytes)` → first sheet's rows (zip + DecompressionStream, no dependency), `sheetRows`, `columnIndex`, `decodeXml`, `XlsxError` |
 | `chart-replay.ts` | `SPEEDS`, `STARTS`, `startIndex`, `daysBeforeEnd`, `barsDue` (frame pacing with carry, capped after a hidden tab), `revealedUpTo` / `revealedBetween` (signals by day), practice: `buy`, `sell`, `openResult`, `practiceSummary`, `rewindPractice`, `PRACTICE_BUDGET` |
+| `rule-compare.ts` | `compareTrades({lots, sales, ruleTrades, splits, sessions, last, recordsFrom})` → buys, sales, summary by rule; `ruleMatchesBuy`, `windowEnd`, `sessionsBetween`, `splitFactor`, `reasonOf`, `comparisonCsv`, `MATCH_SESSIONS` (10); types `RuleTrade`, `BuyLot`, `LotSale`, `BuyMatch`, `SaleMatch`, `RuleSummary`, `Comparison` |
 | `ledger.ts` | `groupSales(realized rows)` → one row per sale, `heldFor`, `istToday`, `ledgerError` (SELL_EXCEEDS_HOLDING / TRADE_IN_FUTURE in plain words), `KIND_LABEL`, `SOURCE_LABEL`, types `Trade`, `RealizedPart`, `Sale` |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |
@@ -208,6 +211,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener (`?setup=` filter + Setups column); symbol page: header, *At a glance* strip (`data-testid="at-a-glance"`), chart, then tabs Plan & alerts / Research & news / Signal history / Backtest (`#plan`, `#research`, `#history`, `#backtest`), "Matched on the last close" setups |
 | `/app/watchlist` `/app/portfolio` `/app/alerts` | product pages (`/app/portfolio?sell=SYM#record` opens the form on a sale) |
+| `/app/portfolio/compare` | your trades next to the rules' trades (Pro): summary, by rule, filters `rule`, `stock`, `show`, `outcome`, `page`; Export CSV |
 | `/app/portfolio/import` | tradebook import wizard and the list of imports with Undo |
 | `/app/portfolio/[symbol]` | one stock's trades (edit/delete), purchases still held, sales, splits in between (`?p=` one portfolio) |
 | `/app/signals` | Today strip, then tabs `#today` (fresh buys, dip-buy levels), `#all` (`?status=open|closed&rules=old|all&strategy=&more=1`), `#rules` (alias `#health`), `#record` (alias `#checks`) |
@@ -228,6 +232,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 ## 6. Components (web/src/components)
 
 `charts/chart-replay.tsx` — `ChartReplay` (setup → replay; incremental `update`/`pop`, rAF playback, keys, practice), shown by `PriceChart` in place of its chart when Replay is on (`data-testid="replay-toggle"`).
+
+`portfolio/compare-cards.tsx` — `BuyCard`, `SaleCard` (the two "would have" lines, both trades, a holding-period strip; `data-testid` `compare-buy`, `compare-sale`, `made-more`, `paid-less`, `sale-more`); `portfolio/compare-export.tsx` — `CompareExport` (CSV download).
 
 `portfolio/tradebook-import.tsx` — `TradebookImport` (broker → files → columns → check → done), `UndoImport`. Server actions: `app/app/portfolio/import/actions.ts` — `previewTradebook`, `importTradebook`, `undoImport` (stock matching by symbol, broker spelling, company name, successor).
 
@@ -284,7 +290,7 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `web/scripts/brand-icons.mts` | renders the mark to `app/apple-icon.png`, `public/icons/*`, `extension/icons/*` (installed Chrome) |
 | `web/scripts/ingest-news.mts` | `npm run ingest:news [-- --relink]` |
 | `web/scripts/check-bundle-secrets.mjs` | `postbuild` — fails if a server-only secret is in `.next/static` |
-| `web/e2e/*.spec.ts` | Playwright: `chart-replay` (start, step, keys, practice, play/pause with a frame-time check, exit), `tradebook-import` (check, import, re-import, undo; columns by hand), `holdings-trust` (undo a split adjustment; rule choice for holders), `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `signals` (@mobile too: four rules, market weather, track record), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
+| `web/e2e/*.spec.ts` | Playwright: `compare` (a buy and a sale inside a real BAJAJ-AUTO rule trade, checked against `rule_trades`; stock page; 375 px; Basic gate), `chart-replay` (start, step, keys, practice, play/pause with a frame-time check, exit), `tradebook-import` (check, import, re-import, undo; columns by hand), `holdings-trust` (undo a split adjustment; rule choice for holders), `public`, `auth`, `navigation`, `research`, `markets`, `security`, `a11y`, `strategy-plan`, `chart-trade-view`, `setups`, `onboarding`, `extension-api`, `dry-run` (@mobile too), `signals` (@mobile too: four rules, market weather, track record), `extension-live` (opt-in: the real extension in Chromium, `EXTENSION_E2E=1 E2E_PORT=3000`), `writes` (hook-gated) |
 | `web/e2e/helpers/` | `admin.ts` (disposable users via admin API; `seedSplitAdjustment`), `fixtures.ts` (`basicPage`, `proPage`, `expectNoHorizontalOverflow`), `axe.ts`, `extra-users.ts` |
 | `supabase/tests/harness` | PGlite runner for migrations + seeds + `tests/NN_*.sql` |
 | `supabase/scripts/apply.mjs` | migrations/seeds/tests against the live project |

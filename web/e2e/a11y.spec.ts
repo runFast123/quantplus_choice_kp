@@ -1,7 +1,7 @@
 import { expect, test } from "./helpers/fixtures";
 import { seriousViolations } from "./helpers/axe";
 
-const PAGES = ["/app", "/app/markets", "/app/markets/INFY", "/app/research", "/app/news?scope=all", "/app/settings?tab=privacy", "/app/billing"];
+const PAGES = ["/app", "/app/markets", "/app/markets/INFY", "/app/research", "/app/news?scope=all", "/app/settings?tab=privacy", "/app/billing", "/app/portfolio/compare"];
 
 test.describe("accessibility (axe, WCAG 2.1 AA, serious + critical)", () => {
   for (const path of PAGES) {

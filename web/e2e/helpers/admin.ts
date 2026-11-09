@@ -130,3 +130,28 @@ export async function seedSplitAdjustment(userId: string, symbol: string) {
 export async function removeSplit(symbol: string) {
   await fetch(`${URL_}/rest/v1/corporate_actions?symbol=eq.${symbol}&source=eq.e2e`, { method: "DELETE", headers: svc });
 }
+
+/** Trades for one stock in the user's first portfolio (made if missing), written directly with the service role. */
+export async function seedTrades(userId: string, symbol: string, trades: { kind: "buy" | "sell"; trade_date: string; quantity: number; price: number }[]) {
+  const prof = await (await fetch(`${URL_}/rest/v1/profiles?user_id=eq.${userId}&select=default_tenant_id`, { headers: svc })).json();
+  const tenant_id = prof[0]?.default_tenant_id as string;
+  let pf = await (await fetch(`${URL_}/rest/v1/portfolios?user_id=eq.${userId}&tenant_id=eq.${tenant_id}&select=id&order=created_at&limit=1`, { headers: svc })).json();
+  if (!pf.length) {
+    const r = await fetch(`${URL_}/rest/v1/portfolios`, { method: "POST", headers: { ...svc, prefer: "return=representation" }, body: JSON.stringify({ user_id: userId, tenant_id, name: "E2E" }) });
+    pf = await r.json();
+    if (!r.ok) throw new Error(`portfolio: ${r.status}`);
+  }
+  for (const t of trades) {
+    const r = await fetch(`${URL_}/rest/v1/portfolio_transactions`, {
+      method: "POST",
+      headers: svc,
+      body: JSON.stringify({ user_id: userId, tenant_id, portfolio_id: pf[0].id, symbol, source: "manual", ...t }),
+    });
+    if (!r.ok) throw new Error(`trade: ${r.status} ${await r.text()}`);
+  }
+}
+
+/** Remove every trade of one stock for the user (one statement, so the ledger replays to nothing). */
+export async function removeTrades(userId: string, symbol: string) {
+  await fetch(`${URL_}/rest/v1/portfolio_transactions?user_id=eq.${userId}&symbol=eq.${encodeURIComponent(symbol)}`, { method: "DELETE", headers: svc });
+}

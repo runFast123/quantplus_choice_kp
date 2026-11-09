@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClockCounterClockwiseIcon, FileArrowUpIcon } from "@phosphor-icons/react/ssr";
+import { ClockCounterClockwiseIcon, FileArrowUpIcon, ScalesIcon } from "@phosphor-icons/react/ssr";
+import { buttonClass } from "@/components/ui/button";
 import { Delta, Stat } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { QuantumAudit } from "@/components/market/quantum-audit";
@@ -131,6 +132,9 @@ export default async function PortfolioPage({ searchParams }: PageProps<"/app/po
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90"
             >
               <FileArrowUpIcon size={16} aria-hidden /> Import trades
+            </Link>
+            <Link href="/app/portfolio/compare" className={buttonClass("secondary", "sm")} data-testid="compare-link">
+              <ScalesIcon size={16} aria-hidden /> Next to the rules
             </Link>
             <CsvImportModal portfolios={portfolios} />
             <ContractNoteModal portfolios={portfolios} ready={!aiReason} reason={aiReason} />

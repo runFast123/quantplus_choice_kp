@@ -354,6 +354,23 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-050 · Your trades next to the rules' trades: a fixed match, the rule's whole trade, past facts
+**Date** 2026-11-09 · **Status** accepted
+- **Context:** the owner wants people to see, from their own tradebook, what our rules did in the same stocks: "you
+  bought at 1,100, the rule bought at 900: you would have made 200 more". Agreed in planning: Pro only, the wording
+  "You would have made ₹X more", worked out on the rule's full trade; the match window below; oldest-first lots.
+- **Decision:** a rule matches one of your buys when its trade was open on your buy date or it bought within the next 10
+  trading sessions (NIFTY's sessions); a sale, when its trade was open that day. Every match is shown, never only the
+  best, and wins and losses look the same. "Paid less" is the price gap in the shares of your buy day; "made more" puts
+  your money through the rule's whole trade (to its sale, or the last close while open) less the same charges as your
+  purchase, against that purchase's own result (FIFO, migration 51). The rules' trades come from a view
+  (`public.rule_trades`, migration 54) over the graded entries and the stored exits, so there is no second copy to keep
+  in step; matching runs in TypeScript (`lib/rule-compare.ts`, unit-tested with hand-worked numbers). Copy speaks of
+  the past only and every card says "Past research, not advice".
+- **Limits:** the rules' records start in December 2023 (2024 for some rules) and cover the 500 largest companies;
+  earlier buys and opening balances are counted, not compared. The holding-period strip stands in for a price chart on
+  each card; "See it on the chart" opens the stock's chart with the rules' markers.
+
 ### ADR-048 · Chart replay: a separate chart that adds bars one at a time, with the rules' signals and practice trades
 **Date** 2026-11-06 · **Status** accepted
 - **Context:** the owner asked for a replay like TradingView's on the stock page, simple and smooth: see how a stock and
