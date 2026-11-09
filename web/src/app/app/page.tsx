@@ -15,6 +15,7 @@ import { getNews, getResearch } from "@/server/news-data";
 import { can, displayName, requireSession } from "@/server/session";
 import { MarketBreadthCard } from "@/components/market/market-breadth-card";
 import { FirstRun, type FirstRunStep } from "@/components/onboarding/first-run";
+import { throwIfFailed } from "@/lib/errors";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -37,6 +38,7 @@ export default async function OverviewPage() {
     db.from("price_alerts").select("id", { count: "exact", head: true }),
     db.from("push_subscriptions").select("id", { count: "exact", head: true }),
   ]);
+  throwIfFailed(consentsRes, itemsRes, holdingsRes, alertsRes, pushRes); // a failed read shows the error screen, never "none"
   if (!consentsRes.data?.length) redirect("/app/welcome");
 
   const items = (itemsRes.data ?? []) as WatchlistItem[];

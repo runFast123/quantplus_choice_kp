@@ -14,6 +14,18 @@ export function friendlyDbError(message: string | undefined | null): string {
   return "Something went wrong. Please try again.";
 }
 
+/**
+ * For server pages: a read that failed must not look like an empty list ("You have no holdings"). Throws, so the
+ * route's error.tsx shows "This page didn't load" with Try again. Production hides the message from the browser.
+ */
+export function throwIfFailed(...results: object[]): void {
+  // A skipped read stands in as `{ data: [] }`, with no `error` at all.
+  for (const r of results) {
+    const error = "error" in r ? (r.error as { message?: string } | null) : null;
+    if (error) throw new Error(`A database read failed: ${error.message ?? "unknown error"}`);
+  }
+}
+
 export type ActionState =
   | { ok?: boolean; error?: string; message?: string; data?: Record<string, string> }
   | undefined;

@@ -61,7 +61,9 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
       .order("score", { ascending: to === "cautious" })
       .limit(6);
   const empty = mine !== undefined && mine.length === 0;
-  let list = base(false);
+  // The list's own columns: `*` also read every note's factors (large JSON) for all 2,560 stocks before sorting, which
+  // took 0.7–3 s cold as a signed-in user and could pass the 8 s limit under load (the page then showed "0 notes").
+  let list = base(false, "symbol, exchange, name, sector, as_of, score, stance, prev_stance, prev_score, headline, news_count, filing_count, segment, mcap_rank, score_change");
   if (stance) list = list.eq("stance", stance);
   const [listRes, c1, c2, c3, upRes, downRes] = empty
     ? [{ data: [], count: 0 }, { count: 0 }, { count: 0 }, { count: 0 }, { data: [] }, { data: [] }]
@@ -77,6 +79,8 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
         turned("cautious"),
       ]);
   const counts = { constructive: c1.count ?? 0, neutral: c2.count ?? 0, cautious: c3.count ?? 0 } as Record<string, number>;
+  // A failed read is said as one, never shown as "0 notes".
+  const loadFailed = "error" in listRes && !!listRes.error;
   const notes = ((listRes.data ?? []) as unknown as Record<string, unknown>[]).map(normalizeNote);
   const total = listRes.count ?? notes.length;
   const delta = (n: ResearchNote) => (n.prev_score == null ? 0 : n.score - n.prev_score);
@@ -197,7 +201,14 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
       ) : null}
 
       <Panel title={`${total.toLocaleString("en-IN")} notes`} meta={q ? `matching “${q}”` : stance ? STANCE_MEANS[stance]?.toLowerCase() : undefined}>
-        {notes.length === 0 ? (
+        {loadFailed ? (
+          <Empty title="The notes didn't load.">
+            That&apos;s on our side, not your filters.{" "}
+            <Link prefetch={false} href={keep({})} className="text-foreground underline underline-offset-4">
+              Try again
+            </Link>
+          </Empty>
+        ) : notes.length === 0 ? (
           <Empty title="No notes match.">
             {q ? (
               <Link prefetch={false} href={keep({ q: "", page: "" })} className="text-foreground underline underline-offset-4">

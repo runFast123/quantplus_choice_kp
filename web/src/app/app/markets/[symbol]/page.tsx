@@ -17,7 +17,7 @@ import { SymbolAiChat } from "@/components/research/symbol-ai-chat";
 import { FactorBreakdown } from "@/components/research/factor-breakdown";
 import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/data";
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
-import { date, price, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
+import { date, price, priceMean, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { DIP_EXIT, isDipRule } from "@/lib/dip-rules";
 import { RULE_KEYS, RULES, ruleOf } from "@/lib/rules";
 import { isTrendRule, reviewDate } from "@/lib/strong-trend";
@@ -108,7 +108,7 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const signalStop = latestBuySignal?.payload.stop ? Number(latestBuySignal.payload.stop) : null;
 
   const closes = candles.map((c) => c.close);
-  const sma = (n: number) => (closes.length >= n ? closes.slice(-n).reduce((a, b) => a + b, 0) / n : null);
+  const sma = (n: number) => (closes.length >= n ? priceMean(closes.slice(-n)) : null);
   const sma20 = sma(20);
   const sma50 = sma(50);
   const sma200 = sma(200);

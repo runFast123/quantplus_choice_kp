@@ -5,6 +5,27 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — system health check (2026-11-08)
+- **Exact half paisa**: prices are rounded to paise from their decimal digits (`toPaise`), and averages of prices are
+  summed exactly in ten-thousandths (`priceMean`). TCS's 20-day average on 7 Nov 2026 was exactly 2430.025 and the stock
+  page showed ₹2,430.02; it now shows ₹2,430.03, as the database does. Used by `price`, `rupees`, `signed`,
+  `signedRupees` and the stock page's SMA 20/50/200.
+- **Research page no longer says "0 notes" when the list fails**: it reads only the columns the list shows (the
+  `select *` took up to 3 s cold and could hit the 8 s limit under load) and shows "The notes didn't load." with Try
+  again when the read fails.
+- **Error screens**: there were none, so any failure showed Next's bare "Application error". Now `app/app/error.tsx`
+  (inside the app's menu), `app/error.tsx` (public pages) and `app/global-error.tsx` show "This page didn't load." with
+  Try again, a way home and a reference that matches the server log (`ui/error-screen.tsx`).
+- **A failed read is an error, not "none"**: Overview, Portfolio, a holding's page, Market Radar and Alerts call
+  `throwIfFailed` on their reads, so a database timeout shows the error screen instead of "You have no holdings".
+- **Price audit**: a retired SMA cross exit that repeats the side before it (Yahoo revised a bar between two writes, as
+  for INTERNET on 7 and 8 Oct) is a REVIEW line, not a failure (`repeats_side`), so the evening Market EOD run no longer
+  fails on it.
+- Files: `lib/format.ts` (+ `format.test.mts`), `lib/errors.ts` (+ `errors.test.mts`), `components/ui/error-screen.tsx`,
+  `app/error.tsx`, `app/global-error.tsx`, `app/app/error.tsx`, `app/app/{page,portfolio/page,portfolio/[symbol]/page,
+  watchlist/page,alerts/page,research/page,markets/[symbol]/page}.tsx`, `e2e/markets.spec.ts`,
+  `pipelines/eod/audit.py` (+ `test_audit.py`).
+
 ### Added — chart replay on the stock page (ADR-048)
 - **Replay** in the chart's toolbar plays the stock's past one trading day at a time. Pick where it starts (3 months, 6
   months, 1 or 2 years back, a date, or a click on the chart; the hidden part is shaded), then Play / Pause, a day

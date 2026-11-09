@@ -13,6 +13,7 @@ import type { Holding, Portfolio } from "@/lib/types";
 import { getQuotes, positions, summarize } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
 import { NewPortfolioForm, RecordTradeForm, RemoveHolding, UndoAdjustment } from "./forms";
+import { throwIfFailed } from "@/lib/errors";
 
 export const metadata: Metadata = { title: "Portfolio" };
 
@@ -55,6 +56,7 @@ export default async function PortfolioPage({ searchParams }: PageProps<"/app/po
       .order("sell_date", { ascending: false })
       .limit(5000),
   ]);
+  throwIfFailed(pfRes, hRes, aiKeysRes, aiConsentRes, adjRes, realizedRes); // a failed read shows the error screen, never "none"
   const sales = groupSales((realizedRes.data ?? []) as RealizedPart[]);
   const realized = sales.reduce((a, x) => a + x.gain, 0);
   const realizedCost = sales.reduce((a, x) => a + x.cost, 0);

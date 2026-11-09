@@ -137,6 +137,14 @@ def revised_since(stored_rsi, recomputed_rsi) -> bool:
         return False
 
 
+def repeats_side(signal: tuple, stored: set) -> bool:
+    """A crossing rule's stored signal on the same side as the one before it (two exits in a row): impossible on one
+    price history, so a price was revised between the two writes. The retired SMA 20/50 rule never rewrites a stored
+    signal, so both stay as history (INTERNET, 7 and 8 Oct 2026)."""
+    before = [s for s in stored if s[0] == signal[0] and s[2] < signal[2]]
+    return bool(before) and max(before, key=lambda s: s[2])[1] == signal[1]
+
+
 def get(db: Rest, table: str, query: str) -> pd.DataFrame:
     return pd.DataFrame(db.call("GET", f"{table}?{query}"))
 
@@ -345,6 +353,7 @@ def main(argv=None) -> int:
         # The retired rules never rewrite a stored signal; one written before Yahoo revised a price stays as history.
         rsi_on = {t.date(): v for t, v in rsi.items()}
         revised = {x for x in got - exp if x[0] == "rsi_reversal" and revised_since(stored_rsi[x], rsi_on.get(x[2]))}
+        revised |= {x for x in got - exp if x[0] == "sma_20_50_cross" and repeats_side(x, got)}
         r.check(exp <= got and not (got - exp - revised), f"{s}: signals differ — missing {sorted(exp - got)[:3]}, unexpected {sorted(got - exp - revised)[:3]}")
         r.warn(not revised, f"{s}: retired-rule signals written before Yahoo revised a price (kept as history): {sorted(revised)[:3]}")
 

@@ -1,4 +1,4 @@
-import { pct, price } from "../src/lib/format";
+import { pct, price, priceMean } from "../src/lib/format";
 import { anonKey, signInClaims, supabaseUrl } from "./helpers/admin";
 import { expect, state, test } from "./helpers/fixtures";
 
@@ -83,7 +83,7 @@ test.describe("numbers on screen match the database", () => {
       await request.get(`${supabaseUrl}/rest/v1/market_candles?select=close&symbol=eq.TCS&interval=eq.1d&order=ts.desc&limit=200`, { headers: h })
     ).json();
     const closes = candles.map((c) => Number(c.close));
-    const sma = (n: number) => closes.slice(0, n).reduce((a, b) => a + b, 0) / n;
+    const sma = (n: number) => priceMean(closes.slice(0, n)); // exact, as the database's avg() is
 
     await proPage.goto("/app/markets/TCS");
     const header = proPage.locator("main header").first();

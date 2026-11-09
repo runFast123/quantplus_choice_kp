@@ -3,7 +3,7 @@
 import unittest
 from datetime import date
 
-from audit import REVIEWED_GAPS, revised_since, sessions_behind, split_extra, vendor_has_history, widespread
+from audit import REVIEWED_GAPS, repeats_side, revised_since, sessions_behind, split_extra, vendor_has_history, widespread
 
 D = date
 
@@ -70,3 +70,13 @@ class ReviewedGaps(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RetiredCrossRevised(unittest.TestCase):
+    def test_two_exits_in_a_row_mean_a_revised_price(self):
+        from datetime import date
+        got = {("sma_20_50_cross", "buy", date(2026, 9, 1)), ("sma_20_50_cross", "exit", date(2026, 10, 7)), ("sma_20_50_cross", "exit", date(2026, 10, 8))}
+        self.assertTrue(repeats_side(("sma_20_50_cross", "exit", date(2026, 10, 8)), got))
+        self.assertFalse(repeats_side(("sma_20_50_cross", "exit", date(2026, 10, 7)), got), "a buy came before it")
+        self.assertFalse(repeats_side(("sma_20_50_cross", "buy", date(2026, 9, 1)), got), "nothing before it")
+

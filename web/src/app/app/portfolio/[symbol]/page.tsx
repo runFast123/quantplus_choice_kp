@@ -10,6 +10,7 @@ import { groupSales, heldFor, KIND_LABEL, SOURCE_LABEL, type RealizedPart, type 
 import { getQuotes } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
 import { DeleteTrade, EditTrade } from "../forms";
+import { throwIfFailed } from "@/lib/errors";
 
 const SYMBOL = /^[A-Z0-9&\-.]{1,20}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -69,6 +70,7 @@ export default async function StockHistoryPage({ params, searchParams }: PagePro
     db.from("holding_adjustments").select("ex_date, undone_at").eq("symbol", symbol).not("undone_at", "is", null),
     getQuotes(db, [symbol]),
   ]);
+  throwIfFailed(pfRes, txRes, lotRes, relRes, metaRes, caRes, adjRes); // a failed read shows the error screen, never "none"
   const portfolios = pfRes.data ?? [];
   const trades = (txRes.data ?? []) as Trade[];
   const lots = ((lotRes.data ?? []) as Lot[]).map((l) => ({ ...l, open_quantity: Number(l.open_quantity), open_price: Number(l.open_price) }));

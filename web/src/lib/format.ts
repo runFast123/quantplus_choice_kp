@@ -3,14 +3,35 @@ const inr2 = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumF
 const inr0 = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
 const qtyFmt = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 4 });
 
+/**
+ * Round to paise as the database does, half away from zero, without binary floating-point drift: 2430.025 is stored
+ * as 2430.02499… in a JS number, so a plain format showed ₹2,430.02 for TCS's 20-day average where SQL says 2,430.03.
+ * Rounding the decimal digits ("2430.025e2") instead of the binary value gets it right.
+ */
+export function toPaise(n: number): number {
+  const a = Math.abs(n);
+  const r = Number(`${Math.round(Number(`${a}e2`))}e-2`);
+  const out = Number.isFinite(r) ? r : Math.round(a * 100) / 100; // a value like 1e-7 is already written in exponent form
+  return n < 0 ? -out : out;
+}
+
+/**
+ * The exact average of prices (stored with at most 4 decimals): summed as whole ten-thousandths of a rupee, so twenty
+ * closes that average 2430.025 give 2430.025, not the 2430.02499… a plain floating-point sum drifts to.
+ */
+export function priceMean(values: number[]): number {
+  const units = values.reduce((a, v) => a + Math.round(v * 1e4), 0);
+  return units / values.length / 1e4;
+}
+
 export function price(n: number | null | undefined): string {
-  return n == null || Number.isNaN(n) ? "—" : inr2.format(n);
+  return n == null || Number.isNaN(n) ? "—" : inr2.format(toPaise(n));
 }
 
 export function rupees(n: number | null | undefined, opts: { decimals?: boolean } = {}): string {
   if (n == null || Number.isNaN(n)) return "—";
   const sign = n < 0 ? "−" : "";
-  return `${sign}₹${(opts.decimals === false ? inr0 : inr2).format(Math.abs(n))}`;
+  return `${sign}₹${opts.decimals === false ? inr0.format(Math.abs(n)) : inr2.format(toPaise(Math.abs(n)))}`;
 }
 
 /** ₹1.24 Cr / ₹3.50 L for headline figures. */
@@ -49,13 +70,13 @@ export function pct(n: number | null | undefined, digits = 2): string {
 
 export function signed(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return "—";
-  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${inr2.format(Math.abs(n))}`;
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${inr2.format(toPaise(Math.abs(n)))}`;
 }
 
 /** Signed rupees: +₹1,240.50 / −₹80.00 */
 export function signedRupees(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return "—";
-  return `${n > 0 ? "+" : n < 0 ? "−" : ""}₹${inr2.format(Math.abs(n))}`;
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}₹${inr2.format(toPaise(Math.abs(n)))}`;
 }
 
 const IST = "Asia/Kolkata";

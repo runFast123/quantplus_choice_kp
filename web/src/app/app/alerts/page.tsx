@@ -13,6 +13,7 @@ import { getQuotes } from "@/server/market-data";
 import { can, requireSession } from "@/server/session";
 import { AlertStatusToggle } from "./status-toggle";
 import { deleteAlert } from "./actions";
+import { throwIfFailed } from "@/lib/errors";
 
 export const metadata: Metadata = { title: "Alerts" };
 
@@ -32,6 +33,7 @@ export default async function AlertsPage() {
     s.supabase.from("watchlist_items").select("symbol"),
     s.supabase.from("holdings").select("symbol"),
   ]);
+  throwIfFailed(alertsRes, radarRes, holdRes); // a failed read shows the error screen, never "none"
   const alerts = (alertsRes.data ?? []) as PriceAlert[];
   const userSymbols = [
     ...new Set([...(radarRes.data ?? []), ...(holdRes.data ?? [])].map((r) => r.symbol)),

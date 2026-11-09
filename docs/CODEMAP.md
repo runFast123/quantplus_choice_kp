@@ -123,7 +123,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 
 | Module | Exports |
 |---|---|
-| `format.ts` | `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `signedRupees` (+₹1,240.50), `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel`, `signalDisplayName` |
+| `format.ts` | `toPaise` (exact half-paisa rounding), `priceMean` (exact average of prices), `factorScore`, `signedInt`, `price`, `rupees`, `rupeesCompact` (L/Cr), `paiseToRupees`, `qty`, `volume`, `pct`, `signed`, `signedRupees` (+₹1,240.50), `date`, `dateTime`, `longDate`, `relative`, `isoDaysAgo`, `isoNow`, `daysUntil`, `strategyLabel`, `signalDisplayName` |
 | `market.ts` | `nseSession(now)` → pre-open / open / closed / holiday (IST, official NSE holidays 2025–2027, Muhurat sessions); `NSE_HOLIDAYS`, type `NseSessionInfo`; `toTradingViewSymbol(symbol, exchange)`, `toTradingViewWidgetSymbol(symbol)`; `nextEodUpdate(now)` (17:00 IST on the next trading day); `PRICE_SOURCE`; `SECTORS`; `SEGMENT_LABEL`, type `Segment` |
 | `market.test.mts` | unit tests (`npm run test:unit`) |
 | `trade-odds.ts` | `simulateOdds(candles, entryIndex, plan, {paths, lookback, seed})` → `SimOdds`, `historicalOdds(candles, entries, direction, rTarget, horizon)` → `HistoryOdds`, `oddsVerdict(sim)`, `defaultHorizon(strategy)`, `oddsForTrade(candles, trade)` (the chart panel's opening odds), `plainOdds(sim)` → `PlainOdds` (beginner headline + counts out of 100 + break-even pass mark), `wholeCounts`, `barIndex`, `rng` (mulberry32), `rAt` |
@@ -144,7 +144,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `ledger.ts` | `groupSales(realized rows)` → one row per sale, `heldFor`, `istToday`, `ledgerError` (SELL_EXCEEDS_HOLDING / TRADE_IN_FUTURE in plain words), `KIND_LABEL`, `SOURCE_LABEL`, types `Trade`, `RealizedPart`, `Sale` |
 | `push-payload.ts` | `toPushPayload(notification)` → `{title, body, url, tag}`, `notificationUrl(type, data)` |
 | `push-payload.test.mts` | unit tests (`npm run test:unit`) |
-| `errors.ts` | `friendlyDbError(message)`, type `ActionState` |
+| `errors.ts` | `friendlyDbError(message)`, `throwIfFailed(...results)` (server pages: a failed read throws to `error.tsx` instead of rendering as an empty list), type `ActionState` |
 | `safe-next.ts` | `safeNext(raw, fallback)` — **only** way to use a user-supplied redirect target |
 | `consents.ts` | `CONSENT_VERSION`, `CONSENT_COPY` |
 | `plans.ts` | `FEATURE_ROWS` (feature key → label, display order) |
@@ -264,6 +264,7 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
 | `brand/logo.tsx` | `Logo`, `LogoMark` (Q whose tail ends in the coral signal dot; same geometry as `app/icon.svg`) |
 | `onboarding/first-run.tsx` | `FirstRun` (overview checklist: radar, alert, notifications, extension; hides when done or dismissed), type `FirstRunStep` |
+| `ui/error-screen.tsx` | `ErrorScreen({error, retry, home})` — "This page didn't load.", Try again, a way home, the error's digest (`data-testid="error-screen"`); used by `app/error.tsx` and `app/app/error.tsx` (`app/global-error.tsx` is self-contained) |
 | `ui/skeleton.tsx` | `Bone`, `SkeletonPage`, `SkeletonHeader`, `SkeletonRows`, `SkeletonTiles`, `SkeletonCards` — static loading shapes for `loading.tsx` |
 
 ## 7. CSS utilities (globals.css)
@@ -293,7 +294,7 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `pipelines/eod/universe.py` | `fetch_universe()` (screener + sectors + curated `INDICES`/`ETFS`), `merge(fresh, existing)`, `retire_allowed`, `split_ticker`, `clean_name` |
 | `pipelines/eod/test_universe.py` | unit tests |
 | `pipelines/eod/checks_refit.py` | quarterly refit of the RSI dip check: reads `svc_signal_check_training`, fits `tier_model.fit` on complete cohorts, stores via `svc_put_signal_check_model`; `--quarter`, `--dry-run`. `tier_model.py` = byte copy of `research/strategies/team/metalabel/tier_model.py`; tests `test_checks_refit.py` |
-| `pipelines/eod/audit.py` | read-only accuracy audit: DB vs fresh Yahoo, sanity, independent recomputation of snapshot/RSI/signals/backtests (`--symbols`, `--days`); exit 1 on any mismatch; Yahoo's own lags and gaps are REVIEW lines (`vendor_has_history`, `split_extra`, `sessions_behind`, `revised_since`, `REVIEWED_GAPS`; tests `test_audit.py`) |
+| `pipelines/eod/audit.py` | read-only accuracy audit: DB vs fresh Yahoo, sanity, independent recomputation of snapshot/RSI/signals/backtests (`--symbols`, `--days`); exit 1 on any mismatch; Yahoo's own lags and gaps are REVIEW lines (`vendor_has_history`, `split_extra`, `sessions_behind`, `revised_since`, `repeats_side`, `REVIEWED_GAPS`; tests `test_audit.py`) |
 | `pipelines/eod/test_eod.py` | unit tests (`python -m unittest test_eod`, no network) |
 | `.github/workflows/ci.yml`, `news-ingest.yml`, `market-eod.yml`, `signal-checks-refit.yml` | CI, scheduled news, scheduled EOD prices, the quarterly refit of the RSI dip check |
 

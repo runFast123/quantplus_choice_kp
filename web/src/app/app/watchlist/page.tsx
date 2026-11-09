@@ -16,6 +16,7 @@ import { SetupBadges } from "@/components/market/setup-badges";
 import { requireSession } from "@/server/session";
 import { deleteWatchlist, removeFromRadar } from "./actions";
 import { NewListForm } from "./new-list-form";
+import { throwIfFailed } from "@/lib/errors";
 
 export const metadata: Metadata = { title: "Market Radar" };
 
@@ -28,6 +29,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
     db.from("watchlists").select("id, name, created_at").order("created_at"),
     db.from("watchlist_items").select("id, watchlist_id, symbol, exchange, added_at").order("added_at"),
   ]);
+  throwIfFailed(listsRes, itemsRes); // a failed read shows the error screen, never "none"
   const lists = (listsRes.data ?? []) as Watchlist[];
   const allItems = (itemsRes.data ?? []) as WatchlistItem[];
   const activeId = (typeof sp.list === "string" && lists.find((l) => l.id === sp.list)?.id) || lists[0]?.id;
