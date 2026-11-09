@@ -24,7 +24,7 @@ const chunks = <T,>(xs: T[], n = 80) => Array.from({ length: Math.ceil(xs.length
 const istDay = (ts: string) => new Date(Date.parse(ts) + 330 * 60_000).toISOString().slice(0, 10);
 
 /**
- * Your trades next to the rules' trades: loads your purchases and sales (own rows, RLS), the five rules' trades on those
+ * Your trades next to the rules' trades: loads your purchases and sales (own rows, RLS), the live rules' trades on those
  * stocks (public.rule_trades), splits, trading days and last closes, and matches them (lib/rule-compare.ts).
  * `symbol` limits it to one stock (the stock history page).
  */

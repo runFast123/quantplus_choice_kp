@@ -5,6 +5,30 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — Secular trend, the sixth rule (ADR-051; migration 55)
+- **Secular trend** (the owner's rule, from Pring's Special K): buy when Secular trend crosses above its signal line (its
+  50-day average, averaged again over 50 days) while it is flat or rising and still below −150, a deep, long slump
+  starting to turn up. The plan is the other trend rules': a safety stop 4× ATR14 under the signal close, otherwise out
+  at the 60th session; the 500 largest companies; one trade per stock.
+- **Tested record** of the exact rule (record_secular.py, Jul 2019 – Oct 2026): 450 trades, 53 in 100 made money,
+  +6.8 % a trade after costs, most of them in the 2020 rebound; 2024 – Oct 2026: 84 trades, 39 in 100, +1.4 % (a random
+  day below −150: 34 in 100, −0.5 %). Shown on the Signals page as it is, and the yardstick for its rule health.
+- **Live from 9 Nov 2026, no back history:** it needs 823 sessions before its signal line has a value and the database
+  keeps about 843 for the 500 largest (ADR-041), so it is worked out from the last stored days only. The 500 largest now
+  keep 1,300 days (was 1,250), so the margin grows as days are added; no re-download.
+- **Checked twice:** the SQL run on the read-only copy of the live candles writes exactly the signals an independent
+  Python version expects (12 of 12: 11 buys and 1 exit, same stops and reasons); a database test on made-up prices
+  matches Python to the day (buy day 894, exit day 954).
+- Everywhere the rules are listed: the chart's rule bar (Secular trend, "SEC BUY"), the Signals page card and its tested
+  record, rule health, Pine script (TradingView, with the −150 line as an input), Dry Run, your trades next to the rules,
+  holders' message choices (off by default), names in research notes.
+- Files: `supabase/migrations/…55_secular_trend.sql`, `supabase/tests/24_secular_trend.sql` (+ tests 09 and 17 for 1,300
+  days), `lib/{rules,format,signal-trade,strong-trend,pine-script}.ts` (+ tests), `components/charts/price-chart.tsx`,
+  `app/app/signals/page.tsx`, `components/dry-run/dry-run-studio.tsx`, `components/market/pine-script-generator-panel.tsx`,
+  `research/strategies/{download_long,specialk,secular_trend,record_secular}.py`, `pglite_secular.mjs`; e2e specs that
+  count the rules.
+- Also: a rule card now says "1 trade closed", not "1 trades closed" (`app/app/signals/page.tsx`).
+
 ### Added — your trades next to the rules' trades (Step D, ADR-050; migration 54)
 - **Portfolio → Next to the rules** (`/app/portfolio/compare`, Pro): each of your buys next to every live rule that was
   in the stock at the time (its trade open on your buy date, or it bought within the next 10 trading sessions), and each

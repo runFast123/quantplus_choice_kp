@@ -1,8 +1,8 @@
 // TradingView Pine Script (v6) for each QuantsPulse signal rule: one script per rule, so the signals on a
 // TradingView chart are the signals of the rule the user picked and nothing else. Each script follows the live SQL
-// (migrations 33, 38, 41, 45) bar by bar: the same entry, the same safety stop, the same exit, one trade at a time.
+// (migrations 33, 38, 41, 45, 55) bar by bar: the same entry, the same safety stop, the same exit, one trade at a time.
 
-export type PineRule = "kk_dip" | "rsi_dip" | "sma_trend" | "strong_trend" | "ma200_trend";
+export type PineRule = "kk_dip" | "rsi_dip" | "sma_trend" | "strong_trend" | "ma200_trend" | "secular_trend";
 
 export const PINE_RULES: readonly { key: PineRule; label: string; short: string }[] = [
   { key: "kk_dip", label: "KK dip", short: "KK" },
@@ -10,6 +10,7 @@ export const PINE_RULES: readonly { key: PineRule; label: string; short: string 
   { key: "rsi_dip", label: "RSI dip", short: "RSI" },
   { key: "strong_trend", label: "Strong trend", short: "Strong trend" },
   { key: "ma200_trend", label: "200-day trend", short: "200-day trend" },
+  { key: "secular_trend", label: "Secular trend", short: "Secular trend" },
 ];
 
 /** The chart's rule filter → the rule whose script to copy; null for "all" / "none" (the user picks one). */
@@ -23,6 +24,7 @@ export function pineRuleForChart(filter: string): PineRule | null {
       return "rsi_dip";
     case "strong_trend":
     case "ma200_trend":
+    case "secular_trend":
       return filter;
     default:
       return null;
@@ -293,5 +295,21 @@ bool prevKnown = bar_index > 0 and known[1]
 bool prevOk    = bar_index > 0 and ok[1]
 plot(sma200, "SMA 200", color=color.new(#1E1E1E, 0), linewidth=2)
 `, `ok and prevKnown and not prevOk`);
+    case "secular_trend":
+      return trendRule(rule, sym, [
+        "The rule: Secular trend (Pring's Special K, the same as TradingView's Pring's Special K with signal",
+        "lengths 50 and 50) crosses above its signal line while it is not lower than 5 days ago and is still",
+        "below the line (-150 unless you change it): a deep, long slump starting to turn up. It needs about",
+        "825 days of history before its first signal. Buy at the next open; safety stop 4 ATR under the",
+        "signal close; out at the stop or after 60 sessions. Add TradingView's Pring's Special K (50, 50) in",
+        "a pane below to see the two lines.",
+      ], `
+secLine  = input.float(-150, "Secular trend line", step=10, group="Rule")
+roc(n)   => 100 * (close / close[n] - 1)
+secular  = 1 * ta.sma(roc(10), 10) + 2 * ta.sma(roc(15), 10) + 3 * ta.sma(roc(20), 10) + 4 * ta.sma(roc(30), 15)
+         + 1 * ta.sma(roc(40), 50) + 2 * ta.sma(roc(65), 65) + 3 * ta.sma(roc(75), 75) + 4 * ta.sma(roc(100), 100)
+         + 1 * ta.sma(roc(195), 130) + 2 * ta.sma(roc(265), 130) + 3 * ta.sma(roc(390), 130) + 4 * ta.sma(roc(530), 195)
+secSignal = ta.sma(ta.sma(secular, 50), 50)
+`, `not na(secSignal[1]) and not na(secular[5]) and ta.crossover(secular, secSignal) and secular >= secular[5] and secular < secLine`);
   }
 }

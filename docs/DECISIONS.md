@@ -354,6 +354,24 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-051 · Secular trend: the owner's sixth rule, live from today without back history
+**Date** 2026-11-09 · **Status** accepted
+- **Context:** after the tests in ADR-049 the owner chose to add the rule: Pring's Special K renamed Secular trend,
+  signal line 50/50, read against −150 with the cross below it (the "few signals" reading), the trend rules' plan (we may
+  change the exit later), a full live rule.
+- **Decision:** `private.refresh_secular_trend` (migration 55) computes Special K in SQL from the stored candles: the
+  12 rates of change with Pring's smoothing and weights, the signal line as SMA 50 of SMA 50, each average only over a
+  full window. Buy: the cross above the signal line, not lower than 5 sessions ago, below −150; entry next open, stop
+  close − 4 × ATR14, out at the stop or the 60th session; the 500 largest; continues its record like the other rules
+  (ADR-043). It is a trend rule in the app (plan, odds horizon, Pine template) and joins every list of live rules, but
+  holders' exit messages stay off by default. Its tested record (`record_secular.py`) is shown as it is, including the
+  weak recent years and the 2020 rebound.
+- **Limits:** it needs 823 sessions; the 500 largest keep about 843 (1,250 days), so it signals from 9 Nov 2026 and has no
+  earlier signals in the app (no chart history, comparison or health record yet). We keep 1,300 days from now and did
+  not re-download (a full re-fetch rewrites every candle row, close to the Free plan's 500 MB). The research used
+  dividend-adjusted prices, the live data split-adjusted only, so Secular trend's values differ slightly between them; the
+  live check uses the live prices. Few signals: about 30 a year in the recent record.
+
 ### ADR-050 · Your trades next to the rules' trades: a fixed match, the rule's whole trade, past facts
 **Date** 2026-11-09 · **Status** accepted
 - **Context:** the owner wants people to see, from their own tradebook, what our rules did in the same stocks: "you
@@ -370,6 +388,26 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
 - **Limits:** the rules' records start in December 2023 (2024 for some rules) and cover the 500 largest companies;
   earlier buys and opening balances are counted, not compared. The holding-period strip stands in for a price chart on
   each card; "See it on the chart" opens the stock's chart with the rules' markers.
+
+### ADR-049 · Pring's Special K as a signal rule: tested, shelved
+**Date** 2026-11-09 · **Status** superseded by ADR-051 (the owner chose to add it)
+- **Context:** the owner proposed a rule from TradingView's Pring's Special K (signal lengths 50 and 50): signal when
+  Special K crosses above its signal line while Special K is flat or rising.
+- **Test** (`research/strategies/specialk.py`, the house method: pre-written variants, chosen on 2019-07..2023-12,
+  checked on 2024-01..2026-10, point-in-time top 300, 0.5 % cost): 6 entries x 4 exits. The "flat or rising" filter
+  keeps 95-98 % of crosses, so it changes almost nothing. Best variant (cross, flat or rising over 5 sessions, stock
+  above a rising 200-day average; 4 x ATR stop or day 60): 2019-23 56.9 % made money, +6.29 % a trade; 2024-26 46.4 %,
+  +1.90 %. A random day in an uptrend with the same plan: 56.9 %, +6.68 % and 43.1 %, +0.98 %. The live Strong trend
+  (+3.28 %) and SMA 20/50 trend (+2.26 %) did better in 2024-26. The Special K cross-down exit averaged +18 % in
+  2019-23 from a few 2020-21 rebound winners with 60 % of trades losing, and +0.4 % with 71 % losing in 2024-26.
+- **Round 2, "Secular trend"** (owner, same day; `secular_trend.py`): the same indicator renamed, signal 50/50, the zero
+  line moved to -150, both readings tested. Above -150 changes little (with the uptrend filter and the 60-session plan:
+  2019-23 57.0 % made money, +6.26 %; 2024-26 46.2 %, +1.88 %; a random day with the same filters: +6.68 % and +0.97 %).
+  Below -150 gives few signals (84 a year, then 33) but not mostly right ones: 2019-23 54.2 %, +7.49 % (216 of the 373
+  trades in the 2020 rebound) against a random day below -150 at 58.7 %, +10.21 %; 2024-26 38.0 % made money, +0.92 %,
+  against random 34.2 %, -0.50 %.
+- **Decision:** not added. Pring himself calls Special K crossovers unreliable on their own. Untested idea left open:
+  Special K above its signal line as a filter on an existing rule.
 
 ### ADR-048 · Chart replay: a separate chart that adds bars one at a time, with the rules' signals and practice trades
 **Date** 2026-11-06 · **Status** accepted

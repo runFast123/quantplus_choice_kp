@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <br />A signal is the moment one of them gets answered.
           </blockquote>
           <figcaption className="mt-6 text-[13px] text-muted-foreground">
-            QuantsPulse watches every NSE stock on five rules you can read — three that follow a rising trend, two that buy a
+            QuantsPulse watches every NSE stock on six rules you can read — four that follow a trend turning up, two that buy a
             sharp dip — and your own price levels, and tells you when they trigger.
           </figcaption>
         </figure>

@@ -7,7 +7,7 @@ import { PINE_RULES, pineRuleLabel, pineScript, type PineRule } from "@/lib/pine
 
 /**
  * Copies ONE rule's TradingView Pine script: the rule chosen on the chart. With no single rule chosen ("All plans" or
- * "Clean"), the button opens a short list of the five rules so the user picks which one to copy.
+ * "Clean"), the button opens a short list of the six rules so the user picks which one to copy.
  */
 export function CopyPineButton({ symbol, rule, className }: { symbol?: string; rule: PineRule | null; className?: string }) {
   const [copied, setCopied] = useState<PineRule | null>(null);

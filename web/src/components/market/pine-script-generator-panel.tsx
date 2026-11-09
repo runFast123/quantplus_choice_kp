@@ -11,6 +11,7 @@ const ABOUT: Record<PineRule, string> = {
   rsi_dip: "A sharp two day drop (RSI 2 under 10) in a stock above its 200 day average, bought on the next dip, sold on the bounce.",
   strong_trend: "A new 52 week high on twice the usual volume in a sunny market; safety stop and a 60 session review.",
   ma200_trend: "Above a flat or rising 200 day average after a steady climb; safety stop and a 60 session review.",
+  secular_trend: "Secular trend (Pring's Special K, 50/50) turning up from below -150 after a long slump; safety stop and a 60 session review.",
 };
 
 export function PineScriptGeneratorPanel({ initialSymbol = "NIFTY" }: { initialSymbol?: string }) {

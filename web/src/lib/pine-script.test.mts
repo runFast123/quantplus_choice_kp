@@ -25,10 +25,14 @@ describe("pineScript: one TradingView script per rule", () => {
     const ma = pineScript("ma200_trend");
     assert.ok(ma.includes("ta.linreg(sma200, 100, 0)") && ma.includes("slopePct >= -0.25") && ma.includes("rr >= 0.5"));
     assert.ok(!ma.includes("ta.crossover") && !ma.includes("INDIAVIX"));
+    const sec = pineScript("secular_trend");
+    assert.ok(sec.includes("ta.sma(ta.sma(secular, 50), 50)") && sec.includes("4 * ta.sma(roc(530), 195)"));
+    assert.ok(sec.includes("ta.crossover(secular, secSignal) and secular >= secular[5] and secular < secLine"));
+    assert.ok(sec.includes('input.float(-150, "Secular trend line"') && !sec.includes("linreg") && !sec.includes("INDIAVIX"));
   });
 
   test("the plans match the live rules", () => {
-    for (const k of ["sma_trend", "strong_trend", "ma200_trend"] as const) {
+    for (const k of ["sma_trend", "strong_trend", "ma200_trend", "secular_trend"] as const) {
       const c = pineScript(k);
       assert.ok(c.includes("math.round(close - 4 * atr, 2)") && c.includes("held >= 60") && c.includes("ta.sma(ta.tr(true), 14)"), k);
     }

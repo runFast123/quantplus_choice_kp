@@ -68,6 +68,7 @@ const RULES: { key: string; label: string }[] = [
   { key: "strong_trend", label: "New 52-week high" },
   { key: "sma_trend", label: "Trend turned up" },
   { key: "ma200_trend", label: "Long-term trend up" },
+  { key: "secular_trend", label: "Long slump turning up" },
   { key: "rsi_dip", label: "Bought a dip" },
   { key: "kk_dip", label: "Bought a deeper dip" },
   { key: "sma_20_50_cross", label: "Trend turned up (old rule)" },

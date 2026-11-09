@@ -34,7 +34,7 @@ export function MarketChartView({
   return (
     <Panel
       title="TradingView Chart"
-      meta={`${symbol} · ${exchange} daily · signals from the five rules & moving averages`}
+      meta={`${symbol} · ${exchange} daily · signals from the six rules & moving averages`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <div role="group" aria-label="Chart engine" className="inline-flex rounded-md border border-border bg-background/60 p-0.5 text-[11.5px]">

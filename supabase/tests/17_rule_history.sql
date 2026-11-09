@@ -15,15 +15,15 @@ $$;
 insert into public.market_symbols (symbol, exchange, name, is_active, segment, mcap_rank, history_days) values
   ('QPRH1', 'NSE', 'Large company', true, 'equity', 3, 760),
   ('QPRH2', 'NSE', 'Small company', true, 'equity', 900, 400);
-select qp_t17.check((select history_days = 1250 from public.market_symbols where symbol = 'QPRH1')
+select qp_t17.check((select history_days = 1300 from public.market_symbols where symbol = 'QPRH1')
                     and (select history_days = 400 from public.market_symbols where symbol = 'QPRH2'),
-                    'history: a top-500 company keeps ~3.4 years, a small one what it had');
+                    'history: a top-500 company keeps ~3.6 years, a small one what it had');
 update public.market_symbols set mcap_rank = 450 where symbol = 'QPRH2';
-select qp_t17.check((select history_days = 1250 from public.market_symbols where symbol = 'QPRH2'),
+select qp_t17.check((select history_days = 1300 from public.market_symbols where symbol = 'QPRH2'),
                     'history: a company climbing into the 500 is raised too');
 update public.market_symbols set history_days = 900 where symbol = 'QPRH1';
-select qp_t17.check((select history_days = 1250 from public.market_symbols where symbol = 'QPRH1'),
-                    'history: never lowered under 1,250 for the 500 largest');
+select qp_t17.check((select history_days = 1300 from public.market_symbols where symbol = 'QPRH1'),
+                    'history: never lowered under 1,300 for the 500 largest');
 
 -- 2. the rebuild: QPRH1 flat at 100 for 300 sessions, then up 0.5 a day (200-day trend buys on day 312, see test 15)
 insert into public.market_candles (symbol, exchange, interval, ts, open, high, low, close, volume)

@@ -23,6 +23,7 @@ import { DIP_EXIT, dipStatus, dipTestedSentence, isDipRule } from "@/lib/dip-rul
 import {
   isTrendRule,
   MA200_TREND_TESTED as MA200,
+  SECULAR_TREND_TESTED as SEC,
   reviewDate,
   SMA_TREND_TESTED as SMA,
   STRONG_TREND_TESTED as TESTED,
@@ -84,6 +85,13 @@ const STRATEGIES: { key: string; title: string; rule: string; reads: string; tes
     rule: "Buy when a stock is above its 200-day average, that average is flat or rising (measured with a straight regression line through its last 100 days), and the price has climbed fairly steadily over the last 100 days.",
     reads: "Follows a stock whose long-term trend has turned up. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions.",
     tested: `Tested on past prices (${MA200.period}, ${MA200.trades.toLocaleString("en-IN")} trades): ${MA200.madeMoneyPct} in 100 made money after costs, the average trade +${MA200.avgTradePct}% (winners about +${MA200.avgWinPct}%, losers about ${MA200.avgLossPct}%). ${MA200.recent.period}: ${MA200.recent.madeMoneyPct} in 100, +${MA200.recent.avgTradePct}%; buying on a random day above the 200-day average: ${MA200.random.recentMadeMoneyPct} in 100, +${MA200.random.recentAvgTradePct}%.`,
+  },
+  {
+    key: "secular_trend",
+    title: "Secular trend",
+    rule: "Buy when Secular trend (Pring's Special K: twelve smoothed price changes from two weeks to two years) crosses above its signal line (its 50-day average, averaged again over 50 days) while it is flat or rising and still below −150: a deep, long slump starting to turn up.",
+    reads: "Few signals: it waits for a long fall. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions.",
+    tested: `Tested on past prices (${SEC.period}, ${SEC.trades} trades, most of them in the 2020 rebound): ${SEC.madeMoneyPct} in 100 made money after costs, the average trade +${SEC.avgTradePct}% (winners about +${SEC.avgWinPct}%, losers about ${SEC.avgLossPct}%). ${SEC.recent.period}: ${SEC.recent.trades} trades, ${SEC.recent.madeMoneyPct} in 100, +${SEC.recent.avgTradePct}%; buying on a random day below −150: ${SEC.random.recentMadeMoneyPct} in 100, ${SEC.random.recentAvgTradePct}%.`,
   },
   {
     key: "rsi_dip",
@@ -682,7 +690,8 @@ export default async function SignalsPage({
               <RuleHealthCard title={st.title} label="Lately" row={health.latest.get(st.key)} history={health.history.get(st.key) ?? []} />
               {t ? (
                 <p className="text-[12px] text-muted-foreground">
-                  On this site: <span className="num text-foreground">{Number(t.trades).toLocaleString("en-IN")}</span> trades closed,{" "}
+                  On this site: <span className="num text-foreground">{Number(t.trades).toLocaleString("en-IN")}</span>{" "}
+                  {Number(t.trades) === 1 ? "trade" : "trades"} closed,{" "}
                   <span className="num text-foreground">{pct(t.made_money_pct)}</span> made money.
                 </p>
               ) : null}
@@ -704,7 +713,8 @@ export default async function SignalsPage({
         sorted by what went wrong. A rule that drifts outside its normal range is flagged for review; it is never changed or switched off
         on its own, because a short bad run is usually just noise. RSI dip, KK dip and SMA 20/50 trend replaced the old RSI reversal, KK
         breakout and SMA 20/50 cross rules, which did worse in testing; their signals stay in the list under &ldquo;Old rules&rdquo;. The
-        200-day trend rule was added in November 2026; its record on this site starts with the stored prices.
+        200-day trend rule was added in November 2026; its record on this site starts with the stored prices. Secular trend was added
+        on 9 November 2026: it needs about three and a half years of prices, so it signals from that day on and has no earlier signals here.
       </p>
     </div>
   );

@@ -5,23 +5,23 @@ import { expect, test } from "./helpers/fixtures";
  * rules with their health, and the track record one tab at a time. Copy stays research, never advice.
  */
 test.describe("signals @mobile", () => {
-  test("today first, then the five rules and the track record in their own tabs", async ({ proPage }, info) => {
+  test("today first, then the six rules and the track record in their own tabs", async ({ proPage }, info) => {
     await proPage.goto("/app/signals?scope=all");
     await expect(proPage.getByRole("region", { name: "Market weather" })).toContainText(/Market weather: (Sunny|Mixed|Stormy|Unknown)/);
     await expect(proPage.getByText("Signals are research prompts, not advice.", { exact: false })).toBeVisible();
     const tabs = proPage.getByRole("tablist", { name: "Signals" });
     await expect(tabs.getByRole("tab", { name: "Today" })).toHaveAttribute("aria-selected", "true");
-    await expect(proPage.getByRole("heading", { name: "Fresh buys from the five rules" })).toBeVisible();
+    await expect(proPage.getByRole("heading", { name: "Fresh buys from the six rules" })).toBeVisible();
     await expect(proPage.getByRole("heading", { name: "Dip-buy levels for the next session" })).toBeVisible();
     await proPage.screenshot({ path: info.outputPath("signals.png"), fullPage: true });
 
-    await tabs.getByRole("tab", { name: "The five rules" }).click();
+    await tabs.getByRole("tab", { name: "The six rules" }).click();
     await expect(proPage).toHaveURL(/#rules$/);
     const strong = proPage.getByRole("article", { name: "Strong trend" });
     await expect(strong).toContainText("52-week high");
     await strong.getByText("Tested record").click();
     await expect(strong).toContainText("made money after costs");
-    for (const rule of ["SMA 20/50 trend", "200-day trend", "RSI dip", "KK dip"]) await expect(proPage.getByRole("article", { name: rule })).toBeVisible();
+    for (const rule of ["SMA 20/50 trend", "200-day trend", "Secular trend", "RSI dip", "KK dip"]) await expect(proPage.getByRole("article", { name: rule })).toBeVisible();
 
     await tabs.getByRole("tab", { name: "Track record" }).click();
     await expect(proPage.getByRole("heading", { name: "Track record" })).toBeVisible();

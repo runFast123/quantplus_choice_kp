@@ -13,6 +13,7 @@ export const RULES = [
     kind: "trend",
     why: "above a flat or rising 200-day average, after a steady climb",
   },
+  { key: "secular_trend", name: "Secular trend", tag: "SEC", kind: "trend", why: "a deep, long slump starting to turn up" },
   { key: "rsi_dip", name: "RSI dip", tag: "RSI", kind: "dip", why: "a sharp two-day drop in a rising stock" },
   { key: "kk_dip", name: "KK dip", tag: "KK", kind: "dip", why: "a push under the 20-day low in a rising stock" },
 ] as const;
@@ -28,9 +29,9 @@ export const OLD_RULES = [
 ] as const;
 
 export const RULE_KEYS: readonly RuleKey[] = RULES.map((r) => r.key);
-/** Rules that message someone about a stock they hold until they choose otherwise: the trend rules (the default of
- * public.notification_prefs.exit_rules, migration 50). */
-export const DEFAULT_EXIT_RULES: readonly RuleKey[] = RULES.filter((r) => r.kind === "trend").map((r) => r.key);
+/** Rules that message someone about a stock they hold until they choose otherwise: the first three trend rules (the
+ * default of public.notification_prefs.exit_rules, migration 50). Secular trend (migration 55) is chosen, not default. */
+export const DEFAULT_EXIT_RULES: readonly RuleKey[] = ["strong_trend", "sma_trend", "ma200_trend"];
 export const isRule = (s: string | null | undefined): s is RuleKey => RULE_KEYS.includes(s as RuleKey);
 export const isOldRule = (s: string | null | undefined) => OLD_RULES.some((r) => r.key === s);
 export const ruleOf = (s: string | null | undefined): Rule | undefined => RULES.find((r) => r.key === s);

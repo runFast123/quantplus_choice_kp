@@ -89,6 +89,10 @@ export function ruleSentence(strategy: string, action: SignalAction, resultType?
       return action === "buy"
         ? "Closed above its 200-day average while that average's regression line was flat or rising, and the last 100 days' prices leaned up in a fairly straight line."
         : `The 200-day trend trade closed. ${STRONG_TREND_RESULTS[resultType ?? ""] ?? ""}`.trim();
+    case "secular_trend":
+      return action === "buy"
+        ? "Secular trend (Pring's Special K, read against a −150 line) crossed above its signal line while flat or rising and still below −150: a deep, long slump starting to turn up."
+        : `The Secular trend trade closed. ${STRONG_TREND_RESULTS[resultType ?? ""] ?? ""}`.trim();
     case "strong_trend":
       return action === "buy"
         ? "Closed at a new 52-week high on at least twice its usual volume, above its 50-day average, while the market was rising and calm."

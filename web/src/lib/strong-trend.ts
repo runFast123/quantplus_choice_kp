@@ -94,6 +94,23 @@ export const MA200_TREND_TESTED = {
 } as const;
 
 /**
+ * Secular trend (migration 55, ADR-051), tested with the exact SQL rule: research/strategies/record_secular.py,
+ * Jul 2019 – Oct 2026, each year's 300 most traded NSE stocks, 0.5 % round-trip cost, Special K from prices since 2010.
+ * `random` = a random day below -150 with the same kind of plan (secular_trend.py). Most of 2019-23's trades came in the
+ * 2020 rebound. Update only by re-running those scripts.
+ */
+export const SECULAR_TREND_TESTED = {
+  period: "Jul 2019 – Oct 2026",
+  trades: 450,
+  madeMoneyPct: 53,
+  avgTradePct: 6.8,
+  avgWinPct: 24,
+  avgLossPct: -12,
+  recent: { period: "2024 – Oct 2026", madeMoneyPct: 39, avgTradePct: 1.4, trades: 84 },
+  random: { recentMadeMoneyPct: 34, recentAvgTradePct: -0.5 },
+} as const;
+
+/**
  * SMA 20/50 trend (migration 38, ADR-037), tested with the exact SQL rule: research/strategies/record_sma.py,
  * Jul 2019 – Oct 2026, each year's 300 most traded NSE stocks, 0.5 % round-trip cost. `before` is the old SMA 20/50
  * cross (cross in, cross out) on the same stocks and years. Update only by re-running that script.

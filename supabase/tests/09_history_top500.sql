@@ -16,21 +16,21 @@ insert into public.market_symbols (symbol, exchange, name, is_active, mcap_rank,
   ('QPSMALL', 'NSE', 'Small fixture', true, 1800, 400),
   ('QPNORANK', 'NSE', 'Unranked fixture', true, null, 400);
 
-select qp_t9.check(qp_t9.days('QPBIG') = 1250, 'insert: a top-500 company gets ~3.4 years (ADR-041)');
+select qp_t9.check(qp_t9.days('QPBIG') = 1300, 'insert: a top-500 company gets ~3.6 years (ADR-041, ADR-051)');
 select qp_t9.check(qp_t9.days('QPSMALL') = 400, 'insert: a smaller company keeps 400 days');
 select qp_t9.check(qp_t9.days('QPNORANK') = 400, 'insert: no rank, no change');
 
 update public.market_symbols set mcap_rank = 499 where symbol = 'QPSMALL';
-select qp_t9.check(qp_t9.days('QPSMALL') = 1250, 'update: climbing into the top 500 raises it');
+select qp_t9.check(qp_t9.days('QPSMALL') = 1300, 'update: climbing into the top 500 raises it');
 
 update public.market_symbols set mcap_rank = 2400 where symbol = 'QPBIG';
-select qp_t9.check(qp_t9.days('QPBIG') = 1250, 'update: falling out never lowers it');
+select qp_t9.check(qp_t9.days('QPBIG') = 1300, 'update: falling out never lowers it');
 
 -- The universe sync upserts the stored history_days back; the trigger still wins.
 insert into public.market_symbols (symbol, exchange, name, is_active, mcap_rank, history_days)
 values ('QPSMALL', 'NSE', 'Small fixture', true, 300, 400)
 on conflict (symbol, exchange) do update set history_days = excluded.history_days, mcap_rank = excluded.mcap_rank;
-select qp_t9.check(qp_t9.days('QPSMALL') = 1250, 'upsert: a top-500 row stays at ~3.4 years');
+select qp_t9.check(qp_t9.days('QPSMALL') = 1300, 'upsert: a top-500 row stays at ~3.6 years');
 
 select qp_t9.check(not has_function_privilege('authenticated', 'private.history_for_rank()', 'execute'), 'grants: users cannot call the trigger function');
 
