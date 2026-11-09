@@ -354,6 +354,17 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-052 · The Research list is kept in a small table, in step through triggers
+**Date** 2026-11-09 · **Status** accepted
+- **Context:** the health check found the Research page failing under load ("The notes didn't load"). Its six reads
+  each ran the `research_latest` view, which finds the newest and previous note of all 2,900 stocks by reading the
+  33 MB `research_notes` table: 3.2 s cold on the Free plan's small cache, past the 8 s limit when several ran at once.
+- **Decision:** `research_list` holds the list's columns per stock, rebuilt for exactly the stocks a statement touched
+  (triggers on `research_notes` and on the `market_symbols` columns the list shows), so it is never stale and needs no
+  cron. The same approach as the kept records of ADR-042, but event-driven because notes change in batches during the
+  evening. The view stays the one definition (a test checks the table equals it row for row) and serves one-stock reads.
+- **Limits:** a statement that writes many notes also rebuilds their rows (all 2,878 in 1.7 s, inside the nightly job).
+
 ### ADR-051 · Secular trend: the owner's sixth rule, live from today without back history
 **Date** 2026-11-09 · **Status** accepted
 - **Context:** after the tests in ADR-049 the owner chose to add the rule: Pring's Special K renamed Secular trend,

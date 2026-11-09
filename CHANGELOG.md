@@ -5,6 +5,15 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — the Research list no longer times out under load (ADR-052; migration 56)
+- The list, its three stance counts and the two "turned" lists read `public.research_list`, one row per stock with only
+  the list's columns (2,878 rows, about 1 MB), instead of the `research_latest` view, which walks every stock's notes
+  (the 33 MB notes table) six times per page load: 3.2 s cold and 0.2 s warm before, about 150 ms (mostly the network)
+  now. Under load the old reads passed the 8 s limit and the page said "The notes didn't load".
+- Kept in step by statement triggers on `research_notes` (new, rewritten and deleted notes) and on `market_symbols` (a
+  name, sector, segment, size rank or listing change). One stock's full note still reads the view.
+- Files: `supabase/migrations/…56_research_list.sql`, `supabase/tests/25_research_list.sql`, `app/app/research/page.tsx`.
+
 ### Added — Secular trend, the sixth rule (ADR-051; migration 55)
 - **Secular trend** (the owner's rule, from Pring's Special K): buy when Secular trend crosses above its signal line (its
   50-day average, averaged again over 50 days) while it is flat or rising and still below −150, a deep, long slump

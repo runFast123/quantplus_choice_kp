@@ -45,7 +45,9 @@ export default async function ResearchPage({ searchParams }: PageProps<"/app/res
   const page = pageParam(sp.page);
   const order = SORT[sort] ?? SORT.score;
   const base = (head: boolean, select = "*") => {
-    let qb = s.supabase.from("research_latest").select(head ? "symbol" : select, { count: "exact", head });
+    // research_list (migration 56): the list's columns, one row per stock, kept in step with the notes; the
+    // research_latest view walks every stock's notes and took 3.2 s cold (the page asks six times at once).
+    let qb = s.supabase.from("research_list").select(head ? "symbol" : select, { count: "exact", head });
     if (mine) qb = qb.in("symbol", mine);
     if (segment !== "all") qb = qb.eq("segment", segment);
     if (q) qb = qb.or(`symbol.ilike.%${q}%,name.ilike.%${q}%`);
