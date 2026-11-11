@@ -6,6 +6,11 @@ import { SITE_URL } from "@/lib/env";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
+    // one page per topic (ADR-055)
+    { url: `${SITE_URL}/how-it-works`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/chrome-extension`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/pricing`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/faq`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/blog`, changeFrequency: "weekly", priority: 0.8 },
     ...POSTS.map((p) => ({ url: `${SITE_URL}/blog/${p.slug}`, lastModified: p.updated, changeFrequency: "monthly" as const, priority: 0.7 })),
     { url: `${SITE_URL}/legal/terms`, changeFrequency: "yearly", priority: 0.2 },

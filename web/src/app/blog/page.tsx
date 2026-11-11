@@ -5,6 +5,7 @@ import { BLOG_DATA } from "@/lib/blog/data";
 import { longDate, pct, readMinutes } from "@/lib/blog/format";
 import { POSTS, postText } from "@/lib/blog/posts";
 import { SITE_URL } from "@/lib/env";
+import { Tilt } from "@/components/marketing/tilt";
 
 const DESCRIPTION =
   "Five common ways of using indicators on Indian stocks, each tested against a QuantsPulse rule on the same NSE stocks from 2019 to 2026. Plain words, real numbers, and the results that go against us too.";
@@ -36,11 +37,11 @@ export default function BlogIndex() {
   return (
     <main className="mx-auto max-w-[1080px] px-5 pb-20 pt-8 md:px-8 md:pt-12">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <p className="eyebrow">Research notes</p>
-      <h1 className="display mt-2 max-w-3xl text-[36px] leading-[1.1] text-foreground md:text-[52px]">
+      <p className="eyebrow hero-in">Research notes</p>
+      <h1 className="hero-in display mt-2 max-w-3xl text-[36px] leading-[1.1] text-foreground md:text-[52px]" style={{ "--d": "100ms" } as React.CSSProperties}>
         The usual way to use an indicator, and what seven years of NSE prices say about it
       </h1>
-      <p className="mt-5 max-w-2xl text-[17px] leading-[1.7] text-foreground/85">
+      <p className="hero-in mt-5 max-w-2xl text-[17px] leading-[1.7] text-foreground/85" style={{ "--d": "220ms" } as React.CSSProperties}>
         Each note takes one indicator most traders know, tests the way it is usually used, and tests our rule built on the same
         indicator. Same stocks, same days, same costs. Where the usual way does better on some measure, we say so.
       </p>
@@ -50,32 +51,34 @@ export default function BlogIndex() {
           const d = BLOG_DATA[p.rule];
           const words = postText(p).join(" ").split(/\s+/).length;
           return (
-            <li key={p.slug} className={i === 0 ? "md:col-span-2" : undefined}>
-              <Link
-                href={`/blog/${p.slug}`}
-                className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-colors hover:border-foreground/25 md:p-6"
-              >
-                <p className="text-[12.5px] text-muted-foreground">
-                  {longDate(p.published)} · {readMinutes(words)} min read
-                </p>
-                <h2 className={`display mt-2 leading-snug text-foreground ${i === 0 ? "text-[26px] md:text-[32px]" : "text-[22px]"}`}>{p.title}</h2>
-                <p className="mt-3 text-[15px] leading-[1.65] text-foreground/80">{p.description}</p>
-                <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-5">
-                  <div className="flex gap-5">
-                    <div>
-                      <p className="num text-[22px] leading-none text-series-ours">{pct(d.ours.all.made_money_pct, 0)}</p>
-                      <p className="mt-1 text-[11.5px] text-muted-foreground">{p.ruleName}: made money</p>
+            <li key={p.slug} className={i === 0 ? "reveal md:col-span-2" : "reveal"}>
+              <Tilt max={i === 0 ? 3 : 5} className="h-full rounded-2xl">
+                <Link
+                  href={`/blog/${p.slug}`}
+                  className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-colors hover:border-foreground/25 md:p-6"
+                >
+                  <p className="text-[12.5px] text-muted-foreground">
+                    {longDate(p.published)} · {readMinutes(words)} min read
+                  </p>
+                  <h2 className={`display mt-2 leading-snug text-foreground ${i === 0 ? "text-[26px] md:text-[32px]" : "text-[22px]"}`}>{p.title}</h2>
+                  <p className="mt-3 text-[15px] leading-[1.65] text-foreground/80">{p.description}</p>
+                  <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-5">
+                    <div className="flex gap-5">
+                      <div>
+                        <p className="num text-[22px] leading-none text-series-ours">{pct(d.ours.all.made_money_pct, 0)}</p>
+                        <p className="mt-1 text-[11.5px] text-muted-foreground">{p.ruleName}: made money</p>
+                      </div>
+                      <div>
+                        <p className="num text-[22px] leading-none text-foreground/70">{pct(d.usual.all.made_money_pct, 0)}</p>
+                        <p className="mt-1 text-[11.5px] text-muted-foreground">{p.usualName}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="num text-[22px] leading-none text-foreground/70">{pct(d.usual.all.made_money_pct, 0)}</p>
-                      <p className="mt-1 text-[11.5px] text-muted-foreground">{p.usualName}</p>
-                    </div>
+                    <span className="inline-flex items-center gap-1 text-[13.5px] font-medium text-foreground">
+                      Read the test <ArrowRightIcon size={14} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
+                    </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[13.5px] font-medium text-foreground">
-                    Read the test <ArrowRightIcon size={14} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
-                  </span>
-                </div>
-              </Link>
+                </Link>
+              </Tilt>
             </li>
           );
         })}

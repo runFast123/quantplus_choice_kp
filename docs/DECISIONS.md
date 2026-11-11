@@ -354,6 +354,24 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-055 · One page per topic on the public site; the glass and motion cover every public page
+**Date** 2026-11-11 · **Status** accepted (widens ADR-054)
+- **Context:** the owner asked for the landing motion on the Research pages too, and for separate pages instead of one
+  long page, "for better SEO and ranking chances". On one page, How it works, the extension, pricing and the FAQ share
+  one title, one description and one URL, so none can rank for its own searches ("QuantsPulse pricing", "Chrome
+  extension for Zerodha signals").
+- **Decision:** `/how-it-works`, `/chrome-extension`, `/pricing` and `/faq` are their own pages (`app/(site)/*`, sharing
+  `app/(site)/layout.tsx`), each with one H1, its own title, description, canonical and Open Graph tags, a
+  `BreadcrumbList` (and `FAQPage` on /faq), cards linking to the other pages, and a sitemap entry. The sections live in
+  `components/marketing/sections.tsx`, so no copy is duplicated. Home keeps the hero, the ticker, a card per page, the
+  privacy band and the first three questions. The glass navbar now links to pages and lights the current one from the
+  URL (`aria-current="page"`), on every public page (home, the four, Research, legal); the footer lists the pages for
+  phones, where the navbar is hidden. Research pages get the same motion: headings arrive line by line, cards tilt and
+  rise in, and charts, tables and callouts in a note rise in while running text stays still. ADR-054's limits still
+  apply: the signed-in app keeps design rule 16.
+- **Old links:** a `#fragment` never reaches the server, so `components/marketing/legacy-hash.tsx` forwards `/#how`,
+  `/#terminal`, `/#pricing` and `/#faq` in the browser.
+
 ### ADR-054 · The landing page may use liquid glass, 3D depth and motion; nowhere else
 **Date** 2026-11-11 · **Status** accepted
 - **Context:** the owner shared a liquid-glass navbar (21st.dev, "Waterline" by guglielmogiannattasio.it) to make the

@@ -204,7 +204,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 
 | Route | What |
 |---|---|
-| `/` | landing (plans from DB, fallback constants) |
+| `/` | home: hero, ticker, a card per public page, privacy band, three questions; forwards old `/#section` links (ADR-055) |
+| `/how-it-works`, `/chrome-extension`, `/pricing`, `/faq` | `app/(site)/*`, one page per topic (ADR-055): own metadata + canonical, JSON-LD `BreadcrumbList` (+ `FAQPage` on /faq); /pricing reads `plans` (fallback `FALLBACK_PLANS`) |
 | `/api/symbols?q=` | ranked symbol search (`search_symbols`) for the header and add forms; signed-in only |
 | `/api/dry-run/stock?symbol=` | one stock for Dry Run: name, sector, segment, last price, 2 years of candles, stored signals as markers; signed-in only |
 | `/login` `/signup` `/forgot` | auth (group `(auth)`) |
@@ -212,7 +213,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/invite/[token]` | accept organisation invite |
 | `/legal/[doc]` | `terms`, `privacy` (drafts) |
 | `/blog`, `/blog/[slug]` | Research notes (public): five posts, each rule against the usual way of using its indicator; metadata + canonical + OG, JSON-LD `Blog` / `BlogPosting` + `FAQPage` + `BreadcrumbList`; `/blog/[slug]/opengraph-image` (prerendered share card) |
-| `/sitemap.xml`, `/robots.txt` | `app/sitemap.ts` (public pages + posts), `app/robots.ts` (disallows `/app`, `/admin`, `/api/`, `/auth/`, `/invite/`, `/device`) |
+| `/sitemap.xml`, `/robots.txt` | `app/sitemap.ts` (home, the four topic pages, Research + posts, legal), `app/robots.ts` (disallows `/app`, `/admin`, `/api/`, `/auth/`, `/invite/`, `/device`) |
 | `/device` | single-device takeover screen (target of `requireSession` for displaced devices) |
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener (`?setup=` filter + Setups column); symbol page: header, *At a glance* strip (`data-testid="at-a-glance"`), chart, then tabs Plan & alerts / Research & news / Signal history / Backtest (`#plan`, `#research`, `#history`, `#backtest`), "Matched on the last close" setups |
@@ -269,15 +270,17 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `blog/*` | `PeriodsChart` (Made money / Average / Middle, by period), `YearsChart`, `SpreadChart`, `ExampleChart` (closes + trade lanes, hover/tap) — each with a legend and a "Show the numbers" table, series colours `--series-usual` / `--series-ours`; `RuleDiagram` (an illustration per rule, numbered notes); `PostBody`, `Inline` (**bold**, [link](/path)), `StatTiles` |
 | `dry-run/dry-run-studio.tsx` | `DryRunStudio({candidates, benchmark, health})` (the whole flow, client: steps, `CandidateCard`, plan panel with `AllocationBar`, results tabs), `DryRunDisclosure` (fixed non-advice wording, `data-testid="dry-run-disclosure"`), type `Candidate` |
 | `dry-run/replay-chart.tsx` | `ReplayChart` (lightweight-charts: plan line drawn in over 2.2 s, NIFTY 50 dashed, crosshair values, Replay button; instant under reduced motion) |
-| `ui/liquid-glass-navbar.tsx` | `LiquidNavbar` (liquid-glass pill nav with a WebGL water drop, CSS fallback; landing page only, ADR-054), types `LiquidNavItem`, `NimbusFx` |
+| `ui/liquid-glass-navbar.tsx` | `LiquidNavbar` (liquid-glass pill nav with a WebGL water drop, CSS fallback; public pages only, ADR-054/055), types `LiquidNavItem`, `NimbusFx` |
 | `marketing/hero-scene.tsx` | `HeroScene` (the landing hero's CSS 3D stage: chart plane + floating cards; pointer and scroll set `--px/--py/--sp`) |
-| `marketing/tilt.tsx` | `Tilt` (a card that tilts toward the pointer, with a soft highlight; landing only) |
-| `marketing/landing-nav.tsx` | `LandingNav` (the landing page's floating section nav: follows the section in view; icons only below 1280 px) |
+| `marketing/tilt.tsx` | `Tilt` (a card that tilts toward the pointer, with a soft highlight; public pages only) |
+| `marketing/landing-nav.tsx` | `LandingNav` (the public site's floating glass nav: links to the pages, lights the current one from the URL; icons only below 1280 px) |
 | `charts/trade-odds.tsx` | `TradeOdds` ("What usually happens next?" under the chart when a trade is selected: plain headline, 100-dot waffle, break-even pass mark, past-signal ▲▼ strip, method folded away; 5/10/20 days, target price) |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK (dip + old breakout), SMA 20/50 (trend + old cross), RSI (dip + old reversal), Strong trend, 200-day trend (turns on SMA 200), All Plans, Clean (Off)] + HUD with plain-English signal explainer + Signals Timeline ribbon ("New" since last visit, `qp:chart-seen:<SYMBOL>` in localStorage) + trade view on selection [entry/stop/target price lines (no-target rules: an "Exit ±x%" line and the zone to the exit), risk/reward zones, 1R label, ~260 ms pan; reduced motion → instant] + one-time ring on new signals + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
 | `charts/market-chart-view.tsx` | `MarketChartView` (unified switcher between QuantsPulse Strategy Signals Chart and TradingView Pro) |
-| `marketing/site-nav.tsx` | `SiteNav`, `SiteFooter` |
+| `marketing/site-nav.tsx` | `SiteNav` (logo, glass nav from md up, account buttons), `SiteFooter` (lists `SITE_PAGES` + legal), `SITE_PAGES` |
+| `marketing/sections.tsx` | The public sections, one page each (ADR-055): `PageHead`, `HowSteps`, `ExtensionBody`, `PrivacyBand`, `PricingCards`, `FaqList({ limit })`, `FAQ`, `FALLBACK_PLANS`, `MorePages({ current })` (cards to the other pages), `JsonLd` (breadcrumb + extras) |
+| `marketing/legacy-hash.tsx` | `LegacyHashRedirect` (forwards `/#how`, `/#terminal`, `/#pricing`, `/#faq` to their pages) |
 | `brand/logo.tsx` | `Logo`, `LogoMark` (Q whose tail ends in the coral signal dot; same geometry as `app/icon.svg`) |
 | `onboarding/first-run.tsx` | `FirstRun` (overview checklist: radar, alert, notifications, extension; hides when done or dismissed), type `FirstRunStep` |
 | `ui/error-screen.tsx` | `ErrorScreen({error, retry, home})` — "This page didn't load.", Try again, a way home, the error's digest (`data-testid="error-screen"`); used by `app/error.tsx` and `app/app/error.tsx` (`app/global-error.tsx` is self-contained) |

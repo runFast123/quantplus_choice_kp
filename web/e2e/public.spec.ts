@@ -3,21 +3,58 @@ import { seriousViolations } from "./helpers/axe";
 import { expectNoHorizontalOverflow } from "./helpers/fixtures";
 
 test.describe("public site @mobile", () => {
-  test("landing: hero, privacy matrix and plan prices from the database", async ({ page }) => {
+  test("landing: hero, privacy matrix and a card for each page", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Research on rules");
+    await expect(page.locator("#privacy table")).toContainText("Holdings & portfolios");
+    const cards = page.getByTestId("site-pages").getByRole("link");
+    await expect(cards).toHaveCount(5);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("each topic has its own page: one H1, its own title and canonical, and the navbar marks it", async ({ page }) => {
+    const pages = [
+      ["/how-it-works", "A short list, a few rules"],
+      ["/chrome-extension", "overlaid on your broker"],
+      ["/pricing", "Priced by the year"],
+      ["/faq", "Questions people ask"],
+    ] as const;
+    const titles = new Set<string>();
+    for (const [path, h1] of pages) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(h1);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", new RegExp(`${path}$`));
+      titles.add(await page.title());
+      if ((page.viewportSize()?.width ?? 0) >= 768) {
+        await expect(page.getByRole("navigation", { name: "Site" }).locator('[aria-current="page"]')).toHaveAttribute("href", path);
+      }
+      await expectNoHorizontalOverflow(page);
+    }
+    expect(titles.size).toBe(pages.length);
+  });
+
+  test("pricing: plan prices from the database", async ({ page }) => {
+    await page.goto("/pricing");
     const pricing = page.locator("#pricing");
     await expect(pricing).toContainText("₹10,000");
     await expect(pricing).toContainText("₹15,000");
     await expect(pricing).toContainText("10-stock radar");
-    await expect(page.locator("#privacy table")).toContainText("Holdings & portfolios");
-    await expectNoHorizontalOverflow(page);
   });
 
-  test("landing: FAQ answers expand", async ({ page }) => {
-    await page.goto("/#faq");
+  test("faq: answers expand, and the page carries FAQ structured data", async ({ page }) => {
+    await page.goto("/faq");
     await page.getByText("Is this investment advice?").click();
     await expect(page.getByText("mechanical output of a rule")).toBeVisible();
+    const ld = await page.locator('script[type="application/ld+json"]').allTextContents();
+    expect(ld.flatMap((t) => (JSON.parse(t) as { "@type": string }[]).map((x) => x["@type"]))).toEqual(expect.arrayContaining(["FAQPage", "BreadcrumbList"]));
+  });
+
+  test("old /#section links forward to the new pages", async ({ page }) => {
+    await page.goto("/#pricing");
+    await expect(page).toHaveURL(/\/pricing$/);
+    await page.goto("/#faq");
+    await expect(page).toHaveURL(/\/faq$/);
   });
 
   test("legal drafts and 404", async ({ page }) => {
@@ -58,6 +95,7 @@ test.describe("public site @mobile", () => {
   test("sitemap and robots list the public pages only", async ({ request }) => {
     const map = await (await request.get("/sitemap.xml")).text();
     expect(map).toContain("/blog/sma-20-50-crossover-vs-sma-trend-rule");
+    for (const path of ["/how-it-works", "/chrome-extension", "/pricing", "/faq"]) expect(map).toContain(path);
     expect(map).not.toContain("/app");
     const robots = await (await request.get("/robots.txt")).text();
     expect(robots).toMatch(/Disallow: \/app/);
@@ -74,8 +112,10 @@ test.describe("public site @mobile", () => {
   test("login and landing have no serious accessibility violations", async ({ page }) => {
     await page.goto("/login");
     expect(await seriousViolations(page)).toEqual([]);
-    await page.goto("/");
-    expect(await seriousViolations(page)).toEqual([]);
+    for (const path of ["/", "/how-it-works", "/chrome-extension", "/pricing", "/faq"]) {
+      await page.goto(path);
+      expect(await seriousViolations(page)).toEqual([]);
+    }
   });
 });
 

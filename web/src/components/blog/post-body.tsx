@@ -188,9 +188,16 @@ function BlockView({ b, post }: { b: Block; post: Post }) {
 export function PostBody({ post }: { post: Post }) {
   return (
     <>
-      {post.blocks.map((b, i) => (
-        <BlockView key={i} b={b} post={post} />
-      ))}
+      {post.blocks.map((b, i) =>
+        // figures rise in as they scroll into view (ADR-054); running text stays put so reading is never disturbed
+        b.type === "p" || b.type === "h2" || b.type === "h3" || b.type === "list" ? (
+          <BlockView key={i} b={b} post={post} />
+        ) : (
+          <div key={i} className="reveal">
+            <BlockView b={b} post={post} />
+          </div>
+        ),
+      )}
     </>
   );
 }

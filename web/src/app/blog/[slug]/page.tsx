@@ -8,6 +8,7 @@ import { BLOG_DATA } from "@/lib/blog/data";
 import { longDate, readMinutes } from "@/lib/blog/format";
 import { POSTS, postBySlug, postText } from "@/lib/blog/posts";
 import { SITE_URL } from "@/lib/env";
+import { Tilt } from "@/components/marketing/tilt";
 
 export function generateStaticParams() {
   return POSTS.map((p) => ({ slug: p.slug }));
@@ -86,7 +87,7 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
     <main className="mx-auto max-w-[760px] px-5 pb-16 pt-6 md:px-8 md:pt-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
 
-      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-[12.5px] text-muted-foreground">
+      <nav aria-label="Breadcrumb" className="hero-in flex flex-wrap items-center gap-1 text-[12.5px] text-muted-foreground">
         <Link href="/" className="hover:text-foreground">
           Home
         </Link>
@@ -98,13 +99,17 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
 
       <article className="mt-5">
         <header>
-          <h1 className="display text-[32px] leading-[1.12] text-foreground md:text-[44px]">{post.title}</h1>
-          <p className="mt-4 text-[13px] text-muted-foreground">
+          <h1 className="hero-in display text-[32px] leading-[1.12] text-foreground md:text-[44px]" style={{ "--d": "80ms" } as React.CSSProperties}>
+            {post.title}
+          </h1>
+          <p className="hero-in mt-4 text-[13px] text-muted-foreground" style={{ "--d": "180ms" } as React.CSSProperties}>
             By QuantsPulse Research · <time dateTime={post.published}>{longDate(post.published)}</time> · {readMinutes(words)} min read
           </p>
         </header>
 
-        <section aria-label="The short answer" className="mt-7 rounded-2xl border border-border bg-card px-5 py-4 md:px-6 md:py-5" data-testid="blog-answer">
+        <section aria-label="The short answer" className="hero-in mt-7 rounded-2xl border border-border bg-card px-5 py-4 md:px-6 md:py-5"
+          style={{ "--d": "280ms" } as React.CSSProperties}
+          data-testid="blog-answer">
           <p className="eyebrow flex items-center gap-1.5 text-[10.5px]">
             <LightningIcon size={13} aria-hidden /> The short answer
           </p>
@@ -139,7 +144,7 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
         <h2 id="takeaways" className="display mt-12 scroll-mt-24 text-[26px] leading-tight text-foreground md:text-[30px]">
           Key takeaways
         </h2>
-        <ul className="mt-5 flex flex-col gap-3">
+        <ul className="reveal mt-5 flex flex-col gap-3">
           {post.takeaways.map((t) => (
             <li key={t} className="flex gap-3 text-[16.5px] leading-[1.65] text-foreground/90">
               <CheckCircleIcon size={20} weight="fill" className="mt-0.5 shrink-0 text-series-ours" aria-hidden />
@@ -153,7 +158,7 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
         <h2 id="questions" className="display mt-12 scroll-mt-24 text-[26px] leading-tight text-foreground md:text-[30px]">
           Questions people ask
         </h2>
-        <div className="mt-5 divide-y divide-border rounded-xl border border-border bg-card">
+        <div className="reveal mt-5 divide-y divide-border rounded-xl border border-border bg-card">
           {post.faq.map((f) => (
             <details key={f.q} className="group px-5 py-4">
               <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-[16px] font-semibold text-foreground">
@@ -167,7 +172,7 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
           ))}
         </div>
 
-        <aside className="mt-12 rounded-2xl border border-border bg-card px-5 py-6 md:px-7">
+        <aside className="reveal mt-12 rounded-2xl border border-border bg-card px-5 py-6 md:px-7">
           <p className="display text-[24px] leading-snug text-foreground">See the {post.ruleName} rule on any NSE stock</p>
           <p className="mt-2 text-[15px] leading-[1.65] text-foreground/80">
             Every past trade on the chart, the safety stop of every open signal, and a TradingView script for this rule only.
@@ -191,11 +196,13 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
         <h2 className="display text-[24px] text-foreground">More research notes</h2>
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {others.map((p) => (
-            <li key={p.slug}>
-              <Link href={`/blog/${p.slug}`} className="block h-full rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/25">
-                <p className="text-[15px] font-semibold leading-snug text-foreground">{p.title}</p>
-                <p className="mt-1.5 text-[13px] text-muted-foreground">{p.ruleName}</p>
-              </Link>
+            <li key={p.slug} className="reveal">
+              <Tilt max={6} className="h-full rounded-xl">
+                <Link href={`/blog/${p.slug}`} className="block h-full rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/25">
+                  <p className="text-[15px] font-semibold leading-snug text-foreground">{p.title}</p>
+                  <p className="mt-1.5 text-[13px] text-muted-foreground">{p.ruleName}</p>
+                </Link>
+              </Tilt>
             </li>
           ))}
         </ul>

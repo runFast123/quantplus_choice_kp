@@ -8,7 +8,7 @@
  *
  * Used on the public landing page only (ADR-054: an exception to design rule 16, no glass elsewhere). Adapted for
  * QuantsPulse: icons come from the caller (Phosphor), ink colours from the theme tokens, no sound, no custom icon set,
- * aria-current="location" for in-page sections, and the water only animates while something is happening (a move,
+ * aria-current="page" on the current page, and the water only animates while something is happening (a move,
  * a ripple, the pointer over it) instead of every frame.
  */
 
@@ -565,7 +565,7 @@ export function LiquidNavbar({
             <span className="nimbus-label">{it.label}</span>
           </>
         );
-        const isCurrent = i === current ? ("location" as const) : undefined;
+        const isCurrent = i === current ? ("page" as const) : undefined;
         return it.href ? (
           <a key={it.label} ref={setRef} className="nimbus-item" aria-current={isCurrent} href={it.href} onClick={() => select(i)}>
             {content}

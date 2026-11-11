@@ -5,6 +5,20 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — How it works, the extension, pricing and the FAQ are their own pages; Research gets the motion (ADR-055, 11 Nov 2026)
+- Why: the Research pages had none of the landing page's motion (ADR-054 had limited it to `/`), and one long page gave
+  four topics one title and one URL, so none could rank for its own searches.
+- New pages `/how-it-works`, `/chrome-extension`, `/pricing`, `/faq`: one H1 each, own title/description/canonical/Open
+  Graph, breadcrumb structured data (plus `FAQPage` on /faq), links to the other pages, listed in the sitemap. Home
+  keeps the hero, ticker, a card per page, the privacy band and three questions. Old `/#pricing`-style links forward.
+- The glass navbar links to the pages and lights the one you are on, on every public page (Research and legal too);
+  the footer lists the pages. Research index and notes: headings arrive line by line, cards tilt and rise in, charts and
+  tables rise in; running text stays still. Still nothing with "reduce motion".
+- Files: `web/src/app/(site)/{layout,how-it-works/page,chrome-extension/page,pricing/page,faq/page}.tsx`,
+  `web/src/components/marketing/{sections,legacy-hash,landing-nav,site-nav}.tsx`, `web/src/app/page.tsx`,
+  `web/src/app/blog/{page,[slug]/page}.tsx`, `web/src/components/blog/post-body.tsx`,
+  `web/src/components/ui/liquid-glass-navbar.tsx`, `web/src/app/sitemap.ts`, `web/e2e/public.spec.ts`.
+
 ### Changed — the landing page redesigned with 3D depth and motion (ADR-054, 11 Nov 2026)
 - Hero: the signal chart now sits on a tilted 3D stage with cards floating in front at different depths (the buy, the
   Market Radar, the safety stop, rule health); it leans toward the pointer and flattens as you scroll. The headline
