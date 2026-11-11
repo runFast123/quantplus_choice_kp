@@ -8,7 +8,9 @@ import {
   ShieldCheckIcon,
   TerminalWindowIcon,
 } from "@phosphor-icons/react/ssr";
+import { HeroScene } from "@/components/marketing/hero-scene";
 import { SiteFooter, SiteNav } from "@/components/marketing/site-nav";
+import { Tilt } from "@/components/marketing/tilt";
 import { ButtonLink } from "@/components/ui/button";
 import { paiseToRupees } from "@/lib/format";
 import { FEATURE_ROWS } from "@/lib/plans";
@@ -52,23 +54,28 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           Your account and personal workspace have been deleted.
         </p>
       ) : null}
-      <SiteNav signedIn={signedIn} />
+      <SiteNav signedIn={signedIn} liquid />
 
       <main>
         {/* ---------------- Hero ---------------- */}
-        <section className="mx-auto grid max-w-[1240px] gap-12 px-5 pb-16 pt-10 md:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-16 lg:pt-16">
+        <section className="mx-auto grid max-w-[1240px] gap-14 overflow-x-clip px-5 pb-20 pt-10 md:px-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16 lg:pt-20">
           <div>
-            <p className="eyebrow">For people who research Indian stocks themselves</p>
+            <p className="eyebrow hero-in">For people who research Indian stocks themselves</p>
             <h1 className="display mt-5 text-[46px] leading-[1.02] text-foreground sm:text-[60px] lg:text-[72px]">
-              Research on rules <br className="hidden sm:block" />
-              you can <em className="relative whitespace-nowrap">read<Underline /></em>.
+              <span className="hero-in inline-block" style={{ "--d": "80ms" } as React.CSSProperties}>
+                Research on rules
+              </span>{" "}
+              <br className="hidden sm:block" />
+              <span className="hero-in inline-block" style={{ "--d": "200ms" } as React.CSSProperties}>
+                you can <em className="relative whitespace-nowrap">read<Underline /></em>.
+              </span>
             </h1>
-            <p className="mt-6 max-w-[34rem] text-[17px] leading-8 text-muted-foreground">
-              Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against five published rules after every close — three that follow
-              a rising trend, two that buy a sharp dip in a rising stock — plus the price levels you set, and can show the signals right on your broker&apos;s chart
-              with our Chrome extension.
+            <p className="hero-in mt-6 max-w-[34rem] text-[17px] leading-8 text-muted-foreground" style={{ "--d": "320ms" } as React.CSSProperties}>
+              Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against six published rules after every close — four trend rules
+              (one of them for a long slump that is starting to turn up) and two that buy a sharp dip in a rising stock — plus the price levels you set, and can
+              show the signals right on your broker&apos;s chart with our Chrome extension.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="hero-in mt-8 flex flex-wrap items-center gap-3" style={{ "--d": "440ms" } as React.CSSProperties}>
               <ButtonLink href={signedIn ? "/app" : "/signup"} size="lg">
                 {signedIn ? "Open the desk" : "Start free for 3 months"}
               </ButtonLink>
@@ -82,31 +89,29 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <p className="mt-4 text-[12.5px] text-muted-foreground">No card needed. Basic covers a 10-stock radar, rule-based signals, and research on every listing.</p>
           </div>
 
-          <Specimen />
+          <HeroScene />
         </section>
 
-        {/* ---------------- Dateline ---------------- */}
-        <div className="border-y border-border bg-card/70">
-          <p className="num mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-1.5 px-5 py-3 text-[11.5px] uppercase tracking-[0.08em] text-muted-foreground md:px-8">
-            <span>3,600+ NSE listings</span>
-            <span aria-hidden>/</span>
-            <span>Updated each weekday ~17:00 IST</span>
-            <span aria-hidden>/</span>
-            <span>Chrome extension for 20+ brokers</span>
-            <span aria-hidden>/</span>
-            <span>TradingView charts</span>
-            <span aria-hidden>/</span>
-            <span>Holdings import from CSV</span>
-            <span aria-hidden>/</span>
-            <span>Plain-words price mood</span>
-            <span aria-hidden>/</span>
-            <span>Prices in ₹, times in IST</span>
-          </p>
+        {/* ---------------- Dateline: a slow ticker (static with "reduce motion") ---------------- */}
+        <div className="overflow-hidden border-y border-border bg-card/70" data-ticker>
+          <p className="sr-only">{DATELINE.join(" / ")}</p>
+          <div className="animate-marquee flex w-max" aria-hidden>
+            {[0, 1].map((copy) => (
+              <p key={copy} className="num flex shrink-0 items-center gap-x-6 py-3 pr-6 text-[11.5px] uppercase tracking-[0.08em] text-muted-foreground">
+                {DATELINE.map((t) => (
+                  <span key={t} className="flex items-center gap-6">
+                    <span>{t}</span>
+                    <span className="text-coral-ink">/</span>
+                  </span>
+                ))}
+              </p>
+            ))}
+          </div>
         </div>
 
         {/* ---------------- How ---------------- */}
-        <section id="how" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-20 md:px-8">
-          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+        <section id="how" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-24 md:px-8">
+          <div className="reveal grid gap-4 md:grid-cols-[220px_1fr]">
             <p className="eyebrow pt-3">How it works</p>
             <h2 className="display max-w-[22ch] text-[36px] leading-[1.1] md:text-[44px]">A short list, a few rules, and a nudge when they agree.</h2>
           </div>
@@ -121,8 +126,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             </Step>
             <Step
               n="02"
-              title="Five simple rules, in plain words"
-              body="Three trend rules (a new 52-week high on heavy volume, the 20-day average turning above the 50-day in a market leader, a close above a flat or rising 200-day average) and two dip rules (a sharp drop in a rising stock), each written out on the Signals page with its tested record. Every buy comes with a safety stop and a plan for when to sell, and a one-word read of how stretched the price is, from Beaten down to Very stretched."
+              title="Six simple rules, in plain words"
+              body="Four trend rules (a new 52-week high on heavy volume, the 20-day average turning above the 50-day in a market leader, a close above a flat or rising 200-day average, and a deep, long slump starting to turn up) and two dip rules (a sharp drop in a rising stock), each written out on the Signals page with its tested record. Every buy comes with a safety stop and a plan for when to sell, and a one-word read of how stretched the price is, from Beaten down to Very stretched."
             >
               <RuleSketch />
             </Step>
@@ -137,8 +142,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </section>
 
         {/* ---------------- Terminal Extension Section ---------------- */}
-        <section id="terminal" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-20 md:px-8 border-t border-border">
-          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+        <section id="terminal" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-24 md:px-8 border-t border-border">
+          <div className="reveal grid gap-4 md:grid-cols-[220px_1fr]">
             <p className="eyebrow pt-3">Chrome extension</p>
             <div>
               <h2 className="display text-[36px] leading-[1.1] md:text-[44px]">
@@ -152,35 +157,25 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
           <div className="mt-12 grid gap-8 lg:grid-cols-12 lg:items-center">
             <div className="flex flex-col gap-4 lg:col-span-5">
-              <div className="panel-interactive p-5">
-                <div className="flex items-center gap-2.5">
-                  <TerminalWindowIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
-                  <h3 className="text-[15px] font-semibold">A signal bar on the chart</h3>
+              {(
+                [
+                  [TerminalWindowIcon, "A signal bar on the chart", "A small bar on your broker's chart shows the stock's latest signal (buy or exit), the price it fired at, its safety stop and its plan, from the last end-of-day close."],
+                  [BrowserIcon, "A side panel with the details", "Open the side panel for the signal explained in plain words, the 52-week range, recent signals and a one-click TradingView script, without leaving your broker."],
+                  [ShieldCheckIcon, "20+ brokers, no account access", "Works on Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, TradingView and more. It only reads the page: it never sees your broker password and never places orders."],
+                ] as const
+              ).map(([Icon, title, body]) => (
+                <div key={title} className="reveal">
+                  <Tilt max={4}>
+                    <div className="panel p-5">
+                      <div className="flex items-center gap-2.5">
+                        <Icon size={18} className="text-coral-ink shrink-0" aria-hidden />
+                        <h3 className="text-[15px] font-semibold">{title}</h3>
+                      </div>
+                      <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">{body}</p>
+                    </div>
+                  </Tilt>
                 </div>
-                <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                  A small bar on your broker&apos;s chart shows the stock&apos;s latest signal (buy or exit), the price it fired at, its safety stop and its plan, from the last end-of-day close.
-                </p>
-              </div>
-
-              <div className="panel-interactive p-5">
-                <div className="flex items-center gap-2.5">
-                  <BrowserIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
-                  <h3 className="text-[15px] font-semibold">A side panel with the details</h3>
-                </div>
-                <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                  Open the side panel for the signal explained in plain words, the 52-week range, recent signals and a one-click TradingView script, without leaving your broker.
-                </p>
-              </div>
-
-              <div className="panel-interactive p-5">
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheckIcon size={18} className="text-coral-ink shrink-0" aria-hidden />
-                  <h3 className="text-[15px] font-semibold">20+ brokers, no account access</h3>
-                </div>
-                <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">
-                  Works on Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, TradingView and more. It only reads the page: it never sees your broker password and never places orders.
-                </p>
-              </div>
+              ))}
 
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
                 <a
@@ -207,7 +202,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               </div>
             </div>
 
-            <div className="lg:col-span-7">
+            <div className="screen-in lg:col-span-7">
               <TerminalSpecimen />
             </div>
           </div>
@@ -215,8 +210,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
         {/* ---------------- Privacy ---------------- */}
         <section id="privacy" className="scroll-mt-8 bg-primary text-primary-foreground">
-          <div className="mx-auto grid max-w-[1240px] gap-12 px-5 py-20 md:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-            <div>
+          <div className="mx-auto grid max-w-[1240px] gap-12 px-5 py-24 md:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+            <div className="reveal">
               <p className="eyebrow !text-primary-foreground/60">Privacy, enforced by the database</p>
               <h2 className="display mt-4 text-[38px] leading-[1.08] md:text-[48px]">
                 Your holdings are yours.
@@ -233,7 +228,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 <li>Export everything, or delete your account, from Settings. No email to support.</li>
               </ul>
             </div>
-            <div role="group" aria-label="Who can see what — scrolls sideways" tabIndex={0} className="relative self-center overflow-x-auto rounded-xl border border-primary-foreground/15">
+            <div role="group" aria-label="Who can see what — scrolls sideways" tabIndex={0} className="reveal relative self-center overflow-x-auto rounded-xl border border-primary-foreground/15">
               <table className="w-full min-w-[440px] text-left text-[13.5px]">
                 <caption className="sr-only">Who can see what</caption>
                 <thead>
@@ -270,17 +265,19 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </section>
 
         {/* ---------------- Pricing ---------------- */}
-        <section id="pricing" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-20 md:px-8">
-          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+        <section id="pricing" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 py-24 md:px-8">
+          <div className="reveal grid gap-4 md:grid-cols-[220px_1fr]">
             <p className="eyebrow pt-3">Pricing</p>
             <div>
               <h2 className="display text-[36px] leading-[1.1] md:text-[44px]">Priced by the year, in rupees.</h2>
               <p className="mt-3 max-w-xl text-[15px] leading-7 text-muted-foreground">Every account starts on Basic for three months. Upgrade when the radar gets crowded.</p>
             </div>
           </div>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
+          <div className="mt-12 grid items-start gap-5 md:grid-cols-3">
             {plans.map((p) => (
-              <div key={p.code} className={clsx("flex flex-col bg-card p-6", p.code === "pro" && "bg-accent")}>
+              <div key={p.code} className={clsx("reveal h-full", p.code === "pro" && "md:-translate-y-3")}>
+              <Tilt max={5} className="h-full">
+              <div className={clsx("panel flex h-full flex-col p-6", p.code === "pro" && "bg-accent shadow-pop")}>
                 <div className="flex items-baseline justify-between">
                   <h3 className="display text-[26px]">{p.name}</h3>
                   {p.code === "pro" ? <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-coral-ink">Most chosen</span> : null}
@@ -308,13 +305,15 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   {p.price_paise_yearly ? `Choose ${p.name}` : "Start free"}
                 </ButtonLink>
               </div>
+              </Tilt>
+              </div>
             ))}
           </div>
         </section>
 
         {/* ---------------- FAQ ---------------- */}
         <section id="faq" className="mx-auto max-w-[1240px] scroll-mt-8 px-5 pb-24 md:px-8">
-          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+          <div className="reveal grid gap-4 md:grid-cols-[220px_1fr]">
             <p className="eyebrow pt-3">Questions</p>
             <div className="divide-y divide-border border-y border-border">
               {FAQ.map(([q, a]) => (
@@ -337,6 +336,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     </div>
   );
 }
+
+const DATELINE = [
+  "3,600+ NSE listings",
+  "Updated each weekday ~17:00 IST",
+  "Six published rules",
+  "Chrome extension for 20+ brokers",
+  "TradingView charts",
+  "Holdings import from CSV",
+  "Plain-words price mood",
+  "Prices in ₹, times in IST",
+];
 
 const FAQ: [string, string][] = [
   [
@@ -382,52 +392,6 @@ function Underline() {
     <svg viewBox="0 0 200 14" preserveAspectRatio="none" className="absolute -bottom-1 left-0 h-3 w-full text-coral" aria-hidden>
       <path d="M2 9 C 40 3, 80 12, 120 6 S 180 4, 198 8" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
-  );
-}
-
-function Specimen() {
-  return (
-    <figure className="relative self-center">
-      <div className="panel rotate-[-0.6deg] p-5 shadow-pop md:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="eyebrow">Signal · specimen</p>
-            <p className="num mt-2 text-[22px] font-medium">HDFCBANK</p>
-            <p className="text-[12.5px] text-muted-foreground">HDFC Bank · Banking</p>
-          </div>
-          <span className="rounded-[4px] bg-gain-soft px-2 py-1 text-[11px] font-semibold tracking-wide text-gain">BUY</span>
-        </div>
-        <svg viewBox="0 0 320 120" className="mt-4 w-full text-foreground" aria-hidden>
-          <g className="stroke-border" strokeWidth="1">
-            {[24, 60, 96].map((y) => (
-              <line key={y} x1="0" x2="320" y1={y} y2={y} strokeDasharray="2 4" />
-            ))}
-          </g>
-          <path d="M0 80 L20 84 L40 78 L60 88 L80 82 L100 90 L120 86 L140 92 L160 84 L180 76 L200 70 L220 62 L240 58 L260 48 L280 44 L300 36 L320 30" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="M0 74 L40 78 L80 82 L120 84 L160 82 L200 76 L240 68 L280 58 L320 48" fill="none" className="stroke-muted-foreground" strokeWidth="1.2" strokeDasharray="4 3" />
-          <path d="M0 70 L60 74 L120 78 L180 80 L240 76 L320 68" fill="none" className="stroke-muted-foreground/60" strokeWidth="1.2" strokeDasharray="1 3" />
-          <circle cx="186" cy="74" r="4.5" className="fill-coral" />
-        </svg>
-        <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-[12px]">
-          <div>
-            <dt className="eyebrow">Rule</dt>
-            <dd className="mt-1">SMA 20/50 trend</dd>
-          </div>
-          <div>
-            <dt className="eyebrow">Fired at</dt>
-            <dd className="num mt-1">₹1,642.30</dd>
-          </div>
-          <div>
-            <dt className="eyebrow">Stop / review</dt>
-            <dd className="num mt-1">1,527 · 60 days</dd>
-          </div>
-        </dl>
-      </div>
-      <figcaption className="mt-5 flex items-start gap-3 pl-2 text-[12.5px] leading-5 text-muted-foreground">
-        <span className="mt-2 h-px w-8 shrink-0 bg-coral" aria-hidden />
-        Illustrative. The coral mark is where the 20-day average (dashed) turned above the 50-day (dotted) — the rule&apos;s signal, visible on the chart.
-      </figcaption>
-    </figure>
   );
 }
 
@@ -532,15 +496,17 @@ function TerminalSpecimen() {
 
 function Step({ n, title, body, children, className }: { n: string; title: string; body: string; children: React.ReactNode; className?: string }) {
   return (
-    <li className={clsx("list-none", className)}>
-      <div className="panel overflow-hidden">
-        <div className="border-b border-border bg-background/40 p-5">{children}</div>
-        <div className="p-6">
-          <p className="num text-[12px] text-coral-ink">{n}</p>
-          <h3 className="display mt-2 text-[24px]">{title}</h3>
-          <p className="mt-2 text-[14.5px] leading-7 text-muted-foreground">{body}</p>
+    <li className={clsx("reveal list-none", className)}>
+      <Tilt max={5} className="h-full">
+        <div className="panel h-full overflow-hidden">
+          <div className="border-b border-border bg-background/40 p-5">{children}</div>
+          <div className="p-6">
+            <p className="num text-[12px] text-coral-ink">{n}</p>
+            <h3 className="display mt-2 text-[24px]">{title}</h3>
+            <p className="mt-2 text-[14.5px] leading-7 text-muted-foreground">{body}</p>
+          </div>
         </div>
-      </div>
+      </Tilt>
     </li>
   );
 }

@@ -5,6 +5,24 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — the landing page redesigned with 3D depth and motion (ADR-054, 11 Nov 2026)
+- Hero: the signal chart now sits on a tilted 3D stage with cards floating in front at different depths (the buy, the
+  Market Radar, the safety stop, rule health); it leans toward the pointer and flattens as you scroll. The headline
+  slides in line by line. How-it-works, extension and pricing cards tilt under the pointer; sections rise in with a
+  slight 3D turn; the extension preview flattens like a screen as it scrolls in; the dateline is a slow ticker; the
+  pricing cards are separate with Pro lifted. CSS 3D, no new library; still with "reduce motion"; ideas from 21st.dev,
+  no paid code. Copy corrected: six published rules (was five).
+- Files: `web/src/app/page.tsx`, `web/src/components/marketing/{hero-scene,tilt}.tsx`, `web/src/app/globals.css`.
+
+### Added — a liquid-glass navbar on the landing page (ADR-054, 11 Nov 2026)
+- The landing page's section links are now a floating glass pill at the top: a water drop (WebGL, a CSS drop without
+  it) sits on the section you are reading and stretches to the next one; icons only below 1280 px, hidden on phones as
+  before. From a 21st.dev component the owner shared, adapted: Phosphor icons, theme ink, the glass tinted with the page
+  background so the labels read over the dark Privacy band, no sound, and no animation while nothing happens. The app,
+  the blog and the legal pages are unchanged (design rule 16 still applies there).
+- Files: `web/src/components/ui/liquid-glass-navbar.tsx`, `web/src/components/marketing/{landing-nav,site-nav}.tsx`,
+  `web/src/app/page.tsx`.
+
 ### Changed — the phone bottom bar's highlight slides between tabs (11 Nov 2026)
 - A pill behind the active tab's icon slides to the tab you tap, stretching toward it on the way (the leading edge moves
   first, the trailing edge follows) and settling with a small overshoot; the active label goes bold and the icon hops.

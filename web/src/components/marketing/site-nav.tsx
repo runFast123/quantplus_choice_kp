@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { ButtonLink } from "@/components/ui/button";
+import { LandingNav } from "./landing-nav";
 
-export function SiteNav({ signedIn }: { signedIn: boolean }) {
+export function SiteNav({ signedIn, liquid = false }: { signedIn: boolean; liquid?: boolean }) {
   return (
     <header className="mx-auto flex h-16 max-w-[1240px] items-center justify-between px-5 md:px-8">
       <Logo />
-      <nav aria-label="Site" className="hidden items-center gap-7 text-[13.5px] text-muted-foreground md:flex">
+      {liquid ? (
+        // The landing page: a floating liquid-glass pill that stays at the top while you scroll (ADR-054).
+        <div className="fixed left-1/2 top-[5px] z-40 hidden -translate-x-1/2 md:block">
+          <LandingNav />
+        </div>
+      ) : null}
+      <nav aria-label="Site" className={liquid ? "hidden" : "hidden items-center gap-7 text-[13.5px] text-muted-foreground md:flex"}>
         <Link href="/#terminal" className="hover:text-foreground">
           Chrome extension
         </Link>

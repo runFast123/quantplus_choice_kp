@@ -354,6 +354,28 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-054 · The landing page may use liquid glass, 3D depth and motion; nowhere else
+**Date** 2026-11-11 · **Status** accepted
+- **Context:** the owner shared a liquid-glass navbar (21st.dev, "Waterline" by guglielmogiannattasio.it) to make the
+  site feel more alive. Design rule 16 (AGENTS.md, MASTER.md) bans glass, gradients and glows. Its motion idea went into
+  the app's phone bottom bar in Zen Linen colours first (no glass); the owner then chose the glass version for the
+  public landing page.
+- **Decision:** an exception for the landing page `/` only: its section nav is a floating liquid-glass pill
+  (`components/ui/liquid-glass-navbar.tsx`, `components/marketing/landing-nav.tsx`) with a WebGL water drop that follows
+  the section you read. Adapted: Phosphor icons, theme ink colours, the glass tinted 80 % with the page background so
+  labels stay readable over the dark Privacy band, no sound, and the water animates only while something happens. The
+  signed-in app, the blog and the legal pages keep rule 16.
+- **Then (same day) the landing redesign:** the owner found the landing page plain and asked for 3D animation. Built in
+  house with 21st.dev used for ideas only (no paid components): a 3D hero stage (`components/marketing/hero-scene.tsx`:
+  the signal chart on a tilted plane with cards at different depths, leaning toward the pointer and flattening as it
+  scrolls away), cards that tilt under the pointer (`tilt.tsx`), sections that rise in with a slight 3D turn and an
+  extension "screen" that flattens as it scrolls in (CSS scroll-driven animations, shown plainly where unsupported), a
+  moving dateline ticker. CSS 3D only, no new library; theme colours; everything still with "reduce motion"; headline
+  motion never makes text transparent. Copy fixed to six rules.
+- **Limits:** WebGL off or lost → a CSS drop. Refraction of the page behind the glass is Chromium only. The navbar is
+  hidden on phones (as the old text nav was), and the hero's floating cards from 640 px up. Scroll-driven reveals need a
+  browser that has them (Chrome, Edge, recent Safari); others show the page without them.
+
 ### ADR-053 · Price guard: a day that looks wrong counts only at its close until reviewed; every buy keeps its conditions
 **Date** 2026-11-09 · **Status** accepted
 - **Context:** the improvement review found trades ended by Yahoo prices that were almost certainly wrong (CLEANMAX
