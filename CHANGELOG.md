@@ -5,6 +5,12 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — the alert's Armed/Paused switch (11 Nov 2026)
+- In a narrow Alerts table column the switch's track shrank and its knob sat over the label ("med"). The track no
+  longer shrinks, the knob is pinned to its track, the label stays on one line, and the "off" track is a little darker so
+  a paused alert is easier to see. The Settings switch got the same knob pinning and colour.
+- Files: `web/src/app/app/alerts/status-toggle.tsx`, `web/src/app/app/settings/forms.tsx`.
+
 ### Fixed — system audit, 9 Nov 2026 (migration 59)
 - **Admin console 5–7 s → about 1 s.** Every tab read every tab's data, and the inventory counted the big tables exactly
   (the ~1M candle rows alone took 3–5 s). Now only the open tab's data is read, and the candle, signal, RSI, news, notes

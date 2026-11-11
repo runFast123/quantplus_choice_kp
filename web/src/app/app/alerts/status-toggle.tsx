@@ -19,12 +19,13 @@ export function AlertStatusToggle({ id, armed }: { id: string; armed: boolean })
           await setAlertStatus(id, on ? "disabled" : "armed");
         })
       }
-      className="inline-flex items-center gap-2 text-[12.5px]"
+      className="inline-flex items-center gap-2 whitespace-nowrap text-[12.5px]"
     >
-      <span className={clsx("relative h-[18px] w-8 rounded-full transition-colors", on ? "bg-primary" : "bg-foreground/15")}>
+      {/* shrink-0: in a narrow table cell the track was squeezed and the knob sat over the label */}
+      <span className={clsx("relative block h-[18px] w-8 shrink-0 rounded-full transition-colors", on ? "bg-primary" : "bg-foreground/25")}>
         <span
           className={clsx(
-            "absolute top-[2px] size-[14px] rounded-full bg-card shadow-sm transition-transform duration-150",
+            "absolute left-0 top-[2px] size-[14px] rounded-full bg-card shadow-sm transition-transform duration-150 motion-reduce:transition-none",
             on ? "translate-x-[16px]" : "translate-x-[2px]",
           )}
         />

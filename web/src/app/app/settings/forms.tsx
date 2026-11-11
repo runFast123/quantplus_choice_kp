@@ -106,10 +106,10 @@ export function ConsentSwitch({ purpose, granted, required, title, body, since }
             setError(r?.error);
           })
         }
-        className="relative mt-1 h-[22px] w-10 shrink-0 rounded-full transition-colors disabled:opacity-60 data-[on=true]:bg-primary data-[on=false]:bg-foreground/15"
+        className="relative mt-1 h-[22px] w-10 shrink-0 rounded-full transition-colors disabled:opacity-60 data-[on=true]:bg-primary data-[on=false]:bg-foreground/25"
         data-on={on}
       >
-        <span className={`absolute top-[3px] size-4 rounded-full bg-card shadow-sm transition-transform duration-150 ${on ? "translate-x-[21px]" : "translate-x-[3px]"}`} />
+        <span className={`absolute left-0 top-[3px] size-4 rounded-full bg-card shadow-sm transition-transform duration-150 motion-reduce:transition-none ${on ? "translate-x-[21px]" : "translate-x-[3px]"}`} />
       </button>
     </div>
   );
