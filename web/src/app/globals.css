@@ -408,6 +408,30 @@
   animation-delay: calc(var(--i, 0) * 3ms);
 }
 
+/* Phone bottom bar: the highlight slides to the chosen tab. The leading edge moves first and the trailing edge follows
+   90 ms later, so the pill stretches toward the tab and settles with a slight overshoot. */
+.nav-pill {
+  transition:
+    left 0.34s cubic-bezier(0.3, 1.25, 0.5, 1),
+    right 0.34s cubic-bezier(0.3, 1.25, 0.5, 1),
+    opacity 0.2s ease;
+}
+.nav-pill[data-dir="right"] {
+  transition-delay: 0.09s, 0s, 0s;
+}
+.nav-pill[data-dir="left"] {
+  transition-delay: 0s, 0.09s, 0s;
+}
+@keyframes nav-hop {
+  0% { transform: translateY(0); }
+  35% { transform: translateY(-3px) scale(1.06); }
+  70% { transform: translateY(0.5px) scale(0.98); }
+  100% { transform: none; }
+}
+.nav-hop {
+  animation: nav-hop 0.42s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .waffle-cell,
   .animate-fade-in,
@@ -418,8 +442,12 @@
   .signal-ring,
   .animate-ping-soft,
   .animate-pulse-subtle,
-  .animate-marquee {
+  .animate-marquee,
+  .nav-hop {
     animation: none !important;
+  }
+  .nav-pill {
+    transition: none !important;
   }
   .panel-interactive,
   .panel-interactive:hover,

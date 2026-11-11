@@ -150,6 +150,28 @@ export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boole
     ...(isPlatformAdmin ? [{ href: "/admin", label: "Platform admin", icon: ShieldCheckIcon }] : []),
   ];
   const moreActive = more.some((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
+  const isActive = (i: Item) => (i.exact ? pathname === i.href : pathname.startsWith(i.href));
+  const routeIndex = items.findIndex(isActive);
+  // The highlight moves on the tap (pending), not when the next page has rendered; the route takes over once it lands.
+  const [pending, setPending] = useState<{ index: number; from: string } | null>(null);
+  const tapped = pending && pending.from === pathname ? pending.index : null;
+  const index = open ? items.length : tapped ?? (routeIndex >= 0 ? routeIndex : moreActive ? items.length : -1);
+  // Which way the highlight travels: the leading edge moves first and the trailing edge follows, so it stretches.
+  const [last, setLast] = useState(index);
+  const [dir, setDir] = useState<"left" | "right">("right");
+  if (index !== last) {
+    if (index >= 0 && last >= 0) setDir(index > last ? "right" : "left");
+    setLast(index);
+  }
+  // A 52 px pill behind the icon, centred in the tab's column.
+  const cols = items.length + 1;
+  const pill =
+    index >= 0
+      ? {
+          left: `calc(${((index + 0.5) * 100) / cols}% - 26px)`,
+          right: `calc(${((cols - 1 - index + 0.5) * 100) / cols}% - 26px)`,
+        }
+      : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -197,41 +219,72 @@ export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boole
       ) : null}
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        {items.map((i) => {
-          const active = i.exact ? pathname === i.href : pathname.startsWith(i.href);
-          const Icon = i.icon;
-          return (
-            <Link
-              key={i.href}
-              href={i.href}
-              {...intent(i.href)}
-              aria-current={active ? "page" : undefined}
-              onClick={() => setOpen(false)}
+        <div className="relative grid grid-cols-5">
+          {/* The highlight: one pill that slides to the chosen tab and stretches on the way (globals.css .nav-pill). */}
+          <span
+            aria-hidden
+            data-dir={dir}
+            className={clsx("nav-pill absolute top-2 h-[30px] rounded-full bg-sidebar-primary shadow-sm", !pill && "opacity-0")}
+            style={pill}
+          />
+          {items.map((i, n) => {
+            const active = n === index;
+            const Icon = i.icon;
+            return (
+              <Link
+                key={i.href}
+                href={i.href}
+                {...intent(i.href)}
+                aria-current={isActive(i) ? "page" : undefined}
+                onClick={() => {
+                  setOpen(false);
+                  setPending({ index: n, from: pathname });
+                }}
+                className={clsx(
+                  "relative flex h-14 flex-col items-center pt-2 text-[11px] transition-colors duration-200",
+                  active ? "font-medium text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <span
+                  className={clsx(
+                    "flex h-[30px] w-[52px] items-center justify-center transition-colors duration-200",
+                    active && "text-sidebar-primary-foreground",
+                  )}
+                >
+                  <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden className={active ? "nav-hop" : undefined} />
+                </span>
+                {i.label}
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="mobile-more"
+            onClick={() => setOpen((o) => !o)}
+            className={clsx(
+              "relative flex h-14 flex-col items-center pt-2 text-[11px] transition-colors duration-200",
+              index === items.length ? "font-medium text-foreground" : "text-muted-foreground",
+            )}
+          >
+            <span
               className={clsx(
-                "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]",
-                active ? "text-foreground" : "text-muted-foreground",
+                "flex h-[30px] w-[52px] items-center justify-center transition-colors duration-200",
+                index === items.length && "text-sidebar-primary-foreground",
               )}
             >
-              <Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
-              {i.label}
-            </Link>
-          );
-        })}
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls="mobile-more"
-          onClick={() => setOpen((o) => !o)}
-          className={clsx(
-            "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px]",
-            open || moreActive ? "text-foreground" : "text-muted-foreground",
-          )}
-        >
-          <ListIcon size={20} weight={open || moreActive ? "fill" : "regular"} aria-hidden />
-          More
-        </button>
+              <ListIcon
+                size={20}
+                weight={index === items.length ? "fill" : "regular"}
+                aria-hidden
+                className={index === items.length ? "nav-hop" : undefined}
+              />
+            </span>
+            More
+          </button>
+        </div>
       </nav>
     </>
   );

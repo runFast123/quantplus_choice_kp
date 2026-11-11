@@ -5,8 +5,17 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — the phone bottom bar's highlight slides between tabs (11 Nov 2026)
+- A pill behind the active tab's icon slides to the tab you tap, stretching toward it on the way (the leading edge moves
+  first, the trailing edge follows) and settling with a small overshoot; the active label goes bold and the icon hops.
+  It moves on the tap, not when the next page has rendered; pages in the More sheet keep it on More. Zen Linen colours
+  in light and dark, plain CSS (nothing runs while it is still), no motion with "reduce motion". The idea comes from a
+  liquid-glass navbar the owner shared; the glass, gradients and WebGL water were left out (design rule 16).
+- Files: `web/src/components/shell/sidebar.tsx` (`MobileNav`), `web/src/app/globals.css` (`.nav-pill`, `.nav-hop`).
+
 ### Fixed — the alert's Armed/Paused switch (11 Nov 2026)
-- In a narrow Alerts table column the switch's track shrank and its knob sat over the label ("med"). The track no
+- In a narrow Alerts table column the switch's track shrank and its knob sat over the label ("
+med"). The track no
   longer shrinks, the knob is pinned to its track, the label stays on one line, and the "off" track is a little darker so
   a paused alert is easier to see. The Settings switch got the same knob pinning and colour.
 - Files: `web/src/app/app/alerts/status-toggle.tsx`, `web/src/app/app/settings/forms.tsx`.
