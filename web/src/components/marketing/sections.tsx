@@ -17,8 +17,10 @@ import { SITE_URL } from "@/lib/env";
 import { FEATURE_ROWS } from "@/lib/plans";
 import type { Plan } from "@/lib/types";
 
+export { DEFINITION, ORGANIZATION } from "@/lib/site";
+
 /**
- * The public site's sections (ADR-055): each one is its own page (/how-it-works, /chrome-extension, /pricing, /faq)
+ * The public site's sections (ADR-055): each one is its own page (/method, /chrome-extension, /pricing, /faq)
  * and the home page shows the privacy band and a card for each page. Motion classes (hero-in, reveal, Tilt) follow
  * ADR-054: movement only, never transparent, nothing with "reduce motion".
  */
@@ -65,7 +67,11 @@ export function PageHead({ eyebrow, title, lead }: { eyebrow: string; title: str
 
 export function HowSteps() {
   return (
-    <ol className="mt-14 grid gap-8 lg:grid-cols-3">
+    <section aria-labelledby="three-steps" className="mt-16">
+    <h2 id="three-steps" className="reveal display text-[30px] leading-[1.1] md:text-[36px]">
+      From watchlist to signal, in three steps
+    </h2>
+    <ol className="mt-10 grid gap-8 lg:grid-cols-3">
       <Step
         n="01"
         title="Build or import your Market Radar"
@@ -88,6 +94,7 @@ export function HowSteps() {
         <AllocationSketch />
       </Step>
     </ol>
+    </section>
   );
 }
 
@@ -95,6 +102,7 @@ export function ExtensionBody() {
   return (
     <div className="mt-12 grid gap-8 lg:grid-cols-12 lg:items-center">
       <div className="flex flex-col gap-4 lg:col-span-5">
+        <h2 className="reveal display text-[28px] leading-[1.1] md:text-[32px]">What the extension shows on your chart</h2>
         {(
           [
             [TerminalWindowIcon, "A signal bar on the chart", "A small bar on your broker's chart shows the stock's latest signal (buy or exit), the price it fired at, its safety stop and its plan, from the last end-of-day close."],
@@ -209,6 +217,7 @@ export function PrivacyBand() {
 export function PricingCards({ plans, signedIn }: { plans: Plan[]; signedIn: boolean }) {
   return (
     <div className="mt-12 grid items-start gap-5 md:grid-cols-3">
+      <h2 className="sr-only">Compare the Basic, Pro and Pro Plus plans</h2>
       {plans.map((p) => (
         <div key={p.code} className={clsx("reveal h-full", p.code === "pro" && "md:-translate-y-3")}>
         <Tilt max={5} className="h-full">
@@ -247,13 +256,15 @@ export function PricingCards({ plans, signedIn }: { plans: Plan[]; signedIn: boo
   );
 }
 
-export function FaqList({ limit }: { limit?: number } = {}) {
+/** The questions; each one is a real heading inside its summary (h2 on /faq, h3 under a section heading elsewhere). */
+export function FaqList({ limit, level = 3 }: { limit?: number; level?: 2 | 3 } = {}) {
+  const Q = level === 2 ? "h2" : "h3";
   return (
       <div className="divide-y divide-border border-y border-border">
         {FAQ.slice(0, limit).map(([q, a]) => (
           <details key={q} className="group py-5">
             <summary className="flex list-none items-center justify-between gap-6 text-[17px] [&::-webkit-details-marker]:hidden">
-              <span className="display">{q}</span>
+              <Q className="display text-[17px] font-normal">{q}</Q>
               <span aria-hidden className="num text-muted-foreground transition-transform duration-150 group-open:rotate-45">
                 +
               </span>
@@ -283,16 +294,18 @@ export function JsonLd({ name, path, extra = [] }: { name: string; path: string;
 
 /** Links to the other public pages at the foot of each one: readers find the next thing, crawlers find every page. */
 const PAGES = [
-  ["/how-it-works", "How it works", "Build a radar, six rules check it after every close, and see the signals on your broker's chart."],
+  ["/method", "Method", "Six published rules check your radar after every close, with a safety stop and a plan for every buy."],
   ["/chrome-extension", "Chrome extension", "The signal, its safety stop and its plan, right on your broker's chart."],
   ["/pricing", "Pricing", "Basic, Pro and Pro Plus, priced by the year in rupees. Three months free to start."],
   ["/faq", "Questions", "Advice, data, the extension, your privacy and how to leave."],
   ["/blog", "Research notes", "Five common indicator setups, tested on NSE stocks from 2019 to 2026."],
 ] as const;
 
-export function MorePages({ current }: { current?: string }) {
+export function MorePages({ current, title }: { current?: string; title?: string }) {
   const list = PAGES.filter(([href]) => href !== current);
   return (
+    <>
+    {title ? <h2 className="reveal display mb-8 text-[28px] leading-[1.1] md:text-[32px]">{title}</h2> : null}
     <ul className={clsx("grid gap-4 sm:grid-cols-2", list.length > 4 ? "lg:grid-cols-5" : "lg:grid-cols-4")} data-testid="site-pages">
       {list.map(([href, title, body]) => (
         <li key={href} className="reveal">
@@ -308,6 +321,7 @@ export function MorePages({ current }: { current?: string }) {
         </li>
       ))}
     </ul>
+    </>
   );
 }
 

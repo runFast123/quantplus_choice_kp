@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { InfoIcon } from "@phosphor-icons/react/ssr";
 import { ExampleChart, PeriodsChart, SpreadChart, YearsChart } from "@/components/blog/charts";
+import { CountUp } from "@/components/blog/motion";
 import { RuleDiagram } from "@/components/blog/rule-diagram";
 import { BLOG_DATA } from "@/lib/blog/data";
 import { count, pct, signed } from "@/lib/blog/format";
@@ -45,19 +46,24 @@ export function StatTiles({ post }: { post: Post }) {
   ];
   return (
     <div className="my-8 grid gap-3 sm:grid-cols-3" data-testid="blog-stats">
-      {tiles.map((t) => (
+      {tiles.map((t, k) => (
+        // the numbers count up once as the tiles scroll into view; the final value is always the accessible text
         <div key={t.label} className="rounded-xl border border-border bg-card px-4 py-3.5">
           <p className="eyebrow text-[10.5px]">{t.label}</p>
           <div className="mt-2.5 flex items-end justify-between gap-2">
             <div className="min-w-0">
-              <p className={`num whitespace-nowrap text-[22px] font-medium leading-none ${t.oc ?? "text-foreground"}`}>{t.o}</p>
+              <p className={`num whitespace-nowrap text-[22px] font-medium leading-none ${t.oc ?? "text-foreground"}`}>
+                <CountUp text={t.o} delay={k * 60} />
+              </p>
               <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-muted-foreground">
                 <span className="h-2 w-2 shrink-0 rounded-[2px] bg-series-ours" aria-hidden />
                 {post.ruleName}
               </p>
             </div>
             <div className="min-w-0 text-right">
-              <p className={`num whitespace-nowrap text-[15px] leading-none ${t.uc ?? "text-foreground/80"}`}>{t.u}</p>
+              <p className={`num whitespace-nowrap text-[15px] leading-none ${t.uc ?? "text-foreground/80"}`}>
+                <CountUp text={t.u} delay={k * 60 + 30} />
+              </p>
               <p className="mt-1.5 flex items-center justify-end gap-1 text-[11.5px] text-muted-foreground">
                 <span className="h-2 w-2 shrink-0 rounded-[2px] bg-series-usual" aria-hidden />
                 {post.usualName}

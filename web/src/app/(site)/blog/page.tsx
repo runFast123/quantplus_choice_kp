@@ -5,6 +5,7 @@ import { BLOG_DATA } from "@/lib/blog/data";
 import { longDate, pct, readMinutes } from "@/lib/blog/format";
 import { POSTS, postText } from "@/lib/blog/posts";
 import { SITE_URL } from "@/lib/env";
+import { JsonLd } from "@/components/marketing/sections";
 import { Tilt } from "@/components/marketing/tilt";
 
 const DESCRIPTION =
@@ -25,7 +26,7 @@ export default function BlogIndex() {
     name: "QuantsPulse research notes",
     description: DESCRIPTION,
     url: `${SITE_URL}/blog`,
-    publisher: { "@type": "Organization", name: "QuantsPulse", url: SITE_URL },
+    publisher: { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: "QuantsPulse", url: SITE_URL },
     blogPost: POSTS.map((p) => ({
       "@type": "BlogPosting",
       headline: p.title,
@@ -36,7 +37,7 @@ export default function BlogIndex() {
   };
   return (
     <main className="mx-auto max-w-[1080px] px-5 pb-20 pt-8 md:px-8 md:pt-12">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <JsonLd name="Research notes" path="/blog" extra={[jsonLd]} />
       <p className="eyebrow hero-in">Research notes</p>
       <h1 className="hero-in display mt-2 max-w-3xl text-[36px] leading-[1.1] text-foreground md:text-[52px]" style={{ "--d": "100ms" } as React.CSSProperties}>
         The usual way to use an indicator, and what seven years of NSE prices say about it

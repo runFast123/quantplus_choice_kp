@@ -1,11 +1,24 @@
 // Illustrations of how each rule reads a chart. The prices are made up (a fixed, drawn series, labelled as an
 // illustration); the averages and levels on it are computed from that series the way each rule computes them.
 // Numbered markers on the drawing, with the words in a list underneath, so the text stays readable on a phone.
+// Entrance (MotionFigure, chart-motion.css): the lines draw, then levels and dots, then the numbered badges and notes
+// in order. The server HTML and reduced motion show the finished drawing.
+import { cm } from "@/components/blog/chart-motion";
+import { MotionFigure } from "@/components/blog/motion";
 import type { RuleKey } from "@/lib/blog/types";
 
 const W = 640, H = 300, PAD = { l: 14, r: 14, t: 18, b: 22 };
 
 type Pt = [number, number];
+
+// entrance timing (ms): lines draw first, 60 ms apart; then levels, dots, the badges in order and the notes underneath
+const T = {
+  line: (k: number) => cm(k * 60),
+  level: cm(420),
+  dot: cm(520),
+  badge: (n: number) => cm(600 + (n - 1) * 60),
+  note: (i: number) => cm(700 + i * 60),
+};
 type Note = { at: Pt; n: number };
 
 function sma(xs: number[], n: number) {
@@ -38,7 +51,7 @@ function frame(series: number[][], len: number) {
 
 function Badge({ at: [cx, cy], n }: Note) {
   return (
-    <g>
+    <g className="cm-badge" style={T.badge(n)}>
       <circle cx={cx} cy={cy} r={11} fill="var(--series-ours)" stroke="var(--card)" strokeWidth={2.5} />
       <text x={cx} y={cy + 4.5} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--card)">
         {n}
@@ -72,12 +85,20 @@ function smaScene() {
   return {
     svg: (
       <Svg label="Illustration of the SMA 20/50 Trend rule">
-        <path d={line(slow)} fill="none" stroke={muted} strokeWidth={2} />
-        <path d={line(fast)} fill="none" stroke={ours} strokeWidth={2} />
-        <path d={line(p)} fill="none" stroke={ink} strokeWidth={1.4} opacity={0.55} />
-        <line x1={x(c)} x2={x(end)} y1={y(p[c] - 9)} y2={y(p[c] - 9)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" />
-        <path d={`M${x(c + 1)},${PAD.t + 6} v8 M${x(c + 1)},${PAD.t + 10} H${x(end)} M${x(end)},${PAD.t + 6} v8`} stroke={muted} strokeWidth={1.5} fill="none" />
-        <circle cx={x(c)} cy={y(fast[c])} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} />
+        <path d={line(slow)} pathLength={1} fill="none" stroke={muted} strokeWidth={2} className="cm-draw" style={T.line(0)} />
+        <path d={line(fast)} pathLength={1} fill="none" stroke={ours} strokeWidth={2} className="cm-draw" style={T.line(1)} />
+        <path d={line(p)} pathLength={1} fill="none" stroke={ink} strokeWidth={1.4} opacity={0.55} className="cm-draw" style={T.line(2)} />
+        <line x1={x(c)} x2={x(end)} y1={y(p[c] - 9)} y2={y(p[c] - 9)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" className="cm-x" style={T.level} />
+        <path
+          d={`M${x(c + 1)},${PAD.t + 6} v8 M${x(c + 1)},${PAD.t + 10} H${x(end)} M${x(end)},${PAD.t + 6} v8`}
+          pathLength={1}
+          stroke={muted}
+          strokeWidth={1.5}
+          fill="none"
+          className="cm-draw"
+          style={T.level}
+        />
+        <circle cx={x(c)} cy={y(fast[c])} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} className="cm-pop" style={T.dot} />
         <Badge at={[x(c) - 22, y(fast[c]) + 22]} n={1} />
         <Badge at={[x(c) + 34, y(fast[c]) - 26]} n={2} />
         <Badge at={[x(c) + 22, y(p[c] - 9) + 18]} n={3} />
@@ -109,16 +130,16 @@ function dipScene(kind: "rsi" | "kk") {
   return {
     svg: (
       <Svg label={`Illustration of the ${kind === "rsi" ? "RSI Dip" : "KK Dip"} rule`}>
-        <path d={line(long)} fill="none" stroke={muted} strokeWidth={2} />
-        <path d={line(five)} fill="none" stroke={ours} strokeWidth={1.6} strokeDasharray="1 0" opacity={0.7} />
-        <path d={line(p)} fill="none" stroke={ink} strokeWidth={1.6} />
+        <path d={line(long)} pathLength={1} fill="none" stroke={muted} strokeWidth={2} className="cm-draw" style={T.line(0)} />
+        <path d={line(five)} pathLength={1} fill="none" stroke={ours} strokeWidth={1.6} opacity={0.7} className="cm-draw" style={T.line(1)} />
+        <path d={line(p)} pathLength={1} fill="none" stroke={ink} strokeWidth={1.6} className="cm-draw" style={T.line(2)} />
         {kind === "kk" ? (
-          <line x1={x(sig - 20)} x2={x(sig + 1)} y1={y(low20)} y2={y(low20)} stroke={muted} strokeWidth={1.5} strokeDasharray="5 4" />
+          <line x1={x(sig - 20)} x2={x(sig + 1)} y1={y(low20)} y2={y(low20)} stroke={muted} strokeWidth={1.5} strokeDasharray="5 4" className="cm-x" style={T.level} />
         ) : null}
-        <line x1={x(sig)} x2={x(buy + 1)} y1={y(lim)} y2={y(lim)} stroke={ours} strokeWidth={2} />
-        <circle cx={x(buy)} cy={y(lim)} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} />
-        <circle cx={x(out)} cy={y(p[out])} r={5} fill="var(--gain)" stroke="var(--card)" strokeWidth={2} />
-        <line x1={x(buy)} x2={x(out + 8)} y1={y(lim - 7)} y2={y(lim - 7)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" />
+        <line x1={x(sig)} x2={x(buy + 1)} y1={y(lim)} y2={y(lim)} stroke={ours} strokeWidth={2} className="cm-x" style={T.level} />
+        <circle cx={x(buy)} cy={y(lim)} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} className="cm-pop" style={T.dot} />
+        <circle cx={x(out)} cy={y(p[out])} r={5} fill="var(--gain)" stroke="var(--card)" strokeWidth={2} className="cm-pop" style={cm(580)} />
+        <line x1={x(buy)} x2={x(out + 8)} y1={y(lim - 7)} y2={y(lim - 7)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" className="cm-x" style={cm(480)} />
         <Badge at={[x(38), y(long[38]) + 22]} n={1} />
         <Badge at={[x(sig) - 20, y(p[sig]) - 18]} n={2} />
         <Badge at={[x(buy) + 4, y(lim) + 26]} n={3} />
@@ -150,17 +171,31 @@ function strongScene() {
     svg: (
       <Svg label="Illustration of the Strong Trend rule">
         {vol.map((v, i) => (
-          <rect key={i} x={x(i) - 2.2} y={vy(v)} width={4.4} height={v * 16} rx={1} fill={i === brk ? ours : muted} opacity={i === brk ? 1 : 0.35} />
+          <rect
+            key={i}
+            x={x(i) - 2.2}
+            y={vy(v)}
+            width={4.4}
+            height={v * 16}
+            rx={1}
+            fill={i === brk ? ours : muted}
+            opacity={i === brk ? 1 : 0.35}
+            className="cm-y"
+            style={cm((i / (len - 1)) * 360, undefined, 600)}
+          />
         ))}
-        <line x1={x(0)} x2={x(brk)} y1={y(ceiling)} y2={y(ceiling)} stroke={muted} strokeWidth={1.5} strokeDasharray="5 4" />
-        <path d={line(p)} fill="none" stroke={ink} strokeWidth={1.6} />
-        <circle cx={x(brk)} cy={y(p[brk])} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} />
-        <line x1={x(brk)} x2={x(len - 1)} y1={y(p[brk] - 12)} y2={y(p[brk] - 12)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" />
+        <line x1={x(0)} x2={x(brk)} y1={y(ceiling)} y2={y(ceiling)} stroke={muted} strokeWidth={1.5} strokeDasharray="5 4" className="cm-x" style={T.line(1)} />
+        <path d={line(p)} pathLength={1} fill="none" stroke={ink} strokeWidth={1.6} className="cm-draw" style={T.line(0)} />
+        <circle cx={x(brk)} cy={y(p[brk])} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} className="cm-pop" style={T.dot} />
+        <line x1={x(brk)} x2={x(len - 1)} y1={y(p[brk] - 12)} y2={y(p[brk] - 12)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" className="cm-x" style={T.level} />
         <g transform={`translate(${W - 70},${PAD.t + 8})`}>
-          <circle r={9} fill="none" stroke={muted} strokeWidth={2} />
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
-            <line key={a} x1={13 * Math.cos((a * Math.PI) / 180)} y1={13 * Math.sin((a * Math.PI) / 180)} x2={17 * Math.cos((a * Math.PI) / 180)} y2={17 * Math.sin((a * Math.PI) / 180)} stroke={muted} strokeWidth={2} />
-          ))}
+          {/* the transform attribute stays on the outer group (CSS transform would replace it); motion goes on the inner one */}
+          <g className="cm-pop" style={cm(460)}>
+            <circle r={9} fill="none" stroke={muted} strokeWidth={2} />
+            {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+              <line key={a} x1={13 * Math.cos((a * Math.PI) / 180)} y1={13 * Math.sin((a * Math.PI) / 180)} x2={17 * Math.cos((a * Math.PI) / 180)} y2={17 * Math.sin((a * Math.PI) / 180)} stroke={muted} strokeWidth={2} />
+            ))}
+          </g>
         </g>
         <Badge at={[x(brk) - 24, y(p[brk]) - 16]} n={1} />
         <Badge at={[x(brk) - 24, vy(2.6) + 8]} n={2} />
@@ -196,11 +231,22 @@ function ma200Scene() {
   return {
     svg: (
       <Svg label="Illustration of the 200 Day Trend rule">
-        <path d={line(long)} fill="none" stroke={muted} strokeWidth={2.2} />
-        <line x1={x(s)} x2={x(c + 8)} y1={y(fit(s))} y2={y(fit(c + 8))} stroke={ours} strokeWidth={2} strokeDasharray="7 4" />
-        <path d={line(p)} fill="none" stroke={ink} strokeWidth={1.5} />
-        <circle cx={x(c)} cy={y(p[c])} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} />
-        <line x1={x(c)} x2={x(cEnd)} y1={y(p[c] - 10)} y2={y(p[c] - 10)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" />
+        <path d={line(long)} pathLength={1} fill="none" stroke={muted} strokeWidth={2.2} className="cm-draw" style={T.line(0)} />
+        {/* a sloped dashed line: it grows out of its left end, wherever the slope puts that corner */}
+        <line
+          x1={x(s)}
+          x2={x(c + 8)}
+          y1={y(fit(s))}
+          y2={y(fit(c + 8))}
+          stroke={ours}
+          strokeWidth={2}
+          strokeDasharray="7 4"
+          className="cm-from"
+          style={cm(380, { transformOrigin: y(fit(s)) >= y(fit(c + 8)) ? "0% 100%" : "0% 0%" })}
+        />
+        <path d={line(p)} pathLength={1} fill="none" stroke={ink} strokeWidth={1.5} className="cm-draw" style={T.line(1)} />
+        <circle cx={x(c)} cy={y(p[c])} r={5} fill={ours} stroke="var(--card)" strokeWidth={2} className="cm-pop" style={T.dot} />
+        <line x1={x(c)} x2={x(cEnd)} y1={y(p[c] - 10)} y2={y(p[c] - 10)} stroke={stop} strokeWidth={2} strokeDasharray="6 4" className="cm-x" style={T.level} />
         <Badge at={[x(c) + 4, y(p[c]) - 28]} n={1} />
         <Badge at={[x(s) + 6, y(fit(s)) + 26]} n={2} />
         <Badge at={[x(30), y(p[30]) - 26]} n={3} />
@@ -220,12 +266,12 @@ function ma200Scene() {
 export function RuleDiagram({ rule, caption }: { rule: RuleKey; caption: string }) {
   const scene = rule === "sma" ? smaScene() : rule === "rsi" ? dipScene("rsi") : rule === "kk" ? dipScene("kk") : rule === "strong" ? strongScene() : ma200Scene();
   return (
-    <figure className="my-8 overflow-hidden rounded-xl border border-border bg-card">
+    <MotionFigure className="my-8 overflow-hidden rounded-xl border border-border bg-card">
       <div className="p-2 md:p-3">{scene.svg}</div>
       <div className="border-t border-border px-4 py-3 md:px-5">
         <ol className="grid gap-2 text-[13.5px] leading-6 text-foreground md:grid-cols-2">
           {scene.notes.map((n, i) => (
-            <li key={i} className="flex gap-2.5">
+            <li key={i} className="cm-rise flex gap-2.5" style={T.note(i)}>
               <span className="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-series-ours text-[11px] font-bold text-card">
                 {i + 1}
               </span>
@@ -235,6 +281,6 @@ export function RuleDiagram({ rule, caption }: { rule: RuleKey; caption: string 
         </ol>
         <figcaption className="mt-3 text-[12.5px] leading-5 text-muted-foreground">{caption} An illustration with made up prices, not a real stock.</figcaption>
       </div>
-    </figure>
+    </MotionFigure>
   );
 }

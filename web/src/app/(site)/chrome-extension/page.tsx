@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ExtensionBody, JsonLd, MorePages, PageHead } from "@/components/marketing/sections";
+import { ExtensionBody, JsonLd, MorePages, ORGANIZATION, PageHead } from "@/components/marketing/sections";
+import { SITE_URL } from "@/lib/env";
 
 const TITLE = "Chrome extension: signals on your broker's chart";
 const DESCRIPTION =
@@ -16,15 +17,31 @@ export const metadata: Metadata = {
 export default function ChromeExtensionPage() {
   return (
     <main className="mx-auto max-w-[1240px] px-5 pb-24 pt-10 md:px-8 md:pt-16">
-      <JsonLd name="Chrome extension" path="/chrome-extension" />
+      <JsonLd
+        name="Chrome extension"
+        path="/chrome-extension"
+        extra={[
+          {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "QuantsPulse Chrome extension",
+            applicationCategory: "FinanceApplication",
+            operatingSystem: "Google Chrome",
+            url: `${SITE_URL}/chrome-extension`,
+            description: DESCRIPTION,
+            publisher: { "@id": ORGANIZATION["@id"] },
+            offers: { "@type": "Offer", price: "0", priceCurrency: "INR", description: "Free download; signals need a QuantsPulse account" },
+          },
+        ]}
+      />
       <PageHead
         eyebrow="Chrome extension"
         title="Your research desk, overlaid on your broker's charts."
-        lead="No more switching tabs. The QuantsPulse Chrome extension adds a small signal bar to your broker's chart, and a side panel with the details."
+        lead="The QuantsPulse Chrome extension shows a stock's latest rule signal, its safety stop and its plan on your broker's chart, with a side panel for the details. It only reads the page: it never sees your broker password and never places orders."
       />
       <ExtensionBody />
       <section aria-label="More pages" className="mt-24">
-        <MorePages current="/chrome-extension" />
+        <MorePages current="/chrome-extension" title="Keep reading" />
       </section>
     </main>
   );

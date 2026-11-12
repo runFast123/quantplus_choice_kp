@@ -2,10 +2,14 @@
 
 // Interactive charts for the blog: "the usual way" (ochre) against "our rule" (blue), a validated categorical pair
 // (--series-usual / --series-ours, light and dark). Every chart has a legend, hover or tap details, and a table view.
+// Marks animate in once as a chart scrolls into view (MotionFigure + cm-* classes, chart-motion.css); the server HTML
+// and reduced motion show the final drawing.
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { count, pct, shortDate, signed } from "@/lib/blog/format";
 import { HIST_LABELS, type Example, type Side, type Stats } from "@/lib/blog/types";
+import { cm } from "@/components/blog/chart-motion";
+import { MotionFigure } from "@/components/blog/motion";
 
 const USUAL = "var(--series-usual)";
 const OURS = "var(--series-ours)";
@@ -56,7 +60,7 @@ function ChartFrame({
   children: React.ReactNode;
 }) {
   return (
-    <figure className="my-8 rounded-xl border border-border bg-card p-4 md:p-5">
+    <MotionFigure className="my-8 rounded-xl border border-border bg-card p-4 md:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[15px] font-semibold leading-snug text-foreground">{title}</p>
@@ -74,7 +78,7 @@ function ChartFrame({
           {table}
         </div>
       </details>
-    </figure>
+    </MotionFigure>
   );
 }
 
@@ -102,17 +106,19 @@ export function PeriodsChart({ usual, ours, title, caption, ...names }: { usual:
   const signedScale = m !== "made";
   const max = signedScale ? Math.max(...rows.flatMap((r) => [Math.abs(val(r.u, m)), Math.abs(val(r.o, m))]), 0.5) : 100;
 
-  const bar = (x: number, color: string, label: string) => {
+  // bars grow from the baseline on entrance; a measure switch slides them to the new values (and the labels with them)
+  const glide = "motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]";
+  const bar = (x: number, color: string, label: string, n: number) => {
     const w = (Math.abs(x) / max) * (signedScale ? 42 : 100);
     return (
       <div className="relative h-6" title={label}>
         {signedScale ? <div className="absolute inset-y-0 left-1/2 w-px bg-border" aria-hidden /> : null}
         <div
-          className="absolute inset-y-0.5 rounded-[4px] transition-[width,left] duration-200"
-          style={{ background: color, width: `${w}%`, left: signedScale ? (x >= 0 ? "50%" : `${50 - w}%`) : 0 }}
+          className={clsx("absolute inset-y-0.5 rounded-[4px] motion-safe:transition-[width,left]", glide, signedScale && x < 0 ? "cm-x-end" : "cm-x")}
+          style={cm(n * 50, { background: color, width: `${w}%`, left: signedScale ? (x >= 0 ? "50%" : `${50 - w}%`) : 0 })}
         />
         <span
-          className="num absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[12px] text-foreground"
+          className={clsx("num absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[12px] text-foreground motion-safe:transition-[left,right]", glide)}
           style={
             signedScale
               ? x >= 0
@@ -183,12 +189,12 @@ export function PeriodsChart({ usual, ours, title, caption, ...names }: { usual:
       }
     >
       <div className="flex flex-col gap-4">
-        {rows.map((r) => (
+        {rows.map((r, ri) => (
           <div key={r.label} className="grid grid-cols-[84px_1fr] items-center gap-x-3 sm:grid-cols-[110px_1fr]">
             <span className="text-[12.5px] font-medium text-foreground">{r.label}</span>
             <div className={clsx("flex flex-col gap-1", !signedScale && "pr-14")}>
-              {bar(val(r.u, m), USUAL, `${names.usualName}: ${fmt(val(r.u, m), m)} over ${count(r.u.trades)} trades`)}
-              {bar(val(r.o, m), OURS, `${names.oursName}: ${fmt(val(r.o, m), m)} over ${count(r.o.trades)} trades`)}
+              {bar(val(r.u, m), USUAL, `${names.usualName}: ${fmt(val(r.u, m), m)} over ${count(r.u.trades)} trades`, ri * 2)}
+              {bar(val(r.o, m), OURS, `${names.oursName}: ${fmt(val(r.o, m), m)} over ${count(r.o.trades)} trades`, ri * 2 + 1)}
             </div>
           </div>
         ))}
@@ -259,8 +265,12 @@ export function YearsChart({ usual, ours, title, caption, ...names }: { usual: S
             return (
               <g key={yr} onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} style={{ cursor: "pointer" }}>
                 <rect x={left + band * i} y={top} width={band} height={plotH} fill="var(--foreground)" opacity={hover === i ? 0.05 : 0} />
-                {a ? <rect x={cx - bw - 1} y={y(a.made_money_pct)} width={bw} height={y(0) - y(a.made_money_pct)} rx={3} fill={USUAL} /> : null}
-                {b ? <rect x={cx + 1} y={y(b.made_money_pct)} width={bw} height={y(0) - y(b.made_money_pct)} rx={3} fill={OURS} /> : null}
+                {a ? (
+                  <rect x={cx - bw - 1} y={y(a.made_money_pct)} width={bw} height={y(0) - y(a.made_money_pct)} rx={3} fill={USUAL} className="cm-y" style={cm(i * 60)} />
+                ) : null}
+                {b ? (
+                  <rect x={cx + 1} y={y(b.made_money_pct)} width={bw} height={y(0) - y(b.made_money_pct)} rx={3} fill={OURS} className="cm-y" style={cm(i * 60 + 30)} />
+                ) : null}
                 <text x={cx} y={h - 8} textAnchor="middle" className="num" fontSize={11} fill="var(--muted-foreground)">
                   {w < 420 ? `'${String(yr).slice(2)}` : yr}
                 </text>
@@ -338,9 +348,9 @@ export function SpreadChart({ usual, ours, title, caption, ...names }: { usual: 
               {([
                 [usual.hist[i], USUAL, names.usualName],
                 [ours.hist[i], OURS, names.oursName],
-              ] as const).map(([v, c, n]) => (
+              ] as const).map(([v, c, n], k) => (
                 <div key={n} className="relative h-3" title={`${n}: ${pct(v)} of trades`}>
-                  <div className="absolute inset-y-0 left-0 rounded-[3px]" style={{ width: `${(v / max) * 100}%`, background: c }} />
+                  <div className="cm-x absolute inset-y-0 left-0 rounded-[3px]" style={cm((i * 2 + k) * 30, { width: `${(v / max) * 100}%`, background: c })} />
                   <span className="num absolute top-1/2 -translate-y-1/2 text-[10.5px] text-muted-foreground" style={{ left: `calc(${(v / max) * 100}% + 4px)` }}>
                     {pct(v, 0)}
                   </span>
@@ -355,6 +365,8 @@ export function SpreadChart({ usual, ours, title, caption, ...names }: { usual: 
 }
 
 // ------------------------------------------------------------------------------------------------ example
+const DRAW_MS = 900;
+
 export function ExampleChart({ example, title, caption, ...names }: { example: NonNullable<Example>; title: string; caption: string } & Names) {
   const [ref, w] = useWidth<HTMLDivElement>();
   const [hx, setHx] = useState<number | null>(null);
@@ -383,6 +395,9 @@ export function ExampleChart({ example, title, caption, ...names }: { example: N
   const trades = (side: "usual" | "ours") => example[side];
   const chosen = pick ? trades(pick.side)[pick.i] : null;
   const color = (s: "usual" | "ours") => (s === "usual" ? USUAL : OURS);
+  // entrance: the close line draws left to right; each signal triangle pops as the line reaches it (the inverse of the
+  // ease-out curve, 1 - 2^(-10t)), then the trade lanes grow in after it, left to right
+  const passes = (i: number) => (DRAW_MS / 10) * -Math.log2(1 - Math.min(i / (pts.length - 1), 0.99)) + 60;
 
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -456,13 +471,22 @@ export function ExampleChart({ example, title, caption, ...names }: { example: N
               ) : null;
             }),
           )}
-          <path d={path} fill="none" stroke="var(--foreground)" strokeWidth={1.5} strokeLinejoin="round" />
+          <path d={path} pathLength={1} fill="none" stroke="var(--foreground)" strokeWidth={1.5} strokeLinejoin="round" className="cm-draw" style={cm(0, undefined, DRAW_MS)} />
           {(["usual", "ours"] as const).map((s) =>
             trades(s).map((t, i) => {
               const a = at(t.signal);
               const py = y(pts[a][1]) + (s === "usual" ? 8 : 20);
               return (
-                <path key={`m${s}${i}`} d={`M${x(a)},${py} l5,9 h-10 z`} fill={color(s)} stroke="var(--card)" strokeWidth={1.5} pointerEvents="none" />
+                <path
+                  key={`m${s}${i}`}
+                  d={`M${x(a)},${py} l5,9 h-10 z`}
+                  fill={color(s)}
+                  stroke="var(--card)"
+                  strokeWidth={1.5}
+                  pointerEvents="none"
+                  className="cm-pop"
+                  style={cm(passes(a) + (s === "usual" ? 0 : 40))}
+                />
               );
             }),
           )}
@@ -486,7 +510,8 @@ export function ExampleChart({ example, title, caption, ...names }: { example: N
                     fill={color(s)}
                     stroke={on ? "var(--foreground)" : "var(--card)"}
                     strokeWidth={on ? 1.5 : 2}
-                    style={{ cursor: "pointer" }}
+                    className="cm-x"
+                    style={cm(DRAW_MS * 0.55 + (300 * a) / (pts.length - 1) + (s === "usual" ? 0 : 40), { cursor: "pointer" })}
                     onClick={() => setPick(on ? null : { side: s, i })}
                     onMouseEnter={() => setPick({ side: s, i })}
                   >

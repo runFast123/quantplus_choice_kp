@@ -1,0 +1,63 @@
+/* The home hero's signal anatomy (signal-anatomy.tsx). Transform / stroke only, never text opacity (axe samples contrast
+   mid-animation). Fill "both" on marks only: the server HTML already draws the final chart, the animation just replays
+   the drawing once on load. Nothing moves with "reduce motion". */
+@keyframes sa-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes sa-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes sa-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes sa-rise {
+  from { transform: translateY(8px); }
+  to { transform: none; }
+}
+@keyframes sa-ring {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.6); }
+  100% { transform: scale(1); }
+}
+
+.sa .sa-line {
+  stroke-dasharray: 1;
+  animation: sa-draw 1.6s cubic-bezier(0.45, 0, 0.2, 1) 0.2s both;
+}
+.sa .sa-plan {
+  transform-box: view-box;
+  animation: sa-grow 0.9s cubic-bezier(0.16, 1, 0.3, 1) 1.05s both;
+}
+.sa .sa-stop {
+  stroke-dasharray: 0.012 0.01;
+  animation: sa-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.2s both;
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+.sa .sa-pop {
+  transform-box: view-box;
+  animation: sa-pop 0.55s cubic-bezier(0.3, 1.6, 0.5, 1) 0.95s both;
+}
+.sa .sa-pop circle:first-child {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sa-ring 2.4s ease-in-out 1.6s 2;
+}
+.sa .sa-rise {
+  animation: sa-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa .sa-line,
+  .sa .sa-plan,
+  .sa .sa-stop,
+  .sa .sa-pop,
+  .sa .sa-pop circle:first-child,
+  .sa .sa-rise {
+    animation: none !important;
+  }
+}

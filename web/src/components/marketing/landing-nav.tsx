@@ -12,7 +12,7 @@ import { LiquidNavbar, type LiquidNavItem } from "@/components/ui/liquid-glass-n
  * hidden on phones, where the header shows the logo and the account buttons and the footer lists the pages.
  */
 const ITEMS: LiquidNavItem[] = [
-  { label: "How it works", href: "/how-it-works", icon: <ListNumbersIcon size={18} />, fx: "glow" },
+  { label: "Method", href: "/method", icon: <ListNumbersIcon size={18} />, fx: "glow" },
   { label: "Chrome extension", href: "/chrome-extension", icon: <PuzzlePieceIcon size={18} />, fx: "spin" },
   { label: "Pricing", href: "/pricing", icon: <TagIcon size={18} />, fx: "pop" },
   { label: "Questions", href: "/faq", icon: <QuestionIcon size={18} />, fx: "wave" },

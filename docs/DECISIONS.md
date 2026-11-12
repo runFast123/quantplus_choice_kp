@@ -354,6 +354,28 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-056 · "Method" not "How it works"; a home hero that claims only what is tested; SEO and GEO basics
+**Date** 2026-11-12 · **Status** accepted (builds on ADR-055)
+- **Context:** the owner found the home hero unprofessional ("How it works" did not read like a product page) and
+  asked for the site to carry the USP "our rules flag a stock before the breakout, at a lower price, while a normal
+  analyst buys the breakout", plus pages built for search and AI-answer engines.
+- **The USP, tested first:** `research/strategies/early_entry.py`: every live rule precedes a 50-day breakout, but so
+  do about 99% of random days in the same stocks; the head start is 3–11%, five of the six rules are no earlier than
+  random days, Strong trend is itself a breakout, and the dip rules sell before any breakout. A rule built for the
+  claim (`pre_breakout.py`, 14 pre-written variants) passed 2019-23 and failed the 2024-26 check. **So the site does
+  not claim to be earlier than the breakout** (AGENTS rule 13: copy must be true). It says what is true instead: every
+  signal comes with a safety stop, a plan and the rule's tested record, losing trades included.
+- **Decision:** `/how-it-works` becomes `/method` (308 redirect) and lists the six rules by name (H3 each, linked to
+  their research notes). The home hero is "NSE stock signals you can check before you trust them." with a two-line
+  answer-first lead, two buttons, three dated figures and `SignalAnatomy` (an illustrative chart, labelled as such, in
+  place of the 3D card). Every page has one H1, real H2s, an answer-first lead and structured data (Organization +
+  WebSite on home, `SoftwareApplication` + `Offer`s on pricing and the extension, breadcrumb on Research); FAQ
+  questions are headings; one `DEFINITION` (`lib/site.ts`) is reused in structured data and `/llms.txt`; a shared
+  `opengraph-image`; sitemap dates. The Research charts animate in once, on view (transform/stroke only; the server
+  HTML is the finished chart).
+- **Not done here:** static rendering of the public pages (the root layout's theme cookie and the nav's sign-in check
+  make every page per-request); an About page naming who runs the tests (E-E-A-T). See ROADMAP.
+
 ### ADR-055 · One page per topic on the public site; the glass and motion cover every public page
 **Date** 2026-11-11 · **Status** accepted (widens ADR-054)
 - **Context:** the owner asked for the landing motion on the Research pages too, and for separate pages instead of one

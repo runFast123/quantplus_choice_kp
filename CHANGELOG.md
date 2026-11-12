@@ -5,6 +5,27 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — a new home hero, "Method" for "How it works", SEO + GEO on every public page, animated Research charts (ADR-056, 12 Nov 2026)
+- Why: the hero read as unprofessional, "How it works" did not sound like a product page, and the pages lacked the
+  headings, structured data and answer-first copy search and AI engines use. The owner's USP ("signals before the
+  breakout, at a lower price") was tested first and is not supported (see below), so the copy claims only what is.
+- Research: `research/strategies/early_entry.py` (each live rule vs the next 50-day breakout and random days) and
+  `pre_breakout.py` (a candidate rule for the claim: passed 2019-23, failed 2024-26). No live rule changed.
+- Home (`app/(site)/page.tsx`): H1 "NSE stock signals you can check before you trust them.", a two-sentence lead, two
+  buttons, three figures; `components/marketing/signal-anatomy.tsx` replaces `hero-scene.tsx` (deleted): an
+  illustrative signal, stop and plan drawn in on load, with a keyboard/pointer scrubber. Own title, description,
+  canonical; Organization + WebSite JSON-LD.
+- `/how-it-works` → `/method` (308 in `next.config.ts`; navbar, footer, cards, sitemap, old `#how` link): the six rules
+  as H3s with links to their notes.
+- Every topic page: an answer-first lead, real H2s (`HowSteps`, `ExtensionBody`, `PricingCards`, `MorePages` "Keep
+  reading"), FAQ questions as headings (`FaqList` `level`); `SoftwareApplication` + `Offer`s on /pricing (from
+  `plans`) and /chrome-extension; breadcrumb on /blog. New `lib/site.ts` (`DEFINITION`, `ORGANIZATION`),
+  `app/llms.txt/route.ts`, `app/opengraph-image.tsx`; sitemap `lastModified`.
+- Research charts (`components/blog/*`: `use-in-view.ts`, `motion.tsx`, `chart-motion.ts`, `chart-motion.css`): bars
+  grow, lines draw, markers pop and stat tiles count up, once, when in view; switching the measure slides the bars;
+  the server HTML is the finished chart; text never fades; nothing with "reduce motion".
+- Tests: `e2e/public.spec.ts` (new H1, home canonical, the hero chart's keyboard, `/how-it-works` forwards).
+
 ### Fixed — moving between public pages is smooth: the navbar stays, the drop slides, the page glides in (ADR-055, 12 Nov 2026)
 - Why: each navbar click was a full page reload (the items were plain `<a>` links), and home, the four pages and Research
   each rendered their own navbar, so the bar was rebuilt and the water drop jumped instead of sliding.

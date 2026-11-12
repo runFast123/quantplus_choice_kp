@@ -27,15 +27,19 @@ export default function FaqPage() {
           },
         ]}
       />
-      <PageHead eyebrow="Questions" title="Questions people ask about QuantsPulse" />
+      <PageHead
+        eyebrow="Questions"
+        title="Questions people ask about QuantsPulse"
+        lead="Short answers: QuantsPulse is research, not investment advice; prices are end-of-day NSE closes from Yahoo Finance, loaded about 5 pm IST each weekday; the Chrome extension only reads your broker's page; and nobody at your firm, or ours, can open your portfolio."
+      />
       <div className="mt-12 grid gap-4 md:grid-cols-[220px_1fr]">
         <span aria-hidden />
         <div className="reveal">
-          <FaqList />
+          <FaqList level={2} />
         </div>
       </div>
       <section aria-label="More pages" className="mt-24">
-        <MorePages current="/faq" />
+        <MorePages current="/faq" title="Keep reading" />
       </section>
     </main>
   );

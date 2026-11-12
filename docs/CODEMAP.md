@@ -179,6 +179,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `extension-signals.test.mts`, `extension-syntax.test.mts` | unit tests: signal mapping + CORS; extension syntax + download zip matches source with `/` paths |
 | `types.ts` | row types: `Plan`, `Entitlements`, `Membership`, `Profile`, `Quote`, `Candle`, `Holding`, `Portfolio`, `Watchlist`, `WatchlistItem`, `PriceAlert`, `Signal`, `NotificationRow` + enums |
 | `env.ts` | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SITE_URL` |
+| `site.ts` | `DEFINITION` (the one-line description of QuantsPulse, reused word for word), `ORGANIZATION` (schema.org, `@id` `/#org`) |
 | `supabase/server.ts` | `supabaseServer()` — RLS client for server components/actions |
 | `supabase/client.ts` | `supabaseBrowser()` — RLS client for client components (realtime) |
 | `supabase/proxy.ts` | `updateSession(request)` — used by `src/proxy.ts`; gates `/app`, `/admin` |
@@ -205,7 +206,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Route | What |
 |---|---|
 | `/` | `app/(site)/page.tsx` — home: hero, ticker, a card per public page, privacy band, three questions; forwards old `/#section` links (ADR-055). All public pages share `app/(site)/layout.tsx` (header + navbar stay mounted) and `template.tsx` (`.page-in` glide) |
-| `/how-it-works`, `/chrome-extension`, `/pricing`, `/faq` | `app/(site)/*`, one page per topic (ADR-055): own metadata + canonical, JSON-LD `BreadcrumbList` (+ `FAQPage` on /faq); /pricing reads `plans` (fallback `FALLBACK_PLANS`) |
+| `/method`, `/chrome-extension`, `/pricing`, `/faq` | `app/(site)/*`, one page per topic (ADR-055/056): own metadata + canonical, an answer-first lead, real H2s, JSON-LD `BreadcrumbList` (+ `FAQPage` on /faq, `SoftwareApplication` + `Offer`s on /pricing and /chrome-extension); /method lists the six rules (H3 each, linked to their notes); /pricing reads `plans` (fallback `FALLBACK_PLANS`). `/how-it-works` → `/method` (308, `next.config.ts`) |
 | `/api/symbols?q=` | ranked symbol search (`search_symbols`) for the header and add forms; signed-in only |
 | `/api/dry-run/stock?symbol=` | one stock for Dry Run: name, sector, segment, last price, 2 years of candles, stored signals as markers; signed-in only |
 | `/login` `/signup` `/forgot` | auth (group `(auth)`) |
@@ -213,7 +214,8 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/invite/[token]` | accept organisation invite |
 | `/legal/[doc]` | `terms`, `privacy` (drafts) |
 | `/blog`, `/blog/[slug]` | `app/(site)/blog/*` — Research notes (public): five posts, each rule against the usual way of using its indicator; metadata + canonical + OG, JSON-LD `Blog` / `BlogPosting` + `FAQPage` + `BreadcrumbList`; `/blog/[slug]/opengraph-image` (prerendered share card) |
-| `/sitemap.xml`, `/robots.txt` | `app/sitemap.ts` (home, the four topic pages, Research + posts, legal), `app/robots.ts` (disallows `/app`, `/admin`, `/api/`, `/auth/`, `/invite/`, `/device`) |
+| `/llms.txt`, `/opengraph-image` | `app/llms.txt/route.ts` (static: `DEFINITION`, the pages and every post, data and limits; ADR-056), `app/opengraph-image.tsx` (the shared share card for pages without their own) |
+| `/sitemap.xml`, `/robots.txt` | `app/sitemap.ts` (home, the four topic pages, Research + posts, legal; `SITE_UPDATED` as `lastModified`), `app/robots.ts` (disallows `/app`, `/admin`, `/api/`, `/auth/`, `/invite/`, `/device`) |
 | `/device` | single-device takeover screen (target of `requireSession` for displaced devices) |
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
 | `/app/markets`, `/app/markets/[symbol]` | screener (`?setup=` filter + Setups column); symbol page: header, *At a glance* strip (`data-testid="at-a-glance"`), chart, then tabs Plan & alerts / Research & news / Signal history / Backtest (`#plan`, `#research`, `#history`, `#backtest`), "Matched on the last close" setups |
@@ -267,11 +269,11 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `market/check-tag.tsx` | `CheckTag({rule})` — a signal check's tag (icon + words, meaning in the title): Signals list, dip-buy levels, stock page |
 | `market/setup-badges.tsx` | `SetupBadges` (neutral badges, rule in the title) — screener and Market Radar |
 | `market/*` | `MarketBreadthCard` (A/D ratio bar, sentiment bias badge, top NSE gainers/losers), `SectorPulse` (the Markets sector filter: one chip row, `aria-pressed`), `RadarToggle`, `AddSymbolForm` (live suggestions), `AlertForm`, `FilterBar` (URL-driven), `TradePlan` (asymmetric targets & capital presets & sizing), `QuantumAudit` ("How stretched are your stocks?": RSI zone in plain words, RSI gauge, filter chips, folded stop / targets), `BacktestLab` (quantitative strategy simulator with custom lookbacks, SL/TP risk controls, SVG interactive equity curve, filterable trade logs, CSV & Pine Script export), `CopyPineButton` (in the chart's rule bar: copies the chosen rule's script; with All / Clean a menu of the five), `PineScriptGeneratorPanel` (Integrations: ticker + rule), `useSymbolSearch(q)` (debounced `/api/symbols`), `RetiredNote` |
-| `blog/*` | `PeriodsChart` (Made money / Average / Middle, by period), `YearsChart`, `SpreadChart`, `ExampleChart` (closes + trade lanes, hover/tap) — each with a legend and a "Show the numbers" table, series colours `--series-usual` / `--series-ours`; `RuleDiagram` (an illustration per rule, numbered notes); `PostBody`, `Inline` (**bold**, [link](/path)), `StatTiles` |
+| `blog/*` | `PeriodsChart` (Made money / Average / Middle, by period), `YearsChart`, `SpreadChart`, `ExampleChart` (closes + trade lanes, hover/tap) — each with a legend and a "Show the numbers" table, series colours `--series-usual` / `--series-ours`; `RuleDiagram` (an illustration per rule, numbered notes); `PostBody`, `Inline` (**bold**, [link](/path)), `StatTiles`. Entrance motion (once, in view, transform/stroke only, server HTML = final state): `use-in-view.ts` (`useInView`, `MotionPhase`), `motion.tsx` (`MotionFigure`, `CountUp`), `chart-motion.ts` (`cm` delay style), `chart-motion.css` |
 | `dry-run/dry-run-studio.tsx` | `DryRunStudio({candidates, benchmark, health})` (the whole flow, client: steps, `CandidateCard`, plan panel with `AllocationBar`, results tabs), `DryRunDisclosure` (fixed non-advice wording, `data-testid="dry-run-disclosure"`), type `Candidate` |
 | `dry-run/replay-chart.tsx` | `ReplayChart` (lightweight-charts: plan line drawn in over 2.2 s, NIFTY 50 dashed, crosshair values, Replay button; instant under reduced motion) |
 | `ui/liquid-glass-navbar.tsx` | `LiquidNavbar` (liquid-glass pill nav with a WebGL water drop, CSS fallback; public pages only, ADR-054/055), types `LiquidNavItem`, `NimbusFx` |
-| `marketing/hero-scene.tsx` | `HeroScene` (the landing hero's CSS 3D stage: chart plane + floating cards; pointer and scroll set `--px/--py/--sp`) |
+| `marketing/signal-anatomy.tsx` | `SignalAnatomy` (the home hero's chart, ADR-056: an illustrative signal with its safety stop and 60-session plan, drawn in on load; a `role="slider"` scrubber, pointer or arrow keys) + `signal-anatomy.css` |
 | `marketing/tilt.tsx` | `Tilt` (a card that tilts toward the pointer, with a soft highlight; public pages only) |
 | `marketing/landing-nav.tsx` | `LandingNav` (the public site's floating glass nav: links to the pages, lights the current one from the URL, moves the drop on click before the page arrives; icons only below 1280 px) |
 | `charts/trade-odds.tsx` | `TradeOdds` ("What usually happens next?" under the chart when a trade is selected: plain headline, 100-dot waffle, break-even pass mark, past-signal ▲▼ strip, method folded away; 5/10/20 days, target price) |
@@ -279,7 +281,7 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |
 | `charts/market-chart-view.tsx` | `MarketChartView` (unified switcher between QuantsPulse Strategy Signals Chart and TradingView Pro) |
 | `marketing/site-nav.tsx` | `SiteNav` (logo, glass nav from md up, account buttons), `SiteFooter` (lists `SITE_PAGES` + legal), `SITE_PAGES` |
-| `marketing/sections.tsx` | The public sections, one page each (ADR-055): `PageHead`, `HowSteps`, `ExtensionBody`, `PrivacyBand`, `PricingCards`, `FaqList({ limit })`, `FAQ`, `FALLBACK_PLANS`, `MorePages({ current })` (cards to the other pages), `JsonLd` (breadcrumb + extras) |
+| `marketing/sections.tsx` | The public sections, one page each (ADR-055): `PageHead`, `HowSteps`, `ExtensionBody`, `PrivacyBand`, `PricingCards`, `FaqList({ limit, level })` (each question a real h2/h3 in its summary), `FAQ`, `FALLBACK_PLANS`, `MorePages({ current, title })` (cards to the other pages), `JsonLd` (breadcrumb + extras); re-exports `DEFINITION`, `ORGANIZATION` |
 | `marketing/legacy-hash.tsx` | `LegacyHashRedirect` (forwards `/#how`, `/#terminal`, `/#pricing`, `/#faq` to their pages) |
 | `brand/logo.tsx` | `Logo`, `LogoMark` (Q whose tail ends in the coral signal dot; same geometry as `app/icon.svg`) |
 | `onboarding/first-run.tsx` | `FirstRun` (overview checklist: radar, alert, notifications, extension; hides when done or dismissed), type `FirstRunStep` |

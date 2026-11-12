@@ -1,15 +1,29 @@
 import Link from "next/link";
-import { HeroScene } from "@/components/marketing/hero-scene";
+import type { Metadata } from "next";
 import { LegacyHashRedirect } from "@/components/marketing/legacy-hash";
-import { FaqList, MorePages, PrivacyBand } from "@/components/marketing/sections";
+import { DEFINITION, FaqList, MorePages, ORGANIZATION, PrivacyBand } from "@/components/marketing/sections";
+import { SignalAnatomy } from "@/components/marketing/signal-anatomy";
+import { SITE_URL } from "@/lib/env";
 import { ButtonLink } from "@/components/ui/button";
 import { supabaseServer } from "@/lib/supabase/server";
 
 /**
  * The home page (ADR-055): the hero, the ticker, a card for each public page, the privacy band and three common
- * questions. How it works, the Chrome extension, pricing and the full FAQ each have their own page, so each can rank
+ * questions. The method, the Chrome extension, pricing and the full FAQ each have their own page, so each can rank
  * for its own searches; old /#section links are forwarded there.
  */
+const TITLE = "QuantsPulse: rule-based signals for NSE stocks";
+const DESCRIPTION =
+  "Six published rules check the NSE stocks you follow after every close. Each signal comes with a safety stop, a plan and the rule's tested record. Research, not advice; signals on your broker's chart with the Chrome extension.";
+
+export const metadata: Metadata = {
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", title: TITLE, description: DESCRIPTION, url: "/", siteName: "QuantsPulse", locale: "en_IN" },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+};
+
 export default async function Home({ searchParams }: PageProps<"/">) {
   const supabase = await supabaseServer();
   const [{ data: claims }, sp] = await Promise.all([supabase.auth.getClaims(), searchParams]);
@@ -24,39 +38,71 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </p>
       ) : null}
       <main>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([
+              ORGANIZATION,
+              { "@context": "https://schema.org", "@type": "WebSite", "@id": `${SITE_URL}/#site`, name: "QuantsPulse", url: SITE_URL, description: DEFINITION, inLanguage: "en-IN", publisher: { "@id": ORGANIZATION["@id"] } },
+            ]).replace(/</g, "\\u003c"),
+          }}
+        />
         {/* ---------------- Hero ---------------- */}
-        <section className="mx-auto grid max-w-[1240px] gap-14 overflow-x-clip px-5 pb-20 pt-10 md:px-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16 lg:pt-20">
+        <section className="mx-auto grid max-w-[1240px] items-center gap-12 overflow-x-clip px-5 pb-16 pt-10 md:px-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] lg:gap-14 lg:pb-20 lg:pt-16">
           <div>
-            <p className="eyebrow hero-in">For people who research Indian stocks themselves</p>
-            <h1 className="display mt-5 text-[46px] leading-[1.02] text-foreground sm:text-[60px] lg:text-[72px]">
+            <p className="eyebrow hero-in">Research for NSE stocks · updated after every close</p>
+            <h1 className="display mt-5 text-[44px] leading-[1.03] text-foreground sm:text-[56px] lg:text-[60px]">
               <span className="hero-in inline-block" style={{ "--d": "80ms" } as React.CSSProperties}>
-                Research on rules
+                NSE stock signals
               </span>{" "}
-              <br className="hidden sm:block" />
-              <span className="hero-in inline-block" style={{ "--d": "200ms" } as React.CSSProperties}>
-                you can <em className="relative whitespace-nowrap">read<Underline /></em>.
+              <span className="hero-in inline-block" style={{ "--d": "180ms" } as React.CSSProperties}>
+                you can <em className="relative whitespace-nowrap">check<Underline /></em>
+              </span>{" "}
+              <span className="hero-in inline-block lg:whitespace-nowrap" style={{ "--d": "280ms" } as React.CSSProperties}>
+                before you trust them.
               </span>
             </h1>
-            <p className="hero-in mt-6 max-w-[34rem] text-[17px] leading-8 text-muted-foreground" style={{ "--d": "320ms" } as React.CSSProperties}>
-              Keep a radar of the stocks you&apos;re waiting on. QuantsPulse checks each one against six published rules after every close — four trend rules
-              (one of them for a long slump that is starting to turn up) and two that buy a sharp dip in a rising stock — plus the price levels you set, and can
-              show the signals right on your broker&apos;s chart with our Chrome extension.
+            <p className="hero-in mt-6 max-w-[33rem] text-[17px] leading-8 text-muted-foreground" style={{ "--d": "380ms" } as React.CSSProperties}>
+              QuantsPulse runs six published rules on the stocks you follow after every NSE close. Each signal arrives with a safety stop, a plan for when to
+              sell, and the rule&apos;s tested record, losing trades included.
             </p>
-            <div className="hero-in mt-8 flex flex-wrap items-center gap-3" style={{ "--d": "440ms" } as React.CSSProperties}>
+            <div className="hero-in mt-8 flex flex-wrap items-center gap-3" style={{ "--d": "480ms" } as React.CSSProperties}>
               <ButtonLink href={signedIn ? "/app" : "/signup"} size="lg">
                 {signedIn ? "Open the desk" : "Start free for 3 months"}
               </ButtonLink>
-              <ButtonLink href="/chrome-extension" size="lg" variant="secondary">
-                Chrome extension
-              </ButtonLink>
-              <ButtonLink href="/how-it-works" size="lg" variant="secondary">
-                See how it works
+              <ButtonLink href="/method" size="lg" variant="secondary">
+                See the method
               </ButtonLink>
             </div>
-            <p className="mt-4 text-[12.5px] text-muted-foreground">No card needed. Basic covers a 10-stock radar, rule-based signals, and research on every listing.</p>
+            <p className="mt-4 text-[12.5px] text-muted-foreground">
+              No card needed.{" "}
+              <Link href="/chrome-extension" className="underline decoration-border underline-offset-4 hover:decoration-foreground">
+                Signals on your broker&apos;s chart, with the Chrome extension
+              </Link>
+              .
+            </p>
+            <dl className="hero-in mt-10 grid max-w-[33rem] grid-cols-3 gap-4 border-t border-border pt-5" style={{ "--d": "580ms" } as React.CSSProperties}>
+              {(
+                [
+                  ["~3,600", "NSE listings checked each weekday"],
+                  ["6", "published rules, each with its record"],
+                  ["2019–26", "tested on past prices, after costs"],
+                ] as const
+              ).map(([n, label]) => (
+                <div key={label}>
+                  <dt className="sr-only">{label}</dt>
+                  <dd className="num text-[24px] leading-none text-foreground">{n}</dd>
+                  <dd aria-hidden className="mt-2 text-[12px] leading-5 text-muted-foreground">
+                    {label}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          <HeroScene />
+          <div className="hero-in" style={{ "--d": "160ms" } as React.CSSProperties}>
+            <SignalAnatomy />
+          </div>
         </section>
 
         {/* ---------------- Dateline: a slow ticker (static with "reduce motion") ---------------- */}

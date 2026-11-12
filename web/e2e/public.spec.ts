@@ -5,16 +5,29 @@ import { expectNoHorizontalOverflow } from "./helpers/fixtures";
 test.describe("public site @mobile", () => {
   test("landing: hero, privacy matrix and a card for each page", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Research on rules");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("NSE stock signals");
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /^https?:\/\/[^/]+\/?$/);
+    // the hero chart reads any day from the keyboard
+    const chart = page.getByRole("slider", { name: /Illustrative price chart/ });
+    await chart.focus();
+    const before = await chart.getAttribute("aria-valuenow");
+    await chart.press("ArrowLeft");
+    await expect(chart).not.toHaveAttribute("aria-valuenow", before ?? "");
     await expect(page.locator("#privacy table")).toContainText("Holdings & portfolios");
     const cards = page.getByTestId("site-pages").getByRole("link");
     await expect(cards).toHaveCount(5);
     await expectNoHorizontalOverflow(page);
   });
 
+  test("the old How it works address forwards to Method", async ({ page }) => {
+    const res = await page.goto("/how-it-works");
+    expect(res?.url()).toMatch(/\/method$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Six published rules");
+  });
+
   test("each topic has its own page: one H1, its own title and canonical, and the navbar marks it", async ({ page }) => {
     const pages = [
-      ["/how-it-works", "A short list, a few rules"],
+      ["/method", "Six published rules"],
       ["/chrome-extension", "overlaid on your broker"],
       ["/pricing", "Priced by the year"],
       ["/faq", "Questions people ask"],
@@ -46,7 +59,7 @@ test.describe("public site @mobile", () => {
     for (const [label, path, h1] of [
       ["Pricing", "/pricing", "Priced by the year"],
       ["Research", "/blog", "The usual way to use an indicator"],
-      ["How it works", "/how-it-works", "A short list, a few rules"],
+      ["Method", "/method", "Six published rules"],
     ] as const) {
       await nav.getByRole("link", { name: label }).click();
       await expect(nav.locator('[aria-current="page"]')).toHaveAttribute("href", path);
@@ -119,7 +132,7 @@ test.describe("public site @mobile", () => {
   test("sitemap and robots list the public pages only", async ({ request }) => {
     const map = await (await request.get("/sitemap.xml")).text();
     expect(map).toContain("/blog/sma-20-50-crossover-vs-sma-trend-rule");
-    for (const path of ["/how-it-works", "/chrome-extension", "/pricing", "/faq"]) expect(map).toContain(path);
+    for (const path of ["/method", "/chrome-extension", "/pricing", "/faq"]) expect(map).toContain(path);
     expect(map).not.toContain("/app");
     const robots = await (await request.get("/robots.txt")).text();
     expect(robots).toMatch(/Disallow: \/app/);
@@ -136,7 +149,7 @@ test.describe("public site @mobile", () => {
   test("login and landing have no serious accessibility violations", async ({ page }) => {
     await page.goto("/login");
     expect(await seriousViolations(page)).toEqual([]);
-    for (const path of ["/", "/how-it-works", "/chrome-extension", "/pricing", "/faq"]) {
+    for (const path of ["/", "/method", "/chrome-extension", "/pricing", "/faq"]) {
       await page.goto(path);
       expect(await seriousViolations(page)).toEqual([]);
     }

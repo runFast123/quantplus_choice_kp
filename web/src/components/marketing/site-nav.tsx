@@ -5,7 +5,7 @@ import { LandingNav } from "./landing-nav";
 
 /** The public pages, in nav order (ADR-055): the footer lists them too, for phones and for crawlers. */
 export const SITE_PAGES = [
-  ["How it works", "/how-it-works"],
+  ["Method", "/method"],
   ["Chrome extension", "/chrome-extension"],
   ["Pricing", "/pricing"],
   ["Questions", "/faq"],

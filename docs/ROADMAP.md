@@ -23,6 +23,12 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Custom domain (then update `NEXT_PUBLIC_SITE_URL`, Supabase URL config, and redeploy).
 
 ## Next
+- [ ] Public pages served from cache (ADR-056): every public page renders per request (the root layout reads the
+      theme cookie, the site layout checks sign-in for the header buttons). Move both to the client so the pages can
+      be static; faster first byte for search engines.
+- [ ] An About page naming who runs the tests and how, linked from every research note (search trust, ADR-056).
+- [ ] An early-entry rule the site could honestly advertise (ADR-056): `research/strategies/early_entry.py` and
+      `pre_breakout.py` found none so far; no "before the breakout" copy until one passes its check years.
 - [x] Dry Run phase 1 (ADR-033): pick, plan, replay vs NIFTY 50, bad-day test, guardrail score.
 - [ ] Dry Run phase 2: save a plan as a practice portfolio (new table + RLS + isolation test), update after each EOD
       load, weekly push report card.

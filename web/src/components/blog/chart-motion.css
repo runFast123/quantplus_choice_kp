@@ -1,0 +1,120 @@
+/* Entrance motion for the research-note charts (components/blog/*). Imported by blog/motion.tsx; every selector is
+   prefixed cm- so nothing else on the site is touched.
+
+   - The server HTML has no data-motion attribute, so every mark is drawn in its final state (crawlers, no JS, print).
+   - useInView arms a chart only after hydration and only while it is still off screen ("armed"), then plays once
+     when 30% of it is in view ("play").
+   - Marks move (scale from the baseline, stroke drawn along the path, a small pop). Text never fades: labels, legends,
+     axis text, badges and numbers keep full contrast at every frame (axe samples mid-animation).
+   - prefers-reduced-motion or print: none of the rules below apply, the final drawing shows at once. */
+
+.cm-x,
+.cm-x-end,
+.cm-y,
+.cm-pop,
+.cm-badge,
+.cm-from {
+  transform-box: fill-box;
+}
+.cm-x {
+  transform-origin: 0% 50%;
+}
+.cm-x-end {
+  transform-origin: 100% 50%;
+}
+.cm-y {
+  transform-origin: 50% 100%;
+}
+.cm-pop,
+.cm-badge {
+  transform-origin: 50% 50%;
+}
+/* .cm-from: a sloped line grows out of its starting corner, set inline as transform-origin */
+
+@keyframes cm-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes cm-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes cm-grow {
+  from {
+    transform: scale(0);
+  }
+}
+/* marks only (dots, triangles): they may fade; the "to" is the mark's own opacity */
+@keyframes cm-pop {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+}
+/* lines carry pathLength="1", so 1 is the whole path */
+@keyframes cm-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* text rows: movement only, never transparent */
+@keyframes cm-rise {
+  from {
+    transform: translateY(8px);
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  [data-motion] {
+    --cm-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* waiting below the fold */
+  [data-motion="armed"] :is(.cm-x, .cm-x-end) {
+    transform: scaleX(0);
+  }
+  [data-motion="armed"] .cm-y {
+    transform: scaleY(0);
+  }
+  [data-motion="armed"] :is(.cm-badge, .cm-from) {
+    transform: scale(0);
+  }
+  [data-motion="armed"] .cm-pop {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  [data-motion] .cm-draw {
+    stroke-dasharray: 1 1;
+  }
+  [data-motion="armed"] .cm-draw {
+    stroke-dashoffset: 1;
+  }
+  [data-motion="armed"] .cm-rise {
+    transform: translateY(8px);
+  }
+
+  /* in view: once */
+  [data-motion="play"] :is(.cm-x, .cm-x-end) {
+    animation: cm-grow-x var(--cm-dur, 700ms) var(--cm-ease) var(--cm-delay, 0ms) both;
+  }
+  [data-motion="play"] .cm-y {
+    animation: cm-grow-y var(--cm-dur, 700ms) var(--cm-ease) var(--cm-delay, 0ms) both;
+  }
+  [data-motion="play"] :is(.cm-badge, .cm-from) {
+    animation: cm-grow var(--cm-dur, 600ms) var(--cm-ease) var(--cm-delay, 0ms) both;
+  }
+  [data-motion="play"] .cm-pop {
+    animation: cm-pop var(--cm-dur, 500ms) var(--cm-ease) var(--cm-delay, 0ms) both;
+  }
+  [data-motion="play"] .cm-draw {
+    animation: cm-draw var(--cm-dur, 900ms) var(--cm-ease) var(--cm-delay, 0ms) both;
+  }
+  [data-motion="play"] .cm-rise {
+    animation: cm-rise var(--cm-dur, 600ms) var(--cm-ease) var(--cm-delay, 0ms) both;
+  }
+}
