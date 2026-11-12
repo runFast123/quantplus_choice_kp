@@ -5,6 +5,16 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — moving between public pages is smooth: the navbar stays, the drop slides, the page glides in (ADR-055, 12 Nov 2026)
+- Why: each navbar click was a full page reload (the items were plain `<a>` links), and home, the four pages and Research
+  each rendered their own navbar, so the bar was rebuilt and the water drop jumped instead of sliding.
+- Home (`app/page.tsx`) and Research (`app/blog/*`) moved into `app/(site)/`, sharing its layout (the separate
+  `blog/layout.tsx` is gone); URLs are unchanged. `components/ui/liquid-glass-navbar.tsx` uses `next/link` and lets the
+  drop appear in place when it was hidden (home); `components/marketing/landing-nav.tsx` moves the drop on click, before
+  the server answers. New `app/(site)/template.tsx` + `.page-in` in `globals.css`: each page slides up 14 px (movement
+  only; off with reduced motion).
+- Test: `e2e/public.spec.ts` "the navbar stays put between pages" (same document and navbar element across three clicks).
+
 ### Changed — How it works, the extension, pricing and the FAQ are their own pages; Research gets the motion (ADR-055, 11 Nov 2026)
 - Why: the Research pages had none of the landing page's motion (ADR-054 had limited it to `/`), and one long page gave
   four topics one title and one URL, so none could rank for its own searches.

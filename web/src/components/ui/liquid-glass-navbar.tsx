@@ -8,11 +8,13 @@
  *
  * Used on the public landing page only (ADR-054: an exception to design rule 16, no glass elsewhere). Adapted for
  * QuantsPulse: icons come from the caller (Phosphor), ink colours from the theme tokens, no sound, no custom icon set,
- * aria-current="page" on the current page, and the water only animates while something is happening (a move,
- * a ripple, the pointer over it) instead of every frame.
+ * aria-current="page" on the current page, client-side links (next/link) so the bar stays mounted and the drop
+ * slides between pages, and the water only animates while something is happening (a move, a ripple, the pointer
+ * over it) instead of every frame.
  */
 
 import * as React from "react";
+import Link from "next/link";
 
 export type NimbusFx = "plane" | "drop" | "spin" | "glow" | "wave" | "pop" | "none";
 
@@ -377,8 +379,11 @@ export function LiquidNavbar({
     T.q = Math.max(0, el.offsetWidth / 2 - T.r);
     T.cy = PAD + el.offsetTop + el.offsetHeight / 2;
     const nx = PAD + el.offsetLeft + el.offsetWidth / 2;
-    if (!s.ready) {
+    // first layout, or the drop was hidden (no current item): appear in place instead of sliding in from item 0
+    if (!s.ready || (hiddenRef.current && current >= 0)) {
       s.a.x = s.b.x = nx;
+      s.a.v = s.b.v = 0;
+      s.sats = [];
       s.q = T.q;
       s.ready = true;
     } else if (Math.abs(nx - T.x) > 0.5) {
@@ -567,9 +572,9 @@ export function LiquidNavbar({
         );
         const isCurrent = i === current ? ("page" as const) : undefined;
         return it.href ? (
-          <a key={it.label} ref={setRef} className="nimbus-item" aria-current={isCurrent} href={it.href} onClick={() => select(i)}>
+          <Link key={it.label} ref={setRef} className="nimbus-item" aria-current={isCurrent} href={it.href} onClick={() => select(i)}>
             {content}
-          </a>
+          </Link>
         ) : (
           <button key={it.label} ref={setRef} className="nimbus-item" aria-current={isCurrent} type="button" onClick={() => select(i)}>
             {content}

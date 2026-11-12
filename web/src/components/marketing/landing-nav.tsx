@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { ListNumbersIcon, NotebookIcon, PuzzlePieceIcon, QuestionIcon, TagIcon } from "@phosphor-icons/react";
 import { LiquidNavbar, type LiquidNavItem } from "@/components/ui/liquid-glass-navbar";
@@ -8,7 +8,7 @@ import { LiquidNavbar, type LiquidNavItem } from "@/components/ui/liquid-glass-n
 /**
  * The public site's floating liquid-glass navbar (ADR-054: glass is allowed on the public pages only). Each item is
  * its own page (ADR-055), and the drop sits on the page you are on, read from the URL; on the home page no item is
- * lit. Full labels on wide screens, icons only below 1280 px so it never runs into the logo or the sign-in buttons;
+ * lit. The bar lives in the shared (site) layout, so it stays mounted between pages and the drop slides across. Full labels on wide screens, icons only below 1280 px so it never runs into the logo or the sign-in buttons;
  * hidden on phones, where the header shows the logo and the account buttons and the footer lists the pages.
  */
 const ITEMS: LiquidNavItem[] = [
@@ -33,7 +33,11 @@ const subscribeWide = (cb: () => void) => {
 
 export function LandingNav() {
   const path = usePathname();
-  const active = ITEMS.findIndex((p) => p.href && (path === p.href || path.startsWith(`${p.href}/`)));
+  const fromPath = ITEMS.findIndex((p) => p.href && (path === p.href || path.startsWith(`${p.href}/`)));
+  // The drop moves the moment you click, not when the next page has arrived from the server; once the URL changes
+  // the path decides again (a pick made on another path no longer counts).
+  const [picked, setPicked] = useState<{ i: number; from: string } | null>(null);
+  const active = picked && picked.from === path ? picked.i : fromPath;
   const tone = useSyncExternalStore(
     subscribeTheme,
     () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
@@ -45,6 +49,7 @@ export function LandingNav() {
     <LiquidNavbar
       items={ITEMS}
       active={active}
+      onChange={(i) => setPicked({ i, from: path })}
       tone={tone}
       compact={compact}
       ariaLabel="Site"

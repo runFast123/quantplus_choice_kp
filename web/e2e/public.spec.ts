@@ -34,6 +34,30 @@ test.describe("public site @mobile", () => {
     expect(titles.size).toBe(pages.length);
   });
 
+  test("the navbar stays put between pages: client-side moves, the drop follows, the page glides in", async ({ page }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 768, "the navbar is hidden on phones");
+    await page.goto("/");
+    const nav = page.getByRole("navigation", { name: "Site" });
+    // marks on the document and on the navbar element: a full reload or a remounted navbar would lose them
+    await nav.evaluate((el) => {
+      (window as unknown as { __qp: string }).__qp = "same";
+      el.setAttribute("data-e2e", "same");
+    });
+    for (const [label, path, h1] of [
+      ["Pricing", "/pricing", "Priced by the year"],
+      ["Research", "/blog", "The usual way to use an indicator"],
+      ["How it works", "/how-it-works", "A short list, a few rules"],
+    ] as const) {
+      await nav.getByRole("link", { name: label }).click();
+      await expect(nav.locator('[aria-current="page"]')).toHaveAttribute("href", path);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(h1);
+    }
+    expect(await page.evaluate(() => (window as unknown as { __qp?: string }).__qp)).toBe("same");
+    await expect(nav).toHaveAttribute("data-e2e", "same");
+    await expect(page.locator(".page-in")).toHaveCount(1);
+  });
+
   test("pricing: plan prices from the database", async ({ page }) => {
     await page.goto("/pricing");
     const pricing = page.locator("#pricing");

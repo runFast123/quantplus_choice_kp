@@ -204,7 +204,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 
 | Route | What |
 |---|---|
-| `/` | home: hero, ticker, a card per public page, privacy band, three questions; forwards old `/#section` links (ADR-055) |
+| `/` | `app/(site)/page.tsx` — home: hero, ticker, a card per public page, privacy band, three questions; forwards old `/#section` links (ADR-055). All public pages share `app/(site)/layout.tsx` (header + navbar stay mounted) and `template.tsx` (`.page-in` glide) |
 | `/how-it-works`, `/chrome-extension`, `/pricing`, `/faq` | `app/(site)/*`, one page per topic (ADR-055): own metadata + canonical, JSON-LD `BreadcrumbList` (+ `FAQPage` on /faq); /pricing reads `plans` (fallback `FALLBACK_PLANS`) |
 | `/api/symbols?q=` | ranked symbol search (`search_symbols`) for the header and add forms; signed-in only |
 | `/api/dry-run/stock?symbol=` | one stock for Dry Run: name, sector, segment, last price, 2 years of candles, stored signals as markers; signed-in only |
@@ -212,7 +212,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/auth/confirm` | email link handler (token_hash or PKCE code) |
 | `/invite/[token]` | accept organisation invite |
 | `/legal/[doc]` | `terms`, `privacy` (drafts) |
-| `/blog`, `/blog/[slug]` | Research notes (public): five posts, each rule against the usual way of using its indicator; metadata + canonical + OG, JSON-LD `Blog` / `BlogPosting` + `FAQPage` + `BreadcrumbList`; `/blog/[slug]/opengraph-image` (prerendered share card) |
+| `/blog`, `/blog/[slug]` | `app/(site)/blog/*` — Research notes (public): five posts, each rule against the usual way of using its indicator; metadata + canonical + OG, JSON-LD `Blog` / `BlogPosting` + `FAQPage` + `BreadcrumbList`; `/blog/[slug]/opengraph-image` (prerendered share card) |
 | `/sitemap.xml`, `/robots.txt` | `app/sitemap.ts` (home, the four topic pages, Research + posts, legal), `app/robots.ts` (disallows `/app`, `/admin`, `/api/`, `/auth/`, `/invite/`, `/device`) |
 | `/device` | single-device takeover screen (target of `requireSession` for displaced devices) |
 | `/app` | overview (redirects to `/app/welcome` until terms consent) |
@@ -273,7 +273,7 @@ Route-local: `app/app/portfolio/forms.tsx` — `RecordTradeForm`, `EditTrade`, `
 | `ui/liquid-glass-navbar.tsx` | `LiquidNavbar` (liquid-glass pill nav with a WebGL water drop, CSS fallback; public pages only, ADR-054/055), types `LiquidNavItem`, `NimbusFx` |
 | `marketing/hero-scene.tsx` | `HeroScene` (the landing hero's CSS 3D stage: chart plane + floating cards; pointer and scroll set `--px/--py/--sp`) |
 | `marketing/tilt.tsx` | `Tilt` (a card that tilts toward the pointer, with a soft highlight; public pages only) |
-| `marketing/landing-nav.tsx` | `LandingNav` (the public site's floating glass nav: links to the pages, lights the current one from the URL; icons only below 1280 px) |
+| `marketing/landing-nav.tsx` | `LandingNav` (the public site's floating glass nav: links to the pages, lights the current one from the URL, moves the drop on click before the page arrives; icons only below 1280 px) |
 | `charts/trade-odds.tsx` | `TradeOdds` ("What usually happens next?" under the chart when a trade is selected: plain headline, 100-dot waffle, break-even pass mark, past-signal ▲▼ strip, method folded away; 5/10/20 days, target price) |
 | `charts/price-chart.tsx` | `PriceChart` (lightweight-charts v5: candles + volume + full-history SMA 20/50/200 + strategy-isolated signal overlays [KK (dip + old breakout), SMA 20/50 (trend + old cross), RSI (dip + old reversal), Strong trend, 200-day trend (turns on SMA 200), All Plans, Clean (Off)] + HUD with plain-English signal explainer + Signals Timeline ribbon ("New" since last visit, `qp:chart-seen:<SYMBOL>` in localStorage) + trade view on selection [entry/stop/target price lines (no-target rules: an "Exit ±x%" line and the zone to the exit), risk/reward zones, 1R label, ~260 ms pan; reduced motion → instant] + one-time ring on new signals + collapsible daily OHLCV table view), types `ChartMarker`, `ChartStrategyFilter` |
 | `charts/tradingview-widget.tsx` | `TradingViewWidget` (official free TradingView Advanced Chart embed with 100+ indicators & drawings) |

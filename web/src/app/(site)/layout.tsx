@@ -1,7 +1,10 @@
 import { SiteFooter, SiteNav } from "@/components/marketing/site-nav";
 import { supabaseServer } from "@/lib/supabase/server";
 
-/** How it works, Chrome extension, Pricing and Questions: one page each (ADR-055). Research has the same shell in blog/. */
+/**
+ * Every public page: home, How it works, Chrome extension, Pricing, Questions and Research (ADR-055). One shared
+ * layout so the header and the liquid navbar stay mounted between pages; template.tsx animates the page itself.
+ */
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const { data } = await (await supabaseServer()).auth.getClaims();
   return (

@@ -371,6 +371,11 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   apply: the signed-in app keeps design rule 16.
 - **Old links:** a `#fragment` never reaches the server, so `components/marketing/legacy-hash.tsx` forwards `/#how`,
   `/#terminal`, `/#pricing` and `/#faq` in the browser.
+- **Moving between pages (12 Nov 2026):** home, the four pages and Research all sit in `app/(site)` under one layout, so
+  the header and navbar stay mounted; the navbar's items are `next/link` links (they were plain `<a>`, a full reload
+  per click). The drop moves on click, before the next page has arrived, and `app/(site)/template.tsx` slides each new
+  page up 14 px: movement only, never a fade, so axe's contrast check holds at every frame. Legal pages keep their own
+  shell (they are not in the navbar).
 
 ### ADR-054 · The landing page may use liquid glass, 3D depth and motion; nowhere else
 **Date** 2026-11-11 · **Status** accepted

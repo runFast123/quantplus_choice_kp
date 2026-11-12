@@ -489,6 +489,17 @@
   animation-delay: var(--d, 0ms);
 }
 
+/* each public page glides in on navigation (app/(site)/template.tsx). Fill "backwards" only: once it ends no transform
+   is left on the wrapper, so nothing inside gets a new containing block. Movement only, never transparent (like
+   .hero-in), so text keeps its full contrast at every frame. */
+@keyframes page-in {
+  from { transform: translateY(14px); }
+  to { transform: none; }
+}
+.page-in {
+  animation: page-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
 /* cards that tilt toward the pointer (components/marketing/tilt.tsx) */
 .tilt {
   position: relative;
@@ -554,7 +565,8 @@
   .hero-float-a,
   .hero-float-b,
   .hero-float-c,
-  .hero-in {
+  .hero-in,
+  .page-in {
     animation: none !important;
   }
   .hero-rig {

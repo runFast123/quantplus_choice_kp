@@ -2,7 +2,6 @@ import Link from "next/link";
 import { HeroScene } from "@/components/marketing/hero-scene";
 import { LegacyHashRedirect } from "@/components/marketing/legacy-hash";
 import { FaqList, MorePages, PrivacyBand } from "@/components/marketing/sections";
-import { SiteFooter, SiteNav } from "@/components/marketing/site-nav";
 import { ButtonLink } from "@/components/ui/button";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -17,15 +16,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const signedIn = Boolean(claims?.claims?.sub);
 
   return (
-    <div className="linen min-h-dvh">
+    <>
       <LegacyHashRedirect />
       {sp.deleted ? (
         <p role="status" className="bg-primary px-5 py-2 text-center text-[13px] text-primary-foreground">
           Your account and personal workspace have been deleted.
         </p>
       ) : null}
-      <SiteNav signedIn={signedIn} />
-
       <main>
         {/* ---------------- Hero ---------------- */}
         <section className="mx-auto grid max-w-[1240px] gap-14 overflow-x-clip px-5 pb-20 pt-10 md:px-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16 lg:pt-20">
@@ -110,9 +107,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           </div>
         </section>
       </main>
-
-      <SiteFooter />
-    </div>
+    </>
   );
 }
 
