@@ -1,0 +1,67 @@
+# One-off: can GitHub's servers reach NSE's own MCP servers, and what do they return? Runs only on the temporary
+# branch nse-reach-test; reads public endpoints, writes nothing, uses no secrets. Identifies as QuantsPulseBot (ADR-014).
+name: nse-reach-test
+on:
+  push:
+    branches: [nse-reach-test]
+permissions: {}
+jobs:
+  reach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Call both servers
+        run: |
+          set +e
+          UA="QuantsPulseBot/1.0 (+https://quantplus-ten.vercel.app)"
+          call() { # url, session id (may be empty), json body
+            if [ -n "$2" ]; then
+              curl -s -m 40 -D h.txt -o b.txt -A "$UA" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -H "Mcp-Session-Id: $2" -d "$3" "$1"
+            else
+              curl -s -m 40 -D h.txt -o b.txt -A "$UA" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d "$3" "$1"
+            fi
+            echo "  status: $(head -1 h.txt | tr -d '\r')  type: $(grep -i '^content-type' h.txt | tr -d '\r')"
+            grep -i 'retry-after\|ratelimit\|x-rate' h.txt
+          }
+          INIT='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"QuantsPulseBot","version":"1.0"}}}'
+          for U in https://mcp.nseindia.in/bhavcopy/cm/mcp https://mcp.nseindia.in/cmmkt/mcp; do
+            echo "=================== $U"
+            echo "-- initialize"; call "$U" "" "$INIT"; head -c 1200 b.txt; echo
+            SID=$(grep -i '^mcp-session-id' h.txt | awk '{print $2}' | tr -d '\r')
+            echo "  session header present: $([ -n "$SID" ] && echo yes || echo no)"
+            call "$U" "$SID" '{"jsonrpc":"2.0","method":"notifications/initialized"}' > /dev/null
+            echo "-- tools/list (names only)"; call "$U" "$SID" '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+            grep -o '"name":"[a-z0-9_]*"' b.txt | sort -u | tr '\n' ' '; echo
+            if echo "$U" | grep -q bhavcopy; then
+              echo "-- get_stock_history RELIANCE 1 month"
+              call "$U" "$SID" '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_stock_history","arguments":{"symbol":"RELIANCE","months":1,"endDate":"today"}}}'
+              head -c 900 b.txt; echo; echo "  bytes: $(wc -c < b.txt)"
+              echo "-- get_corporate_actions RELIANCE"
+              call "$U" "$SID" '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_corporate_actions","arguments":{"symbol":"RELIANCE","fromDate":"2021-01-01","toDate":"2026-11-13"}}}'
+              head -c 1200 b.txt; echo
+              echo "-- 12 calls in a row (rate limit?)"
+              for S in TCS INFY HDFCBANK ITC SBIN LT WIPRO AXISBANK MARUTI TITAN ONGC NTPC; do
+                T0=$(date +%s%N)
+                curl -s -m 40 -o /dev/null -w "$S %{http_code} " -A "$UA" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" ${SID:+-H "Mcp-Session-Id: $SID"} -d "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\",\"params\":{\"name\":\"get_stock_history\",\"arguments\":{\"symbol\":\"$S\",\"months\":3,\"endDate\":\"today\"}}}" "$U"
+                echo "$(( ($(date +%s%N) - T0) / 1000000 )) ms"
+              done
+            else
+              echo "-- cm_get_stock_quote RELIANCE"
+              call "$U" "$SID" '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"cm_get_stock_quote","arguments":{"symbol":"RELIANCE"}}}'
+              head -c 900 b.txt; echo
+            fi
+          done
+      - name: NSE's own page (terms)
+        run: |
+          set +e
+          UA="QuantsPulseBot/1.0 (+https://quantplus-ten.vercel.app)"
+          curl -s -m 40 -L -A "$UA" -o t.html -w "nse-mcp page: %{http_code} %{size_download} bytes\n" https://www.nseindia.com/nse-mcp
+          python3 - <<'EOF'
+          import re, html
+          t = open("t.html", encoding="utf-8", errors="replace").read()
+          t = re.sub(r"<(script|style)\b.*?</\1>", " ", t, flags=re.S | re.I)
+          t = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", t)).split())
+          print(len(t), "characters of text")
+          for m in re.finditer(r"(?i)(terms|commercial|redistribut|educational|informational|rate limit|permitted|prohibit|licen[sc]e)", t):
+              s = max(0, m.start() - 160); print("…", t[s:m.start() + 260], "…"); print()
+          EOF
