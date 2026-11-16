@@ -30,6 +30,14 @@ async function run(req: NextRequest) {
   const scopeParam = (req.nextUrl.searchParams.get("scope") || "active") as "active" | "top" | "all";
   const daysParam = Number(req.nextUrl.searchParams.get("days") || 10);
 
+  // Vercel's crons (vercel.json, ?dispatch=full) also start the full pipeline on GitHub, whose own schedule runs
+  // hours late. The workflow's webhook path calls this route without it, so it never starts itself again. Started
+  // FIRST, so the full load still begins if the in-app sync below fails or runs into the 300 s limit.
+  const fullLoadPromise =
+    req.nextUrl.searchParams.get("dispatch") === "full"
+      ? dispatchMarketEod().catch((e: unknown) => ({ error: e instanceof Error ? e.message : "dispatch failed" }))
+      : undefined;
+
   try {
     const report = await syncEodPrices({
       scope: scopeParam === "all" || scopeParam === "top" ? scopeParam : "active",
@@ -38,14 +46,14 @@ async function run(req: NextRequest) {
     });
     // The notifier just ran: push its alerts now rather than waiting for /api/cron/push.
     const push = await deliverPendingPush().catch((e: unknown) => ({ error: e instanceof Error ? e.message : "push failed" }));
-    // Vercel's crons (vercel.json, ?dispatch=full) also start the full pipeline on GitHub, whose own schedule runs
-    // hours late. The workflow's webhook path calls this route without it, so it never starts itself again.
-    const fullLoad = req.nextUrl.searchParams.get("dispatch") === "full" ? await dispatchMarketEod() : undefined;
-    return NextResponse.json({ ...report, push, fullLoad }, { headers: { "cache-control": "no-store" } });
+    const fullLoad = await fullLoadPromise;
+    // 502 when the sync wrote nothing or a write failed, so the cron shows red instead of a quiet green
+    return NextResponse.json({ ...report, push, fullLoad }, { status: report.success ? 200 : 502, headers: { "cache-control": "no-store" } });
   } catch (err) {
     console.error("Cron market-eod error:", err);
+    const fullLoad = await fullLoadPromise;
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "EOD sync failed" },
+      { error: err instanceof Error ? err.message : "EOD sync failed", fullLoad },
       { status: 500, headers: { "cache-control": "no-store" } },
     );
   }

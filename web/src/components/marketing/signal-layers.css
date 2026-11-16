@@ -1,0 +1,78 @@
+/* "What every signal is made of" (signal-layers.tsx, ADR-057): four planes on an isometric rig. The base state IS the
+   lifted stack, so browsers without scroll-driven animations and "reduce motion" show a finished still. Where
+   animation-timeline exists, the planes start flat (one sheet) and lift apart as the section crosses the screen.
+   Transforms only: nothing fades, so text keeps full contrast at every frame. */
+.sl {
+  view-timeline: --sl block;
+}
+.sl-stage {
+  position: relative;
+  height: 430px;
+  perspective: 1500px;
+  perspective-origin: 50% 35%;
+}
+.sl-rig {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 300px;
+  height: 190px;
+  margin: -95px 0 0 -150px;
+  transform: rotateX(57deg) rotateZ(-38deg);
+  transform-style: preserve-3d;
+}
+.sl-plane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 28px 36px -30px rgb(0 0 0 / 0.35);
+  transform: translateZ(var(--lift));
+  backface-visibility: hidden;
+}
+.sl-p1 { --lift: 0px; }
+.sl-p2 { --lift: 74px; }
+.sl-p3 { --lift: 148px; }
+.sl-p4 { --lift: 222px; }
+
+@keyframes sl-lift {
+  from { transform: translateZ(calc(var(--lift) * 0.06)); }
+  to { transform: translateZ(var(--lift)); }
+}
+@keyframes sl-turn {
+  from { transform: rotateX(64deg) rotateZ(-52deg); }
+  to { transform: rotateX(57deg) rotateZ(-38deg); }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .sl-plane {
+      animation: sl-lift linear both;
+      animation-timeline: --sl;
+      animation-range: entry 25% cover 52%;
+    }
+    .sl-rig {
+      animation: sl-turn linear both;
+      animation-timeline: --sl;
+      animation-range: entry 10% cover 52%;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .sl-stage {
+    height: 360px;
+  }
+  .sl-rig {
+    width: 240px;
+    height: 152px;
+    margin: -76px 0 0 -120px;
+  }
+  .sl-p2 { --lift: 58px; }
+  .sl-p3 { --lift: 116px; }
+  .sl-p4 { --lift: 174px; }
+}

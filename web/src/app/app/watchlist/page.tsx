@@ -140,7 +140,7 @@ export default async function WatchlistPage({ searchParams }: PageProps<"/app/wa
           </Empty>
         ) : (
           <TableWrap>
-            <table className="w-full min-w-[760px]">
+            <table className="rows-in w-full min-w-[760px]">
               <thead>
                 <tr>
                   <th className={th}>Symbol</th>

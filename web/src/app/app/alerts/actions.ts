@@ -91,14 +91,23 @@ export async function quickArmAlert(
   };
 }
 
-export async function setAlertStatus(id: string, status: "armed" | "disabled") {
+// RLS limits these writes to the caller's own alerts; zero rows back means "not yours, or already gone" (rule 11).
+export async function setAlertStatus(id: string, status: "armed" | "disabled"): Promise<ActionState> {
   const s = await requireSession();
-  await s.supabase.from("price_alerts").update({ status }).eq("id", id);
+  if (!z.uuid().safeParse(id).success || (status !== "armed" && status !== "disabled")) return { error: "That alert couldn't be found." };
+  const { data, error } = await s.supabase.from("price_alerts").update({ status }).eq("id", id).select("id");
   revalidatePath("/app/alerts");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "That alert couldn't be found. Refresh the page and try again." };
+  return { ok: true };
 }
 
-export async function deleteAlert(id: string) {
+export async function deleteAlert(id: string): Promise<ActionState> {
   const s = await requireSession();
-  await s.supabase.from("price_alerts").delete().eq("id", id);
+  if (!z.uuid().safeParse(id).success) return { error: "That alert couldn't be found." };
+  const { data, error } = await s.supabase.from("price_alerts").delete().eq("id", id).select("id");
   revalidatePath("/app/alerts");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "That alert was already removed. Refresh the page." };
+  return { ok: true };
 }

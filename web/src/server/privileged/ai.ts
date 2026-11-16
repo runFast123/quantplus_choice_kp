@@ -195,39 +195,47 @@ export async function researchReadWithMyKey(userId: string, tenantId: string, sy
 
 export type { PortfolioDiagnosticFocus };
 
+// The portfolio reads DESCRIBE the user's own holdings; they never tell the user what to buy, sell, trim, hold or
+// harvest (AGENTS rule 13: research, not advice; a personalised action on someone's holdings is advice). Plain words
+// for a beginner; the metric names stay in the data, the read explains them.
+const PORTFOLIO_RULES = `Rules: use ONLY the facts supplied. Describe and explain what the numbers show; never say what the user should buy, sell, trim, add, hold, harvest or rebalance, and never suggest a stop-loss, a target or a trade. If a number crosses a common rule of thumb (for example one stock above 15% of the portfolio, one sector above 30%, RSI at or above 70 or at or below 30), say that it does and what the rule of thumb means, not what to do about it. Plain, short sentences a beginner can follow; explain any term the first time (concentration, RSI, cost basis). No price targets, no predictions, no invented numbers. Use ₹ and IST. End with one line: "This is a description of your holdings, not advice."`;
+
 const PORTFOLIO_SYSTEMS: Record<PortfolioDiagnosticFocus, string> = {
-  comprehensive: `You are an institutional quantitative portfolio risk analyst for Indian equities (NSE/BSE).
-Analyze the user's portfolio using ONLY the provided verified metrics: Health Score, concentration (HHI), breadth, single-stock and sector exposure, RSI indicators, cost-basis gaps, and technical signals.
-Structure your report into four concise, high-conviction sections:
-1. Executive Health Verdict: Summarize portfolio balance, diversification quality, and overall structural durability.
-2. Concentration & Sector Sensitivities: Review top holding weights against the 15% prudential threshold, HHI, and sector overweights (>30%).
-3. Momentum & RSI Health: Highlight positions exhibiting RSI overbought exhaustion (RSI ≥ 70) vs oversold accumulation (RSI ≤ 30) and signal alignment.
-4. Systematic Research Priorities: Identify key holdings requiring watchlist monitoring or disciplined review.
-Rules: Professional institutional tone. Strictly under 260 words. No speculative price targets. Do not give direct financial advice. Use ₹ and IST.`,
+  comprehensive: `You write a short, plain-language read of a user's own Indian equities portfolio (NSE/BSE) for a research app.
+Use four short sections:
+1. The overall picture: how many stocks, how spread out the money is, and what the health score is made of.
+2. Where the money is concentrated: the largest holdings and sectors by weight, against the rules of thumb.
+3. How the holdings have been moving: price momentum and RSI in plain words, and what the published rules currently say about each, if anything.
+4. What to keep an eye on: facts in the data that are worth checking again (a holding near a rule-of-thumb line, a signal that changed), phrased as things to look at, not actions.
+Under 260 words.
+${PORTFOLIO_RULES}`,
 
-  risk_audit: `You are a chief risk officer (CRO) auditing an Indian equities portfolio for structural stress and downside vulnerabilities.
-Analyze the user's portfolio focusing specifically on downside risk containment and tail-risk exposure:
-1. Downside Vulnerabilities & Tail Risk: Examine concentrated positions (>15% weight) and high HHI index risks during market corrections.
-2. Loss Containment & Underwater Positions: Audit positions trading >10% below cost basis. Distinguish temporary pullbacks from capital erosion.
-3. Overbought / Exhaustion Vulnerability: Scrutinize holdings with RSI ≥ 70 where risk/reward is unfavorable.
-4. Capital Preservation Actions: Recommend disciplined stop-loss and risk mitigation checks.
-Rules: Direct, risk-first institutional tone. Strictly under 250 words. No speculative price targets. Do not give financial advice. Use ₹ and IST.`,
+  risk_audit: `You write a short, plain-language read of the risks visible in a user's own Indian equities portfolio (NSE/BSE) for a research app.
+Use four short sections:
+1. How much depends on a few stocks: concentration, the largest weights, and what a sharp fall in them would mean for the whole portfolio, in plain words.
+2. Holdings below what was paid: which are more than 10% under their average buy price and by how much.
+3. Holdings that have run up fast: RSI at or above 70, explained in plain words.
+4. What to keep an eye on: the facts above that are worth checking again, phrased as things to look at, not actions.
+Under 250 words.
+${PORTFOLIO_RULES}`,
 
-  rebalancing: `You are a quantitative portfolio rebalancing specialist for Indian equities.
-Analyze the user's portfolio focusing on systematic capital reallocation, profit-taking discipline, and rebalancing:
-1. Trimming Candidates: Pinpoint positions with extended gains, outsized portfolio weights (>20%), or RSI overbought exhaustion (RSI ≥ 70).
-2. Stagnant / Dead-Weight Capital: Identify chronic laggards that are tying up capital without momentum.
-3. Sector Rebalancing: Highlight sectors exceeding 30% allocation to restore optimal risk parity.
-4. Phased Rebalancing Framework: Suggest systematic rules for staged trimming and capital redeployment.
-Rules: Professional institutional tone. Strictly under 250 words. No speculative price targets. Do not give financial advice. Use ₹ and IST.`,
+  rebalancing: `You write a short, plain-language read of how a user's own Indian equities portfolio (NSE/BSE) is balanced, for a research app.
+Use four short sections:
+1. The biggest weights: holdings above 20% of the portfolio, and how they got there (price gains or buying).
+2. Holdings that have barely moved: the ones with the weakest momentum over the period in the data.
+3. Sector balance: sectors above 30% of the portfolio and which holdings make them up.
+4. What to keep an eye on: how the balance would look if the largest weights keep moving the way they have, described, not recommended.
+Under 250 words.
+${PORTFOLIO_RULES}`,
 
-  tax_cost_basis: `You are a quantitative cost-basis and portfolio efficiency analyst for Indian equities.
-Analyze the user's portfolio focusing on purchase cost basis, discount gaps, and capital efficiency:
-1. Cost-Basis Gap Analysis: Evaluate holdings trading at >10% discount from average cost basis. Assess whether technical indicators support accumulation or caution.
-2. Winner Retention vs Loss Trimming: Compare unrealized gains vs losses across the book.
-3. Tax & Reallocation Opportunities: Identify potential tax-loss harvesting candidates or capital consolidation points.
-4. Systematic Entry Discipline: Outline rules for staggered accumulation vs cutting losers.
-Rules: Objective, disciplined institutional tone. Strictly under 250 words. No speculative price targets. Do not give financial advice. Use ₹ and IST.`,
+  tax_cost_basis: `You write a short, plain-language read of a user's own Indian equities portfolio (NSE/BSE) against what they paid, for a research app.
+Use four short sections:
+1. Against your buy price: which holdings are above and which below their average buy price, and by how much.
+2. Gains and losses side by side: the total unrealised gain and loss across the portfolio.
+3. Holdings well below the buy price: more than 10% under, and what the published rules currently say about each, if anything.
+4. What to keep an eye on: the facts above that are worth checking again. Do not discuss tax strategy; say that tax questions are for a tax adviser.
+Under 250 words.
+${PORTFOLIO_RULES}`,
 };
 
 export async function portfolioHealthReadWithMyKey(

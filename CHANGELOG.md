@@ -5,6 +5,37 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — production pass: public pages from cache, 3D and motion, About page, NSE price check, audit fixes (ADR-057/058, 16 Nov 2026)
+- Why: the owner asked for a fast, smooth, robust, easy system ready for production, pages built to rank, modern 3D
+  motion, and a proper check of what works and what does not. A read-only audit (all tests green: 448 database
+  assertions, 205 unit, 27 pipeline) found the issues fixed or listed below.
+- Speed (ADR-058): the public pages no longer read the request. Theme from an inline `<head>` script (`lib/theme.ts`,
+  `shell/theme-sync.tsx`, `theme-toggle.tsx`); signed-in buttons as client islands (`marketing/session-links.tsx`,
+  `lib/supabase/use-signed-in.ts`); `/?deleted=1` note in the browser (`marketing/deleted-banner.tsx`); /pricing reads
+  plans without cookies (`lib/supabase/public.ts`) and revalidates hourly. Home, About, Method, Chrome extension, FAQ,
+  Research, every note, legal, `llms.txt` and the sitemap are now prerendered.
+- 3D and motion (ADR-057): home "What every signal is made of" (`marketing/signal-layers.*`, four planes that lift
+  apart as you scroll); Method rule cards tilt; in the app, each section glides in (`app/app/template.tsx`,
+  `app-motion.css`), the sidebar highlight slides, the first rows of the radar, alerts and positions tables settle, and
+  13 new page-shaped loading skeletons (`app/app/**/loading.tsx`, new helpers in `ui/skeleton.tsx`). Transforms only,
+  nothing loops, reduced motion turns it off.
+- SEO/GEO: new `/about` (how every rule is tested, data, limits; `AboutPage` JSON-LD), in the sitemap and `llms.txt`.
+- NSE second opinion (ADR-057): `pipelines/eod/nse_check.py` + `test_nse_check.py` (23 tests) compare the newest
+  stored candle with NSE's own bhavcopy and check big one-day moves against NSE's corporate actions; a non-failing step
+  in `market-eod.yml`. Self-test passed from GitHub Actions on 16 Nov 2026.
+- Fixes from the audit: the portfolio AI reads no longer ask the model for trades, stop-losses, trimming or tax-loss
+  harvesting (personalised advice; `server/privileged/ai.ts`), and their buttons use plain words
+  (`components/portfolio/ai-diagnostic.tsx`); deleting or pausing an alert and removing a radar stock or list now
+  validate the id, check the result and say when nothing changed (`alerts/actions.ts`, `watchlist/actions.ts`,
+  `ui/confirm-button.tsx`, `alerts/status-toggle.tsx`); the invite page shows its own sentences, never text from the
+  address (`invite/[token]/page.tsx`); the in-app price sync pages past 1,000 rows, looks symbols up in batches and
+  reports read errors (`eod-sync.ts`); it reports failure when nothing was written or a write failed, the cron answers
+  502 then, and the GitHub full load is started first so it still runs if the sync times out
+  (`api/cron/market-eod/route.ts`).
+- Not done (ROADMAP): one trial per user, the consent gate on every /app page, the sync's User-Agent, limits on the
+  extension quote API, the extension's localhost permission and page observer, an audit-hash pepper, and the remaining
+  error-ignoring actions.
+
 ### Changed — a new home hero, "Method" for "How it works", SEO + GEO on every public page, animated Research charts (ADR-056, 12 Nov 2026)
 - Why: the hero read as unprofessional, "How it works" did not sound like a product page, and the pages lacked the
   headings, structured data and answer-first copy search and AI engines use. The owner's USP ("signals before the

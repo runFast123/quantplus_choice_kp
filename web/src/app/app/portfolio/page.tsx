@@ -210,7 +210,7 @@ export default async function PortfolioPage({ searchParams }: PageProps<"/app/po
             </Empty>
           ) : (
             <TableWrap>
-              <table className="w-full min-w-[900px]" data-testid="positions">
+              <table className="rows-in w-full min-w-[900px]" data-testid="positions">
                 <thead>
                   <tr>
                     <th className={th}>Symbol</th>

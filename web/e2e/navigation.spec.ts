@@ -50,6 +50,22 @@ test.describe("shell", () => {
     await expect(proPage.locator("html")).not.toHaveClass(/dark/);
   });
 
+  test("signed in too, the theme class comes from the cookie in the browser, before the app scripts run", async ({ proPage }, info) => {
+    await proPage.context().addCookies([{ name: "qp_theme", value: "dark", url: info.project.use.baseURL! }]);
+    // the server reads the cookie for the toggle icon only; <html> leaves the theme to the inline script
+    const tag = (await (await proPage.request.get("/app")).text()).match(/<html[^>]*>/)?.[0] ?? "";
+    expect(tag).toContain('lang="en-IN"');
+    expect(tag).not.toMatch(/[\s"](dark|light)[\s"]/);
+    await proPage.route("**/_next/static/**/*.js", (r) => r.abort());
+    await proPage.goto("/app");
+    await expect(proPage.locator("html")).toHaveClass(/(^|\s)dark(\s|$)/);
+    expect(await proPage.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe("dark");
+    await proPage.unroute("**/_next/static/**/*.js");
+    await proPage.reload();
+    await expect(proPage.getByRole("button", { name: "Switch to light theme" })).toBeVisible();
+    await expect(proPage.locator("html")).toHaveClass(/(^|\s)dark(\s|$)/);
+  });
+
   test("prices name their source", async ({ proPage }) => {
     await proPage.goto("/app/markets");
     const synthetic = env().NEXT_PUBLIC_MARKET_DATA_MODE === "synthetic";

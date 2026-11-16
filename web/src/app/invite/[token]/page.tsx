@@ -24,7 +24,8 @@ export default async function InvitePage({ params, searchParams }: PageProps<"/i
       await switchTenant(s.userId, tenantId);
       await s.supabase.auth.refreshSession();
     } catch (e) {
-      redirect(`/invite/${token}?error=${encodeURIComponent(e instanceof PrivilegedError ? e.message : "Couldn't accept the invitation.")}`);
+      // Only a code goes in the address: the page shows its own sentence, so a crafted link can't put words in it.
+      redirect(`/invite/${token}?error=${e instanceof PrivilegedError ? "rejected" : "failed"}`);
     }
     redirect("/app/workspace");
   }
@@ -48,9 +49,11 @@ export default async function InvitePage({ params, searchParams }: PageProps<"/i
           You&apos;ve been invited as {invite.role === "admin" ? "an admin" : "a member"}, at <span className="text-foreground">{invite.email}</span>. Admins
           there will see your name, email and plan — never your holdings, watchlists or keys.
         </p>
-        {typeof error === "string" ? (
+        {error === "rejected" || error === "failed" ? (
           <p role="alert" className="mt-4 rounded-md border border-loss/30 bg-loss-soft px-3 py-2 text-[13px] text-loss">
-            {error}
+            {error === "rejected"
+              ? `We couldn't add you with this invitation. Check you're signed in as ${invite.email}, or ask for a fresh link.`
+              : "Something went wrong on our side while joining. Please try again in a minute."}
           </p>
         ) : null}
         <div className="mt-6">

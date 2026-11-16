@@ -2,19 +2,16 @@
 
 import { MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { useState } from "react";
+import { saveTheme, type Theme } from "@/lib/theme";
 
-export function ThemeToggle({ initial }: { initial: "light" | "dark" }) {
+export function ThemeToggle({ initial }: { initial: Theme }) {
   const [theme, setTheme] = useState(initial);
   const next = theme === "dark" ? "light" : "dark";
   return (
     <button
       type="button"
       onClick={() => {
-        const root = document.documentElement;
-        root.classList.remove(theme);
-        root.classList.add(next);
-        root.style.colorScheme = next;
-        document.cookie = `qp_theme=${next}; path=/; max-age=31536000; samesite=lax`;
+        saveTheme(next);
         setTheme(next);
       }}
       className="grid size-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"

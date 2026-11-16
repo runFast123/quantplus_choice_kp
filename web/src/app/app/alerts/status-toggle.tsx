@@ -1,13 +1,15 @@
 "use client";
 
 import clsx from "clsx";
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { setAlertStatus } from "./actions";
 
 export function AlertStatusToggle({ id, armed }: { id: string; armed: boolean }) {
   const [on, setOn] = useOptimistic(armed);
+  const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
   return (
+    <span className="inline-flex flex-col items-start">
     <button
       type="button"
       role="switch"
@@ -16,7 +18,9 @@ export function AlertStatusToggle({ id, armed }: { id: string; armed: boolean })
       onClick={() =>
         start(async () => {
           setOn(!on);
-          await setAlertStatus(id, on ? "disabled" : "armed");
+          // a failed save leaves the server state as it was, so the switch flips back on its own; say why
+          const r = await setAlertStatus(id, on ? "disabled" : "armed").catch(() => ({ error: "That didn't go through. Try again." }));
+          setError(r?.error ?? null);
         })
       }
       className="inline-flex items-center gap-2 whitespace-nowrap text-[12.5px]"
@@ -32,5 +36,11 @@ export function AlertStatusToggle({ id, armed }: { id: string; armed: boolean })
       </span>
       <span className={on ? "" : "text-muted-foreground"}>{on ? "Armed" : "Paused"}</span>
     </button>
+    {error ? (
+      <span role="alert" className="mt-1 max-w-[200px] text-[11px] leading-4 text-loss">
+        {error}
+      </span>
+    ) : null}
+    </span>
   );
 }

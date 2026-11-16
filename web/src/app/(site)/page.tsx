@@ -1,16 +1,19 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { DeletedBanner } from "@/components/marketing/deleted-banner";
 import { LegacyHashRedirect } from "@/components/marketing/legacy-hash";
 import { DEFINITION, FaqList, MorePages, ORGANIZATION, PrivacyBand } from "@/components/marketing/sections";
+import { SessionButtonLink } from "@/components/marketing/session-links";
 import { SignalAnatomy } from "@/components/marketing/signal-anatomy";
+import { SignalLayers } from "@/components/marketing/signal-layers";
 import { SITE_URL } from "@/lib/env";
 import { ButtonLink } from "@/components/ui/button";
-import { supabaseServer } from "@/lib/supabase/server";
 
 /**
  * The home page (ADR-055): the hero, the ticker, a card for each public page, the privacy band and three common
  * questions. The method, the Chrome extension, pricing and the full FAQ each have their own page, so each can rank
- * for its own searches; old /#section links are forwarded there.
+ * for its own searches; old /#section links are forwarded there. Prerendered (ADR-058): the "account deleted" note
+ * and the signed-in hero button are client islands.
  */
 const TITLE = "QuantsPulse: rule-based signals for NSE stocks";
 const DESCRIPTION =
@@ -24,19 +27,11 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
-export default async function Home({ searchParams }: PageProps<"/">) {
-  const supabase = await supabaseServer();
-  const [{ data: claims }, sp] = await Promise.all([supabase.auth.getClaims(), searchParams]);
-  const signedIn = Boolean(claims?.claims?.sub);
-
+export default function Home() {
   return (
     <>
       <LegacyHashRedirect />
-      {sp.deleted ? (
-        <p role="status" className="bg-primary px-5 py-2 text-center text-[13px] text-primary-foreground">
-          Your account and personal workspace have been deleted.
-        </p>
-      ) : null}
+      <DeletedBanner />
       <main>
         <script
           type="application/ld+json"
@@ -67,9 +62,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               sell, and the rule&apos;s tested record, losing trades included.
             </p>
             <div className="hero-in mt-8 flex flex-wrap items-center gap-3" style={{ "--d": "480ms" } as React.CSSProperties}>
-              <ButtonLink href={signedIn ? "/app" : "/signup"} size="lg">
-                {signedIn ? "Open the desk" : "Start free for 3 months"}
-              </ButtonLink>
+              <SessionButtonLink href="/signup" signedInHref="/app" signedInLabel="Open the desk" size="lg">
+                Start free for 3 months
+              </SessionButtonLink>
               <ButtonLink href="/method" size="lg" variant="secondary">
                 See the method
               </ButtonLink>
@@ -121,6 +116,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             ))}
           </div>
         </div>
+
+        {/* ---------------- Inside a signal: four planes that lift apart in 3D as you scroll ---------------- */}
+        <SignalLayers />
 
         {/* ---------------- One page each ---------------- */}
         <section aria-labelledby="explore" className="mx-auto max-w-[1240px] px-5 py-24 md:px-8">
@@ -175,5 +173,3 @@ function Underline() {
     </svg>
   );
 }
-
-export const dynamic = "force-dynamic";

@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { seriousViolations } from "./helpers/axe";
-import { expectNoHorizontalOverflow } from "./helpers/fixtures";
+import { expectNoHorizontalOverflow, test as signedInTest } from "./helpers/fixtures";
+
+/** The <html> tag the server sent, straight from the response (before any script has run), and its class list. */
+function serverHtmlTag(html: string) {
+  const tag = html.match(/<html[^>]*>/)?.[0] ?? "";
+  return { tag, classes: (tag.match(/class="([^"]*)"/)?.[1] ?? "").split(/\s+/) };
+}
 
 test.describe("public site @mobile", () => {
   test("landing: hero, privacy matrix and a card for each page", async ({ page }) => {
@@ -17,6 +23,64 @@ test.describe("public site @mobile", () => {
     const cards = page.getByTestId("site-pages").getByRole("link");
     await expect(cards).toHaveCount(5);
     await expectNoHorizontalOverflow(page);
+  });
+
+  test("signed out: the header and the hero offer an account", async ({ page }) => {
+    await page.goto("/");
+    const account = page.getByTestId("account-buttons");
+    await expect(account.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+    await expect(account.getByRole("link", { name: "Open an account" })).toHaveAttribute("href", "/signup");
+    await expect(page.locator("main").getByRole("link", { name: "Start free for 3 months" })).toHaveAttribute("href", "/signup");
+    await expect(page.getByRole("link", { name: "Open the desk" })).toHaveCount(0);
+  });
+
+  test("the note after deleting an account shows on /?deleted=1 only", async ({ page }) => {
+    const note = page.getByText("Your account and personal workspace have been deleted.");
+    await page.goto("/?deleted=1");
+    await expect(note).toBeVisible();
+    await expect(note).toHaveAttribute("role", "status");
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(note).toHaveCount(0);
+  });
+
+  test("theme: the server sends one neutral page, and the cookie sets the class before the page scripts run", async ({ page, context, request, baseURL }) => {
+    // prerendered: the same HTML whatever the cookie says, with no theme on <html>
+    for (const cookie of ["qp_theme=dark", "qp_theme=light"]) {
+      const { tag, classes } = serverHtmlTag(await (await request.get("/", { headers: { cookie } })).text());
+      expect(tag).toContain('lang="en-IN"');
+      expect(classes).not.toContain("dark");
+      expect(classes).not.toContain("light");
+      expect(tag).not.toContain("color-scheme");
+    }
+    const html = page.locator("html");
+    const scheme = () => page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+
+    // With every script file blocked, only the inline script in <head> can set the class: this is the first paint.
+    await context.addCookies([{ name: "qp_theme", value: "dark", url: baseURL! }]);
+    await page.route("**/_next/static/**/*.js", (r) => r.abort());
+    await page.goto("/");
+    await expect(html).toHaveClass(/(^|\s)dark(\s|$)/);
+    await expect(html).not.toHaveClass(/(^|\s)light(\s|$)/);
+    expect(await scheme()).toBe("dark");
+    await page.unroute("**/_next/static/**/*.js");
+
+    // ...and it is still there after a reload, once React has taken over (the chart only answers keys when it has)
+    await page.reload();
+    const chart = page.getByRole("slider", { name: /Illustrative price chart/ });
+    await chart.focus();
+    const before = await chart.getAttribute("aria-valuenow");
+    await chart.press("ArrowLeft");
+    await expect(chart).not.toHaveAttribute("aria-valuenow", before ?? "");
+    await expect(html).toHaveClass(/(^|\s)dark(\s|$)/);
+    expect(await scheme()).toBe("dark");
+
+    // the cookie is the source of truth: light (or no cookie) is the light theme
+    await context.addCookies([{ name: "qp_theme", value: "light", url: baseURL! }]);
+    await page.reload();
+    await expect(html).toHaveClass(/(^|\s)light(\s|$)/);
+    await expect(html).not.toHaveClass(/(^|\s)dark(\s|$)/);
+    expect(await scheme()).toBe("light");
   });
 
   test("the old How it works address forwards to Method", async ({ page }) => {
@@ -77,6 +141,9 @@ test.describe("public site @mobile", () => {
     await expect(pricing).toContainText("₹10,000");
     await expect(pricing).toContainText("₹15,000");
     await expect(pricing).toContainText("10-stock radar");
+    const choose = pricing.getByRole("link", { name: /^(Start free|Choose )/ });
+    await expect(choose).toHaveCount(3);
+    for (const a of await choose.all()) await expect(a).toHaveAttribute("href", "/signup");
   });
 
   test("faq: answers expand, and the page carries FAQ structured data", async ({ page }) => {
@@ -153,6 +220,49 @@ test.describe("public site @mobile", () => {
       await page.goto(path);
       expect(await seriousViolations(page)).toEqual([]);
     }
+  });
+});
+
+signedInTest.describe("public site, signed in @mobile", () => {
+  signedInTest("the header, the hero and the plan buttons lead into the app; the HTML itself stays signed-out", async ({ proPage }) => {
+    // prerendered: even with a session cookie the server sends the signed-out page (what a crawler gets)
+    const raw = await (await proPage.request.get("/")).text();
+    expect(raw).toMatch(/<a[^>]*href="\/signup"[^>]*>Open an account<\/a>/);
+    expect(raw).toMatch(/<a[^>]*href="\/login"[^>]*>Sign in<\/a>/);
+    expect(raw).not.toContain(">Open the desk<");
+
+    await proPage.emulateMedia({ reducedMotion: "reduce" }); // still boxes to measure
+    await proPage.goto("/");
+    const account = proPage.getByTestId("account-buttons");
+    await expect(account.getByRole("link", { name: "Open the desk" })).toHaveAttribute("href", "/app");
+    await expect(account.getByRole("link")).toHaveCount(1);
+    const hero = proPage.locator("main section").first();
+    const desk = hero.getByRole("link", { name: "Open the desk" });
+    await expect(desk).toHaveAttribute("href", "/app");
+    const method = hero.getByRole("link", { name: "See the method" });
+    const deskBox = (await desk.boundingBox())!;
+    const methodBox = (await method.boundingBox())!;
+
+    await proPage.goto("/pricing");
+    const choose = proPage.locator("#pricing").getByRole("link", { name: /^(Start free|Choose )/ });
+    await expect(choose).toHaveCount(3);
+    for (const a of await choose.all()) await expect(a).toHaveAttribute("href", "/app/billing");
+
+    await proPage.goto("/legal/terms");
+    await expect(proPage.getByTestId("account-buttons").getByRole("link", { name: "Open the desk" })).toBeVisible();
+
+    // the swap moves nothing: signed out, the hero button is the same size and its neighbour is in the same place
+    await proPage.context().clearCookies();
+    await proPage.goto("/");
+    const start = hero.getByRole("link", { name: "Start free for 3 months" });
+    await expect(start).toHaveAttribute("href", "/signup");
+    await expect(proPage.getByTestId("account-buttons").getByRole("link")).toHaveCount(2);
+    const startBox = (await start.boundingBox())!;
+    const methodOut = (await method.boundingBox())!;
+    expect(Math.abs(startBox.width - deskBox.width)).toBeLessThan(0.5);
+    expect(Math.abs(startBox.height - deskBox.height)).toBeLessThan(0.5);
+    expect(Math.abs(methodOut.x - methodBox.x)).toBeLessThan(0.5);
+    expect(Math.abs(methodOut.y - methodBox.y)).toBeLessThan(0.5);
   });
 });
 

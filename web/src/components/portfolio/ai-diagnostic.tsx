@@ -38,27 +38,27 @@ const FOCUS_MODES: {
 }[] = [
   {
     id: "comprehensive",
-    label: "Comprehensive Audit",
-    shortLabel: "Comprehensive",
-    desc: "Holistic institutional balance, concentration, HHI & macro sensitivities",
+    label: "The whole picture",
+    shortLabel: "Overview",
+    desc: "How spread out your money is, your biggest holdings and how they have been moving",
   },
   {
     id: "risk_audit",
-    label: "Risk & Downside Audit",
-    shortLabel: "Risk & Downside",
-    desc: "Stress testing, single-stock caps, drawdown exposure & tail-risk containment",
+    label: "Where the risk is",
+    shortLabel: "Risk",
+    desc: "How much rides on a few stocks, holdings below what you paid, and ones that rose fast",
   },
   {
     id: "rebalancing",
-    label: "Trimming & Rebalancing",
-    shortLabel: "Trimming",
-    desc: "Profit locking on RSI exhaustion (≥70), dead-weight capital & risk parity",
+    label: "How balanced it is",
+    shortLabel: "Balance",
+    desc: "Your largest weights, the holdings that barely moved, and sectors with a big share",
   },
   {
     id: "tax_cost_basis",
-    label: "Cost-Basis & Gaps",
-    shortLabel: "Cost-Basis",
-    desc: "Discount gap analysis (>10% below cost), loser retention & tax efficiency",
+    label: "Against what you paid",
+    shortLabel: "Buy price",
+    desc: "Which holdings are above or below your average buy price, and by how much",
   },
 ];
 

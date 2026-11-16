@@ -80,9 +80,10 @@ export function Sidebar({
           {...intent(i.href)}
           aria-current={active ? "page" : undefined}
           className={clsx(
-            "group relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13.5px] transition-all duration-200 ease-out active:scale-[0.985]",
+            "group relative z-[1] flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13.5px] transition-[color,background-color,transform] duration-200 ease-out active:scale-[0.985] motion-reduce:transition-none",
+            // the active background is the group's sliding highlight (renderGroup), so the link itself stays clear
             active
-              ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-sm"
+              ? "font-medium text-sidebar-primary-foreground"
               : "text-sidebar-foreground/80 hover:bg-foreground/[0.06] hover:text-sidebar-foreground hover:translate-x-0.5",
           )}
         >
@@ -103,6 +104,25 @@ export function Sidebar({
     );
   };
 
+  // One highlight per group that slides to the page you are on (app-motion.css .side-pill): each row is 36 px tall
+  // with a 2 px gap, so row i sits 38 * i px down. The sidebar lives in the layout, so it stays mounted and the move
+  // animates; within one group only (between groups it simply appears).
+  const renderGroup = (items: Item[]) => {
+    const at = items.findIndex(isActive);
+    return (
+      <ul className="relative isolate flex flex-col gap-0.5">
+        {at >= 0 ? (
+          <span
+            aria-hidden
+            className="side-pill pointer-events-none absolute inset-x-0 top-0 h-9 rounded-md bg-sidebar-primary shadow-sm"
+            style={{ transform: `translateY(${at * 38}px)` }}
+          />
+        ) : null}
+        {items.map(renderItem)}
+      </ul>
+    );
+  };
+
   return (
     <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
       <div className="flex h-[52px] items-center px-4">
@@ -111,11 +131,11 @@ export function Sidebar({
       <nav aria-label="Primary" className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-4 pt-3">
         <div>
           <p className="eyebrow mb-1.5 px-2.5">Research</p>
-          <ul className="flex flex-col gap-0.5">{research.map(renderItem)}</ul>
+          {renderGroup(research)}
         </div>
         <div>
           <p className="eyebrow mb-1.5 px-2.5">Account</p>
-          <ul className="flex flex-col gap-0.5">{account.map(renderItem)}</ul>
+          {renderGroup(account)}
         </div>
       </nav>
       <div className="m-3 rounded-md border border-sidebar-border px-3 py-2.5">

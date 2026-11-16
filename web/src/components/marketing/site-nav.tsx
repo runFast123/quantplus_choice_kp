@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
-import { ButtonLink } from "@/components/ui/button";
 import { LandingNav } from "./landing-nav";
+import { AccountButtons } from "./session-links";
 
 /** The public pages, in nav order (ADR-055): the footer lists them too, for phones and for crawlers. */
 export const SITE_PAGES = [
@@ -12,7 +12,8 @@ export const SITE_PAGES = [
   ["Research notes", "/blog"],
 ] as const;
 
-export function SiteNav({ signedIn }: { signedIn: boolean }) {
+/** The header. The account buttons are a client island (ADR-058): the HTML shows the signed-out pair. */
+export function SiteNav() {
   return (
     <header className="mx-auto flex h-16 max-w-[1240px] items-center justify-between px-5 md:px-8">
       <Logo />
@@ -20,22 +21,7 @@ export function SiteNav({ signedIn }: { signedIn: boolean }) {
       <div className="fixed left-1/2 top-[5px] z-40 hidden -translate-x-1/2 md:block">
         <LandingNav />
       </div>
-      <div className="flex items-center gap-2">
-        {signedIn ? (
-          <ButtonLink href="/app" size="sm">
-            Open the desk
-          </ButtonLink>
-        ) : (
-          <>
-            <ButtonLink href="/login" size="sm" variant="ghost">
-              Sign in
-            </ButtonLink>
-            <ButtonLink href="/signup" size="sm">
-              Open an account
-            </ButtonLink>
-          </>
-        )}
-      </div>
+      <AccountButtons />
     </header>
   );
 }

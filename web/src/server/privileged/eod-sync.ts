@@ -67,6 +67,20 @@ function getSessionMaxDate(allowToday = false): string {
 /**
  * Fetch raw candle array from a specific Yahoo ticker symbol.
  */
+/**
+ * Every row of a read, 1,000 at a time: PostgREST returns at most 1,000 rows per request, and there are ~3,600
+ * symbols (AGENTS §6). A read error is an error, not an empty list.
+ */
+async function pageAll<T>(read: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await read(from, from + 999);
+    if (error) throw new PrivilegedError(`Couldn't read the symbol list: ${error.message}`);
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) return out;
+  }
+}
+
 async function fetchSingleYahooTicker(
   symbol: string,
   ticker: string,
@@ -182,16 +196,14 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
     targetSymbols = options.symbols.map((s) => s.trim().toUpperCase()).filter(Boolean);
   } else if (scope === "active") {
     // Collect watched, held, alerted symbols + core liquid benchmarks
-    const [wRes, hRes, aRes] = await Promise.all([
-      db.from("watchlist_items").select("symbol"),
-      db.from("holdings").select("symbol"),
-      db.from("price_alerts").select("symbol"),
+    const [wRows, hRows, aRows] = await Promise.all([
+      pageAll<{ symbol: string | null }>((f, t) => db.from("watchlist_items").select("symbol").order("id").range(f, t)),
+      pageAll<{ symbol: string | null }>((f, t) => db.from("holdings").select("symbol").order("id").range(f, t)),
+      pageAll<{ symbol: string | null }>((f, t) => db.from("price_alerts").select("symbol").order("id").range(f, t)),
     ]);
 
     const activeSet = new Set<string>(DEFAULT_BENCHMARKS);
-    for (const r of wRes.data ?? []) if (r.symbol) activeSet.add(r.symbol);
-    for (const r of hRes.data ?? []) if (r.symbol) activeSet.add(r.symbol);
-    for (const r of aRes.data ?? []) if (r.symbol) activeSet.add(r.symbol);
+    for (const r of [...wRows, ...hRows, ...aRows]) if (r.symbol) activeSet.add(r.symbol);
 
     targetSymbols = Array.from(activeSet);
   } else if (scope === "top") {
@@ -206,13 +218,10 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
     for (const r of data ?? []) if (r.symbol) topSet.add(r.symbol);
     targetSymbols = Array.from(topSet);
   } else if (scope === "all") {
-    const { data } = await db
-      .from("market_symbols")
-      .select("symbol")
-      .eq("exchange", "NSE")
-      .eq("is_active", true)
-      .order("symbol");
-    targetSymbols = (data ?? []).map((r) => r.symbol);
+    const rows = await pageAll<{ symbol: string }>((f, t) =>
+      db.from("market_symbols").select("symbol").eq("exchange", "NSE").eq("is_active", true).order("symbol").range(f, t),
+    );
+    targetSymbols = rows.map((r) => r.symbol);
   }
 
   if (targetSymbols.length === 0) {
@@ -231,12 +240,15 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
   }
 
   // Fetch symbol vendor mappings
-  const { data: symMeta } = await db
-    .from("market_symbols")
-    .select("symbol, vendor_ticker")
-    .in("symbol", targetSymbols);
+  // in batches: one .in() with thousands of symbols makes the request URL too long
+  const symMeta: { symbol: string; vendor_ticker: string | null }[] = [];
+  for (let i = 0; i < targetSymbols.length; i += 200) {
+    const { data, error } = await db.from("market_symbols").select("symbol, vendor_ticker").in("symbol", targetSymbols.slice(i, i + 200));
+    if (error) throw new PrivilegedError(`Couldn't read the vendor tickers: ${error.message}`);
+    symMeta.push(...((data ?? []) as { symbol: string; vendor_ticker: string | null }[]));
+  }
   const vendorMap = new Map<string, string | null>();
-  for (const m of symMeta ?? []) {
+  for (const m of symMeta) {
     vendorMap.set(m.symbol, m.vendor_ticker);
   }
 
@@ -274,6 +286,7 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
 
   // 2. Upsert candles into public.market_candles in batches of 500
   let candlesUpserted = 0;
+  let upsertErrors = 0; // a failed write must not report success (audit 14 Nov 2026)
   if (allCandles.length > 0) {
     const dbRows = allCandles.map((c) => ({
       symbol: c.symbol,
@@ -295,6 +308,7 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
       });
       if (error) {
         console.error("market_candles upsert error:", error.message);
+        upsertErrors += 1;
       } else {
         candlesUpserted += slice.length;
       }
@@ -381,7 +395,9 @@ export async function syncEodPrices(options: SyncEodOptions = {}): Promise<SyncE
   }
 
   return {
-    success: true,
+    // false when a write failed or nothing at all came back from the vendor (a block or an outage): a green run with
+    // zero candles hid both before
+    success: upsertErrors === 0 && touchedSymbols.length > 0,
     scope,
     symbolsTargeted: targetSymbols.length,
     symbolsUpdated: touchedSymbols.length,

@@ -10,6 +10,7 @@ import {
   ShieldCheckIcon,
   TerminalWindowIcon,
 } from "@phosphor-icons/react/ssr";
+import { SessionButtonLink } from "@/components/marketing/session-links";
 import { Tilt } from "@/components/marketing/tilt";
 import { ButtonLink } from "@/components/ui/button";
 import { paiseToRupees } from "@/lib/format";
@@ -214,7 +215,7 @@ export function PrivacyBand() {
   );
 }
 
-export function PricingCards({ plans, signedIn }: { plans: Plan[]; signedIn: boolean }) {
+export function PricingCards({ plans }: { plans: Plan[] }) {
   return (
     <div className="mt-12 grid items-start gap-5 md:grid-cols-3">
       <h2 className="sr-only">Compare the Basic, Pro and Pro Plus plans</h2>
@@ -245,9 +246,9 @@ export function PricingCards({ plans, signedIn }: { plans: Plan[]; signedIn: boo
               );
             })}
           </ul>
-          <ButtonLink href={signedIn ? "/app/billing" : "/signup"} variant={p.code === "pro" ? "primary" : "secondary"} className="mt-7 w-full">
+          <SessionButtonLink href="/signup" signedInHref="/app/billing" variant={p.code === "pro" ? "primary" : "secondary"} className="mt-7 w-full">
             {p.price_paise_yearly ? `Choose ${p.name}` : "Start free"}
-          </ButtonLink>
+          </SessionButtonLink>
         </div>
         </Tilt>
         </div>

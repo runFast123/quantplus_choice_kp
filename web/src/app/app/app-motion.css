@@ -1,0 +1,78 @@
+/* ---------------------------------------------------------------------
+   Motion for the signed-in app only (imported by app/app/layout.tsx).
+   House rules (MASTER.md, AGENTS.md rules 14-16):
+   - movement only, never a fade, on anything that holds text: axe measures
+     contrast mid-animation, so text keeps its full ink at every frame
+   - short and once: nothing here loops, and numbers never tween
+   - fill "backwards" only: when an entrance ends no transform is left behind,
+     so fixed dialogs and sticky headers inside keep their usual anchor
+   - prefers-reduced-motion turns all of it off (block at the end)
+   Every rule is scoped to .app-in (app/app/template.tsx) or to a class that
+   only the app shell uses, so public pages are untouched.
+   --------------------------------------------------------------------- */
+
+/* Each page glides in when you change section (app/app/template.tsx). The sidebar and top bar sit in the layout
+   above the template, so they stay still. */
+@keyframes app-in {
+  from { transform: translateY(8px); }
+  to { transform: none; }
+}
+.app-in {
+  animation: app-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Rows and cards settle one after another the first time they appear: add "rows-in" to a <table> or "stagger" to a
+   list or grid. Only the first 12 take part and each waits 25 ms longer than the one before, so the longest wait is
+   under 0.3 s. It runs when an element is first put on the page; a refresh that keeps the same rows does not replay it. */
+@keyframes item-in {
+  from { transform: translateY(6px); }
+  to { transform: none; }
+}
+.app-in .rows-in > tbody > tr:nth-child(-n + 12),
+.app-in .stagger > :nth-child(-n + 12) {
+  animation: item-in 0.24s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.app-in .rows-in > tbody > tr:nth-child(2),
+.app-in .stagger > :nth-child(2) { animation-delay: 25ms; }
+.app-in .rows-in > tbody > tr:nth-child(3),
+.app-in .stagger > :nth-child(3) { animation-delay: 50ms; }
+.app-in .rows-in > tbody > tr:nth-child(4),
+.app-in .stagger > :nth-child(4) { animation-delay: 75ms; }
+.app-in .rows-in > tbody > tr:nth-child(5),
+.app-in .stagger > :nth-child(5) { animation-delay: 100ms; }
+.app-in .rows-in > tbody > tr:nth-child(6),
+.app-in .stagger > :nth-child(6) { animation-delay: 125ms; }
+.app-in .rows-in > tbody > tr:nth-child(7),
+.app-in .stagger > :nth-child(7) { animation-delay: 150ms; }
+.app-in .rows-in > tbody > tr:nth-child(8),
+.app-in .stagger > :nth-child(8) { animation-delay: 175ms; }
+.app-in .rows-in > tbody > tr:nth-child(9),
+.app-in .stagger > :nth-child(9) { animation-delay: 200ms; }
+.app-in .rows-in > tbody > tr:nth-child(10),
+.app-in .stagger > :nth-child(10) { animation-delay: 225ms; }
+.app-in .rows-in > tbody > tr:nth-child(11),
+.app-in .stagger > :nth-child(11) { animation-delay: 250ms; }
+.app-in .rows-in > tbody > tr:nth-child(12),
+.app-in .stagger > :nth-child(12) { animation-delay: 275ms; }
+
+/* A tab's panel rises a few pixels when you open it (components/ui/section-tabs.tsx). */
+.app-in .tab-in:not([hidden]) {
+  animation: item-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Desktop menu: one highlight that slides to the page you are on (components/shell/sidebar.tsx). */
+.side-pill {
+  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-in,
+  .app-in .rows-in > tbody > tr,
+  .app-in .stagger > *,
+  .app-in .tab-in {
+    animation: none !important;
+  }
+  .side-pill {
+    transition: none !important;
+  }
+}

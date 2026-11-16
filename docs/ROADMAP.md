@@ -23,10 +23,17 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Custom domain (then update `NEXT_PUBLIC_SITE_URL`, Supabase URL config, and redeploy).
 
 ## Next
-- [ ] Public pages served from cache (ADR-056): every public page renders per request (the root layout reads the
+- [x] Public pages served from cache (ADR-058, 16 Nov 2026): every public page renders per request (the root layout reads the
       theme cookie, the site layout checks sign-in for the header buttons). Move both to the client so the pages can
       be static; faster first byte for search engines.
-- [ ] An About page naming who runs the tests and how, linked from every research note (search trust, ADR-056).
+- [x] An About page saying how the tests are run (ADR-057; a named person can be added when the owner wants one), linked from every research note (search trust, ADR-056).
+- [ ] From the 14 Nov 2026 audit, not done yet: one free trial per user (`server/privileged/tenants.ts` starts a new
+      3-month trial with every new workspace); move the terms-consent gate from the dashboard into the `/app` layout
+      (signing in with `next=/app/markets` skips it); the in-app sync's browser-like User-Agent to Yahoo
+      (`eod-sync.ts`, against rule 18); a per-user limit and RLS reads on `/api/extension/quote`; strip localhost from
+      the packaged extension and narrow its broker-page observer; a dedicated pepper for audit IP hashes; the rest of
+      the mutations that ignore errors (`integrations`, `workspace`, `settings`, `shell-actions`); show the
+      access-token-hook banner's setup text to platform admins only.
 - [ ] An early-entry rule the site could honestly advertise (ADR-056): `research/strategies/early_entry.py` and
       `pre_breakout.py` found none so far; no "before the breakout" copy until one passes its check years.
 - [x] Dry Run phase 1 (ADR-033): pick, plan, replay vs NIFTY 50, bad-day test, guardrail score.

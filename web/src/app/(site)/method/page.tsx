@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { HowSteps, JsonLd, MorePages, PageHead } from "@/components/marketing/sections";
 import Link from "next/link";
+import { Tilt } from "@/components/marketing/tilt";
 import { ButtonLink } from "@/components/ui/button";
 
 const TITLE = "Method: how six published rules check NSE stocks";
@@ -54,7 +55,9 @@ export default function HowItWorksPage() {
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {RULE_CARDS.map(([name, kind, what, note]) => (
-              <article key={name} className="reveal panel p-5">
+              <div key={name} className="reveal">
+              <Tilt max={4} className="h-full">
+              <article className="panel h-full p-5">
                 <p className="eyebrow">{kind}</p>
                 <h3 className="display mt-2 text-[22px]">{name}</h3>
                 <p className="mt-2 text-[13.5px] leading-6 text-muted-foreground">{what}</p>
@@ -64,6 +67,8 @@ export default function HowItWorksPage() {
                   </Link>
                 ) : null}
               </article>
+              </Tilt>
+              </div>
             ))}
           </div>
         </div>

@@ -61,6 +61,13 @@ jobs:
       - name: Accuracy audit
         if: steps.guard.outputs.mode == 'python'
         run: python audit.py
+      # NSE's own bhavcopy as a second opinion on the stored prices (ADR-057). Read-only and never fails the job:
+      # NSE's terms are "educational and research purposes only", so its numbers only appear in this log.
+      - name: NSE second opinion
+        if: steps.guard.outputs.mode == 'python'
+        continue-on-error: true
+        timeout-minutes: 8
+        run: python nse_check.py
 
       # Path B: Production Webhook when CRON_SECRET is configured
       - name: Trigger Production EOD Ingestion Endpoint

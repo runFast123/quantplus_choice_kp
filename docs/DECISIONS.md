@@ -354,6 +354,43 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-058 · Public pages are prerendered: theme and sign-in move to the browser
+**Date** 2026-11-16 · **Status** accepted
+- **Context:** every public page rendered per request: the root layout read the `qp_theme` cookie, the site layout
+  and the home page asked Supabase whether the visitor was signed in, and /pricing read `plans` with cookies. A cold
+  serverless start on each visit slowed the first byte that search engines measure.
+- **Decision:** the root layout reads nothing from the request. `THEME_SCRIPT` (`lib/theme.ts`, inline in `<head>`)
+  puts the cookie's theme on `<html>` before the first paint (`suppressHydrationWarning`; `ThemeSync` re-applies it
+  after hydration). The few signed-in differences on public pages are client islands (`AccountButtons`,
+  `SessionButtonLink`, `useSignedIn`): the HTML shows the signed-out state, which is what crawlers should see, and the
+  island swaps after hydration without moving anything. `useSignedIn` only checks that the Supabase session cookie
+  exists; it is a hint, never an access check (`/app` stays guarded by the proxy and `requireSession`). /pricing reads
+  `plans` through `supabasePublic()` (publishable key, no cookies, anon under RLS) and revalidates hourly, with
+  `FALLBACK_PLANS` on failure. `/?deleted=1` is read in the browser (`DeletedBanner`).
+- **Result:** `/`, `/about`, `/method`, `/chrome-extension`, `/faq`, `/blog`, every `/blog/<slug>`, `/llms.txt`,
+  `/sitemap.xml` and the legal pages are prerendered; /pricing is ISR (1 h).
+
+### ADR-057 · 3D depth and motion where they explain something; an About page; NSE as a second opinion on prices
+**Date** 2026-11-16 · **Status** accepted (builds on ADR-054/056)
+- **Landing:** a "What every signal is made of" section (`SignalLayers`): four planes in CSS 3D (price, rule, plan,
+  record) that lift apart on a scroll-driven `view()` timeline. The base CSS is the lifted stack, so browsers without
+  scroll timelines and "reduce motion" show a finished still. Transforms only; no text fades (axe samples contrast
+  mid-animation). The Method page's rule cards tilt like the other public cards.
+- **Signed-in app:** design rule 16 still applies (no glass, no 3D). Motion is functional and short: each section
+  glides in 8 px (`app/app/template.tsx`, fill `backwards` so no transform is left on the wrapper), the desktop
+  sidebar's highlight slides between items, the first 12 rows of the main tables settle once, and every section has a
+  page-shaped loading skeleton so a slow page answers at once. Nothing loops; numbers never tween.
+- **About page** (`/about`): how every rule is tested (stocks, years, costs, design vs check years, yardsticks, losing
+  trades kept), where prices come from, and what QuantsPulse does not do; `AboutPage` JSON-LD. The research byline
+  stays "QuantsPulse Research" until the owner names a person.
+- **NSE second opinion:** NSE runs public MCP servers over its own bhavcopy (`mcp.nseindia.in`, no key). Verified from
+  GitHub Actions on 14 and 16 Nov 2026 (the office network blocks the host): about 0.4–0.6 s an answer;
+  `get_corporate_actions` was failing on NSE's side both days. Its terms say "for educational and research purposes
+  only", so it is used ONLY to check our own stored numbers: `pipelines/eod/nse_check.py` runs after the accuracy audit
+  in `market-eod.yml`, prints REVIEW lines, never fails the job, never stores or shows NSE's data, and never corrects a
+  price from it. Yahoo stays the price source (ADR-026). Live intraday quotes from NSE's other server are not used:
+  the terms rule out real-time trading use and the app is end-of-day by design.
+
 ### ADR-056 · "Method" not "How it works"; a home hero that claims only what is tested; SEO and GEO basics
 **Date** 2026-11-12 · **Status** accepted (builds on ADR-055)
 - **Context:** the owner found the home hero unprofessional ("How it works" did not read like a product page) and

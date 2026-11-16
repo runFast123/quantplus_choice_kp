@@ -26,6 +26,11 @@ const DOCS = {
   },
 } as const;
 
+// Two fixed documents: prerendered (ADR-058). Any other address still answers "No such page".
+export function generateStaticParams() {
+  return Object.keys(DOCS).map((doc) => ({ doc }));
+}
+
 export async function generateMetadata({ params }: PageProps<"/legal/[doc]">): Promise<Metadata> {
   const doc = DOCS[(await params).doc as keyof typeof DOCS];
   return { title: doc?.title ?? "Legal" };
@@ -36,7 +41,7 @@ export default async function LegalPage({ params }: PageProps<"/legal/[doc]">) {
   if (!doc) notFound();
   return (
     <div className="linen min-h-dvh">
-      <SiteNav signedIn={false} />
+      <SiteNav />
       <main className="mx-auto max-w-[760px] px-5 pb-20 pt-10">
         <p className="mb-6 rounded-md border border-coral/50 bg-coral/10 px-4 py-3 text-[13px]">
           Draft for legal review — summarises how the product actually handles data, but isn&apos;t final wording.

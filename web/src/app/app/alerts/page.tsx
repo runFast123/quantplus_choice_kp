@@ -139,7 +139,7 @@ export default async function AlertsPage() {
           <Empty title="No alerts set.">Pick a level — a breakout above resistance, or a price you&apos;d be happy to buy at.</Empty>
         ) : (
           <TableWrap>
-            <table className="w-full min-w-[720px]">
+            <table className="rows-in w-full min-w-[720px]">
               <thead>
                 <tr>
                   <th className={th}>Symbol</th>
@@ -192,7 +192,7 @@ export default async function AlertsPage() {
       {fired.length ? (
         <Panel title="Triggered" meta={`${fired.length}`}>
           <TableWrap>
-            <table className="w-full min-w-[600px]">
+            <table className="rows-in w-full min-w-[600px]">
               <thead>
                 <tr>
                   <th className={th}>Symbol</th>

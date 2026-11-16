@@ -20,6 +20,7 @@ export function GET() {
     page("/chrome-extension", "Chrome extension", "shows a stock's latest signal, safety stop and plan on broker charts (Choice FinX, Zerodha Kite, Groww, Angel One, Upstox, Dhan, Fyers, TradingView and more); read-only, never places orders."),
     page("/pricing", "Pricing", "Basic (free for the first three months), Pro and Pro Plus, priced per year in Indian rupees."),
     page("/faq", "Questions", "advice, data freshness, the extension, privacy and account deletion."),
+    page("/about", "About", "how every rule is tested (stocks, years, costs, yardsticks), where the prices come from, and what QuantsPulse does not do."),
     "",
     "## Research notes",
     "Each note tests a common way of using an indicator against a QuantsPulse rule, on the same NSE stocks (each year's 300 most traded), July 2019 to 2026, after a 0.5% round-trip cost, with losing trades kept.",

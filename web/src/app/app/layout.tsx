@@ -17,6 +17,7 @@ import { getTape } from "@/server/market-data";
 import { isPlatformAdmin } from "@/server/privileged/admin";
 import { can, displayName, requireSession } from "@/server/session";
 import { refreshClaimsAction } from "./shell-actions";
+import "./app-motion.css";
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   // The ticker and notifications don't need the session's result (RLS reads the caller's JWT): start them now,

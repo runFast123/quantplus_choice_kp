@@ -49,16 +49,25 @@ export async function addToRadar(_: ActionState, form: FormData): Promise<Action
   return { ok: true, message: `${parsed.data} added to your radar.` };
 }
 
-export async function removeFromRadar(itemId: string) {
+// RLS limits these deletes to the caller's own lists; zero rows back means "not yours, or already gone" (rule 11).
+export async function removeFromRadar(itemId: string): Promise<ActionState> {
   const s = await requireSession();
-  await s.supabase.from("watchlist_items").delete().eq("id", itemId);
+  if (!z.uuid().safeParse(itemId).success) return { error: "That stock couldn't be found on your radar." };
+  const { data, error } = await s.supabase.from("watchlist_items").delete().eq("id", itemId).select("id");
   revalidatePath("/app", "layout");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "That stock was already removed. Refresh the page." };
+  return { ok: true };
 }
 
-export async function removeSymbolFromRadar(symbol: string) {
+export async function removeSymbolFromRadar(symbol: string): Promise<ActionState> {
   const s = await requireSession();
-  await s.supabase.from("watchlist_items").delete().eq("symbol", symbol);
+  const parsed = symbolSchema.safeParse(symbol);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { error } = await s.supabase.from("watchlist_items").delete().eq("symbol", parsed.data).select("id");
   revalidatePath("/app", "layout");
+  if (error) return { error: friendlyDbError(error.message) };
+  return { ok: true };
 }
 
 export async function createWatchlist(_: ActionState, form: FormData): Promise<ActionState> {
@@ -71,8 +80,12 @@ export async function createWatchlist(_: ActionState, form: FormData): Promise<A
   return { ok: true, message: `Created “${name}”.` };
 }
 
-export async function deleteWatchlist(id: string) {
+export async function deleteWatchlist(id: string): Promise<ActionState> {
   const s = await requireSession();
-  await s.supabase.from("watchlists").delete().eq("id", id);
+  if (!z.uuid().safeParse(id).success) return { error: "That list couldn't be found." };
+  const { data, error } = await s.supabase.from("watchlists").delete().eq("id", id).select("id");
   revalidatePath("/app", "layout");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "That list was already deleted. Refresh the page." };
+  return { ok: true };
 }
