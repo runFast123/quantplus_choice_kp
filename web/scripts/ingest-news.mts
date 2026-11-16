@@ -10,5 +10,9 @@ if (process.argv.includes("--relink")) {
 } else {
   const report = await ingestNews({ searchSymbols: Number(process.env.NEWS_SEARCH_SYMBOLS ?? 8) });
   console.log(JSON.stringify(report, null, 2));
-  if (report.sources.every((s) => s.status === "error")) process.exit(1);
+  // Shown on the GitHub run's summary: a research timeout hid inside this JSON for a week (9-16 Nov 2026).
+  for (const e of report.errors) console.log(`::warning::news ${e.replace(/\s+/g, " ")}`);
+  for (const s of report.sources.filter((s) => s.status !== "ok")) console.log(`::warning::feed ${s.code} ${s.status}: ${s.error ?? ""}`);
+  // Red when nothing could be fetched or the new headlines could not be saved.
+  if (report.sources.every((s) => s.status === "error") || report.errors.some((e) => e.startsWith("store:"))) process.exit(1);
 }

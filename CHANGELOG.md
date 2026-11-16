@@ -5,6 +5,26 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — deep check: news research timeout, silent write failures (16 Nov 2026)
+- Why: the owner asked for a deep check of the code, the logic and the logs. Typecheck, lint, 205 unit, 50 pipeline,
+  93 database test files and the build were green; production (Vercel) showed no errors or 5xx; the database's pg_cron
+  jobs had no failures in 7 days. The logs showed one real fault, and the review found writes whose result was ignored.
+- News ingest: every run since at least 9 Nov 2026 ended with `research: canceling statement due to statement timeout`
+  while the job stayed green. It rebuilt the research notes of the whole market (~3,600 stocks) in one API call, which
+  takes ~45 s against the API's 8 s limit, so headlines reached the notes only at the next database cron (none at
+  weekends). It now rebuilds only the stocks that got a headline in that run, 100 to a call, halving a batch that still
+  times out (`refreshResearch` in `server/privileged/news.ts`, as `pipelines/eod` does; 100 uncached stocks took
+  4.5 s). `--relink` rebuilds the stocks whose links changed. `scripts/ingest-news.mts` prints every error and failed
+  feed as a GitHub `::warning::` and fails the run when headlines could not be saved.
+- Writes that ignored their result now validate the id, check for an error and for zero rows (rule 11) and say why:
+  deleting an AI key (`integrations/actions.ts`), revoking an invitation and removing a member (`workspace/actions.ts`),
+  withdrawing a consent (`settings/actions.ts`; `applyConsentWithdrawal` now throws when the AI keys could not be
+  removed), onboarding (`welcome/actions.ts`: a failed save returns to the page with a fixed message instead of
+  looping through the consent gate), and removing a stock from the radar (`components/market/radar-toggle.tsx` shows
+  the error; it was dropped before).
+- Found, not changed (owner action): `GITHUB_DISPATCH_TOKEN` and `GITHUB_REPO` are not set in Vercel, so the 17:00 IST
+  cron never starts the full GitHub load (ADR-043) and it runs on GitHub's schedule, 5-8 h late.
+
 ### Changed — production pass: public pages from cache, 3D and motion, About page, NSE price check, audit fixes (ADR-057/058, 16 Nov 2026)
 - Why: the owner asked for a fast, smooth, robust, easy system ready for production, pages built to rank, modern 3D
   motion, and a proper check of what works and what does not. A read-only audit (all tests green: 448 database

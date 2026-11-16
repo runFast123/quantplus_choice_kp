@@ -46,8 +46,17 @@ export async function setConsent(purpose: string, granted: boolean): Promise<Act
     const { error } = await s.supabase.from("user_consents").insert({ purpose, version: CONSENT_VERSION[purpose] });
     if (error) return { error: friendlyDbError(error.message) };
   } else {
-    await s.supabase.from("user_consents").update({ withdrawn_at: new Date().toISOString() }).eq("purpose", purpose).is("withdrawn_at", null);
-    await applyConsentWithdrawal(s.userId, purpose);
+    const { error } = await s.supabase
+      .from("user_consents")
+      .update({ withdrawn_at: new Date().toISOString() })
+      .eq("purpose", purpose)
+      .is("withdrawn_at", null);
+    if (error) return { error: friendlyDbError(error.message) };
+    try {
+      await applyConsentWithdrawal(s.userId, purpose);
+    } catch {
+      return { error: "Your consent is withdrawn, but we couldn't remove your AI keys. Delete them under Integrations, or try again." };
+    }
   }
   revalidatePath("/app/settings");
   revalidatePath("/app/integrations");

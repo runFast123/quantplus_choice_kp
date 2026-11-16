@@ -62,10 +62,15 @@ export async function inviteAction(_: ActionState, form: FormData): Promise<Acti
   }
 }
 
-export async function revokeInvitation(id: string) {
+/** RLS lets only workspace admins delete invitations; zero rows back means "not allowed, or already gone" (rule 11). */
+export async function revokeInvitation(id: string): Promise<ActionState> {
   const s = await requireSession();
-  await s.supabase.from("tenant_invitations").delete().eq("id", id);
+  if (!z.uuid().safeParse(id).success) return { error: "That invitation couldn't be found." };
+  const { data, error } = await s.supabase.from("tenant_invitations").delete().eq("id", id).select("id");
   revalidatePath("/app/workspace");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "That invitation was already used or revoked, or only an admin can revoke it." };
+  return { ok: true };
 }
 
 export async function changeRoleAction(userId: string, role: "member" | "admin"): Promise<ActionState> {
@@ -81,11 +86,20 @@ export async function changeRoleAction(userId: string, role: "member" | "admin")
 }
 
 /** RLS policy members_remove_by_admin does the authorisation. */
-export async function removeMember(userId: string) {
+export async function removeMember(userId: string): Promise<ActionState> {
   const s = await requireSession();
-  if (!s.activeTenantId) return;
-  await s.supabase.from("tenant_members").delete().eq("tenant_id", s.activeTenantId).eq("user_id", userId);
+  if (!s.activeTenantId) return { error: "No active workspace." };
+  if (!z.uuid().safeParse(userId).success) return { error: "That member couldn't be found." };
+  const { data, error } = await s.supabase
+    .from("tenant_members")
+    .delete()
+    .eq("tenant_id", s.activeTenantId)
+    .eq("user_id", userId)
+    .select("user_id");
   revalidatePath("/app/workspace");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "That member couldn't be removed. Only admins can remove members, and never the owner." };
+  return { ok: true };
 }
 
 /** RLS policy members_leave: any non-owner can leave. */

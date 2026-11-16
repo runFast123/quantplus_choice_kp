@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { ActionState } from "@/lib/errors";
+import { friendlyDbError, type ActionState } from "@/lib/errors";
 import { PrivilegedError } from "@/server/privileged/guards";
 import { saveAiKey } from "@/server/privileged/secrets";
 import { requireSession } from "@/server/session";
@@ -37,10 +37,15 @@ export async function saveAiKeyAction(_: ActionState, form: FormData): Promise<A
   return { ok: true, message: `Saved. We'll show it as ••••${parsed.data.apiKey.slice(-4)} from now on.` };
 }
 
-export async function deleteAiKey(id: string) {
+// RLS limits the delete to the caller's own keys; zero rows back means "not yours, or already gone" (rule 11).
+export async function deleteAiKey(id: string): Promise<ActionState> {
   const s = await requireSession();
-  await s.supabase.from("ai_provider_keys").delete().eq("id", id);
+  if (!z.uuid().safeParse(id).success) return { error: "That key couldn't be found." };
+  const { data, error } = await s.supabase.from("ai_provider_keys").delete().eq("id", id).select("id");
   revalidatePath("/app/integrations");
+  if (error) return { error: friendlyDbError(error.message) };
+  if (!data?.length) return { error: "That key was already deleted. Refresh the page." };
+  return { ok: true };
 }
 
 export type DetectedModel = { id: string; label: string };

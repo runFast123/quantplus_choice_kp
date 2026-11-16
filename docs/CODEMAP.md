@@ -122,7 +122,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `github-dispatch.ts` | `dispatchMarketEod()` → `{ dispatched, detail }` | Starts the Market EOD workflow via GitHub's dispatch API when `GITHUB_DISPATCH_TOKEN` + `GITHUB_REPO` are set (ADR-043) |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
 | `privileged/push.ts` | `deliverPendingPush(limit)` → `PushReport`, `sendTestPush(userId, tenantId)` | Web Push (VAPID env); claims via `svc_claim_push_batch`, one send per browser, drops 404/410 and 5× failures |
-| `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
+| `privileged/news.ts` | `ingestNews({searchSymbols})`, `relinkRecentArticles(days)`, `refreshResearch(db, symbols)` (notes for those stocks, 100 a call, halves on timeout), `newsSourceHealth()`, type `IngestReport` | RSS pipeline; only DB-listed URLs fetched |
 | `privileged/ai.ts` | `researchReadWithMyKey(userId, tenantId, symbol)`, `portfolioHealthReadWithMyKey(userId, tenantId, portfolioId?, focus?)`, `symbolResearchChatWithMyKey(userId, tenantId, symbol, question)`, `parseContractNoteWithMyKey(userId, tenantId, noteText)`, type `AiRead`, type `ParsedTrade`, type `PortfolioDiagnosticFocus` | BYOK; Anthropic SDK / OpenAI / Gemini; metering only |
 | `news-data.ts` | `getNews(db, {symbols?, tone?, kind?, limit?, before?})`, `getResearch(db, symbols?)`, `normalizeNote`, types `NewsItem`, `ResearchNote`, `ResearchFactor` | RLS client reads |
 

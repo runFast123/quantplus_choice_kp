@@ -9,7 +9,7 @@ import { completeOnboarding } from "./actions";
 export const metadata: Metadata = { title: "Welcome" };
 
 export default async function WelcomePage({ searchParams }: PageProps<"/app/welcome">) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
   const s = await requireSession();
   const { data: consents } = await s.supabase.from("user_consents").select("purpose").is("withdrawn_at", null);
   if (consents?.some((c) => c.purpose === "terms")) redirect(safeNext(next));
@@ -27,6 +27,12 @@ export default async function WelcomePage({ searchParams }: PageProps<"/app/welc
         We record what you agree to — and when — so you can see and withdraw it later in Settings. Your holdings, watchlists and
         alerts are private to you, including from any organisation you join.
       </p>
+
+      {error === "save" ? (
+        <p role="alert" className="mt-6 rounded-md border border-loss/40 bg-loss/[0.06] px-4 py-3 text-[13.5px] text-loss">
+          We couldn&apos;t save your answers. Please try again.
+        </p>
+      ) : null}
 
       <form action={completeOnboarding} className="panel mt-8 flex flex-col gap-5 p-6">
         {typeof next === "string" ? <input type="hidden" name="next" value={next} /> : null}

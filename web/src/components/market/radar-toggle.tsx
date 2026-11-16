@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { CheckIcon, PlusIcon } from "@phosphor-icons/react";
-import { useActionState, useOptimistic, useTransition } from "react";
+import { useActionState, useOptimistic, useState, useTransition } from "react";
 import { addToRadar, removeSymbolFromRadar } from "@/app/app/watchlist/actions";
 
 /** Compact add/remove control used in tables and on the symbol page. */
@@ -20,6 +20,9 @@ export function RadarToggle({
   const [optimistic, setOptimistic] = useOptimistic(onRadar);
   const [state, add] = useActionState(addToRadar, undefined);
   const [pending, start] = useTransition();
+  // a failed removal leaves the stock on the radar, so the button flips back on its own; say why
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const error = removeError ?? state?.error;
 
   const label = optimistic ? `Remove ${symbol} from radar` : `Add ${symbol} to radar`;
   return (
@@ -33,8 +36,11 @@ export function RadarToggle({
         onClick={() =>
           start(async () => {
             setOptimistic(!optimistic);
-            if (optimistic) await removeSymbolFromRadar(symbol);
-            else {
+            if (optimistic) {
+              const r = await removeSymbolFromRadar(symbol).catch(() => ({ error: "That didn't go through. Try again." }));
+              setRemoveError(r?.error ?? null);
+            } else {
+              setRemoveError(null);
               const fd = new FormData();
               fd.set("symbol", symbol);
               fd.set("exchange", exchange);
@@ -53,9 +59,9 @@ export function RadarToggle({
         {optimistic ? <CheckIcon size={14} weight="bold" aria-hidden /> : <PlusIcon size={14} aria-hidden />}
         {size === "md" ? (optimistic ? "On radar" : "Add to radar") : null}
       </button>
-      {state?.error ? (
+      {error ? (
         <span role="alert" className="mt-1 max-w-[220px] text-right text-[11px] text-loss">
-          {state.error}
+          {error}
         </span>
       ) : null}
     </span>

@@ -209,6 +209,7 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
     report.sources.push({ code: search.code, status: errors.length ? "partial" : "ok", items, fresh, ...(errors.length ? { error: errors.join("; ").slice(0, 200) } : {}) });
   }
 
+  const touchedSymbols = new Set<string>();
   // Store. svc_store_news_articles skips a story already present under the same
   // URL or the same headline + publish time (Google News re-issues redirect URLs),
   // atomically, so overlapping runs (cron + admin "Fetch now") can't collide. It
@@ -239,6 +240,7 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
       if (error) throw new Error(`news_article_symbols: ${error.message}`);
     }
     report.linked = links.length;
+    for (const l of links) touchedSymbols.add(l.symbol);
   } catch (e) {
     // Keep going: feed health and the research refresh still run.
     report.errors.push(`store: ${(e as Error).message}`.slice(0, 300));
@@ -253,9 +255,13 @@ export async function ingestNews(opts: { searchSymbols?: number } = {}): Promise
       .eq("code", s.code);
   }
 
-  const { data: researchRows, error: rErr } = await db.rpc("svc_refresh_research");
-  if (rErr) report.errors.push(`research: ${rErr.message}`.slice(0, 300));
-  report.researchRows = typeof researchRows === "number" ? researchRows : null;
+  // Only the stocks that got a headline in this run: the whole market in one call runs past the API's 8 s statement
+  // limit (every run from 9 Nov 2026 was cancelled). The database cron rebuilds every note after each price load.
+  try {
+    report.researchRows = await refreshResearch(db, touchedSymbols);
+  } catch (e) {
+    report.errors.push(`research: ${(e as Error).message}`.slice(0, 300));
+  }
   report.durationMs = Date.now() - started;
   return report;
 }
@@ -286,10 +292,12 @@ export async function relinkRecentArticles(days = MAX_AGE_DAYS) {
   }
 
   // Add the new links first, then remove stale ones: articles are never left unlinked.
+  const changed = new Set<string>(); // stocks whose notes need a rebuild: every link kept, added or removed
   const want = new Map<number, Set<string>>();
   const links = articles.flatMap((a) =>
     matcher.match(`${a.title} ${a.summary ?? ""}`).map((m) => {
       (want.get(a.id) ?? want.set(a.id, new Set()).get(a.id)!).add(`${m.exchange}:${m.symbol}`);
+      changed.add(m.symbol);
       return { article_id: a.id, symbol: m.symbol, exchange: m.exchange, match_kind: m.kind, matched_text: m.text };
     }),
   );
@@ -306,11 +314,33 @@ export async function relinkRecentArticles(days = MAX_AGE_DAYS) {
       if (l.match_kind === "filing" || want.get(l.article_id)?.has(`${l.exchange}:${l.symbol}`)) continue;
       const { error: dErr } = await db.from("news_article_symbols").delete().eq("article_id", l.article_id).eq("symbol", l.symbol).eq("exchange", l.exchange);
       if (dErr) throw new Error(`relink delete: ${dErr.message}`);
+      changed.add(l.symbol);
       removed++;
     }
   }
-  const { data: researchRows } = await db.rpc("svc_refresh_research");
+  const researchRows = await refreshResearch(db, [...changed]);
   return { articles: articles.length, links: links.length, removed, researchRows };
+}
+
+const RESEARCH_CHUNK = 100; // symbols per call, as in pipelines/eod (300 took 6.5 s on a cold cache)
+
+/**
+ * Rebuild the research notes of `symbols`, 100 to a call. A batch that hits the 8 s statement limit (SQLSTATE 57014;
+ * the call is one transaction, so nothing of it was kept) is split in half and run again, down to one symbol, which
+ * throws. Returns the number of notes written.
+ */
+export async function refreshResearch(db: ReturnType<typeof serviceRole>, symbols: Iterable<string>): Promise<number> {
+  const all = [...new Set(symbols)].sort();
+  const run = async (part: string[]): Promise<number> => {
+    const { data, error } = await db.rpc("svc_refresh_research", { p_symbols: part });
+    if (!error) return typeof data === "number" ? data : 0;
+    if (error.code !== "57014" || part.length <= 1) throw new Error(error.message);
+    const half = Math.ceil(part.length / 2);
+    return (await run(part.slice(0, half))) + (await run(part.slice(half)));
+  };
+  let rows = 0;
+  for (let i = 0; i < all.length; i += RESEARCH_CHUNK) rows += await run(all.slice(i, i + RESEARCH_CHUNK));
+  return rows;
 }
 
 export async function newsSourceHealth() {

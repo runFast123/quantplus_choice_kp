@@ -27,7 +27,8 @@ export async function registerDevice(userId: string, deviceId: string, label: st
 export async function applyConsentWithdrawal(userId: string, purpose: string) {
   const db = serviceRole();
   if (purpose === "ai_processing") {
-    await db.from("ai_provider_keys").delete().eq("user_id", userId);
+    const { error } = await db.from("ai_provider_keys").delete().eq("user_id", userId);
+    if (error) throw new PrivilegedError(error.message);
   }
 }
 
