@@ -11,6 +11,8 @@ import { BacktestLab } from "@/components/market/backtest-lab";
 import { RememberSymbol } from "@/components/shell/recent-symbols";
 import { RadarToggle } from "@/components/market/radar-toggle";
 import { TradePlan } from "@/components/market/trade-plan";
+import { HeadStart } from "@/components/market/head-start";
+import { StayInCard } from "@/components/market/stay-in";
 import { NewsList } from "@/components/news/news-list";
 import { AiRead } from "@/components/research/ai-read";
 import { SymbolAiChat } from "@/components/research/symbol-ai-chat";
@@ -19,7 +21,7 @@ import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/d
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, priceMean, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { DIP_EXIT, isDipRule } from "@/lib/dip-rules";
-import { RULE_KEYS, RULES, ruleOf } from "@/lib/rules";
+import { RULE_KEYS, RULES, isRule, ruleOf } from "@/lib/rules";
 import { isTrendRule, reviewDate } from "@/lib/strong-trend";
 import { checkKey, signalDayOf } from "@/lib/signal-checks";
 import { CheckTag } from "@/components/market/check-tag";
@@ -30,6 +32,7 @@ import { setAsideSentence, type CandleCheck } from "@/lib/price-checks";
 import type { Holding, Quote, RetiredSymbol, Signal } from "@/lib/types";
 import { RetiredNote } from "@/components/market/retired-note";
 import { setupsOf } from "@/lib/setups";
+import { stayInState } from "@/lib/stay-in";
 import { markerFromSignal } from "@/lib/signal-trade";
 import { getCandles, getRetired, getRuleHealth, normalizeQuote } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
@@ -127,6 +130,13 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   const held = holdings.reduce((a, h) => a + Number(h.quantity), 0);
   const avgCost = held ? holdings.reduce((a, h) => a + Number(h.quantity) * Number(h.avg_price), 0) / held : 0;
 
+  // The Stay-in Plan (lib/stay-in.ts) follows the latest trend-rule buy, also after the rule's own 60-session trade ended.
+  const stayIn = q.segment !== "index" ? stayInState(candles, signals) : null;
+  const stayInMessages =
+    stayIn && held > 0 && can(s, "stay_in")
+      ? Boolean((await db.from("notification_prefs").select("stay_in").maybeSingle()).data?.stay_in)
+      : false;
+
   const aiReason = !can(s, "ai_byok")
     ? "AI reads with your own key are part of Pro."
     : !aiConsentRes.data?.length
@@ -198,6 +208,29 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="flex min-w-0 flex-col gap-4">
         {openTrends.length || openDips.length || watches.length ? <div className="flex flex-col gap-3">{notes}</div> : null}
+        {stayIn ? (
+          can(s, "stay_in") ? (
+            <Panel title="Stay-in Plan" meta="optional: hold the trend instead of selling on day 60">
+              <StayInCard state={stayIn} held={held > 0} messages={stayInMessages} />
+            </Panel>
+          ) : (
+            <PlanGate feature="Stay-in Plan — hold a trend-rule buy until it closes below its 200-day average" />
+          )
+        ) : null}
+        {q.segment !== "index" ? (
+          can(s, "head_start") ? (
+            <Panel title="Am I too late?" meta="How far it has run, and what the rules' past trades did from here">
+              <HeadStart
+                lastPrice={q.last_price}
+                low={q.low_52w}
+                high={q.high_52w}
+                live={[...openTrends, ...openDips].map((x) => x.strategy).filter(isRule)}
+              />
+            </Panel>
+          ) : (
+            <PlanGate feature="Am I too late? — how far a stock has run, against the rules' tested trades" />
+          )
+        ) : null}
         {q.last_price ? (
           <Panel
             title="Trade plan & targets"

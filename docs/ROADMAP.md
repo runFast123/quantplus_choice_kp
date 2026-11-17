@@ -38,6 +38,9 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Owner: set `GITHUB_DISPATCH_TOKEN` (fine-grained, this repo, Actions: read and write) and `GITHUB_REPO` in
       Vercel, so the 17:00 IST cron starts the full price load on time (ADR-043); until then GitHub's schedule runs it
       5-8 h late.
+- [x] Paid features (ADR-059/060, 17 Nov 2026): "Am I too late?", "Your trading habits", Stay-in Plan (optional exit +
+      off-by-default message). Next: decide whether any of the three moves to Pro Plus only (today Pro and Pro Plus carry
+      the same features); add the habits to the weekly report once Dry Run phase 2 exists.
 - [ ] An early-entry rule the site could honestly advertise (ADR-056): `research/strategies/early_entry.py` and
       `pre_breakout.py` found none so far; no "before the breakout" copy until one passes its check years.
 - [x] Dry Run phase 1 (ADR-033): pick, plan, replay vs NIFTY 50, bad-day test, guardrail score.
@@ -84,6 +87,9 @@ Requirement IDs refer to `docs/BRD.md`.
   the rules' trades (step D) and a money-weighted growth view are not built yet.
 - Chart replay (ADR-048) is daily bars only; practice trades are long only and not saved; no drawing tools in replay.
 - Secular trend (ADR-051) has no signals before 9 Nov 2026 in the app (it needs ~3.5 years of prices; the database keeps ~3.4, growing to 1,300 days); its exit is the trend rules' plan for now.
+- Stay-in Plan (ADR-060) is offered only after a trend-rule buy (that is what was tested); its 2024-26 check rests on 74
+  portfolio trades and partly on positions still open. "Your trading habits" use stored closes, so trades in stocks outside
+  the 500 largest older than ~13 months are not counted.
 - Trades next to the rules (ADR-050) cover the rules' records only (from December 2023, the 500 largest companies); each card shows a holding-period strip, not a price chart.
 - Tradebook import reads columns by name. Only Zerodha's tradebook format is known; Groww, Upstox, Angel One and Choice
   files are matched by column name and, failing that, by hand. Tradebooks rarely list charges, so imported gains are

@@ -106,3 +106,6 @@ export async function loadComparison(db: SupabaseClient, opts: { symbol?: string
     recordsFrom,
   });
 }
+
+/** Shared with server/behaviour-mirror.ts: paged reads past PostgREST's 1,000-row cap, and symbol groups for .in(). */
+export { all as pageAll, chunks };

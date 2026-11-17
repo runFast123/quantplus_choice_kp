@@ -8,7 +8,7 @@ import { RULES, type RuleKey } from "@/lib/rules";
 import { changePassword, deleteMyAccount, saveExitRules, setConsent, updateProfile } from "./actions";
 
 /** Tick the rules whose closed trades may message you about a stock you hold. */
-export function ExitRulesForm({ chosen }: { chosen: readonly RuleKey[] }) {
+export function ExitRulesForm({ chosen, stayIn }: { chosen: readonly RuleKey[]; stayIn: { on: boolean; allowed: boolean } }) {
   const [state, action] = useActionState(saveExitRules, undefined);
   return (
     <form action={action} className="flex flex-col gap-4" data-testid="exit-rules">
@@ -26,6 +26,24 @@ export function ExitRulesForm({ chosen }: { chosen: readonly RuleKey[] }) {
           </label>
         ))}
       </fieldset>
+      <label className={`flex items-start gap-3 border-t border-border pt-4 ${stayIn.allowed ? "cursor-pointer" : "opacity-70"}`}>
+        <input
+          type="checkbox"
+          name="stay_in"
+          defaultChecked={stayIn.on}
+          disabled={!stayIn.allowed}
+          className="mt-1 size-4 accent-primary"
+          data-testid="stay-in-choice"
+        />
+        <span className="text-[13px]">
+          <span className="font-medium">Stay-in Plan</span>
+          <span className="block text-[12px] leading-5 text-muted-foreground">
+            {stayIn.allowed
+              ? "After a trend rule buys a stock you hold, message me when it first closes below its 200-day average (or reaches the rule's safety stop): the tested Stay-in Plan sells there. Off unless you turn it on."
+              : "Part of Pro: a message when a trend-rule stock you hold first closes below its 200-day average."}
+          </span>
+        </span>
+      </label>
       <FormMessage state={state} />
       <SubmitButton className="w-fit">Save choices</SubmitButton>
     </form>

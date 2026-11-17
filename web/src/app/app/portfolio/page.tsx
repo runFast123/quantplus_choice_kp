@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClockCounterClockwiseIcon, FileArrowUpIcon, ScalesIcon } from "@phosphor-icons/react/ssr";
+import { ClockCounterClockwiseIcon, FileArrowUpIcon, ScalesIcon, UserFocusIcon } from "@phosphor-icons/react/ssr";
 import { buttonClass } from "@/components/ui/button";
 import { Delta, Stat } from "@/components/ui/data";
 import { Empty, PageHeader, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
@@ -135,6 +135,9 @@ export default async function PortfolioPage({ searchParams }: PageProps<"/app/po
             </Link>
             <Link href="/app/portfolio/compare" className={buttonClass("secondary", "sm")} data-testid="compare-link">
               <ScalesIcon size={16} aria-hidden /> Next to the rules
+            </Link>
+            <Link href="/app/portfolio/mirror" className={buttonClass("secondary", "sm")} data-testid="mirror-link">
+              <UserFocusIcon size={16} aria-hidden /> Your habits
             </Link>
             <CsvImportModal portfolios={portfolios} />
             <ContractNoteModal portfolios={portfolios} ready={!aiReason} reason={aiReason} />

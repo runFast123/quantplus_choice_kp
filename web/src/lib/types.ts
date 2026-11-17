@@ -12,7 +12,10 @@ export type Feature =
   | "portfolio"
   | "alerts"
   | "scanning"
-  | "ai_byok";
+  | "ai_byok"
+  | "head_start"
+  | "behaviour_mirror"
+  | "stay_in";
 
 export interface Plan {
   code: PlanCode;

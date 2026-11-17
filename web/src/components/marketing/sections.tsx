@@ -35,7 +35,7 @@ export const FALLBACK_PLANS: Plan[] = [
     price_paise_yearly: 1000000,
     max_watchlist_symbols: 15,
     max_portfolio_symbols: 15,
-    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, ai_byok: true },
+    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, ai_byok: true, head_start: true, behaviour_mirror: true, stay_in: true },
   },
   {
     code: "pro_plus",
@@ -43,7 +43,7 @@ export const FALLBACK_PLANS: Plan[] = [
     price_paise_yearly: 1500000,
     max_watchlist_symbols: null,
     max_portfolio_symbols: null,
-    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, ai_byok: true },
+    features: { watchlist: true, research: true, portfolio: true, alerts: true, scanning: true, ai_byok: true, head_start: true, behaviour_mirror: true, stay_in: true },
   },
 ];
 

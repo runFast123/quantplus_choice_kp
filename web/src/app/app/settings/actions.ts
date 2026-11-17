@@ -9,7 +9,7 @@ import { RULE_KEYS, type RuleKey } from "@/lib/rules";
 import { applyConsentWithdrawal, deleteAccount } from "@/server/privileged/account";
 import { PrivilegedError } from "@/server/privileged/guards";
 import { sendTestPush } from "@/server/privileged/push";
-import { requireSession } from "@/server/session";
+import { can, requireSession } from "@/server/session";
 
 export async function updateProfile(_: ActionState, form: FormData): Promise<ActionState> {
   const s = await requireSession();
@@ -128,9 +128,11 @@ export async function saveExitRules(_: ActionState, form: FormData): Promise<Act
   const picked = form.getAll("rule").map(String);
   if (!picked.every((k) => RULE_KEYS.includes(k as RuleKey))) return { error: "One of those rules doesn't exist." };
   const exit_rules = RULE_KEYS.filter((k) => picked.includes(k));
+  // The Stay-in Plan's message is a paid feature (migration 61): saved only when the plan includes it.
+  const stay = can(s, "stay_in") ? { stay_in: form.get("stay_in") === "on" } : {};
   const { data, error } = await s.supabase
     .from("notification_prefs")
-    .upsert({ exit_rules }, { onConflict: "user_id,tenant_id" })
+    .upsert({ exit_rules, ...stay }, { onConflict: "user_id,tenant_id" })
     .select("exit_rules");
   if (error) return { error: friendlyDbError(error.message) };
   if (!data?.length) return { error: "We couldn't save that in this workspace." };

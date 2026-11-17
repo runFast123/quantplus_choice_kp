@@ -354,6 +354,50 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-060 · Stay-in Plan: an optional 200-day exit for trend-rule buys, with an off-by-default message
+**Date** 2026-11-17 · **Status** accepted
+- **Context:** the owner's motive is to stay in a trend from Rs 200 to Rs 400 rather than sell at Rs 230. The four trend
+  rules sell at a safety stop or on the 60th session.
+- **Test** (`research/strategies/stay_in.py`, written before the run): the four trend rules' buys pooled (each year's 300
+  most traded), a 10-slot portfolio, 0.5 % costs; the same safety stop in every variant. Variants: a 3 x ATR and a
+  5 x ATR chandelier stop, and the first close below the 200-day average. Rule: choose on 2019-07..2023-12 the best CAGR
+  whose worst fall is within 5 points of the plan's; it passes if 2024-01..2026-10 has CAGR >= the plan's and a worst
+  fall within 5 points. Result: 5 x ATR was best (36.8 %) but fell 33.7 % (too deep); the 200-day exit was chosen
+  (30.5 % vs 24.2 %, worst fall -22.8 % vs -27.9 %) and **passed** the check (19.6 % vs 15.5 %, -25.2 % vs -22.4 %).
+  Caveats shown with it: 74 portfolio trades in 2024-26, part of the gain in positions still open in October 2026, and
+  only ~26 % of its trades made money (a few long winners carry it).
+- **Decision (owner: "optional plan + alert"):** the rules' own plans and records are unchanged. The stock page shows a
+  Stay-in Plan card for the latest trend-rule buy (`lib/stay-in.ts` `stayInState`, also after the rule's 60-session
+  trade has closed): running or ended, the 200-day line and the stop, the tested record and its caveats. Holders can
+  turn on a message in Settings (`notification_prefs.stay_in`, off by default); `private.run_eod_notifier` sends it once
+  per buy (`notification_ledger` 'stay_in') on the first close below the 200-day average after the buy, or the stop if
+  reached first, reading `private.trusted_candles`. Plan key `stay_in` on Pro and Pro Plus (migration 61).
+- **Limits:** tested on trend-rule entries only, so it is offered only after a trend-rule buy, not for any holding. The
+  card reads stored candles and the notifier trusted candles, so a day the price guard sets aside can differ.
+
+### ADR-059 · Two paid features: "Am I too late?" and "Your trading habits"
+**Date** 2026-11-17 · **Status** accepted
+- **Context:** the owner asked for exclusive features to sell, around the motive "be in a long trend at Rs 200, not after
+  the breakout at Rs 400", and chose a Head-start meter, a Behaviour mirror and (last) a Stay-in Plan.
+- **The meter, tested first** (`research/strategies/head_start.py`, written before the run): the six rules' closed trades
+  2019-07..2026-10 (each year's 300 most traded, own plans, 0.5 % costs), staged by where the signal close sat in its
+  252-session range. Pre-set check: the top quarter against the bottom half, 1.5 points apart in both periods. All six:
+  **little difference**. Measured by how far above the 1-year low instead (descriptive, shown by period): stocks more
+  than double their low did better for the dip rules in both periods (RSI dip 72 % winners vs 54 % under 25 %); for the
+  trend rules the periods disagree; SMA 20/50 trend's few low-stage trades did better. So being nearer the low did not
+  make the trades better, and the meter does not say "early is better".
+- **Decision:** the meter is "Am I too late?" on the stock page (`lib/head-start.ts`, numbers generated into
+  `lib/head-start-data.ts` by `head_start.py --ts`): the price against its 1-year low and range, then each rule's trades
+  from the same band, median per period next to the rule's own median ("better / about the same / worse", within 1 point
+  = same, fewer than 30 trades = too few), and one sentence naming only rules that were steady in both periods.
+- **The mirror** (`lib/behaviour-mirror.ts`, `/app/portfolio/mirror`): four habits from the user's own lots and sales,
+  each fixed before any account was read: days kept for winners vs losers; the stock 60 sessions after each sale (in
+  today's shares); purchases after a 10 %+ rise in the 20 sessions before, against the others; average win and loss and
+  the share of winning rupees the three largest losses took back. At least 5 trades (3 a side) or it says too few.
+  Descriptions of the past only; it reads existing RLS rows and adds no table.
+- **Plans:** new keys `head_start` and `behaviour_mirror` (migration 60) on Pro and Pro Plus, which carry the same
+  features today; the owner may move them to Pro Plus.
+
 ### ADR-058 · Public pages are prerendered: theme and sign-in move to the browser
 **Date** 2026-11-16 · **Status** accepted
 - **Context:** every public page rendered per request: the root layout read the `qp_theme` cookie, the site layout

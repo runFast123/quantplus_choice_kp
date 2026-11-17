@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/data";
 import { PageHeader, Panel } from "@/components/ui/layout";
 import { CONSENT_COPY } from "@/lib/consents";
 import { date, dateTime, relative } from "@/lib/format";
-import { requireSession } from "@/server/session";
+import { can, requireSession } from "@/server/session";
 import { DEFAULT_EXIT_RULES, isRule } from "@/lib/rules";
 import { ConsentSwitch, DeleteAccountForm, ExitRulesForm, PasswordForm, ProfileForm } from "./forms";
 import { PushControls } from "./push-controls";
@@ -121,7 +121,7 @@ async function NotificationsTab() {
   const s = await requireSession();
   const [{ data }, prefs] = await Promise.all([
     s.supabase.from("push_subscriptions").select("id, user_agent, created_at, last_success_at").order("created_at"),
-    s.supabase.from("notification_prefs").select("exit_rules").maybeSingle(),
+    s.supabase.from("notification_prefs").select("exit_rules, stay_in").maybeSingle(),
   ]);
   const browsers = data ?? [];
   const chosen = prefs.data ? (prefs.data.exit_rules as string[]).filter(isRule) : DEFAULT_EXIT_RULES;
@@ -158,7 +158,7 @@ async function NotificationsTab() {
           Each rule keeps its own research record. When a rule closes its trade in a stock you hold, we can tell you. It
           never changes your holding and it is not advice to sell.
         </p>
-        <ExitRulesForm chosen={chosen} />
+        <ExitRulesForm chosen={chosen} stayIn={{ on: Boolean(prefs.data?.stay_in), allowed: can(s, "stay_in") }} />
       </Panel>
     </div>
   );

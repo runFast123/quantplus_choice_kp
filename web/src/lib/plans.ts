@@ -8,4 +8,7 @@ export const FEATURE_ROWS: [Feature, string][] = [
   ["alerts", "Price alerts"],
   ["scanning", "Signal scanning across the market"],
   ["ai_byok", "Bring your own AI key"],
+  ["head_start", "Am I too late? How far a stock has run, against the rules' tested trades"],
+  ["behaviour_mirror", "Your trading habits, read from your own trades"],
+  ["stay_in", "Stay-in Plan: hold a trend until it closes below its 200-day average, with a message"],
 ];

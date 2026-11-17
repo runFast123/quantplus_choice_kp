@@ -5,6 +5,30 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — three paid features: "Am I too late?", "Your trading habits", Stay-in Plan (ADR-059/060, 17 Nov 2026)
+- Why: the owner asked for exclusive features to sell around the motive "be in a long trend at Rs 200, not after the
+  breakout at Rs 400", and chose these three. Each was tested or defined before any result was seen.
+- "Am I too late?" on the stock page (`lib/head-start.ts`, `lib/head-start-data.ts`, `components/market/head-start.tsx`):
+  where the price stands against its 1-year low and range, and each rule's past trades from the same stage, period by
+  period next to the rule's own median. The test (`research/strategies/head_start.py`, 2019-26) found being nearer the
+  low did not make trades better (dip rules did better further up, in both periods), so the copy never says "early is
+  better".
+- "Your trading habits" at `/app/portfolio/mirror` (`lib/behaviour-mirror.ts`, `server/behaviour-mirror.ts`): how long
+  you kept winners and losers, what stocks did in the 60 sessions after you sold, buying after a 10 %+ run-up, and the
+  size of wins and losses (with the share of winnings the three largest losses took back). Past facts, not advice;
+  needs 5 trades (3 a side). Linked from Portfolio ("Your habits").
+- Stay-in Plan (`lib/stay-in.ts`, `components/market/stay-in.tsx`, migration 61): `research/strategies/stay_in.py`
+  passed its pre-set check (hold to the first close below the 200-day average: 30.5 % vs 24.2 % a year in 2019-23,
+  19.6 % vs 15.5 % in 2024-26, worst fall within 5 points), shown with its caveats. A card on stocks a trend rule bought;
+  a message to holders who turn it on in Settings (off by default), sent once per buy by the nightly notifier. The
+  rules' own plans are unchanged.
+- Plans: keys `head_start`, `behaviour_mirror` (migration 60) and `stay_in` (migration 61) on Pro and Pro Plus; listed on
+  Pricing and Billing. Both migrations are applied live; `npm run test:remote` 31/31.
+- Fixed on the way: `notification_prefs` grants update per column, so a new column needs its own grant (the settings
+  upsert would have failed); the meter's period headers were cut off at desktop width.
+- Tests: unit +28 (head-start, behaviour-mirror, stay-in; 233 in all), database `29_paid_features`, `30_stay_in` (97 files
+  locally, 31 live), Playwright `habits` (4) and two pages added to `a11y`.
+
 ### Fixed — deep check: news research timeout, silent write failures (16 Nov 2026)
 - Why: the owner asked for a deep check of the code, the logic and the logs. Typecheck, lint, 205 unit, 50 pipeline,
   93 database test files and the build were green; production (Vercel) showed no errors or 5xx; the database's pg_cron
