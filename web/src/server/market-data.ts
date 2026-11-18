@@ -107,12 +107,22 @@ export async function getSparks(db: SupabaseClient, symbols: string[], days = 45
  */
 export async function getRuleHealth(db: SupabaseClient): Promise<{ latest: Map<string, HealthRow>; history: Map<string, number[]> }> {
   const since = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-  const { data } = await db
-    .from("rule_health")
-    .select("strategy, day, trades, made, made_pct, expected_pct, low_pct, high_pct, avg_pct, status, causes, first_exit, last_exit")
-    .gte("day", since)
-    .order("day", { ascending: false })
-    .limit(1000);
+  // A year of daily rows for seven rules is more than PostgREST's 1,000-row page (1,130 on 18 Nov 2026), so read every
+  // page; newest first, so `latest` is right even if a later page fails (then the sparkline is just shorter).
+  const PAGE = 1000;
+  const data: HealthRow[] = []; // numbers may arrive as strings (numeric columns); converted below
+  for (let from = 0; ; from += PAGE) {
+    const { data: rows, error } = await db
+      .from("rule_health")
+      .select("strategy, day, trades, made, made_pct, expected_pct, low_pct, high_pct, avg_pct, status, causes, first_exit, last_exit")
+      .gte("day", since)
+      .order("day", { ascending: false })
+      .order("strategy")
+      .range(from, from + PAGE - 1);
+    if (error || !rows) break;
+    data.push(...(rows as HealthRow[]));
+    if (rows.length < PAGE) break;
+  }
   const latest = new Map<string, HealthRow>();
   const history = new Map<string, number[]>();
   for (const r of data ?? []) {

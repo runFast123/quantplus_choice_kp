@@ -9,8 +9,8 @@ test.describe("rule health @mobile", () => {
   test("the Signals page shows each rule's recent record, its normal range and what its losses had in common", async ({ proPage }) => {
     await proPage.goto("/app/signals?scope=all#health");
     const cards = proPage.getByTestId("rule-health");
-    await expect(cards.getByRole("region")).toHaveCount(6);
-    for (const name of ["Strong trend", "RSI dip", "KK dip", "SMA 20/50 trend"]) {
+    await expect(cards.getByRole("region")).toHaveCount(7); // one per live rule (lib/rules.ts)
+    for (const name of ["Strong trend", "RSI dip", "KK dip", "SMA 20/50 trend", "SuperTrend breakout"]) {
       const card = cards.getByRole("region", { name: `${name} health` });
       await expect(card.locator("[data-health]")).toHaveCount(1);
       await expect(card).toContainText(/of its last \d+ finished trades made money/);

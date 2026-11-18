@@ -12,6 +12,7 @@ import { date, isoDaysAgo, price, qty, rupees, rupeesCompact } from "@/lib/forma
 import { groupSales, heldFor, type RealizedPart } from "@/lib/ledger";
 import type { Holding, Portfolio } from "@/lib/types";
 import { getQuotes, positions, summarize } from "@/server/market-data";
+import { pageAll } from "@/server/rule-compare";
 import { can, requireSession } from "@/server/session";
 import { NewPortfolioForm, RecordTradeForm, RemoveHolding, UndoAdjustment } from "./forms";
 import { throwIfFailed } from "@/lib/errors";
@@ -50,12 +51,16 @@ export default async function PortfolioPage({ searchParams }: PageProps<"/app/po
       .is("undone_at", null)
       .gte("applied_at", isoDaysAgo(30))
       .order("applied_at", { ascending: false }),
-    // Every sale, worked out by the ledger oldest shares first (migration 51).
-    db
-      .from("portfolio_realized")
-      .select("sell_txn_id, symbol, buy_date, sell_date, quantity, buy_price, sell_price, cost, proceeds, gain, days_held")
-      .order("sell_date", { ascending: false })
-      .limit(5000),
+    // Every sale, worked out by the ledger oldest shares first (migration 51). Read page by page: PostgREST returns at
+    // most 1,000 rows, and an imported tradebook can hold more sales than that (pageAll throws on a failed read).
+    pageAll<RealizedPart>((a, b) =>
+      db
+        .from("portfolio_realized")
+        .select("sell_txn_id, symbol, buy_date, sell_date, quantity, buy_price, sell_price, cost, proceeds, gain, days_held")
+        .order("sell_date", { ascending: false })
+        .order("id")
+        .range(a, b),
+    ).then((data) => ({ data, error: null })),
   ]);
   throwIfFailed(pfRes, hRes, aiKeysRes, aiConsentRes, adjRes, realizedRes); // a failed read shows the error screen, never "none"
   const sales = groupSales((realizedRes.data ?? []) as RealizedPart[]);

@@ -5,6 +5,18 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — whole-system check (18 Nov 2026)
+- Rule health history was cut at 1,000 rows (PostgREST's page): a year of daily rows for seven rules is 1,130 today, so
+  each rule's sparkline lost its oldest weeks. `getRuleHealth` (`server/market-data.ts`) now reads every page.
+- Portfolio realised gains read at most 1,000 sales (the query asked for 5,000, PostgREST returns 1,000): an imported
+  tradebook with more sales showed an incomplete total. `app/app/portfolio/page.tsx` now pages with `pageAll`.
+- `e2e/rule-health.spec.ts` expects seven health cards (one per live rule) and checks SuperTrend breakout's.
+- Checked, no change needed: every rule's live signals against its independent Python version on the live prices the
+  rules read (Secular trend and SuperTrend breakout identical; RSI dip and KK dip identical for today's 500 largest;
+  the rest differ only in early 2024 history and SMA trend's day-by-day leader ranking), all 15 database jobs (7 days, no
+  failures), rule health on all seven rules, next quarter's RSI dip refit (dry run), production logs (no errors, no 5xx).
+
+
 ### Added — SuperTrend breakout, the owner's seventh rule (ADR-061, 18 Nov 2026)
 - Why: the owner's AmiBroker rule ("200DMA LR SuperTrend NEXT OPEN ENTRY & EXIT"): the 25-day regression slope of the
   195-day average above 0, SuperTrend (10, 3) turning up, a later close at or above that day's high + 0.05; buy at the
