@@ -12,6 +12,7 @@ const ABOUT: Record<PineRule, string> = {
   strong_trend: "A new 52 week high on twice the usual volume in a sunny market; safety stop and a 60 session review.",
   ma200_trend: "Above a flat or rising 200 day average after a steady climb; safety stop and a 60 session review.",
   secular_trend: "Secular trend (Pring's Special K, 50/50) turning up from below -150 after a long slump; safety stop and a 60 session review.",
+  supertrend_breakout: "SuperTrend (10, 3) turning up while the 195 day average rises, bought after a close above that day's high; sold when SuperTrend turns down. No safety stop.",
 };
 
 export function PineScriptGeneratorPanel({ initialSymbol = "NIFTY" }: { initialSymbol?: string }) {

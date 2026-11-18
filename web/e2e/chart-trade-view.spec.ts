@@ -20,6 +20,7 @@ test.describe("price chart trade view @chart", () => {
       [/^Strong trend/, "Strong trend", "volume >= 2 * vol50"],
       [/^200-day trend/, "200-day trend", "ta.linreg(sma200, 100, 0)"],
       [/^Secular trend/, "Secular trend", "ta.sma(ta.sma(secular, 50), 50)"],
+      [/^SuperTrend \(/, "SuperTrend breakout", "close >= setupHigh + tick"],
     ] as const) {
       await rules.getByRole("radio", { name: radio }).click();
       await expect(copy).toHaveText(`Copy ${label} Pine script`);
@@ -31,7 +32,7 @@ test.describe("price chart trade view @chart", () => {
     // With all plans showing, the button asks which rule.
     await rules.getByRole("radio", { name: /^All Plans/ }).click();
     await copy.click();
-    await expect(proPage.getByRole("menuitem")).toHaveCount(6);
+    await expect(proPage.getByRole("menuitem")).toHaveCount(7);
   });
 
   test("a selected entry draws its risk and reward, and explains the rule", async ({ proPage }, info) => {

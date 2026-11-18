@@ -21,7 +21,7 @@ import { Badge, Delta, RangeBar, ScoreBar, StanceBadge } from "@/components/ui/d
 import { Empty, Panel, PlanGate, TableWrap, td, tdNum, th, thNum, tr } from "@/components/ui/layout";
 import { date, price, priceMean, qty, rupees, signedInt, strategyLabel, volume } from "@/lib/format";
 import { DIP_EXIT, isDipRule } from "@/lib/dip-rules";
-import { RULE_KEYS, RULES, isRule, ruleOf } from "@/lib/rules";
+import { RULE_KEYS, RULES, hasSuperTrendExit, isRule, ruleOf } from "@/lib/rules";
 import { isTrendRule, reviewDate } from "@/lib/strong-trend";
 import { checkKey, signalDayOf } from "@/lib/signal-checks";
 import { CheckTag } from "@/components/market/check-tag";
@@ -167,9 +167,24 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
           <p className="mt-1 text-muted-foreground">
             Closed at ₹{price(Number(t.payload.close))}
             {ruleOf(t.strategy) ? `, ${ruleOf(t.strategy)!.why}` : ""}
-            . Safety stop <span className="num text-loss">₹{price(Number(t.payload.stop))}</span>; review around{" "}
-            {date(reviewDate(t.generated_at).toISOString())} (60 trading sessions). No fixed target: in testing, holding to
-            the review did better than taking profit early.
+            {hasSuperTrendExit(t.strategy) ? (
+              <>
+                . Bought at the next open. It sells at the next open after SuperTrend turns down
+                {t.payload.supertrend ? (
+                  <>
+                    {" "}
+                    (its line was <span className="num">₹{price(Number(t.payload.supertrend))}</span> at the signal; while SuperTrend is up it only stays level or rises)
+                  </>
+                ) : null}
+                . No safety stop and no time limit.
+              </>
+            ) : (
+              <>
+                . Safety stop <span className="num text-loss">₹{price(Number(t.payload.stop))}</span>; review around{" "}
+                {date(reviewDate(t.generated_at).toISOString())} (60 trading sessions). No fixed target: in testing, holding to
+                the review did better than taking profit early.
+              </>
+            )}
           </p>
         </div>
       ))}

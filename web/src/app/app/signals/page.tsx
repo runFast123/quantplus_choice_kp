@@ -20,6 +20,7 @@ import {
 import { date, isoDaysAgo, price, strategyLabel } from "@/lib/format";
 import { markerFromSignal, signalAction, tradeFor, type SignalAction } from "@/lib/signal-trade";
 import { DIP_EXIT, dipStatus, dipTestedSentence, isDipRule } from "@/lib/dip-rules";
+import { hasSuperTrendExit } from "@/lib/rules";
 import {
   isTrendRule,
   MA200_TREND_TESTED as MA200,
@@ -28,6 +29,7 @@ import {
   SMA_TREND_TESTED as SMA,
   STRONG_TREND_TESTED as TESTED,
   strongTrendStatus,
+  SUPERTREND_TESTED as STB,
   weatherView,
 } from "@/lib/strong-trend";
 import {
@@ -92,6 +94,13 @@ const STRATEGIES: { key: string; title: string; rule: string; reads: string; tes
     rule: "Buy when Secular trend (Pring's Special K: twelve smoothed price changes from two weeks to two years) crosses above its signal line (its 50-day average, averaged again over 50 days) while it is flat or rising and still below −150: a deep, long slump starting to turn up.",
     reads: "Few signals: it waits for a long fall. Safety stop 4× the stock's normal daily move below the price; review after 60 trading sessions.",
     tested: `Tested on past prices (${SEC.period}, ${SEC.trades} trades, most of them in the 2020 rebound): ${SEC.madeMoneyPct} in 100 made money after costs, the average trade +${SEC.avgTradePct}% (winners about +${SEC.avgWinPct}%, losers about ${SEC.avgLossPct}%). ${SEC.recent.period}: ${SEC.recent.trades} trades, ${SEC.recent.madeMoneyPct} in 100, +${SEC.recent.avgTradePct}%; buying on a random day below −150: ${SEC.random.recentMadeMoneyPct} in 100, ${SEC.random.recentAvgTradePct}%.`,
+  },
+  {
+    key: "supertrend_breakout",
+    title: "SuperTrend breakout",
+    rule: "Buy when SuperTrend (10 days, 3×) turns up while the 195-day average is rising (its 25-day regression line slopes up), and a later close goes above that day's high before SuperTrend turns down again. Bought at the next open.",
+    reads: "Rides a trend until SuperTrend turns down, then sells at the next open. No safety stop and no time limit, so a trade can fall a long way before it sells. Trades last about 33 sessions in the middle.",
+    tested: `Tested on past prices (${STB.period}, ${STB.trades.toLocaleString("en-IN")} trades): ${STB.madeMoneyPct} in 100 made money after costs, the average trade +${STB.avgTradePct}% (winners about +${STB.avgWinPct}%, losers about ${STB.avgLossPct}%): a few big winners pay for many small losses. ${STB.recent.period}: ${STB.recent.trades.toLocaleString("en-IN")} trades, ${STB.recent.madeMoneyPct} in 100, +${STB.recent.avgTradePct}%; buying on a random day with SuperTrend up, sold the same way: ${STB.random.recentMadeMoneyPct} in 100, +${STB.random.recentAvgTradePct}%. It did not pass the check the other rules passed; it is included with this record.`,
   },
   {
     key: "rsi_dip",
@@ -274,6 +283,21 @@ export default async function SignalsPage({
     const since = !closed && action === "buy" && last && at ? ((last - at) / at) * 100 : null;
     const base = { sg, at, last, since, quote, action, closed, result, own: null as OwnPlan | null };
 
+    // SuperTrend breakout has its own exit: no stop, sold at the next open after SuperTrend turns down (ADR-061).
+    if (hasSuperTrendExit(sg.strategy) && action === "buy" && !closed) {
+      return {
+        ...base,
+        evaluation: null,
+        own: {
+          stop: null,
+          stopTitle: "No safety stop: the rule sells only when SuperTrend turns down",
+          status: { label: "Open", tone: "neutral" as const },
+          next: "Sells when SuperTrend turns down",
+          nextSub: "at the next open",
+          nextTitle: "No target and no time limit: sold at the next open after the first close that turns SuperTrend down",
+        },
+      };
+    }
     // Strong trend and the dip rules were tested with their own plan: a safety stop and a review date or a
     // bounce exit, not price targets.
     if (isTrendRule(sg.strategy) && action === "buy" && !closed) {
@@ -392,7 +416,13 @@ export default async function SignalsPage({
                   {own ? (
                     <p className="mt-auto flex justify-between gap-2 border-t border-border pt-2 text-[11.5px] text-muted-foreground">
                       <span title={own.stopTitle}>
-                        Stop <span className="num text-loss">₹{price(own.stop)}</span>
+                        {own.stop != null ? (
+                          <>
+                            Stop <span className="num text-loss">₹{price(own.stop)}</span>
+                          </>
+                        ) : (
+                          "No safety stop"
+                        )}
                       </span>
                       <span title={own.nextTitle}>
                         {own.next} <span className="text-muted-foreground/80">{own.nextSub}</span>
@@ -715,6 +745,7 @@ export default async function SignalsPage({
         breakout and SMA 20/50 cross rules, which did worse in testing; their signals stay in the list under &ldquo;Old rules&rdquo;. The
         200-day trend rule was added in November 2026; its record on this site starts with the stored prices. Secular trend was added
         on 9 November 2026: it needs about three and a half years of prices, so it signals from that day on and has no earlier signals here.
+        SuperTrend breakout was added on 18 November 2026; its signals here start with the stored prices (mid-2024).
       </p>
     </div>
   );

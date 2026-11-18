@@ -5,6 +5,29 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — SuperTrend breakout, the owner's seventh rule (ADR-061, 18 Nov 2026)
+- Why: the owner's AmiBroker rule ("200DMA LR SuperTrend NEXT OPEN ENTRY & EXIT"): the 25-day regression slope of the
+  195-day average above 0, SuperTrend (10, 3) turning up, a later close at or above that day's high + 0.05; buy at the
+  next open, sell at the next open after SuperTrend turns down, no stop. Tested first, it did not pass the house check
+  (its entries did no better than a random uptrend day with the same exit; 2024-26 made 4.5 % a year in 10 slots against
+  15.5 % for the trend rules; four changed versions also failed). The owner chose to add it; its record is shown as it is.
+- Research (`research/strategies/`): `supertrend_lr.py`, `supertrend_v2.py` (the tests), `ab_check.py` (the formula
+  ported line by line: 99.7 % of trades identical to the first test), `st_stock_level.py` (stock by stock),
+  `record_supertrend.py` (the record: Jul 2019 – Oct 2026, 3,158 trades, 41.0 % made money, +5.28 % a trade; 2024-26
+  1,258 trades, 33.5 %, +0.65 %; a random day with the same exit 32.4 %, +0.57 %), `pglite_supertrend.mjs` (the SQL on
+  the live candles: all 2,880 signals equal to the Python port's, after the price guard's repairs).
+- Database: migration 62 `private.refresh_supertrend_breakout` (reads `trusted_candles`; continues from the last stored
+  signal: after a sale from the next session, after a buy holding it), and the rule lists (`rule_label`,
+  `signal_trades`, `rule_trades`, `rebuild_rule_signals`, `svc_refresh_market_analytics`, the `market-analytics` cron);
+  holders may choose it for messages (off by default); its `rule_expectations` row. Signals from 2 May 2024 (stored
+  prices). Test `31_supertrend_breakout`; `17_rule_history` now counts every live rule's signals.
+- App: `lib/rules.ts` (`supertrend_breakout`, tag ST, `hasSuperTrendExit`), labels and plain sentences, the Signals page
+  card and open-buy plan ("No safety stop", sells when SuperTrend turns down), the stock page's open-trend note, the
+  chart's SuperTrend filter and "ST BUY" marks, a Pine Script that follows the formula, the dry run, and "Am I too late?"
+  (`head_start.py` now includes it; the other rules' numbers are unchanged). The Stay-in Plan stays with the four rules
+  it was tested on.
+- Copy: "seven rules" everywhere; "every buy comes with a safety stop" now says six of the seven.
+
 ### Added — three paid features: "Am I too late?", "Your trading habits", Stay-in Plan (ADR-059/060, 17 Nov 2026)
 - Why: the owner asked for exclusive features to sell around the motive "be in a long trend at Rs 200, not after the
   breakout at Rs 400", and chose these three. Each was tested or defined before any result was seen.

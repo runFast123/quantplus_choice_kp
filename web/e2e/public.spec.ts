@@ -86,12 +86,12 @@ test.describe("public site @mobile", () => {
   test("the old How it works address forwards to Method", async ({ page }) => {
     const res = await page.goto("/how-it-works");
     expect(res?.url()).toMatch(/\/method$/);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Six published rules");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Seven published rules");
   });
 
   test("each topic has its own page: one H1, its own title and canonical, and the navbar marks it", async ({ page }) => {
     const pages = [
-      ["/method", "Six published rules"],
+      ["/method", "Seven published rules"],
       ["/chrome-extension", "overlaid on your broker"],
       ["/pricing", "Priced by the year"],
       ["/faq", "Questions people ask"],
@@ -123,7 +123,7 @@ test.describe("public site @mobile", () => {
     for (const [label, path, h1] of [
       ["Pricing", "/pricing", "Priced by the year"],
       ["Research", "/blog", "The usual way to use an indicator"],
-      ["Method", "/method", "Six published rules"],
+      ["Method", "/method", "Seven published rules"],
     ] as const) {
       await nav.getByRole("link", { name: label }).click();
       await expect(nav.locator('[aria-current="page"]')).toHaveAttribute("href", path);

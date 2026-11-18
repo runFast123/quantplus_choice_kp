@@ -33,7 +33,16 @@ import { ChartReplay } from "./chart-replay";
 import { TradeOdds } from "./trade-odds";
 
 export type ChartMarker = RawChartMarker;
-export type ChartStrategyFilter = "kk_breakout" | "sma_cross" | "rsi_reversal" | "strong_trend" | "ma200_trend" | "secular_trend" | "all" | "none";
+export type ChartStrategyFilter =
+  | "kk_breakout"
+  | "sma_cross"
+  | "rsi_reversal"
+  | "strong_trend"
+  | "ma200_trend"
+  | "secular_trend"
+  | "supertrend_breakout"
+  | "all"
+  | "none";
 
 // KK chip: the old imported KK trades (history) and the KK dip rule that replaced them (migration 35).
 const isKk = (s?: string | null) => s === "kk_breakout" || s === "kk_dip";
@@ -228,6 +237,8 @@ export function PriceChart({
 
   const secularMarkers = useMemo(() => markers.filter((m) => m.strategy === "secular_trend"), [markers]);
 
+  const superMarkers = useMemo(() => markers.filter((m) => m.strategy === "supertrend_breakout"), [markers]);
+
   const rsiMarkers = useMemo(
     () =>
       markers.filter(
@@ -245,6 +256,7 @@ export function PriceChart({
   const strongCount = strongMarkers.length;
   const ma200Count = ma200Markers.length;
   const secularCount = secularMarkers.length;
+  const superCount = superMarkers.length;
   const totalCount = allPlanMarkers.length;
 
   // Strategy Mode Filter (Isolates strategies to eliminate multi-plan signal confusion)
@@ -286,11 +298,13 @@ export function PriceChart({
         return ma200Markers;
       case "secular_trend":
         return secularMarkers;
+      case "supertrend_breakout":
+        return superMarkers;
       case "all":
       default:
         return allPlanMarkers;
     }
-  }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, strongMarkers, ma200Markers, secularMarkers, allPlanMarkers]);
+  }, [strategyFilter, effectiveKkMarkers, smaMarkers, rsiMarkers, strongMarkers, ma200Markers, secularMarkers, superMarkers, allPlanMarkers]);
 
   // Choosing a rule shows its indicators and, when its latest signal is older than the range on screen, the shortest
   // range that holds it (SUZLON's last 200-day trend trade was 16 months back: 1Y showed only the average's line).
@@ -301,6 +315,7 @@ export function PriceChart({
           : k === "strong_trend" ? strongMarkers
             : k === "ma200_trend" ? ma200Markers
               : k === "secular_trend" ? secularMarkers
+              : k === "supertrend_breakout" ? superMarkers
               : k === "all" ? allPlanMarkers
                 : [];
   const chooseRule = (k: ChartStrategyFilter) => {
@@ -527,7 +542,7 @@ export function PriceChart({
           let textLabel: string | undefined = undefined;
           if (showLabels) {
             if (isBuyEntry) {
-              textLabel = isKk(m.strategy) ? "KK BUY" : m.strategy === "ma200_trend" ? "200D BUY" : m.strategy === "secular_trend" ? "SEC BUY" : "BUY";
+              textLabel = isKk(m.strategy) ? "KK BUY" : m.strategy === "ma200_trend" ? "200D BUY" : m.strategy === "secular_trend" ? "SEC BUY" : m.strategy === "supertrend_breakout" ? "ST BUY" : "BUY";
             } else if (isSellEntry) {
               textLabel = m.strategy === "kk_breakout" ? "KK SELL" : "SELL";
             } else if (isCover) {
@@ -1010,6 +1025,23 @@ export function PriceChart({
             <button
               type="button"
               role="radio"
+              aria-checked={strategyFilter === "supertrend_breakout"}
+              onClick={() => chooseRule("supertrend_breakout")}
+              className={clsx(
+                "rounded px-2 py-0.5 text-[10.5px] font-medium transition-colors flex items-center gap-1",
+                strategyFilter === "supertrend_breakout"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              title="Show only SuperTrend breakout signals: SuperTrend turning up while the 195-day average rises, bought after a close above that day's high, sold at the next open after SuperTrend turns down (no safety stop)"
+            >
+              <span>SuperTrend</span>
+              <span className="num text-[9.5px]">({superCount})</span>
+            </button>
+
+            <button
+              type="button"
+              role="radio"
               aria-checked={strategyFilter === "all"}
               onClick={() => chooseRule("all")}
               className={clsx(
@@ -1329,7 +1361,7 @@ export function PriceChart({
             <span className="font-medium text-foreground flex items-center gap-1.5">
               <span>Signals Timeline</span>
               <span className="num text-muted-foreground font-normal">
-                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK" : strategyFilter === "sma_cross" ? "SMA" : strategyFilter === "strong_trend" ? "Strong trend" : strategyFilter === "ma200_trend" ? "200-day trend" : strategyFilter === "secular_trend" ? "Secular trend" : "RSI"} in {range})
+                ({recentSignals.length} {strategyFilter === "all" ? "across all plans" : strategyFilter === "kk_breakout" ? "KK" : strategyFilter === "sma_cross" ? "SMA" : strategyFilter === "strong_trend" ? "Strong trend" : strategyFilter === "ma200_trend" ? "200-day trend" : strategyFilter === "secular_trend" ? "Secular trend" : strategyFilter === "supertrend_breakout" ? "SuperTrend breakout" : "RSI"} in {range})
               </span>
             </span>
             <span className="text-[10px] text-muted-foreground">Click chip to focus candle</span>
@@ -1386,6 +1418,8 @@ export function PriceChart({
                         ? "200D"
                         : sig.strategy === "secular_trend"
                         ? "SEC"
+                        : sig.strategy === "supertrend_breakout"
+                        ? "ST"
                         : sig.strategy?.includes("sma")
                         ? "SMA"
                         : sig.strategy?.includes("rsi")

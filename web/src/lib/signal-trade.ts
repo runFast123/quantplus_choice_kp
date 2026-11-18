@@ -46,6 +46,7 @@ export const KK_RESULTS: Record<string, string> = {
 export const STRONG_TREND_RESULTS: Record<string, string> = {
   STOP_HIT: "The price fell to the safety stop.",
   REVIEW_60: "60 trading sessions passed: time to review.",
+  ST_RED: "SuperTrend turned down: sold at the next open.",
 };
 
 // How a dip trade ended (RSI dip / KK dip, migration 35).
@@ -93,6 +94,10 @@ export function ruleSentence(strategy: string, action: SignalAction, resultType?
       return action === "buy"
         ? "Secular trend (Pring's Special K, read against a −150 line) crossed above its signal line while flat or rising and still below −150: a deep, long slump starting to turn up."
         : `The Secular trend trade closed. ${STRONG_TREND_RESULTS[resultType ?? ""] ?? ""}`.trim();
+    case "supertrend_breakout":
+      return action === "buy"
+        ? "SuperTrend (10 days, 3×) turned up while the 195-day average was rising (its 25-day regression line sloping up), and a later close went above that day's high: bought at the next open. No safety stop."
+        : `The SuperTrend breakout trade closed. ${STRONG_TREND_RESULTS[resultType ?? ""] ?? ""}`.trim();
     case "strong_trend":
       return action === "buy"
         ? "Closed at a new 52-week high on at least twice its usual volume, above its 50-day average, while the market was rising and calm."

@@ -196,7 +196,7 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
       count: signalsRes.count ?? 0,
       latestDate: signalsRes.data?.[0]?.generated_at ?? null,
       status: "healthy",
-      description: "Buys and exits of the six rules (and the retired ones' history); count is an estimate.",
+      description: "Buys and exits of the seven rules (and the retired ones' history); count is an estimate.",
     },
     {
       name: "rsi_events",

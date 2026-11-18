@@ -17,7 +17,7 @@ import { ButtonLink } from "@/components/ui/button";
  */
 const TITLE = "QuantsPulse: rule-based signals for NSE stocks";
 const DESCRIPTION =
-  "Six published rules check the NSE stocks you follow after every close. Each signal comes with a safety stop, a plan and the rule's tested record. Research, not advice; signals on your broker's chart with the Chrome extension.";
+  "Seven published rules check the NSE stocks you follow after every close. Each signal comes with a plan for when to sell (a safety stop for six of them) and the rule's tested record. Research, not advice; signals on your broker's chart with the Chrome extension.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -58,8 +58,8 @@ export default function Home() {
               </span>
             </h1>
             <p className="hero-in mt-6 max-w-[33rem] text-[17px] leading-8 text-muted-foreground" style={{ "--d": "380ms" } as React.CSSProperties}>
-              QuantsPulse runs six published rules on the stocks you follow after every NSE close. Each signal arrives with a safety stop, a plan for when to
-              sell, and the rule&apos;s tested record, losing trades included.
+              QuantsPulse runs seven published rules on the stocks you follow after every NSE close. Each signal arrives with a plan for when to sell (a
+              safety stop for six of the seven rules) and the rule&apos;s tested record, losing trades included.
             </p>
             <div className="hero-in mt-8 flex flex-wrap items-center gap-3" style={{ "--d": "480ms" } as React.CSSProperties}>
               <SessionButtonLink href="/signup" signedInHref="/app" signedInLabel="Open the desk" size="lg">
@@ -80,7 +80,7 @@ export default function Home() {
               {(
                 [
                   ["~3,600", "NSE listings checked each weekday"],
-                  ["6", "published rules, each with its record"],
+                  ["7", "published rules, each with its record"],
                   ["2019–26", "tested on past prices, after costs"],
                 ] as const
               ).map(([n, label]) => (
@@ -158,7 +158,7 @@ export default function Home() {
 const DATELINE = [
   "3,600+ NSE listings",
   "Updated each weekday ~17:00 IST",
-  "Six published rules",
+  "Seven published rules",
   "Chrome extension for 20+ brokers",
   "TradingView charts",
   "Holdings import from CSV",

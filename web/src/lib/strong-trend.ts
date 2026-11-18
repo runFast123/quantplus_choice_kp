@@ -111,6 +111,24 @@ export const SECULAR_TREND_TESTED = {
 } as const;
 
 /**
+ * SuperTrend breakout (migration 62, ADR-061), the owner's AmiBroker rule, tested with the exact SQL rule:
+ * research/strategies/record_supertrend.py, Jul 2019 – Oct 2026, each year's 300 most traded NSE stocks, 0.5 % round-trip
+ * cost, closed trades. `random` = a random day with SuperTrend up and the 195-day average rising, sold the same way. It did
+ * not pass the house check (ADR-061); shown as it is. Update only by re-running that script.
+ */
+export const SUPERTREND_TESTED = {
+  period: "Jul 2019 – Oct 2026",
+  trades: 3158,
+  madeMoneyPct: 41,
+  avgTradePct: 5.3,
+  avgWinPct: 24,
+  avgLossPct: -7.7,
+  heldSessions: 33,
+  recent: { period: "2024 – Oct 2026", madeMoneyPct: 34, avgTradePct: 0.7, trades: 1258 },
+  random: { recentMadeMoneyPct: 32, recentAvgTradePct: 0.6 },
+} as const;
+
+/**
  * SMA 20/50 trend (migration 38, ADR-037), tested with the exact SQL rule: research/strategies/record_sma.py,
  * Jul 2019 – Oct 2026, each year's 300 most traded NSE stocks, 0.5 % round-trip cost. `before` is the old SMA 20/50
  * cross (cross in, cross out) on the same stocks and years. Update only by re-running that script.

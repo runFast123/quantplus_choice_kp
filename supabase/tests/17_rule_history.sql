@@ -46,7 +46,11 @@ select qp_t17.check(exists (select 1 from public.signal_outcomes o join public.t
                              where t.symbol = 'QPRH1' and t.strategy = 'ma200_trend'),
                     'rebuild: the new signals are graded');
 create table qp_t17.ids as select id from public.trading_signals where symbol = 'QPRH1' and strategy = 'ma200_trend';
-select qp_t17.check((select (r ->> 'deleted')::int = 2 and (r ->> 'same_id')::int = 2 from (select private.rebuild_rule_signals(array['QPRH1']) r) x)
+-- Every live rule's signals on QPRH1 (SuperTrend breakout, migration 62, also trades this climb).
+create table qp_t17.live as select count(*)::int as n from public.trading_signals
+  where symbol = 'QPRH1' and strategy in (select e.strategy from public.rule_expectations e);
+select qp_t17.check((select (r ->> 'deleted')::int = (select n from qp_t17.live) and (r ->> 'same_id')::int = (select n from qp_t17.live)
+                     from (select private.rebuild_rule_signals(array['QPRH1']) r) x)
                     and (select count(*) = 2 from public.trading_signals where symbol = 'QPRH1' and strategy = 'ma200_trend'),
                     'rebuild: running it again gives the same signals');
 select qp_t17.check((select array_agg(id order by id) from public.trading_signals where symbol = 'QPRH1' and strategy = 'ma200_trend')

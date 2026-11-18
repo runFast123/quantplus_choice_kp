@@ -354,6 +354,25 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-061 · SuperTrend breakout: the owner's AmiBroker rule, added after it failed the house check
+**Date** 2026-11-18 · **Status** accepted
+- **Context:** the owner brought an AmiBroker rule: the 25-day linear-regression slope of the 195-day average above 0;
+  SuperTrend (ATR 10, x3) turning up is the setup; a close at or above the setup day's high + 0.05 before SuperTrend
+  turns down confirms; buy at the next open; sell at the next open after SuperTrend turns down; no stop or target.
+- **Test** (the house method, owner's parameters unchanged): per trade it matched a random day with SuperTrend up and the
+  same exit (2019-23 +8.3 % vs +8.1 %; 2024-26 +0.65 % vs +0.56 %); in 10 slots 2024-26 made 4.5 % a year against 7.4 % for
+  random entries and 15.5 % for the live trend rules. Four pre-written changes (a safety stop, the 60-session plan, the
+  200-day exit, leaders only) failed too. Stock by stock 2024-26: 41 % of stocks made money, profit factor 1.14. The
+  owner's formula, ported line by line (`ab_check.py`), gives the same trades as the test (99.7 %).
+- **Decision (owner: "Add it anyway"):** a seventh live rule, `supertrend_breakout`, exactly as the formula (migration
+  62), on the 500 largest, with its own exit: no safety stop, no time limit. The record shown is the exact rule's
+  (`record_supertrend.py`), with the weak 2024-26 numbers, the random-day yardstick and the sentence that it did not pass
+  the check the other rules passed. Messages to holders are off by default. The Stay-in Plan is not offered after its
+  buys (it was tested on the other four trend rules).
+- **Limits:** the exit is recorded on the sale day (the open after the down close), so a holder's message comes that
+  evening, not the evening before. With no stop, a trade can fall far before SuperTrend turns down. Signals start on
+  2 May 2024 in the app (the stored prices). Research prices are dividend-adjusted, live prices split-adjusted only.
+
 ### ADR-060 · Stay-in Plan: an optional 200-day exit for trend-rule buys, with an off-by-default message
 **Date** 2026-11-17 · **Status** accepted
 - **Context:** the owner's motive is to stay in a trend from Rs 200 to Rs 400 rather than sell at Rs 230. The four trend

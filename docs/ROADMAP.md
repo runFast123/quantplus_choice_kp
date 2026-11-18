@@ -87,6 +87,7 @@ Requirement IDs refer to `docs/BRD.md`.
   the rules' trades (step D) and a money-weighted growth view are not built yet.
 - Chart replay (ADR-048) is daily bars only; practice trades are long only and not saved; no drawing tools in replay.
 - Secular trend (ADR-051) has no signals before 9 Nov 2026 in the app (it needs ~3.5 years of prices; the database keeps ~3.4, growing to 1,300 days); its exit is the trend rules' plan for now.
+- SuperTrend breakout (ADR-061) did not pass the house check and is live at the owner's choice. It has no safety stop; its exit is recorded on the sale day, so a holder's message comes the evening after the open it sold at (no warning the evening before yet). Its signals start on 2 May 2024 (stored prices).
 - Stay-in Plan (ADR-060) is offered only after a trend-rule buy (that is what was tested); its 2024-26 check rests on 74
   portfolio trades and partly on positions still open. "Your trading habits" use stored closes, so trades in stocks outside
   the 500 largest older than ~13 months are not counted.

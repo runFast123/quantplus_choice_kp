@@ -5,7 +5,7 @@ import { SITE_URL } from "@/lib/env";
 
 const TITLE = "About QuantsPulse: how every rule is tested";
 const DESCRIPTION =
-  "What QuantsPulse is, how each of its six rules is tested on NSE prices (the stocks, the years, the costs, the yardsticks), where the data comes from, and what it does not do.";
+  "What QuantsPulse is, how each of its seven rules is tested on NSE prices (the stocks, the years, the costs, the yardsticks), where the data comes from, and what it does not do.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -73,7 +73,7 @@ export default function AboutPage() {
             <Link href="/method" className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground">
               method page
             </Link>{" "}
-            lists the six rules.
+            lists the seven rules.
           </p>
         </div>
       </section>

@@ -9,7 +9,7 @@ import "./signal-layers.css";
 const LAYERS = [
   ["Price", "The day's official close", "End-of-day NSE prices for about 3,600 listings, loaded each weekday at about 5 pm IST."],
   ["Rule", "One published rule", "The same written conditions for every stock. You can read each one, so you know exactly why a signal fired."],
-  ["Plan", "A stop and an exit", "Every buy comes with a safety stop under the entry and a set way out, fixed before the trade starts."],
+  ["Plan", "A stop and an exit", "Every buy comes with a set way out, fixed before the trade starts; six of the seven rules add a safety stop under the entry."],
   ["Record", "The tested record", "How the rule did on NSE prices from 2019 to 2026, after costs, with the losing trades left in."],
 ] as const;
 

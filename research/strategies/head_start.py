@@ -63,7 +63,36 @@ def long_ranges():
     return out
 
 
+ST_FR = {}
+
+
+def supertrend_trades():
+    """SuperTrend breakout (ADR-061, added 18 Nov 2026) in early_entry.rules()' shape: the AmiBroker formula's trades
+    (ab_check.trades_afl, as record_supertrend.py), each year's 300 most traded, sold at the next open after SuperTrend
+    turns down, 0.5 % cost; an open trade has net = NaN. Frames from candles_long (ST_FR)."""
+    import ab_check as AB
+    import fair as FA
+    import supertrend_lr as ST
+    raw = pd.read_parquet(B.D / "candles_long.parquet").dropna(subset=["open", "high", "low", "close"])
+    raw = raw[(raw.close > 0) & (raw.open > 0) & ~raw.symbol.str.startswith("^")]
+    rows = []
+    for s, f in raw.groupby("symbol"):
+        if s not in FA.ALL or len(f) <= 300:
+            continue
+        f = ST.frame(f.copy())
+        ST_FR[s] = f
+        d = AB.st_dir_afl(f.high.to_numpy(), f.low.to_numpy(), f.close.to_numpy())
+        for i, j, k in AB.trades_afl(f, d):
+            if f.date.iat[i] < B.START or not f.pit.iat[i]:
+                continue
+            net = f.open.iat[k] / f.open.iat[j] - 1 - 0.005 if k is not None else np.nan
+            rows.append({"symbol": s, "i": i, "j": j, "entry": float(f.open.iat[j]), "net": net})
+    return pd.DataFrame(rows)
+
+
 def frame(rule, s):
+    if rule == "supertrend_breakout":
+        return ST_FR[s]
     return L.FR[s] if rule == "ma200_trend" else E.F.ALL[s]
 
 
@@ -121,9 +150,9 @@ def decide(d):
 
 def main():
     E.K.attach()                                     # Special K columns, as early_entry.main() does
-    df = stage_rows(E.rules())
+    df = stage_rows(E.rules() | {"supertrend_breakout": supertrend_trades()})
     out = {}
-    for rule in E.RULES:
+    for rule in [*E.RULES, "supertrend_breakout"]:
         d = df[df.rule == rule]
         verdict, gaps = decide(d)
         out[rule] = {

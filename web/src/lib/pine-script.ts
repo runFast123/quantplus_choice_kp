@@ -2,7 +2,7 @@
 // TradingView chart are the signals of the rule the user picked and nothing else. Each script follows the live SQL
 // (migrations 33, 38, 41, 45, 55) bar by bar: the same entry, the same safety stop, the same exit, one trade at a time.
 
-export type PineRule = "kk_dip" | "rsi_dip" | "sma_trend" | "strong_trend" | "ma200_trend" | "secular_trend";
+export type PineRule = "kk_dip" | "rsi_dip" | "sma_trend" | "strong_trend" | "ma200_trend" | "secular_trend" | "supertrend_breakout";
 
 export const PINE_RULES: readonly { key: PineRule; label: string; short: string }[] = [
   { key: "kk_dip", label: "KK dip", short: "KK" },
@@ -11,6 +11,7 @@ export const PINE_RULES: readonly { key: PineRule; label: string; short: string 
   { key: "strong_trend", label: "Strong trend", short: "Strong trend" },
   { key: "ma200_trend", label: "200-day trend", short: "200-day trend" },
   { key: "secular_trend", label: "Secular trend", short: "Secular trend" },
+  { key: "supertrend_breakout", label: "SuperTrend breakout", short: "SuperTrend" },
 ];
 
 /** The chart's rule filter → the rule whose script to copy; null for "all" / "none" (the user picks one). */
@@ -25,6 +26,7 @@ export function pineRuleForChart(filter: string): PineRule | null {
     case "strong_trend":
     case "ma200_trend":
     case "secular_trend":
+    case "supertrend_breakout":
       return filter;
     default:
       return null;
@@ -38,7 +40,7 @@ export function pineRuleLabel(rule: PineRule): string {
 const GAIN = "#0F7B5C";
 const LOSS = "#C2410C";
 
-function header(rule: PineRule, sym: string, about: string[]): string {
+function header(rule: PineRule, sym: string, about: string[], stopInput = "Show the safety stop while holding"): string {
   const label = pineRuleLabel(rule);
   return `//@version=6
 // =============================================================================
@@ -57,7 +59,7 @@ indicator("QuantsPulse ${label} (${sym})", shorttitle="QP ${label}", overlay=tru
 
 grpShow   = "Display"
 showMarks = input.bool(true, "Show buy and exit marks", group=grpShow)
-showStop  = input.bool(true, "Show the safety stop while holding", group=grpShow)
+showStop  = input.bool(true, "${stopInput}", group=grpShow)
 showTable = input.bool(true, "Show the status table", group=grpShow)
 `;
 }
@@ -137,6 +139,102 @@ if state == 0 and not exitNow and barstate.isconfirmed and not na(atr) and setup
             label.new(bar_index, low, "BUY\\nstop " + str.tostring(stp, "0.00"), style=label.style_label_up,
                       color=color.new(${GAIN}, 0), textcolor=color.white, size=size.small)
 ${footer(rule, `state == 2 ? "Holding since " + str.tostring(entryPx, "0.00") : state == 1 ? "Buy at the next open" : "No open trade"`)}`;
+}
+
+/** SuperTrend breakout (migration 62, ADR-061): the owner's AmiBroker formula bar by bar. SuperTrend (ATR 10 as an RMA,
+ *  3 ×, on hl2) with the formula's bands and a direction that starts at 0; a setup when it turns up while the 25-day
+ *  regression slope of the 195-day average is above 0; a close at or above the setup high + 0.05 before it turns down
+ *  confirms; buy at the next open; sell at the next open after the first down day after the buy day. No stop. */
+function supertrendRule(rule: PineRule, sym: string): string {
+  return `${header(rule, sym, [
+    "The rule: SuperTrend (ATR 10, multiplier 3) turns up while the 195 day average is rising (the",
+    "slope of its 25 day regression line is above 0); a later close at or above that day's high + 0.05,",
+    "before SuperTrend turns down again, confirms it. Buy at the next open. Sell at the next open after",
+    "SuperTrend turns down. No safety stop, no target, no time limit.",
+  ], "Show the SuperTrend line")}
+maLen  = input.int(195, "Average length", minval=2, group="Rule")
+lrLen  = input.int(25, "Regression length", minval=2, group="Rule")
+stLen  = input.int(10, "SuperTrend ATR length", minval=1, group="Rule")
+stMult = input.float(3.0, "SuperTrend multiplier", step=0.5, group="Rule")
+tick   = input.float(0.05, "Tick above the setup high", step=0.01, group="Rule")
+
+// ---- SuperTrend exactly as the formula: the bands carry over, the direction starts at 0
+atr = ta.atr(stLen)
+mid = (high + low) / 2
+upB = mid + stMult * atr
+loB = mid - stMult * atr
+var float upF = na
+var float loF = na
+var int   dir = 0
+float pUp = upF
+float pLo = loF
+if not na(atr)
+    upF := na(pUp) ? upB : (upB < pUp or close[1] > pUp ? upB : pUp)
+    loF := na(pLo) ? loB : (loB > pLo or close[1] < pLo ? loB : pLo)
+    if not na(pUp)
+        dir := dir <= 0 ? (close > pUp ? 1 : -1) : (close < pLo ? -1 : 1)
+ma    = ta.sma(close, maLen)
+slope = ta.linreg(ma, lrLen, 0) - ta.linreg(ma, lrLen, 1)   // the fitted line's rise per session
+bool posTrend = nz(slope) > 0
+plot(ma, "SMA 195", color=color.new(#1E1E1E, 0), linewidth=2)
+plot(showStop and dir == 1 ? loF : na, "SuperTrend up", color=color.new(${GAIN}, 0), style=plot.style_linebr, linewidth=2)
+plot(showStop and dir == -1 ? upF : na, "SuperTrend down", color=color.new(${LOSS}, 0), style=plot.style_linebr, linewidth=2)
+
+// ---- the plan: 0 = no trade, 1 = waiting for the close above the setup high, 2 = buy at the next open,
+//      3 = holding, 4 = sell at the next open
+var int   state      = 0
+var float setupHigh  = na
+var int   setupBar   = na
+var float entryPx    = na
+var float lastResult = na
+bool   buyNow  = false
+bool   exitNow = false
+float  exitPx  = na
+string exitWhy = ""
+bool   sold    = false
+
+if state == 4                                    // the session after SuperTrend turned down: sold at its open
+    exitPx  := open
+    exitWhy := "SuperTrend down"
+    exitNow := true
+    sold    := true
+    state   := 0
+else if state == 3 and dir == -1
+    state := 4
+${EXIT_LABEL}
+if not sold and state < 3
+    if state == 2                                # the session after the confirmation: bought at its open
+        state   := 3
+        entryPx := open
+    if state < 3
+        if dir == 1 and nz(dir[1]) == -1 and posTrend
+            state     := 1
+            setupHigh := high
+            setupBar  := bar_index
+        if state == 1 and dir != 1
+            state := 0
+        if state == 1 and bar_index > setupBar and close >= setupHigh + tick
+            state  := 2
+            buyNow := true
+            if showMarks
+                label.new(bar_index, low, "BUY\\nnext open", style=label.style_label_up,
+                          color=color.new(${GAIN}, 0), textcolor=color.white, size=size.small)
+
+alertcondition(buyNow, "QuantsPulse ${pineRuleLabel(rule)}: buy", "QuantsPulse ${pineRuleLabel(rule)}: buy signal on {{ticker}}")
+alertcondition(exitNow, "QuantsPulse ${pineRuleLabel(rule)}: exit", "QuantsPulse ${pineRuleLabel(rule)}: exit on {{ticker}}")
+
+var table hud = table.new(position.top_right, 2, 4, bgcolor=color.new(#1C1C1C, 10), border_color=color.new(#2C2C2C, 0), border_width=1)
+if barstate.islast and showTable
+    string status = not timeframe.isdaily ? "Switch to the daily chart" : state == 3 ? "Holding since " + str.tostring(entryPx, "0.00") : state == 4 ? "Sell at the next open" : state == 2 ? "Buy at the next open" : state == 1 ? "Waiting for a close above " + str.tostring(setupHigh + tick, "0.00") : "No open trade"
+    table.cell(hud, 0, 0, "QuantsPulse", text_color=color.new(#F26A4B, 0), text_size=size.small)
+    table.cell(hud, 1, 0, "${pineRuleLabel(rule)}", text_color=color.white, text_size=size.small)
+    table.cell(hud, 0, 1, "Status", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 1, status, text_color=color.white, text_size=size.small)
+    table.cell(hud, 0, 2, "Sells when", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 2, "SuperTrend turns down", text_color=color.white, text_size=size.small)
+    table.cell(hud, 0, 3, "Last result", text_color=color.gray, text_size=size.small)
+    table.cell(hud, 1, 3, na(lastResult) ? "none yet" : (lastResult >= 0 ? "▲ " : "▼ ") + str.tostring(math.abs(lastResult), "0.0") + "%", text_color=color.white, text_size=size.small)
+`;
 }
 
 /** The two dip rules share one plan: a buy level at close − 1 × ATR14 for the next session only (bought when the
@@ -311,5 +409,7 @@ secular  = 1 * ta.sma(roc(10), 10) + 2 * ta.sma(roc(15), 10) + 3 * ta.sma(roc(20
          + 1 * ta.sma(roc(195), 130) + 2 * ta.sma(roc(265), 130) + 3 * ta.sma(roc(390), 130) + 4 * ta.sma(roc(530), 195)
 secSignal = ta.sma(ta.sma(secular, 50), 50)
 `, `not na(secSignal[1]) and not na(secular[5]) and ta.crossover(secular, secSignal) and secular >= secular[5] and secular < secLine`);
+    case "supertrend_breakout":
+      return supertrendRule(rule, sym);
   }
 }

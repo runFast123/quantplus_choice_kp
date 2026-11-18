@@ -141,6 +141,7 @@ export const strategyLabel: Record<string, string> = {
   sma_trend: "SMA 20/50 trend",
   ma200_trend: "200-day trend",
   secular_trend: "Secular trend",
+  supertrend_breakout: "SuperTrend breakout",
   rsi_reversal: "RSI reversal (old rule)",
   kk_breakout: "KK breakout (old rule)",
   strong_trend: "Strong trend",
@@ -159,7 +160,13 @@ export function signalDisplayName(strategy: string, kind: "buy" | "exit"): strin
   if (strategy === "kk_breakout") {
     return kind === "buy" ? "KK 20d Breakout Buy" : "KK 20d Breakdown Sell";
   }
-  if (strategy === "strong_trend" || strategy === "sma_trend" || strategy === "ma200_trend" || strategy === "secular_trend") {
+  if (
+    strategy === "strong_trend" ||
+    strategy === "sma_trend" ||
+    strategy === "ma200_trend" ||
+    strategy === "secular_trend" ||
+    strategy === "supertrend_breakout"
+  ) {
     return `${strategyLabel[strategy]}${kind === "buy" ? "" : " exit"}`;
   }
   if (strategy === "rsi_dip" || strategy === "kk_dip") {

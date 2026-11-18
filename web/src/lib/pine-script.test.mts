@@ -29,6 +29,10 @@ describe("pineScript: one TradingView script per rule", () => {
     assert.ok(sec.includes("ta.sma(ta.sma(secular, 50), 50)") && sec.includes("4 * ta.sma(roc(530), 195)"));
     assert.ok(sec.includes("ta.crossover(secular, secSignal) and secular >= secular[5] and secular < secLine"));
     assert.ok(sec.includes('input.float(-150, "Secular trend line"') && !sec.includes("linreg") && !sec.includes("INDIAVIX"));
+    const sup = pineScript("supertrend_breakout");
+    assert.ok(sup.includes("ta.linreg(ma, lrLen, 0) - ta.linreg(ma, lrLen, 1)") && sup.includes("close >= setupHigh + tick"));
+    assert.ok(sup.includes('input.int(195, "Average length"') && sup.includes('input.float(3.0, "SuperTrend multiplier"'));
+    assert.ok(!sup.includes("stopPx") && !sup.includes("held >= 60") && !sup.includes("INDIAVIX") && !sup.includes("secular"));
   });
 
   test("the plans match the live rules", () => {

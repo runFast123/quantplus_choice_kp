@@ -82,8 +82,8 @@ export function HowSteps() {
       </Step>
       <Step
         n="02"
-        title="Six simple rules, in plain words"
-        body="Four trend rules (a new 52-week high on heavy volume, the 20-day average turning above the 50-day in a market leader, a close above a flat or rising 200-day average, and a deep, long slump starting to turn up) and two dip rules (a sharp drop in a rising stock), each written out on the Signals page with its tested record. Every buy comes with a safety stop and a plan for when to sell, and a one-word read of how stretched the price is, from Beaten down to Very stretched."
+        title="Seven simple rules, in plain words"
+        body="Five trend rules (a new 52-week high on heavy volume, the 20-day average turning above the 50-day in a market leader, a close above a flat or rising 200-day average, a deep, long slump starting to turn up, and SuperTrend turning up while the 195-day average rises) and two dip rules (a sharp drop in a rising stock), each written out on the Signals page with its tested record. Every buy comes with a plan for when to sell (a safety stop for six of the seven rules), and a one-word read of how stretched the price is, from Beaten down to Very stretched."
       >
         <RuleSketch />
       </Step>
@@ -295,7 +295,7 @@ export function JsonLd({ name, path, extra = [] }: { name: string; path: string;
 
 /** Links to the other public pages at the foot of each one: readers find the next thing, crawlers find every page. */
 const PAGES = [
-  ["/method", "Method", "Six published rules check your radar after every close, with a safety stop and a plan for every buy."],
+  ["/method", "Method", "Seven published rules check your radar after every close, with a plan for when to sell for every buy."],
   ["/chrome-extension", "Chrome extension", "The signal, its safety stop and its plan, right on your broker's chart."],
   ["/pricing", "Pricing", "Basic, Pro and Pro Plus, priced by the year in rupees. Three months free to start."],
   ["/faq", "Questions", "Advice, data, the extension, your privacy and how to leave."],
