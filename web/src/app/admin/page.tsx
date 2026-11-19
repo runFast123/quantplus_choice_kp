@@ -1,28 +1,26 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import Form from "next/form";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeftIcon,
-  ChartLineUpIcon,
   CheckCircleIcon,
-  CreditCardIcon,
-  DatabaseIcon,
-  NewspaperIcon,
-  ShieldCheckIcon,
-  SquaresFourIcon,
-  UsersThreeIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react/ssr";
 import { Logo } from "@/components/brand/logo";
 import { Badge, Stat } from "@/components/ui/data";
 import { inputClass } from "@/components/ui/field";
 import { Empty, PageHeader, Panel, TableWrap, td, th, tr } from "@/components/ui/layout";
+import { SkeletonPage, SkeletonPanel, SkeletonStats, SkeletonTable, SkeletonTiles } from "@/components/ui/skeleton";
 import { date, dateTime, paiseToRupees, price, relative } from "@/lib/format";
 import { nseSession } from "@/lib/market";
 import { HEALTH_RULES, HEALTH_STATUS, mistakeSentence } from "@/lib/rule-health";
 import { quarterStartIST } from "@/lib/signal-checks";
 import {
   getDatabaseInventory,
+  getLatestEod,
   getPriceChecks,
   getRecentAuditLogs,
   getRecentPayments,
@@ -32,9 +30,10 @@ import {
   searchUsers,
 } from "@/server/privileged/admin";
 import { newsSourceHealth } from "@/server/privileged/news";
-import { getRuleHealth } from "@/server/market-data";
+import { getLatestRuleHealth } from "@/server/market-data";
 import { requireSession } from "@/server/session";
 import { ActivateForm } from "./activate-form";
+import { AdminTabs } from "./admin-tabs";
 import { MaintenanceOperations } from "./maintenance-panel";
 import { FetchNewsButton } from "./news-button";
 import { PriceReviewForm } from "./price-review-form";
@@ -56,23 +55,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     ? sp.tab
     : "overview";
 
-  // Only the open tab's data is read (each tab is its own page load); the header's EOD badge and the stats are cheap
-  // and shown on every tab.
-  const on = (tab: string) => currentTab === tab;
-  const none = <T,>(v: T) => Promise.resolve(v);
-  const [stats, users, feeds, dbInventory, payments, auditLogs, checks, health, prices] = await Promise.all([
-    platformStats(s.userId),
-    on("accounts") ? searchUsers(s.userId, q) : none([] as Awaited<ReturnType<typeof searchUsers>>),
-    on("overview") || on("news") ? newsSourceHealth() : none([] as Awaited<ReturnType<typeof newsSourceHealth>>),
-    getDatabaseInventory(s.userId),
-    on("billing") ? getRecentPayments(s.userId, 30) : none([] as Awaited<ReturnType<typeof getRecentPayments>>),
-    on("audit") ? getRecentAuditLogs(s.userId, 30) : none([] as Awaited<ReturnType<typeof getRecentAuditLogs>>),
-    on("database") ? getSignalCheckReview(s.userId) : none(null),
-    on("database") ? getRuleHealth(s.supabase) : none(null),
-    on("database") ? getPriceChecks(s.userId) : none(null),
-  ]);
-  const refitMissing = checks ? !checks.models.some((m) => m.valid_from === quarterStartIST()) : false;
-
+  // The shell (header, EOD badge, tabs) needs one quick round trip and is sent at once; the open tab's own data streams
+  // in behind a skeleton (each tab reads only what it shows).
+  const [eod, stats] = await Promise.all([getLatestEod(s.userId), platformStats(s.userId)]);
   const session = nseSession();
 
   return (
@@ -93,10 +78,10 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               <strong className="text-foreground font-medium">{session.label}</strong>
             </span>
             {/* EOD Data freshness */}
-            <span className={`inline-flex items-center gap-1 px-1.5 ${dbInventory.isEodFresh ? "text-muted-foreground" : "text-coral-ink font-medium"}`}>
+            <span className={`inline-flex items-center gap-1 px-1.5 ${eod.isEodFresh ? "text-muted-foreground" : "text-coral-ink font-medium"}`}>
               <span>EOD:</span>
-              <strong className="num">{dbInventory.latestEodDate ? date(dbInventory.latestEodDate) : "—"}</strong>
-              {dbInventory.isEodFresh ? (
+              <strong className="num">{eod.latestEodDate ? date(eod.latestEodDate) : "—"}</strong>
+              {eod.isEodFresh ? (
                 <CheckCircleIcon size={12} className="text-gain inline" aria-hidden />
               ) : (
                 <WarningCircleIcon size={12} className="text-coral-ink inline" aria-hidden />
@@ -116,45 +101,49 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           description="System health, live database storage inventory, market data pipelines, user subscriptions, and compliance logs."
         />
 
-        {/* Navigation Tabs Bar */}
-        <div className="flex flex-wrap items-center gap-1 border-b border-border pb-1">
-          {[
-            { id: "overview", label: "Overview & Operations", icon: SquaresFourIcon },
-            { id: "signals", label: "Signals after the close", icon: ChartLineUpIcon },
-            { id: "database", label: "Database & Pipelines", icon: DatabaseIcon, count: dbInventory.tables.length },
-            { id: "accounts", label: "Accounts & Plans", icon: UsersThreeIcon, count: stats.users },
-            { id: "billing", label: "Financial Ledger", icon: CreditCardIcon },
-            { id: "news", label: "News Feeds", icon: NewspaperIcon },
-            { id: "audit", label: "Audit & Security", icon: ShieldCheckIcon },
-          ].map((tabItem) => {
-            const Icon = tabItem.icon;
-            const isActive = currentTab === tabItem.id;
-            return (
-              <Link
-                key={tabItem.id}
-                href={`/admin?tab=${tabItem.id}${q && tabItem.id === "accounts" ? `&q=${encodeURIComponent(q)}` : ""}`}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-t-md text-[12.5px] font-medium transition-colors border-b-2 -mb-1 ${
-                  isActive
-                    ? "border-foreground text-foreground bg-foreground/[0.04]"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/[0.02]"
-                }`}
-              >
-                <Icon size={14} aria-hidden />
-                <span>{tabItem.label}</span>
-                {tabItem.count != null && (
-                  <span className={`num text-[11px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-foreground/10 text-foreground" : "bg-muted text-foreground"}`}>
-                    {tabItem.count}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+        <AdminTabs current={currentTab} q={q} users={stats.users} />
 
-        {/* =========================================================================
-            TAB 1: OVERVIEW & SYSTEM OPERATIONS
-           ========================================================================= */}
-        {currentTab === "overview" && (
+        <Suspense key={`${currentTab}:${q}`} fallback={<TabSkeleton />}>
+          {currentTab === "overview" ? <OverviewTab userId={s.userId} stats={stats} /> : null}
+          {currentTab === "signals" ? <SignalsTab db={s.supabase} sp={sp} /> : null}
+          {currentTab === "database" ? <DatabaseTab userId={s.userId} db={s.supabase} /> : null}
+          {currentTab === "accounts" ? <AccountsTab userId={s.userId} q={q} total={stats.users} /> : null}
+          {currentTab === "billing" ? <BillingTab userId={s.userId} stats={stats} /> : null}
+          {currentTab === "news" ? <NewsTab /> : null}
+          {currentTab === "audit" ? <AuditTab userId={s.userId} /> : null}
+        </Suspense>
+
+        <footer className="border-t border-border pt-4 flex flex-col sm:flex-row items-baseline justify-between text-[11.5px] text-muted-foreground gap-2">
+          <p>
+            Platform admins are granted only by SQL: <code className="num bg-muted px-1.5 py-0.5 rounded">insert into private.platform_admins (user_id) values (&apos;…&apos;);</code>
+          </p>
+          <p className="font-mono">
+            Session pooler: aws-0-ap-northeast-2.pooler.supabase.com
+          </p>
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+type Stats = Awaited<ReturnType<typeof platformStats>>;
+
+/** Placeholder while a tab's data streams in (the app's skeleton kit): numbers, cards, then a table. */
+function TabSkeleton() {
+  return (
+    <SkeletonPage label="Loading this tab">
+      <SkeletonStats count={4} className="grid-cols-2 md:grid-cols-4" />
+      <SkeletonTiles count={4} />
+      <SkeletonPanel>
+        <SkeletonTable rows={6} />
+      </SkeletonPanel>
+    </SkeletonPage>
+  );
+}
+
+async function OverviewTab({ userId, stats }: { userId: string; stats: Stats }) {
+  const [feeds, dbInventory] = await Promise.all([newsSourceHealth(), getDatabaseInventory(userId)]);
+  return (
           <div className="flex flex-col gap-6">
             {/* Top KPI Metrics */}
             <section className="panel grid grid-cols-2 md:grid-cols-4 md:divide-x md:divide-border">
@@ -246,15 +235,18 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               </Panel>
             </div>
           </div>
-        )}
+  );
+}
 
-        {/* Signals after the close (ADR-063): the seven rules' buys, dip-buy levels and exits on one session. */}
-        {currentTab === "signals" && <SignalsTab db={s.supabase} sp={sp} />}
-
-        {/* =========================================================================
-            TAB 2: DATABASE STORAGE INVENTORY
-           ========================================================================= */}
-        {currentTab === "database" && checks && health && prices && (
+async function DatabaseTab({ userId, db }: { userId: string; db: SupabaseClient }) {
+  const [dbInventory, checks, health, prices] = await Promise.all([
+    getDatabaseInventory(userId),
+    getSignalCheckReview(userId),
+    getLatestRuleHealth(db),
+    getPriceChecks(userId),
+  ]);
+  const refitMissing = !checks.models.some((m) => m.valid_from === quarterStartIST());
+  return (
           <div className="flex flex-col gap-6">
             <Panel
               title="Postgres Database Inventory & Schema Tables"
@@ -440,7 +432,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               <h3 className="mt-5 text-[13px] font-semibold">Rule health (ADR-039)</h3>
               <ul className="mt-2 grid gap-2 text-[12.5px] sm:grid-cols-2" data-testid="admin-rule-health">
                 {HEALTH_RULES.map((rule) => {
-                  const h = health.latest.get(rule);
+                  const h = health.get(rule);
                   return (
                     <li key={rule} className="flex flex-col gap-1 rounded-lg border border-border p-3">
                       <span className="flex items-center justify-between gap-2">
@@ -494,17 +486,20 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               </div>
             </Panel>
           </div>
-        )}
+  );
+}
 
-        {/* =========================================================================
-            TAB 3: ACCOUNTS & PLANS MANAGEMENT
-           ========================================================================= */}
-        {currentTab === "accounts" && (
+async function AccountsTab({ userId, q, total }: { userId: string; q: string; total: number }) {
+  const users = await searchUsers(userId, q);
+  const stats = { users: total };
+  return (
           <Panel
             title="User Accounts & Workspaces"
             meta={q ? `matching “${q}” (${users.length} found)` : `Total ${stats.users.toLocaleString("en-IN")} accounts · newest first`}
             actions={
-              <form className="flex gap-2" role="search">
+              <Form className="flex gap-2" role="search" action="/admin">
+                {/* Stay on this tab: without it a search landed on Overview. Form (next/form) moves within the app. */}
+                <input type="hidden" name="tab" value="accounts" />
                 <label htmlFor="admin-q" className="sr-only">
                   Search accounts
                 </label>
@@ -513,9 +508,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                   name="q"
                   defaultValue={q}
                   placeholder="Search by email, name or phone"
-                  className={inputClass + " h-8 w-[260px] text-[12.5px]"}
+                  className={inputClass + " h-8 w-[260px] max-w-full text-[12.5px]"}
                 />
-              </form>
+              </Form>
             }
           >
             {users.length === 0 ? (
@@ -567,12 +562,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               </TableWrap>
             )}
           </Panel>
-        )}
+  );
+}
 
-        {/* =========================================================================
-            TAB 4: FINANCIAL & PAYMENTS LEDGER
-           ========================================================================= */}
-        {currentTab === "billing" && (
+async function BillingTab({ userId, stats }: { userId: string; stats: Stats }) {
+  const payments = await getRecentPayments(userId, 30);
+  return (
           <div className="flex flex-col gap-6">
             <section className="panel grid grid-cols-2 md:grid-cols-3 md:divide-x md:divide-border">
               <Stat className="p-4" label="30-Day Collections" value={paiseToRupees(stats.revenue30dPaise)} />
@@ -641,12 +636,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               )}
             </Panel>
           </div>
-        )}
+  );
+}
 
-        {/* =========================================================================
-            TAB 5: SYNDICATED NEWS FEEDS MONITOR
-           ========================================================================= */}
-        {currentTab === "news" && (
+async function NewsTab() {
+  const feeds = await newsSourceHealth();
+  return (
           <Panel
             title="News Pipeline & RSS Sources"
             meta="Scheduled via /api/cron/news · Moneycontrol, Business Standard, Corporate Announcements"
@@ -685,12 +680,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               </table>
             </TableWrap>
           </Panel>
-        )}
+  );
+}
 
-        {/* =========================================================================
-            TAB 6: SECURITY & AUDIT ACTIVITY LOG
-           ========================================================================= */}
-        {currentTab === "audit" && (
+async function AuditTab({ userId }: { userId: string }) {
+  const auditLogs = await getRecentAuditLogs(userId, 30);
+  return (
           <Panel
             title="Cryptographic Immutable Audit Log"
             meta="Security ledger for account actions, plan activations, and membership changes"
@@ -741,17 +736,5 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               </TableWrap>
             )}
           </Panel>
-        )}
-
-        <footer className="border-t border-border pt-4 flex flex-col sm:flex-row items-baseline justify-between text-[11.5px] text-muted-foreground gap-2">
-          <p>
-            Platform admins are granted only by SQL: <code className="num bg-muted px-1.5 py-0.5 rounded">insert into private.platform_admins (user_id) values (&apos;…&apos;);</code>
-          </p>
-          <p className="font-mono">
-            Session pooler: aws-0-ap-northeast-2.pooler.supabase.com
-          </p>
-        </footer>
-      </main>
-    </div>
   );
 }

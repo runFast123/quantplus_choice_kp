@@ -126,20 +126,40 @@ export async function getRuleHealth(db: SupabaseClient): Promise<{ latest: Map<s
   const latest = new Map<string, HealthRow>();
   const history = new Map<string, number[]>();
   for (const r of data ?? []) {
-    const row: HealthRow = {
-      ...r,
-      trades: Number(r.trades),
-      made: Number(r.made),
-      made_pct: r.made_pct == null ? null : Number(r.made_pct),
-      expected_pct: Number(r.expected_pct),
-      low_pct: Number(r.low_pct),
-      high_pct: Number(r.high_pct),
-      avg_pct: r.avg_pct == null ? null : Number(r.avg_pct),
-    };
+    const row = toHealthRow(r);
     if (!latest.has(row.strategy)) latest.set(row.strategy, row);
     if (row.made_pct != null) history.set(row.strategy, [row.made_pct, ...(history.get(row.strategy) ?? [])]);
   }
   return { latest, history };
+}
+
+const toHealthRow = (r: HealthRow): HealthRow => ({
+  ...r,
+  trades: Number(r.trades),
+  made: Number(r.made),
+  made_pct: r.made_pct == null ? null : Number(r.made_pct),
+  expected_pct: Number(r.expected_pct),
+  low_pct: Number(r.low_pct),
+  high_pct: Number(r.high_pct),
+  avg_pct: r.avg_pct == null ? null : Number(r.avg_pct),
+});
+
+/**
+ * Only each rule's latest health check (no year of history): one small read for pages that show the status chip, not
+ * the sparkline (the admin console). The checks run every session, so the last 30 days hold every rule's latest.
+ */
+export async function getLatestRuleHealth(db: SupabaseClient): Promise<Map<string, HealthRow>> {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const { data } = await db
+    .from("rule_health")
+    .select("strategy, day, trades, made, made_pct, expected_pct, low_pct, high_pct, avg_pct, status, causes, first_exit, last_exit")
+    .gte("day", since)
+    .order("day", { ascending: false })
+    .order("strategy")
+    .limit(1000);
+  const latest = new Map<string, HealthRow>();
+  for (const r of (data ?? []) as HealthRow[]) if (!latest.has(r.strategy)) latest.set(r.strategy, toHealthRow(r));
+  return latest;
 }
 
 /**

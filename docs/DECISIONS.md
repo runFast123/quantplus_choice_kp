@@ -354,6 +354,22 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-064 · The admin console streams its tabs, filters Signals in the browser and keeps its counts 60 seconds
+**Date** 2026-11-19 · **Status** accepted (amends ADR-063: filters are no longer GET form posts)
+- **Context:** each console tab and each Signals filter took 2–3 s: filters reloaded the page, a tab showed nothing until
+  all of its data was read, the header read the whole database inventory on every tab, and the admin check ran 3 times.
+- **Decision:**
+  - Signals: the last ten sessions (a few hundred rows) are sent once; sessions and filters are applied in the browser
+    and written to the URL with `history.replaceState`, so shared links still open the same view.
+  - Every tab streams behind a `Suspense` skeleton keyed by tab; the shell needs one quick round trip. The clicked tab
+    lights up at once and shows `useLinkStatus` pending.
+  - Aggregate counts (inventory, platform stats) are cached 60 s with `unstable_cache` (tag `admin-counts`), after the
+    admin check, which is never cached across requests; admin actions clear the tag with `updateTag`.
+- **Rejected:** turning on Cache Components (`use cache`) app-wide for two admin reads; client-side fetching of the
+  tabs (the server already holds the session and the service role); one SQL function for all counts (the database time
+  is under 10 ms; the cost was round trips and waiting).
+- **Still true:** a count on the console can be up to a minute old unless an admin action just ran.
+
 ### ADR-063 · Admin "Signals after the close": the seven rules' picks per session, read with the admin's own sign-in
 **Date** 2026-11-19 · **Status** accepted
 - **Context:** the Signals page shows a member's own stocks (or the newest 200 signals across all of them) and mixes

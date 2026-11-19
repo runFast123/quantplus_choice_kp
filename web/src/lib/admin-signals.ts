@@ -47,6 +47,21 @@ export type StockRow = StockInfo & {
   exits: number;
 };
 
+/**
+ * Every session the tab offers, sent to the browser once, so switching sessions and filtering never wait for the server.
+ * Plain JSON (no Maps): `byDay[day]` are that close's signals, `info[symbol]` the stock, `tags` the signal-check keys.
+ */
+export type SignalSessions = {
+  /** The latest close the rules have run on (its dip levels are for the next session). */
+  latestRun: string | null;
+  /** The newest prices are in but the rules have not run on them yet. */
+  pending: string | null;
+  sessions: { day: string; weather: string | null; stocks: number }[];
+  byDay: Record<string, DaySignal[]>;
+  info: Record<string, StockInfo>;
+  tags: string[];
+};
+
 const num = (v: unknown) => (v == null || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
 const ORDER = RULES.map((r) => r.key as RuleKey);
 

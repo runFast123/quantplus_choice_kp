@@ -5,6 +5,25 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Changed — a faster admin console (ADR-064, 19 Nov 2026)
+- Why: every tab and every Signals filter took 2–3 seconds: a filter was a full page reload, each tab waited for all of
+  its data (and the ~15-count database inventory, on every tab, for the header's EOD date) before showing anything, and
+  the admin check ran three times one after another.
+- Signals tab (`app/admin/signals-explorer.tsx`, `server/admin-signals.ts` `loadSignalSessions`): all ten sessions come
+  with the page in two round trips (was three, plus a year of rule health); the session picker, Show buttons, rule cards
+  and every filter now work in the browser (25–40 ms, measured) and the URL follows (`history.replaceState`), so a view
+  can still be shared. The search filters as you type; no Apply button.
+- Every tab (`app/admin/page.tsx`): the header and tabs are sent at once and the open tab streams in behind a skeleton
+  (`Suspense`, `loading.tsx`); the clicked tab lights up immediately with a pending dot (`app/admin/admin-tabs.tsx`,
+  `useLinkStatus`); each tab reads only what it shows. The header's EOD date is one small read (`getLatestEod`).
+- `server/privileged/admin.ts`: `isPlatformAdmin` is asked once per request (React `cache`); the database inventory and
+  platform counts are kept 60 seconds across requests (`unstable_cache`, tag `ADMIN_COUNTS_TAG`, cleared by every admin
+  action with `updateTag`). `server/market-data.ts` `getLatestRuleHealth` reads only each rule's latest check.
+- Measured on a local production build (this machine is ~200 ms from the database per round trip; Vercel is next to
+  it): Overview 4.8 s → 0.9 s, Database & Pipelines 2.8 s → 0.9 s, a Signals filter 2–3 s → 0.03 s.
+- Fixed: the Accounts search landed on Overview (the form didn't keep the tab); it now stays on Accounts and moves within
+  the app (`next/form`).
+
 ### Added — admin: Signals after the close (ADR-063, 19 Nov 2026)
 - Why: the owner wanted one place to see, after each day's prices are loaded, which stocks each of the seven rules
   picked: how many per rule, which ones, and what the rule does the next session, with filters.

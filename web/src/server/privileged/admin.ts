@@ -1,5 +1,8 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
+
 import type { CandleCheck } from "@/lib/price-checks";
 import { RULE_KEYS } from "@/lib/rules";
 import { daysAgoIST } from "@/lib/signal-checks";
@@ -8,10 +11,27 @@ import { audit } from "./audit";
 import { PrivilegedError } from "./guards";
 import { serviceRole } from "./service-role";
 
-/** Platform admins are granted only by direct SQL (§2 rule 6); this only reads. */
-export async function isPlatformAdmin(userId: string): Promise<boolean> {
+/**
+ * Platform admins are granted only by direct SQL (§2 rule 6); this only reads. Asked once per request (React `cache`):
+ * the console's page and each privileged read re-check it, and the answer cannot change within one request.
+ */
+export const isPlatformAdmin = cache(async (userId: string): Promise<boolean> => {
   const { data } = await serviceRole().rpc("svc_is_platform_admin", { p_user: userId });
   return data === true;
+});
+
+/** The newest price day and whether it is recent: the console header on every tab, one small read. */
+export async function getLatestEod(actorId: string): Promise<{ latestEodDate: string | null; isEodFresh: boolean }> {
+  if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
+  // Symbols without a quote yet (as_of null) sort first in a descending order, so skip them.
+  const { data } = await serviceRole().from("market_snapshot").select("as_of").order("as_of", { ascending: false, nullsFirst: false }).limit(1);
+  return eodState(data?.[0]?.as_of ?? null);
+}
+
+function eodState(latestEodDate: string | null) {
+  // Fresh within 3.5 calendar days (a weekend gap).
+  const isEodFresh = latestEodDate != null && (Date.now() - new Date(latestEodDate).getTime()) / 86400000 <= 3.5;
+  return { latestEodDate, isEodFresh };
 }
 
 export interface AdminUserRow {
@@ -67,8 +87,20 @@ export async function activatePlan(
   return data as { current_period_end: string; plan_code: PlanCode };
 }
 
+/**
+ * The console's counts are aggregates (no one's rows) and change slowly, so they are kept for 60 seconds across
+ * requests (Next's data cache); the admin check always runs first, outside the cache. Admin actions clear them
+ * (`ADMIN_COUNTS_TAG`, app/admin/actions.ts).
+ */
+export const ADMIN_COUNTS_TAG = "admin-counts";
+const keep = <T,>(fn: () => Promise<T>, key: string) => unstable_cache(fn, [key], { revalidate: 60, tags: [ADMIN_COUNTS_TAG] });
+
 export async function platformStats(actorId: string) {
   if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
+  return cachedStats();
+}
+
+const cachedStats = keep(async () => {
   const db = serviceRole();
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
   const [users, live, paid, revenue] = await Promise.all([
@@ -83,7 +115,7 @@ export async function platformStats(actorId: string) {
     paidSubscriptions: paid.count ?? 0,
     revenue30dPaise: (revenue.data ?? []).reduce((s, r) => s + Number(r.amount_paise), 0),
   };
-}
+}, "admin-stats-v1");
 
 export interface DatabaseTableStat {
   name: string;
@@ -104,6 +136,10 @@ export interface DatabaseInventory {
 
 export async function getDatabaseInventory(actorId: string): Promise<DatabaseInventory> {
   if (!(await isPlatformAdmin(actorId))) throw new PrivilegedError("NOT_AUTHORIZED");
+  return cachedInventory();
+}
+
+const cachedInventory = keep(async (): Promise<DatabaseInventory> => {
   const db = serviceRole();
 
   // The big tables are counted with the planner's estimate: an exact count of the ~1M candle rows alone took 3-5 s
@@ -145,14 +181,7 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
     segmentCount("sme"),
   ]);
 
-  const latestEodDate = snapRes.data?.[0]?.as_of ?? null;
-  let isEodFresh = false;
-  if (latestEodDate) {
-    const eodTime = new Date(latestEodDate).getTime();
-    const daysAgo = (Date.now() - eodTime) / 86400000;
-    // Fresh if within 3 calendar days (accommodates weekend gap)
-    isEodFresh = daysAgo <= 3.5;
-  }
+  const { latestEodDate, isEodFresh } = eodState(snapRes.data?.[0]?.as_of ?? null);
 
   // Counted in the database: reading the rows returned at most 1,000 of the ~3,700 symbols.
   const segments = {
@@ -266,7 +295,7 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
     isEodFresh,
     totalStorageRecords,
   };
-}
+}, "admin-inventory-v1");
 
 export interface PaymentRow {
   id: string;

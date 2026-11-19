@@ -111,19 +111,19 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | Module | Exports | Notes |
 |---|---|---|
 | `session.ts` | `getSession` (cached), `requireSession`, `can(s, feature)`, `isTenantAdmin(s)`, `displayName(s)`, type `Session` | One read per request: claims, profile, memberships, entitlements, `hookMissing`, `deviceActive`. **`requireSession()` redirects inactive devices to `/device` — use it in every page and action** |
-| `market-data.ts` | `getQuotes(db, symbols)`, `getTape`, `getBreadth`, `getRetired`, `normalizeQuote`, `getSparks` (chunked under the 1,000-row cap), `getRuleHealth(db)` → latest row + history per rule, `getCandles` (default 1,300 days = everything stored, for the chart; Dry Run asks for 730), `positions`, `summarize`, type `Position` | All numeric normalisation from PostgREST strings happens here |
+| `market-data.ts` | `getQuotes(db, symbols)`, `getTape`, `getBreadth`, `getRetired`, `normalizeQuote`, `getSparks` (chunked under the 1,000-row cap), `getRuleHealth(db)` → latest row + history, `getLatestRuleHealth(db)` → latest row per rule only (admin) per rule, `getCandles` (default 1,300 days = everything stored, for the chart; Dry Run asks for 730), `positions`, `summarize`, type `Position` | All numeric normalisation from PostgREST strings happens here |
 | `device.ts` | `DEVICE_COOKIE`, `claimThisDevice(userId)` | Single-active-device; call from actions/route handlers only |
 | `device-hash.ts` | `deviceHash(id)` | SHA-256 of the device cookie |
 | `privileged/service-role.ts` | `serviceRole()` | **Only importable inside `privileged/`** |
 | `privileged/guards.ts` | `membershipRole`, `assertMember`, `planHasFeature`, `hasActiveConsent`, `PrivilegedError` | Re-establish what RLS would enforce |
 | `privileged/crypto.ts` | `seal(plaintext, aad)`, `open(sealed, aad)`, type `Sealed` | AES-256-GCM, `QP_SECRETS_KEY_V<n>` |
 | `rule-compare.ts` | `loadComparison(db, {symbol?, portfolioId?})` → `Comparison` (your lots and sales, `rule_trades` for those stocks, splits, NIFTY sessions, last closes; paged past 1,000 rows; a failed read throws) | Step D |
-| `admin-signals.ts` | `loadDaySignals(db, day)` → the session (`day`, `latest`, `pending`, `isLatest`, `levelsDay`, `weather`, `sessions` with stocks per day), its `signals` (`DaySignal[]`), `info` (quotes), check `tags`, rule `health`; caller's JWT, paged reads (ADR-063) |
+| `admin-signals.ts` | `loadSignalSessions(db)` → `SignalSessions` (the last ten sessions at once: `latestRun`, `pending`, `sessions` with weather and stocks per day, `byDay`, `info`, check `tags`); caller's JWT, two round trips (ADR-063/064) |
 | `behaviour-mirror.ts` | `loadMirror(db)` → `Mirror` + `firstBuy`, `stocks` (your lots and sales, splits, stored closes from ~2 months before your first purchase, last closes; reuses `pageAll`, `chunks` exported by `server/rule-compare.ts`) | Your trading habits |
 | `privileged/audit.ts` | `audit({...})` | Append to `audit_log` with hashed IP |
 | `privileged/tenants.ts` | `switchTenant`, `createOrganization`, `createInvitation`, `previewInvitation`, `acceptInvitation`, `changeMemberRole` | Role-escalation rules live here |
 | `privileged/secrets.ts` | `saveAiKey` | Plan + consent checks, encryption, `svc_put_ai_key_secret` |
-| `privileged/admin.ts` | `isPlatformAdmin`, `searchUsers`, `activatePlan`, `platformStats`, `getDatabaseInventory`, `getRecentPayments`, `getRecentAuditLogs`, `triggerMarketAnalytics`, `triggerResearchRefresh`, `triggerEodNotifier`, `triggerEodSync`, `getSignalCheckReview` (quarterly review of the checks), `getPriceChecks` + `reviewPriceCheck` (Prices to check panel, `app/admin/price-review-form.tsx`), types `AdminUserRow`, `DatabaseInventory`, `PaymentRow`, `AuditLogRow`, `SignalCheckReview`, `PriceCheckReview` | Platform console |
+| `privileged/admin.ts` | `isPlatformAdmin` (once per request, React `cache`), `getLatestEod`, `ADMIN_COUNTS_TAG` (60 s cache of `platformStats` + `getDatabaseInventory`, ADR-064), `searchUsers`, `activatePlan`, `platformStats`, `getDatabaseInventory`, `getRecentPayments`, `getRecentAuditLogs`, `triggerMarketAnalytics`, `triggerResearchRefresh`, `triggerEodNotifier`, `triggerEodSync`, `getSignalCheckReview` (quarterly review of the checks), `getPriceChecks` + `reviewPriceCheck` (Prices to check panel, `app/admin/price-review-form.tsx`), types `AdminUserRow`, `DatabaseInventory`, `PaymentRow`, `AuditLogRow`, `SignalCheckReview`, `PriceCheckReview` | Platform console |
 | `privileged/eod-sync.ts` | `syncEodPrices`, types `SyncEodOptions`, `SyncEodReport` | Native Yahoo Finance EOD candle fetcher, validation & multi-step pipeline sync engine |
 | `github-dispatch.ts` | `dispatchMarketEod()` → `{ dispatched, detail }` | Starts the Market EOD workflow via GitHub's dispatch API when `GITHUB_DISPATCH_TOKEN` + `GITHUB_REPO` are set (ADR-043) |
 | `privileged/account.ts` | `registerDevice`, `deviceHash`, `applyConsentWithdrawal`, `deleteAccount` | §7 deletion order |
@@ -209,7 +209,10 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
 | `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey`, `fetchProviderModelsAction` |
 | `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount`, `savePushSubscription`, `removePushSubscription`, `sendTestPushAction`, `saveExitRules` (which rules message you about stocks you hold) |
-| `app/admin/signals-tab.tsx` | `SignalsTab({db, sp})` — Signals after the close (ADR-063): session picker, totals, one card per rule, filters, stock × signal table (`data-testid="admin-signals"`, `admin-signal-rules`) |
+| `app/admin/signals-tab.tsx` | `SignalsTab({db, sp})` — loads `loadSignalSessions` + `getLatestRuleHealth`, draws health chips and check tags, renders `SignalsExplorer` (ADR-063/064) |
+| `app/admin/signals-explorer.tsx` | `SignalsExplorer` (client): session picker, totals, rule cards, Show buttons, filters and the stock × signal table, all in the browser; URL kept with `replaceState` (`data-testid="admin-signals"`, `admin-signal-rules`) |
+| `app/admin/admin-tabs.tsx` | `AdminTabs({current, q, users})` (client): the console's tabs; the clicked one lights up at once, `useLinkStatus` pending dot |
+| `app/admin/loading.tsx` | the console's skeleton when opened from the app |
 | `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow`, `refreshMarketAnalyticsAction`, `refreshResearchNotesAction`, `runEodNotifierAction`, `syncEodMarketPricesAction` |
 | `app/app/research/actions.ts` | `askMyAi` (BYOK research read; nothing stored) |
 | `app/invite/[token]/page.tsx` | inline `accept` action |

@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import type { ActionState } from "@/lib/errors";
 import {
+  ADMIN_COUNTS_TAG,
   activatePlan,
   isPlatformAdmin,
   reviewPriceCheck,
@@ -42,6 +43,7 @@ export async function activatePlanAction(_: ActionState, form: FormData): Promis
       reference: d.reference,
     });
     revalidatePath("/admin");
+    updateTag(ADMIN_COUNTS_TAG);
     return { ok: true, message: `Activated ${sub.plan_code} until ${new Date(sub.current_period_end).toLocaleDateString("en-IN")}.` };
   } catch (e) {
     const m = e instanceof PrivilegedError ? e.message : "";
@@ -64,6 +66,7 @@ export async function reviewPriceAction(_: ActionState, form: FormData): Promise
   try {
     const r = await reviewPriceCheck(s.userId, parsed.data);
     revalidatePath("/admin");
+    updateTag(ADMIN_COUNTS_TAG);
     const verdict = parsed.data.status === "real" ? "Marked real" : parsed.data.status === "bad" ? "Set aside" : "Back to waiting";
     return { ok: true, message: r.rebuilt ? `${verdict}; the rules on this stock were worked out again.` : `${verdict}.` };
   } catch (e) {
@@ -78,6 +81,7 @@ export async function fetchNewsNow(): Promise<ActionState> {
   try {
     const r = await ingestNews({ searchSymbols: 40 });
     revalidatePath("/admin");
+    updateTag(ADMIN_COUNTS_TAG);
     const failed = r.sources.filter((x) => x.status === "error").length;
     return { ok: true, message: `${r.inserted} new headlines, ${r.linked} stock links, ${r.researchRows ?? 0} notes rebuilt${failed ? `; ${failed} source(s) failed` : ""} (${Math.round(r.durationMs / 1000)}s).` };
   } catch (e) {
@@ -91,6 +95,7 @@ export async function refreshMarketAnalyticsAction(): Promise<ActionState> {
   try {
     const res = await triggerMarketAnalytics(s.userId, 10);
     revalidatePath("/admin");
+    updateTag(ADMIN_COUNTS_TAG);
     return {
       ok: true,
       message: `Analytics refreshed: ${res.quotes} quotes updated, ${res.signals} signals produced, ${res.rsi_events} RSI milestones calculated, ${res.signal_checks} signal checks written.`,
@@ -106,6 +111,7 @@ export async function refreshResearchNotesAction(): Promise<ActionState> {
   try {
     const res = await triggerResearchRefresh(s.userId);
     revalidatePath("/admin");
+    updateTag(ADMIN_COUNTS_TAG);
     return {
       ok: true,
       message: `Research notes rebuild complete: ${res.rows} symbols updated with multi-factor stances.`,
@@ -121,6 +127,7 @@ export async function runEodNotifierAction(): Promise<ActionState> {
   try {
     const res = await triggerEodNotifier(s.userId);
     revalidatePath("/admin");
+    updateTag(ADMIN_COUNTS_TAG);
     return {
       ok: true,
       message: `EOD Notifier executed successfully: alerts, exit signals, and plan expiries dispatched (${JSON.stringify(res)}).`,
@@ -150,6 +157,7 @@ export async function syncEodMarketPricesAction(_: ActionState, form: FormData):
   try {
     const report = await triggerEodSync(s.userId, { scope, symbols, days, includeToday });
     revalidatePath("/admin");
+    updateTag(ADMIN_COUNTS_TAG);
     return {
       ok: true,
       message: `✓ EOD Ingestion Complete: ${report.symbolsUpdated}/${report.symbolsTargeted} symbols updated (${report.candlesUpserted} candles written). Analytics recalculated for ${Object.keys(report.analyticsTotals).length > 0 ? "active" : "0"} symbols. Finished in ${(report.durationMs / 1000).toFixed(1)}s.`,
