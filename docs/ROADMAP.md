@@ -62,7 +62,7 @@ Requirement IDs refer to `docs/BRD.md`.
 - [ ] Live tick worker for intraday alerts and prices (FR-3.5, FR-7.6); keep `run_eod_notifier` as the EOD pass.
 - [x] News (RSS) ingestion, symbol matching, tone, research notes, BYOK AI research read (0.2.0).
 - [ ] NSE / BSE corporate filings via a licensed feed (public archive blocks automated readers — ADR-014).
-- [ ] More news sources that allow automated reading; alias curation for new listings.
+- [ ] More news sources that allow automated reading; aliases for small companies whose one-word name is an everyday word (`COMMON_ONE_WORD`, ADR-062) or that headlines call by a nickname.
 - [ ] BYOK AI: chat per symbol, contract-note parsing (`contract_note_imports` + `contract-notes` bucket), metering in `ai_usage_logs` (FR-8.4, FR-6.4).
 - [ ] Email/push notification channels (FR-7.7).
 - [ ] NSE holiday calendar for `nseSession()` and cron schedules (the EOD job runs on holidays harmlessly — no new bar).

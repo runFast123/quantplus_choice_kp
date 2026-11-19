@@ -5,6 +5,34 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Fixed — news for smaller companies (ADR-062, 19 Nov 2026)
+- Why: in the last 14 days 85 % of the 100 largest companies had a headline but only 7 % of everything past the 500
+  largest. Two causes: headlines were matched by name only for the 500 largest, and the per-company search reached about
+  25 companies a day (8 per run, 3 of them retired symbols that never left the front of the queue, and GitHub fires the
+  schedule ~5 times a day), so 2,747 of 3,619 had never been searched.
+- Matching (`lib/news/match.ts`): every listed company is now matched by name under stricter rules (`smallNameForms`):
+  the full name; a one-word name only in its own capitals and never a common word (`COMMON_ONE_WORD`); the shorter form
+  headlines use ("Indo Count", "Tata Teleservices") only in its own capitals and only when no other company shares it;
+  never a small company's ticker. A broker credited after "target of Rs 900:" is no longer linked as the subject. A
+  first-word pre-check makes matching 25x faster (0.13 ms a headline). On 30 days of stored headlines: 1,109 companies
+  with news instead of 466, 1,927 more links, and 13 links dropped, all of them wrong before ("Vedanta Oil and Gas" was
+  linked to Vedanta, "Sun Pharma Advanced Research" to Sun Pharma, "Jay Bharat Maruti" to Maruti).
+- Quote pages (`lib/news/feed.ts` `isQuotePage`): "X Share Price Live Today", "(X.NS) interactive stock chart", "X Ltd
+  Announcements - Business Standard" and machine-written price notes are not news and are no longer stored (394 of
+  14,941 stored in 30 days; the relink command unlinks those already stored).
+- Search (`server/privileged/news.ts`, migration 63 `svc_claim_news_search`): 40 companies a run instead of 8, four at
+  a time, side by side with the feeds; stocks someone watches or holds come first once 6 hours old, then never-searched
+  and larger companies; retired symbols, ETFs and indices are out of the queue; claimed stocks are stamped at once, so a
+  failure can't block the queue and overlapping runs never repeat a stock; the query asks only for the last 14 days and
+  for the short name; if the site says slow down, the run stops searching and puts the rest back at the front. A live
+  try on 20 small companies kept 73 recent stories instead of 29, in 3.6 seconds.
+- Stock pages (`app/app/markets/[symbol]/page.tsx`, `refreshSymbolNews`): when a stock has no headline in 6 hours, its
+  news is searched after the page is sent (`after()`; the page never waits), at most once per stock per 6 hours however
+  many people open it, and not while 30 searches ran in the last minute. The next visit shows what it found.
+- Schedules: `NEWS_SEARCH_SYMBOLS` 40 in `news-ingest.yml`, the cron route, the CLI and the admin "Fetch now".
+- Tests: `news.test.mts` (small names, short forms, shared forms, common words, broker credits, quote pages),
+  `supabase/tests/32_news_search_claim.sql` (queue order, stamping, page claims, busy guard, grants).
+
 ### Fixed — whole-system check (18 Nov 2026)
 - Rule health history was cut at 1,000 rows (PostgREST's page): a year of daily rows for seven rules is 1,130 today, so
   each rule's sparkline lost its oldest weeks. `getRuleHealth` (`server/market-data.ts`) now reads every page.

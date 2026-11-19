@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { after } from "next/server";
 import clsx from "clsx";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import { MarketChartView } from "@/components/charts/market-chart-view";
@@ -36,6 +37,7 @@ import { stayInState } from "@/lib/stay-in";
 import { markerFromSignal } from "@/lib/signal-trade";
 import { getCandles, getRetired, getRuleHealth, normalizeQuote } from "@/server/market-data";
 import { getNews, getResearch } from "@/server/news-data";
+import { refreshSymbolNews } from "@/server/privileged/news";
 import { can, requireSession } from "@/server/session";
 
 export async function generateMetadata({ params }: PageProps<"/app/markets/[symbol]">): Promise<Metadata> {
@@ -94,6 +96,12 @@ export default async function SymbolPage({ params }: PageProps<"/app/markets/[sy
   }
 
   const q = normalizeQuote(quoteRes.data as Quote);
+  // No headline in 6 hours: look for this company's news after the page is sent (never delays it; at most one search
+  // per stock per 6 hours however many people open it, ADR-062). The next visit shows what it found.
+  if (q.segment === "equity" || q.segment === "sme") {
+    const newest = news[0]?.published_at ?? null;
+    after(() => refreshSymbolNews(symbol, newest).catch(() => 0));
+  }
   const signals = (signalsRes.data ?? []) as Signal[];
   const markers: ChartMarker[] = signals.map(markerFromSignal);
 

@@ -22,7 +22,7 @@ function authorised(req: NextRequest): boolean {
 
 async function run(req: NextRequest) {
   if (!authorised(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const report = await ingestNews({ searchSymbols: Number(process.env.NEWS_SEARCH_SYMBOLS ?? 8) });
+  const report = await ingestNews({ searchSymbols: Number(process.env.NEWS_SEARCH_SYMBOLS ?? 40) });
   // Research notes were rebuilt: push any stance changes they raised.
   const push = await deliverPendingPush().catch((e: unknown) => ({ error: e instanceof Error ? e.message : "push failed" }));
   return NextResponse.json({ ...report, push }, { headers: { "cache-control": "no-store" } });

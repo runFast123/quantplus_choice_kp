@@ -354,6 +354,29 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-062 · News for every listed company: strict name matching, a fair search queue, a refresh on page view
+**Date** 2026-11-19 · **Status** accepted (supersedes the News line of ADR-027)
+- **Context:** ADR-027 matched headlines by name only for the 500 largest and left the rest to curated aliases and a
+  per-company search. The search reached ~25 companies a day (retired symbols blocked the front of the queue; GitHub's
+  schedule fires ~5 times a day, not 30), so 7 % of smaller companies had any news in 14 days and their research notes
+  had no news factor.
+- **Decision:**
+  - Every listed company is matched by name, more strictly than the 500 largest: full name (any case); a one-word name
+    only in its own capitals and not in a published common-word list; a shorter form only in its own capitals and only
+    when no other listed company shares it or has it as a name; no tickers. Measured on 30 days of stored headlines
+    before shipping: 2.4x the companies, and the links it drops were wrong before.
+  - Quote, chart and machine-written price pages are not stored (`isQuotePage`).
+  - `svc_claim_news_search` hands out the next stocks and stamps them in one statement: watched or held stocks first
+    once 6 hours old, then never-searched, larger first; equity and SME only. It reads watchlists and holdings across
+    users only to order the queue and returns symbols, never who holds them (service role only).
+  - A stock page with no headline in 6 hours searches that stock in `after()`. The claim keeps this to one request per
+    stock per 6 hours and none while 30 searches ran in the last minute.
+- **Rejected:** a pg_cron job calling the news endpoint (needs the cron secret in the database); searching before the
+  page renders (adds seconds to every stock page); keeping the 500-company limit and curating aliases for ~3,000
+  companies by hand.
+- **Still true:** headlines that call a small company by a nickname not in its listed name are only found by search or
+  an alias; one-word names that are everyday words (`COMMON_ONE_WORD`) need an alias.
+
 ### ADR-061 · SuperTrend breakout: the owner's AmiBroker rule, added after it failed the house check
 **Date** 2026-11-18 · **Status** accepted
 - **Context:** the owner brought an AmiBroker rule: the 25-day linear-regression slope of the 195-day average above 0;

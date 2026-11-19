@@ -1,8 +1,8 @@
 // Unit tests for the pure news helpers:  npm run test:unit
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decodeEntities, nseFilingSymbol, normaliseUrl, parseFeed, parseFeedDate } from "./feed";
-import { SymbolMatcher } from "./match";
+import { decodeEntities, isQuotePage, nseFilingSymbol, normaliseUrl, parseFeed, parseFeedDate } from "./feed";
+import { SymbolMatcher, smallNameForms } from "./match";
 import { scoreTone } from "./tone";
 
 const symbols = [
@@ -59,6 +59,74 @@ test("matcher: longer names win, the RBI is not Bank of India, small caps need a
   assert.deepEqual(one.match("Tiny Widgets wins an order").map((x) => x.symbol), ["TINYCO"]);
 });
 
+test("matcher: smaller companies by name, strictly (ADR-062)", () => {
+  const ref = (symbol: string, name: string, rank: number | null, segment = "equity") => ({ symbol, exchange: "NSE" as const, name, rank, segment });
+  const all = new SymbolMatcher(
+    [
+      ref("VEDL", "Vedanta Limited", 40),
+      ref("VEDOG", "Vedanta Oil and Gas Limited", 900),
+      ref("VRLLOG", "VRL Logistics Limited", 700),
+      ref("INDOCOUNT", "Indo Count Industries Limited", 650),
+      ref("CYIENT", "Cyient Limited", 520),
+      ref("TAKE", "TAKE Limited", 2000),
+      ref("PREMIER", "Premier Limited", 1800),
+      ref("AHLNORTH", "Asian Hotels (North) Limited", 1500),
+      ref("AHLEAST", "Asian Hotels (East) Limited", 1600),
+      ref("GEOJITFSL", "Geojit Financial Services Limited", 800),
+      ref("PARAS", "Paras Healthcare Limited", 1100),
+      ref("SMALLETF", "Small Cap ETF", 1200, "etf"),
+    ],
+    [],
+    { nameRankLimit: 500, smallNames: true },
+  );
+  const syms = (t: string) => all.match(t).map((x) => x.symbol).sort();
+  assert.deepEqual(syms("VRL Logistics shares jump 14% to 52-week high"), ["VRLLOG"]);
+  assert.deepEqual(syms("Indo Count shares rally on US orders"), ["INDOCOUNT"]); // the short form headlines use
+  assert.deepEqual(syms("indo count is lower case here"), []); // short forms only in the listed capitals
+  assert.deepEqual(syms("Cyient wins a contract"), ["CYIENT"]);
+  assert.deepEqual(syms("Vedanta Oil and Gas swings to profit"), ["VEDOG"]); // not Vedanta itself
+  assert.deepEqual(syms("Take a look at these stocks"), []); // a common word is never a company
+  assert.deepEqual(syms("Premier League final"), []);
+  assert.deepEqual(syms("Asian Hotels shares rise"), []); // three companies share the short form
+  assert.deepEqual(syms("Asian Hotels (North) shares rise"), ["AHLNORTH"]);
+  assert.deepEqual(syms("Buy Paras Healthcare; target of Rs 900: Geojit Financial Services - Moneycontrol.com"), ["PARAS"]); // the broker is the source
+  assert.deepEqual(syms("Geojit Financial Services Q2 profit rises"), ["GEOJITFSL"]);
+  assert.deepEqual(syms("Small Cap ETF sees inflows"), []);
+  // Without smallNames (the old behaviour) only aliases reach them.
+  const old = new SymbolMatcher([ref("VRLLOG", "VRL Logistics Limited", 700)], [], { nameRankLimit: 500 });
+  assert.deepEqual(old.match("VRL Logistics shares jump"), []);
+});
+test("matcher: name forms for smaller companies", () => {
+  assert.deepEqual(smallNameForms("Indo Count Industries Limited"), [{ text: "Indo Count Industries", exact: false }, { text: "Indo Count", exact: true }]);
+  assert.deepEqual(smallNameForms("Tata Teleservices (Maharashtra) Limited"), [{ text: "Tata Teleservices (Maharashtra)", exact: false }, { text: "Tata Teleservices", exact: true }]);
+  assert.deepEqual(smallNameForms("eMudhra Limited"), [{ text: "eMudhra", exact: true }]);
+  assert.deepEqual(smallNameForms("USHA FINANCIAL SERVICES L"), [{ text: "USHA FINANCIAL SERVICES", exact: false }]);
+  assert.deepEqual(smallNameForms("GANESH GREEN BHARAT LIMITED"), [{ text: "GANESH GREEN BHARAT", exact: false }]);
+  for (const junk of ["TAKE Limited", "BPL Limited", "SHIVAM-RE1", "111NSETEST", "IRBINVIT", "UTIAMC-NIFTYBETA", "Jai Corp Limited"]) {
+    assert.ok(smallNameForms(junk).every((f) => f.text.includes(" ")), junk); // no one-word form for these
+  }
+});
+test("feed: quote and chart pages are not news", () => {
+  for (const t of [
+    "Trident Share Price - Upstox",
+    "Tonbo Imaging India Ltd. Share Price Live Today - CNBC TV18",
+    "Virtuoso Optoelectronics Limited (VOEPL.NS) latest stock news and headlines - Yahoo Finance UK",
+    "Jyoti Resins and Adhesives Limited (JYOTIRES.NS) interactive stock chart - Yahoo Finance UK",
+    "SFC Environmental Technologies Ltd Announcements - Business Standard",
+    "M K Sons Fine Jewels Ltd. - Moneycontrol.com",
+    "Greenleaf Envirotech Ltd Shareholding Pattern – Promoters, FIIs & DIIs - Value Research",
+    "Transrail Lighting (NSEI:TRANSRAILL) - Stock Analysis - Simply Wall St",
+    "Nelcast Limited (NELCAST.NS) Slips 0.99% to ₹131.29 - Advance Decline Line - https://www.siam.in/",
+    "Shah Metacorp Limited (SHAH.BO) Analyst insights, Price targets and Recommendations - Yahoo Finance",
+    "Hawkins Cookers (HAWKINCOOK.NS) Edges Up 1.22% to ₹7602.5 - Market Notes",
+  ]) assert.ok(isQuotePage(t), t);
+  for (const t of [
+    "Tata Steel share price jumps 5% after Q2 results - Business Standard",
+    "VRL Logistics shares jumps 14% to 52-week high as Q2-profit more than doubles - Moneycontrol.com",
+    "Trident share price: stock rises on export orders",
+    "Jay Bharat Maruti Ltd is Rated Hold - MarketsMojo",
+  ]) assert.ok(!isQuotePage(t), t);
+});
 test("tone: direction and explanation", () => {
   assert.equal(scoreTone("Infosys shares crash to 6-year lows").label, "negative");
   assert.ok(scoreTone("Stock at 6-year lows").terms.includes("−new low"));

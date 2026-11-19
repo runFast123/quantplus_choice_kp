@@ -8,7 +8,7 @@ import { ingestNews, relinkRecentArticles } from "../src/server/privileged/news"
 if (process.argv.includes("--relink")) {
   console.log(JSON.stringify(await relinkRecentArticles(), null, 2));
 } else {
-  const report = await ingestNews({ searchSymbols: Number(process.env.NEWS_SEARCH_SYMBOLS ?? 8) });
+  const report = await ingestNews({ searchSymbols: Number(process.env.NEWS_SEARCH_SYMBOLS ?? 40) });
   console.log(JSON.stringify(report, null, 2));
   // Shown on the GitHub run's summary: a research timeout hid inside this JSON for a week (9-16 Nov 2026).
   for (const e of report.errors) console.log(`::warning::news ${e.replace(/\s+/g, " ")}`);

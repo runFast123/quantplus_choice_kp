@@ -88,6 +88,23 @@ export function parseFeed(xml: string): FeedItem[] {
   return out;
 }
 
+/**
+ * A stock's quote, chart or profile page rather than news ("Trident Share Price - Upstox", "X Ltd. Share Price Live
+ * Today - CNBC TV18", "X Limited (X.NS) interactive stock chart - Yahoo Finance", "X Ltd Announcements - Business
+ * Standard", "X Ltd. - Moneycontrol.com") or an auto-written page whose source is a bare web address. Per-company
+ * search turns these up for every small company; they say nothing new, so they are not stored.
+ */
+export function isQuotePage(title: string): boolean {
+  return (
+    /\b(?:share|stock) price\b(?:\s+(?:live|today|chart))*\s*(?:[-–|,]|$)/i.test(title) ||
+    /\b(?:latest stock news and headlines|interactive stock chart|analyst insights|stock historical prices|historical prices and data|shareholding pattern|live bse\/nse|stock analysis\s*-)/i.test(title) ||
+    /\bannouncements\s*-\s*[^-]+$/i.test(title) ||
+    /\([A-Z0-9&-]+\.(?:NS|BO)\)/.test(title) || // Yahoo-style ticker: quote pages and machine-written price notes
+    /^[^:;|]{2,90}\b(?:ltd\.?|limited)\s*[-–]\s*[^-]{2,40}$/i.test(title) ||
+    /\s-\s*https?:\/\/\S+$/i.test(title)
+  );
+}
+
 /** Strip tracking params so the same story from two feeds dedupes. */
 export function normaliseUrl(u: string): string {
   try {

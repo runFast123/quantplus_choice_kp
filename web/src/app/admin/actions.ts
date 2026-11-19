@@ -76,7 +76,7 @@ export async function fetchNewsNow(): Promise<ActionState> {
   const s = await requireSession();
   if (!(await isPlatformAdmin(s.userId))) return { error: "Not a platform admin." };
   try {
-    const r = await ingestNews({ searchSymbols: 8 });
+    const r = await ingestNews({ searchSymbols: 40 });
     revalidatePath("/admin");
     const failed = r.sources.filter((x) => x.status === "error").length;
     return { ok: true, message: `${r.inserted} new headlines, ${r.linked} stock links, ${r.researchRows ?? 0} notes rebuilt${failed ? `; ${failed} source(s) failed` : ""} (${Math.round(r.durationMs / 1000)}s).` };
