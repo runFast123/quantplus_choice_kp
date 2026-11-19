@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeftIcon,
+  ChartLineUpIcon,
   CheckCircleIcon,
   CreditCardIcon,
   DatabaseIcon,
@@ -37,6 +38,7 @@ import { ActivateForm } from "./activate-form";
 import { MaintenanceOperations } from "./maintenance-panel";
 import { FetchNewsButton } from "./news-button";
 import { PriceReviewForm } from "./price-review-form";
+import { SignalsTab } from "./signals-tab";
 import { wrongParts } from "@/lib/price-checks";
 
 export const metadata: Metadata = { title: "Platform admin" };
@@ -50,7 +52,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
-  const currentTab = typeof sp.tab === "string" && ["overview", "database", "accounts", "billing", "news", "audit"].includes(sp.tab)
+  const currentTab = typeof sp.tab === "string" && ["overview", "signals", "database", "accounts", "billing", "news", "audit"].includes(sp.tab)
     ? sp.tab
     : "overview";
 
@@ -118,6 +120,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         <div className="flex flex-wrap items-center gap-1 border-b border-border pb-1">
           {[
             { id: "overview", label: "Overview & Operations", icon: SquaresFourIcon },
+            { id: "signals", label: "Signals after the close", icon: ChartLineUpIcon },
             { id: "database", label: "Database & Pipelines", icon: DatabaseIcon, count: dbInventory.tables.length },
             { id: "accounts", label: "Accounts & Plans", icon: UsersThreeIcon, count: stats.users },
             { id: "billing", label: "Financial Ledger", icon: CreditCardIcon },
@@ -129,7 +132,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             return (
               <Link
                 key={tabItem.id}
-                href={`/admin?tab=${tabItem.id}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                href={`/admin?tab=${tabItem.id}${q && tabItem.id === "accounts" ? `&q=${encodeURIComponent(q)}` : ""}`}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-t-md text-[12.5px] font-medium transition-colors border-b-2 -mb-1 ${
                   isActive
                     ? "border-foreground text-foreground bg-foreground/[0.04]"
@@ -244,6 +247,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             </div>
           </div>
         )}
+
+        {/* Signals after the close (ADR-063): the seven rules' buys, dip-buy levels and exits on one session. */}
+        {currentTab === "signals" && <SignalsTab db={s.supabase} sp={sp} />}
 
         {/* =========================================================================
             TAB 2: DATABASE STORAGE INVENTORY

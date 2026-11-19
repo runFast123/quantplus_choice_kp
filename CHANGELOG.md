@@ -5,6 +5,24 @@ All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.
 building something; it may already exist (then check `docs/CODEMAP.md`).
 ## [Unreleased]
 
+### Added — admin: Signals after the close (ADR-063, 19 Nov 2026)
+- Why: the owner wanted one place to see, after each day's prices are loaded, which stocks each of the seven rules
+  picked: how many per rule, which ones, and what the rule does the next session, with filters.
+- `/admin?tab=signals` (`app/admin/signals-tab.tsx`, second tab of the console): a picker of the last ten sessions (with
+  the stocks bought or given a dip-buy level on each), totals (stocks with a buy, buy signals, dip-buy levels for the
+  next session, stocks on 2+ rules, exits), one card per rule (buys, levels, exits, rule health, the stocks as links,
+  why Strong trend is quiet when the market is not sunny) and a table of stocks with each rule's signal, what the rule
+  does next ("Buys at the next open", "Buys the next session only if it trades at ₹X or lower", "Sold: safety stop"),
+  the signal close, the safety stop (SuperTrend breakout: none) and the latest price. Filters: stock search, rule,
+  Show (buys and dip levels / buys / levels / exits / everything), company size, board, sector, 2+ rules, sort; all in
+  the URL. Says when the newest prices are in but the rules have not run on them yet.
+- Data (`server/admin-signals.ts` `loadDaySignals`, `lib/admin-signals.ts`): `trading_signals`, `signal_watch`,
+  `market_snapshot`, `signal_checks`, `rule_health`, read with the admin's own sign-in (market data; no service role, no
+  one's lists or holdings). Unit tests `lib/admin-signals.test.mts`; `e2e/security.spec.ts` checks the tab is a 404 for
+  non-admins.
+- Fixed on the way: the console header's "EOD" date and the Overview freshness showed "—" / stale because the newest
+  `market_snapshot.as_of` was read with symbols that have no quote sorted first (`server/privileged/admin.ts`).
+
 ### Fixed — news for smaller companies (ADR-062, 19 Nov 2026)
 - Why: in the last 14 days 85 % of the 100 largest companies had a headline but only 7 % of everything past the 500
   largest. Two causes: headlines were matched by name only for the 500 largest, and the per-company search reached about

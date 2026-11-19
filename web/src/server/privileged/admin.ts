@@ -127,7 +127,8 @@ export async function getDatabaseInventory(actorId: string): Promise<DatabaseInv
     indexRes,
     smeRes,
   ] = await Promise.all([
-    db.from("market_snapshot").select("as_of", { count: "exact" }).order("as_of", { ascending: false }).limit(1),
+    // Newest price day; symbols without a quote yet (as_of null) sort first in a descending order, so skip them.
+    db.from("market_snapshot").select("as_of", { count: "exact" }).order("as_of", { ascending: false, nullsFirst: false }).limit(1),
     db.from("market_symbols").select("symbol", { count: "exact", head: true }),
     db.from("market_candles").select("ts", { count: "estimated", head: true }),
     db.from("trading_signals").select("generated_at", { count: "estimated" }).order("generated_at", { ascending: false }).limit(1),

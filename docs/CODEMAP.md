@@ -118,6 +118,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `privileged/guards.ts` | `membershipRole`, `assertMember`, `planHasFeature`, `hasActiveConsent`, `PrivilegedError` | Re-establish what RLS would enforce |
 | `privileged/crypto.ts` | `seal(plaintext, aad)`, `open(sealed, aad)`, type `Sealed` | AES-256-GCM, `QP_SECRETS_KEY_V<n>` |
 | `rule-compare.ts` | `loadComparison(db, {symbol?, portfolioId?})` → `Comparison` (your lots and sales, `rule_trades` for those stocks, splits, NIFTY sessions, last closes; paged past 1,000 rows; a failed read throws) | Step D |
+| `admin-signals.ts` | `loadDaySignals(db, day)` → the session (`day`, `latest`, `pending`, `isLatest`, `levelsDay`, `weather`, `sessions` with stocks per day), its `signals` (`DaySignal[]`), `info` (quotes), check `tags`, rule `health`; caller's JWT, paged reads (ADR-063) |
 | `behaviour-mirror.ts` | `loadMirror(db)` → `Mirror` + `firstBuy`, `stocks` (your lots and sales, splits, stored closes from ~2 months before your first purchase, last closes; reuses `pageAll`, `chunks` exported by `server/rule-compare.ts`) | Your trading habits |
 | `privileged/audit.ts` | `audit({...})` | Append to `audit_log` with hashed IP |
 | `privileged/tenants.ts` | `switchTenant`, `createOrganization`, `createInvitation`, `previewInvitation`, `acceptInvitation`, `changeMemberRole` | Role-escalation rules live here |
@@ -145,6 +146,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `setups.ts` | `SETUPS` (key, label, rule), type `SetupKey`, `isSetupKey`, `setupsOf(tags)` |
 | `news/display.ts` | `cleanTitle(title, source)` (drops a trailing publisher name), `summaryEchoes(summary, title)`, `dayLabel`, `groupByDay(items)` (IST days), `stocksInNews(items, limit)` → symbol, n, pos, neg |
 | `rules.ts` | `RULES` (the seven rules in display order: key, name, tag, kind trend/dip, `why`), `OLD_RULES`, `RULE_KEYS`, `DEFAULT_EXIT_RULES` (the first three trend rules; same as the SQL default), `SUPERTREND_EXIT_RULES` / `hasSuperTrendExit(s)` (trend rules with their own exit: SuperTrend breakout, no stop, no 60-session review), `isRule`, `isOldRule`, `ruleOf`, `ruleTag` — the one list `HEALTH_RULES`, `isTrendRule` and the stock page read |
+| `admin-signals.ts` | Admin Signals tab helpers (ADR-063): `fromSignal`, `fromWatch` → `DaySignal` (kind buy/level/exit), `groupByStock`, `ruleCounts`, `headline`, `parseFilters`, `applyFilters`, `signalsHref`, `sizeOf`, `istDay`, `SHOW`, `SIZES`, `SORTS`, types `StockRow`, `StockInfo`, `Filters`. Tests `admin-signals.test.mts` |
 | `rule-health.ts` | `HEALTH_RULES`, `isHealthRule`, `HEALTH_STATUS` (label, tone, meaning per status), `CAUSE` (words per loss cause), `healthSentence(row)`, `mainCause`, `mistakeSentence(row)`, `pos`, types `HealthRow`, `HealthStatus`, `Cause` (ADR-039) |
 | `signal-checks.ts` | `isCheckRule`, `CHECK_TAG` (tag words + meaning), `checkKey`, `signalDayOf(sg)` (a dip's setup close), `quarterStartIST`, `daysAgoIST`, `CHECK_TESTED` (tested record by year, from `research/strategies/team`), `liveYears(rows, rule)`, `total`, `standingLine(rule, years)` (names the wrong years), `periodsSentence`, types `CheckRule`, `CheckYear`, `RecordRow` |
 | `dip-rules.ts` | `isDipRule`, `DIP_EXIT`, `dipStatus(stop, last)`, `DIP_TESTED` (tested record per rule, from `research/strategies/record_dip.py`), `dipTestedSentence(rule)`, type `DipRule` |
@@ -207,6 +209,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `app/app/workspace/actions.ts` | `createOrgAction`, `inviteAction`, `revokeInvitation`, `changeRoleAction`, `removeMember`, `leaveWorkspace`, `renameWorkspace` |
 | `app/app/integrations/actions.ts` | `saveAiKeyAction`, `deleteAiKey`, `fetchProviderModelsAction` |
 | `app/app/settings/actions.ts` | `updateProfile`, `changePassword`, `setConsent`, `deleteMyAccount`, `savePushSubscription`, `removePushSubscription`, `sendTestPushAction`, `saveExitRules` (which rules message you about stocks you hold) |
+| `app/admin/signals-tab.tsx` | `SignalsTab({db, sp})` — Signals after the close (ADR-063): session picker, totals, one card per rule, filters, stock × signal table (`data-testid="admin-signals"`, `admin-signal-rules`) |
 | `app/admin/actions.ts` | `activatePlanAction`, `fetchNewsNow`, `refreshMarketAnalyticsAction`, `refreshResearchNotesAction`, `runEodNotifierAction`, `syncEodMarketPricesAction` |
 | `app/app/research/actions.ts` | `askMyAi` (BYOK research read; nothing stored) |
 | `app/invite/[token]/page.tsx` | inline `accept` action |
@@ -248,7 +251,7 @@ pipeline: `market-analytics` (12:25 UTC), `eod-notifier` (12:30 UTC), `research-
 | `/api/extension/session` | POST (what the extension uses) or GET: Bearer JWT or cookie session → `{ authenticated, user }`; to a `chrome-extension://` origin only, also `{ token, expiresAt }` from the cookie session (how the extension signs in) |
 | `/api/extension/download` | GET direct download endpoint serving `quantspulse-terminal.zip` package |
 | `/api/extension/quote?symbol=` | Quote, stored signals (`latestSignal` + `rule`, `sessionsSince`, `moveSincePct`), `history` (≤63 daily closes, oldest first) and trade plan for the Chrome Extension (Bearer; `*` CORS without credentials, credentials only for the extension); 401 when signed out |
-| `/admin` | platform console (404 unless platform admin) |
+| `/admin` | platform console (404 unless platform admin); tabs `?tab=` overview, signals, database, accounts, billing, news, audit. `signals` (ADR-063): `&day=YYYY-MM-DD&rule=&show=&size=&segment=&sector=&find=&multi=1&sort=` (show: buys / buy / level / exit / all; sort: rules / size / move / symbol) |
 
 ## 6. Components (web/src/components)
 

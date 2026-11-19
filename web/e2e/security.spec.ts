@@ -45,6 +45,10 @@ test.describe("security boundaries", () => {
     const page = await ctx.newPage();
     await page.goto("/admin");
     await expect(page.getByText("No such page")).toBeVisible();
+    // Every tab, the Signals one included (ADR-063), answers the same way.
+    await page.goto("/admin?tab=signals&rule=sma_trend");
+    await expect(page.getByText("No such page")).toBeVisible();
+    await expect(page.getByTestId("admin-signals")).toHaveCount(0);
     await ctx.close();
   });
 });

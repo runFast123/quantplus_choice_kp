@@ -354,6 +354,26 @@ also removes the only reason to hold third-party trading credentials. Reintroduc
   RSI dips after the live history began (Jul–Aug 2025) lack a 200-day slope and use the training median, as the research
   does for missing values.
 
+### ADR-063 · Admin "Signals after the close": the seven rules' picks per session, read with the admin's own sign-in
+**Date** 2026-11-19 · **Status** accepted
+- **Context:** the Signals page shows a member's own stocks (or the newest 200 signals across all of them) and mixes
+  sessions; the owner wanted to see, after each evening's run, every stock each rule picked on that close, counted per
+  rule, and filter them.
+- **Decision:**
+  - A tab in the platform console (`/admin?tab=signals`), one session at a time (the last ten sessions = NIFTY candle
+    days). A session's rows are its `trading_signals` buys and exits of the seven rules plus, for the latest close only,
+    the dip-buy levels in `signal_watch` (they are rebuilt each run and not kept).
+  - "What the rule does next" follows the tested plans: trend rules buy at the next open; a dip rule buys the next
+    session only if the price trades at its level; a dip rule's stored buy is that fill.
+  - The rules have run on a close once `market_weather` has that day (same run); until then the tab shows the last
+    close they ran on and says the newest is pending.
+  - Reads use the admin's own JWT: these are market tables every member may read, so the service role is not needed
+    and nobody's watchlists or holdings are touched (golden rule 3).
+  - Filters are plain GET parameters (works without JavaScript, links can be shared between admins).
+- **Rejected:** a new table or view of "tomorrow's buys" (the stored signals already say it); showing it to members
+  (signals are research, and the Signals page already covers their stocks).
+- **Still true:** it lists what the rules did, not what will happen; many dip-buy levels are never reached.
+
 ### ADR-062 · News for every listed company: strict name matching, a fair search queue, a refresh on page view
 **Date** 2026-11-19 · **Status** accepted (supersedes the News line of ADR-027)
 - **Context:** ADR-027 matched headlines by name only for the 500 largest and left the rest to curated aliases and a
