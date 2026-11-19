@@ -10,9 +10,10 @@ begin
   raise notice 'PASS [%]', p_label;
 end $$;
 
--- Everything already listed was searched a day ago, so only the fixtures below compete.
+-- Everything already listed was searched an hour ago (recent enough that no real watched stock jumps the queue on the
+-- live database), so only the fixtures below compete.
 insert into public.news_search_cursor (symbol, exchange, last_fetched_at)
-select symbol, exchange, now() - interval '1 day' from public.market_symbols where is_active and segment in ('equity', 'sme')
+select symbol, exchange, now() - interval '1 hour' from public.market_symbols where is_active and segment in ('equity', 'sme')
 on conflict (symbol, exchange) do update set last_fetched_at = excluded.last_fetched_at;
 
 insert into public.market_symbols (symbol, exchange, name, segment, mcap_rank, is_active) values
@@ -42,7 +43,7 @@ select qp_t32.check((select count(*) from public.svc_claim_news_search(200) wher
 
 -- A stock page: only a stale stock, only the stocks asked for.
 select qp_t32.check((select count(*) from public.svc_claim_news_search(1, '{QPWATCH}')) = 0, 'page: not again within 6 hours');
-update public.news_search_cursor set last_fetched_at = now() - interval '1 day' where last_fetched_at = now();
+update public.news_search_cursor set last_fetched_at = now() - interval '1 hour' where last_fetched_at = now();
 update public.news_search_cursor set last_fetched_at = now() - interval '7 hours' where symbol = 'QPNEWTINY';
 select qp_t32.check((select symbol from public.svc_claim_news_search(5, '{QPNEWTINY}')) = 'QPNEWTINY', 'page: claims a stale stock');
 select qp_t32.check((select count(*) from public.svc_claim_news_search(5, '{QPGONE}')) = 0, 'page: never a retired symbol');
